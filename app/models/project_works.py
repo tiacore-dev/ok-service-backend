@@ -13,7 +13,7 @@ class ProjectWorks(Base):
     summ = Column(Numeric(precision=10, scale=2), nullable=True)
     signed = Column(Boolean, nullable=False, default=False)
     
-    work = relationship("Works", back_populates="project-work")
+    work = relationship("Works", back_populates="project_work")
 
 
     def to_dict(self):

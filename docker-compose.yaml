@@ -1,0 +1,56 @@
+services:
+  alembic:
+    build: .
+    command: alembic upgrade head      
+    volumes:
+      - .:/app
+    networks:
+      - ok_network
+
+
+  web:
+    tty: true
+    stdin_open: true
+    build: .
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    ports:
+      - "${FLASK_PORT}:${FLASK_PORT}"
+    environment:
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+    depends_on:
+      - alembic
+    volumes:
+      - .:/app
+    command: gunicorn -c gunicorn.conf.py run:app
+    networks:
+      - ok_network
+
+  init_roles:
+    build: .
+    command: python set_roles.py
+    depends_on:
+      - alembic
+    networks:
+      - ok_network
+    volumes:
+      - .:/app
+
+  init_password:
+    build: .
+    command: python set_admin.py  # Запуск скрипта для добавления админа
+    depends_on:
+      - alembic
+      - init_roles
+    networks:
+      - ok_network
+    volumes:
+      - .:/app
+
+
+
+networks:
+  ok_network:
+    external: true

@@ -17,7 +17,7 @@ class Works(Base):
     work_price = relationship("WorkPrices", back_populates="work")
     project_work = relationship("ProjectWorks", back_populates="work")
     project_schedule = relationship("ProjectSchedules", back_populates="work")
-    shift_report_details = relationship("ShiftreportDetails", back_populates="work")
+    shift_report_details = relationship("ShiftReportDetails", back_populates="work")
 
 
 

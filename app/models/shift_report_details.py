@@ -13,7 +13,7 @@ class ShiftReportDetails(Base):
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
     summ = Column(Numeric(precision=10, scale=2), nullable=False)
     
-    shift_report = relationship("ShiftReports", back_populates="shif_report_details")
+    shift_report = relationship("ShiftReports", back_populates="shift_report_details")
     work = relationship("Works", back_populates="shift_report_details")
 
 

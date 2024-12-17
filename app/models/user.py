@@ -16,7 +16,7 @@ class Users(Base):
     category = Column(Integer, nullable=True)
     deleted = Column(Boolean, nullable=False, default=False)
     
-    role = relationship("Role", back_populates="user")
+    roles = relationship("Roles", back_populates="user")
     project = relationship("Projects", back_populates="user")
     shift_report = relationship("ShiftReports", back_populates="user")
 

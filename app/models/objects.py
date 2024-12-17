@@ -15,6 +15,8 @@ class Objects(Base):
 
         # Определяем отношение к объекту ObjectStatuses
     object_status = relationship("ObjectStatuses", back_populates="object")
+    project = relationship("Projects", back_populates="object")
+
 
     def to_dict(self):
         return {

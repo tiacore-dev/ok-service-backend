@@ -11,6 +11,6 @@ def init_db(database_url):
     engine = create_engine(database_url, echo=False)
     Session = sessionmaker(bind=engine)
     # Создание всех таблиц
-    Base.metadata.create_all(engine)
+    #Base.metadata.create_all(engine)
 
     return engine, Session, Base

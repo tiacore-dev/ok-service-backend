@@ -14,9 +14,9 @@ class ShiftReports(Base):
     signed = Column(Boolean, nullable=False, default=False)
     deleted = Column(Boolean, nullable=False, default=False)
     
-    user = relationship("Users", back_populates="shif_report")
+    user = relationship("Users", back_populates="shift_report")
     project = relationship("Projects", back_populates="shift_report")
-    shift_report_details = relationship("ShiftreportDetails", back_populates="shift_report")
+    shift_report_details = relationship("ShiftReportDetails", back_populates="shift_report")
 
 
     def to_dict(self):

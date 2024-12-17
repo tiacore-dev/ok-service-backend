@@ -10,7 +10,7 @@ class Roles(Base):
     name = Column(String, nullable=False)
 
 
-    users = relationship("User", back_populates="role_obj")
+    user = relationship("Users", back_populates="roles")
 
     def to_dict(self):
         return {
