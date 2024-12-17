@@ -19,11 +19,17 @@ def auth():
     password = request.json.get("password", None)
 
     # Проверяем пользователя в базе данных
-    if not db.user_exists(login) or not db.check_password(login, password):
+    if not db.exists(login) or not db.check_password(login, password):
         return {"msg": "Bad username or password"}, 401
+    
+    user = db.filter_one_by_dict(login=login)
+    identity = json.dumps({
+        "user_id": user['user_id'],
+        "role": user['role_id']
+    })
     # Генерируем Access и Refresh токены с дополнительной информацией
-    access_token = create_access_token(identity=login)
-    refresh_token = create_refresh_token(identity=login)
+    access_token = create_access_token(identity=identity)
+    refresh_token = create_refresh_token(identity=identity)
 
     return jsonify(access_token=access_token, refresh_token=refresh_token), 200
 

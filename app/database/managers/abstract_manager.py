@@ -94,7 +94,19 @@ class BaseDBManager(ABC):
         """Фильтрация записей по заданным критериям."""
         with self.session_scope() as session:
             return session.query(self.model).filter_by(**kwargs).all()
+        
+    def filter_by_dict(self, **kwargs):
+        """Фильтрация записей с преобразованием объектов в словари."""
+        with self.session_scope() as session:
+            records = session.query(self.model).filter_by(**kwargs).all()
+            return [record.to_dict() for record in records]
 
+
+    def filter_one_by_dict(self, **kwargs):
+        """Фильтрация записей с ожиданием одного результата, возвращаем словарь или None."""
+        with self.session_scope() as session:
+            record = session.query(self.model).filter_by(**kwargs).first()
+            return record.to_dict() if record else None
 
     def exists_by_id(self, record_id):
         with self.session_scope() as session:

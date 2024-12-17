@@ -14,7 +14,8 @@ account_bp = Blueprint('account', __name__)
 def protected():
     try:
         current_user = get_jwt_identity()
-        logger.info(f"Пользователь авторизован: {current_user}")
+        current_user = json.loads(current_user)
+        logger.info(f"Пользователь авторизован: {current_user['user_id']}")
         return jsonify({"message": "Access granted"}), 200
     except Exception as e:
         logger.error(f"Ошибка авторизации: {str(e)}")
