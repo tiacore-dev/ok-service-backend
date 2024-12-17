@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, UUID, ForeignKey, Boolean
+from sqlalchemy import Column, String, UUID, ForeignKey, Boolean
 from app.database.db_setup import Base 
 from uuid import uuid4
 from sqlalchemy.orm import relationship
@@ -9,7 +9,7 @@ class Projects(Base):
     
     project_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     name = Column(String, nullable=False)
-    object_id = Column(UUID, ForeignKey('objects.object_id'), nullable=False)
+    object_id = Column(String, ForeignKey('objects.object_id'), nullable=False)
     project_leader = Column(UUID, ForeignKey('users.user_id'),nullable=True)
     deleted = Column(Boolean, nullable=False, default=False)
     
