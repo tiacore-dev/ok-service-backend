@@ -18,6 +18,6 @@ from app.database.managers.user_manager import UserManager
 db = UserManager()
 
 
-if not db.exists(login):
+if not db.exists(login=login):
     db.add(login=login, password=password, name=username, role='admin')
     print('New admin added successfully')
