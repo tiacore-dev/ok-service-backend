@@ -1,6 +1,6 @@
 
 from flask_jwt_extended import create_access_token
-from flask import jsonify, request, Blueprint, render_template
+from flask import jsonify, request, Blueprint
 from flask_jwt_extended import create_refresh_token, get_jwt_identity, verify_jwt_in_request
 import json
 
