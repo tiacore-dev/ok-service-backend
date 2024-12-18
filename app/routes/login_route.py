@@ -25,7 +25,7 @@ def auth():
     user = db.filter_one_by_dict(login=login)
     identity = json.dumps({
         "user_id": user['user_id'],
-        "role": user['role_id']
+        "role": user['role']['role_id']
     })
     # Генерируем Access и Refresh токены с дополнительной информацией
     access_token = create_access_token(identity=identity)
