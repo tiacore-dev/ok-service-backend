@@ -29,12 +29,13 @@ class Users(Base):
 
     def to_dict(self):
         # Проверяем, есть ли роль
-        role_data = self.role_obj.to_dict() if self.role_obj else None
+        role_data = self.roles.to_dict() if self.roles else None
         return {
             "user_id": self.user_id,
             "login": self.login,
             "name": self.name,
-            "role": self.role,
+            #"role": self.role,
+            "role": role_data,
             "category": self.category if self.category else None,
             "deleted": self.deleted
         }
