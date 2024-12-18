@@ -13,7 +13,7 @@ login_ns.models[refresh_model.name] = refresh_model
 login_ns.models[response_auth.name] = response_auth
 
 
-@login_ns.route('/')
+@login_ns.route('/login')
 class Auth(Resource):
     @login_ns.expect(login_model)
     @login_ns.marshal_with(response_auth)
