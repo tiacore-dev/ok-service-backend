@@ -1,5 +1,6 @@
 from app.database.models import Projects, ProjectSchedules, ProjectWorks
-from app.database.managers.abstract_manager import BaseDBManager  # Предполагается, что BaseDBManager в другом файле
+# Предполагается, что BaseDBManager в другом файле
+from app.database.managers.abstract_manager import BaseDBManager
 
 
 class ProjectsManager(BaseDBManager):
@@ -14,7 +15,8 @@ class ProjectSchedulesManager(BaseDBManager):
     @property
     def model(self):
         return ProjectSchedules
-    
+
+
 class ProjectWorksManager(BaseDBManager):
 
     @property

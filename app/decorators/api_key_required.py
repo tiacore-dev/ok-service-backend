@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import jsonify, request, current_app
 
+
 def api_key_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):

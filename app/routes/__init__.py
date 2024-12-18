@@ -4,12 +4,10 @@ from .account_route import account_bp
 from .namespaces.login_ns import login_ns
 
 
-
-def register_routes(app: Flask): 
+def register_routes(app: Flask):
     app.register_blueprint(account_bp)
-
 
 
 def register_namespaces(api: Api):
     api.add_namespace(login_ns)
-    #api.add_namespace()
+    # api.add_namespace()

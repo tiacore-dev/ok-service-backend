@@ -1,5 +1,6 @@
 from app.database.models import Users
-from app.database.managers.abstract_manager import BaseDBManager  # Предполагается, что BaseDBManager в другом файле
+# Предполагается, что BaseDBManager в другом файле
+from app.database.managers.abstract_manager import BaseDBManager
 
 
 class UserManager(BaseDBManager):
@@ -24,7 +25,6 @@ class UserManager(BaseDBManager):
             session.add(new_user)
             # При выходе из контекстного менеджера произойдёт commit
             return new_user
-
 
     def check_password(self, username, password):
         """Проверяем пароль пользователя"""

@@ -20,7 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade():
     op.add_column('users', sa.Column('role', sa.String(), nullable=False))
-    op.create_foreign_key('users_role_fkey', 'users', 'roles', ['role'], ['role_id'])
+    op.create_foreign_key('users_role_fkey', 'users',
+                          'roles', ['role'], ['role_id'])
+
 
 def downgrade():
     op.drop_constraint('users_role_fkey', 'users', type_='foreignkey')

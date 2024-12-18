@@ -1,5 +1,6 @@
 from app.database.models import Objects, ObjectStatuses
-from app.database.managers.abstract_manager import BaseDBManager  # Предполагается, что BaseDBManager в другом файле
+# Предполагается, что BaseDBManager в другом файле
+from app.database.managers.abstract_manager import BaseDBManager
 
 
 class ObjectsManager(BaseDBManager):

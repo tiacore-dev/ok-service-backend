@@ -1,5 +1,6 @@
 from app.database.models import Roles
-from app.database.managers.abstract_manager import BaseDBManager  # Предполагается, что BaseDBManager в другом файле
+# Предполагается, что BaseDBManager в другом файле
+from app.database.managers.abstract_manager import BaseDBManager
 
 
 class RolesManager(BaseDBManager):
@@ -7,5 +8,3 @@ class RolesManager(BaseDBManager):
     @property
     def model(self):
         return Roles
-
-
