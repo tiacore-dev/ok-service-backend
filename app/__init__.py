@@ -8,6 +8,15 @@ from flask_cors import CORS
 from flask_restx import Api
 from app.routes import register_namespaces
 
+authorizations = {
+    'Bearer': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization',
+        'description': 'Добавьте JWT-токен в формате: Bearer <jwt_token>'
+    }
+}
+
 def create_app():
     app = Flask(__name__)
 
@@ -51,17 +60,16 @@ def create_app():
         raise
 
     # Инициализация API
-    api = Api(app, doc='/swagger', security='apiKey', authorizations={
-        'apiKey': {
-            'type': 'apiKey',
-            'in': 'header',
-            'name': 'API-Key',
-            'description': 'Добавьте API-ключ в заголовок `Authorization``'
-            }})
+    api = Api(
+        app,
+        doc='/swagger',
+        security='Bearer',
+        authorizations=authorizations
+    )
      # Регистрация маршрутов
     register_namespaces(api)
     # Настройка CORS
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(app, resources={r"/*": {"origins": app.config['ORIGIN']}})
 
 
     return app

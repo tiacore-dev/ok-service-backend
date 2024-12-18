@@ -1,7 +1,6 @@
 from flask import request, jsonify
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, verify_jwt_in_request
-from flask_cors import cross_origin
 import json
 
 from app.routes.models.login_models import login_model, refresh_model, response_auth
@@ -16,7 +15,6 @@ login_ns.models[response_auth.name] = response_auth
 
 @login_ns.route('/')
 class Auth(Resource):
-    @cross_origin()
     @login_ns.expect(login_model)
     @login_ns.marshal_with(response_auth)
     def post(self):
@@ -43,7 +41,6 @@ class Auth(Resource):
 
 @login_ns.route('/refresh')
 class Auth(Resource):
-    @cross_origin()
     @login_ns.expect(refresh_model)  # Использование модели для валидации запроса
     @login_ns.marshal_with(response_auth)
     def post(self):
