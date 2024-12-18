@@ -24,11 +24,12 @@ class Works(Base):
 
     def to_dict(self):
         # Проверяем, есть ли роль
-        # role_data = self.role_obj.to_dict() if self.role_obj else None
+        category_data = self.work_category.to_dict(
+        ) if self.work_category else str(self.category)
         return {
             "work_id": str(self.work_id),
             "name": self.name,
-            "category": self.category if self.category else None,
+            "category": category_data,
             "measurement_unit": self.measurement_unit if self.measurement_unit else None,
             "deleted": self.deleted
         }

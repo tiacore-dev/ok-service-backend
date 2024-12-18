@@ -22,7 +22,7 @@ class WorkPrices(Base):
         work_data = self.works.to_dict() if self.works else str(self.work)
         return {
             "work_price_id": str(self.work_price_id),
-            "work_id": work_data,
+            "work": work_data,
             "name": self.name,
             "category": self.category if self.category else None,
             "price": self.price if self.price else None,

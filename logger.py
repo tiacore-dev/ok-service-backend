@@ -11,8 +11,7 @@ def setup_logger():
     if not logger.handlers:
         # Добавляем обработчик для вывода логов в консоль
         console_handler = logging.StreamHandler()
-        log_format = """%(asctime)s %(levelname)s: %(message)s
-                    [in %(pathname)s:%(lineno)d]"""
+        log_format = "%(asctime)s %(levelname)s: %(message)s"
         console_formatter = logging.Formatter(log_format)
 
         console_handler.setFormatter(console_formatter)

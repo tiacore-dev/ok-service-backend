@@ -16,7 +16,7 @@ class Projects(Base):
 
     objects = relationship("Objects", back_populates="project")
     user = relationship("Users", back_populates="project")
-    shift_report = relationship("ShiftReports", back_populates="project")
+    shift_report = relationship("ShiftReports", back_populates="projects")
 
     def to_dict(self):
         # Проверяем, есть ли роль

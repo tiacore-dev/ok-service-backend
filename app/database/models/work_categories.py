@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, UUID, Boolean
-from app.database.db_setup import Base
 from sqlalchemy.orm import relationship
 from uuid import uuid4
+from sqlalchemy import Column, String, UUID, Boolean
+from app.database.db_setup import Base
 
 
 class WorkCategories(Base):
@@ -13,7 +13,7 @@ class WorkCategories(Base):
     deleted = Column(Boolean, nullable=False, default=False)
 
     # Опционально, если хотите указать обратную связь
-    work = relationship("Works", back_populates="work_category")
+    works = relationship("Works", back_populates="work_category")
 
     def to_dict(self):
         return {
