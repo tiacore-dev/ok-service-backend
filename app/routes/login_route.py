@@ -19,7 +19,7 @@ def auth():
     password = request.json.get("password", None)
 
     # Проверяем пользователя в базе данных
-    if not db.exists(login) or not db.check_password(login, password):
+    if not db.exists(login=login) or not db.check_password(login, password):
         return {"msg": "Bad username or password"}, 401
     
     user = db.filter_one_by_dict(login=login)
