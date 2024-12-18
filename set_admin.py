@@ -19,5 +19,5 @@ db = UserManager()
 
 
 if not db.exists(login=login):
-    db.add(login=login, password=password, name=username, role='admin')
+    db.add_user(login=login, password=password, name=username, role='admin')
     print('New admin added successfully')
