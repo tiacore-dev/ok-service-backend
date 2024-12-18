@@ -21,7 +21,7 @@ class WorkPrices(Base):
         # Проверяем, есть ли роль
         #role_data = self.role_obj.to_dict() if self.role_obj else None
         return {
-            "work_price_id": self.work_price_id,
+            "work_price_id": str(self.work_price_id),
             "work_id": self.work_id,
             "name": self.name,
             "category": self.category if self.category else None,

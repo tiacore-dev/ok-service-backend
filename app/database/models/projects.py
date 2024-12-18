@@ -22,7 +22,7 @@ class Projects(Base):
         # Проверяем, есть ли роль
         #role_data = self.role_obj.to_dict() if self.role_obj else None
         return {
-            "project_id": self.project_id,
+            "project_id": str(self.project_id),
             "name": self.name,
             "object_id": self.object_id,
             "project_leader": self.project_leader if self.project_leader else None,

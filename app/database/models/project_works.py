@@ -20,7 +20,7 @@ class ProjectWorks(Base):
         # Проверяем, есть ли роль
         #role_data = self.role_obj.to_dict() if self.role_obj else None
         return {
-            "project_work_id": self.project_id,
+            "project_work_id": str(self.project_id),
             "work_id": self.work_id,
             "quantity": self.quantity,
             "summ": self.summ if self.summ else None,

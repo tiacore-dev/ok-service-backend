@@ -16,7 +16,7 @@ class WorkCategories(Base):
 
     def to_dict(self):
         return {
-            "work_category_id": self.work_category_id,
+            "work_category_id": str(self.work_category_id),
             "name": self.name,
             "deleted": self.deleted
         }

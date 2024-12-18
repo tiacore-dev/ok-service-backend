@@ -1,4 +1,4 @@
-from app.models import Roles
+from app.database.models import Roles
 from app.database.managers.abstract_manager import BaseDBManager  # Предполагается, что BaseDBManager в другом файле
 
 

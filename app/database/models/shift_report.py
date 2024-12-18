@@ -23,7 +23,7 @@ class ShiftReports(Base):
         # Проверяем, есть ли роль
         #role_data = self.role_obj.to_dict() if self.role_obj else None
         return {
-            "shift_report_id": self.shift_report_id,
+            "shift_report_id": str(self.shift_report_id),
             "user_id": self.user_id,
             "date": self.date,
             "project_id": self.project_id,

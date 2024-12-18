@@ -1,4 +1,4 @@
-from app.models import Works, WorkPrices, WorkCategories
+from app.database.models import Works, WorkPrices, WorkCategories
 from app.database.managers.abstract_manager import BaseDBManager  # Предполагается, что BaseDBManager в другом файле
 
 

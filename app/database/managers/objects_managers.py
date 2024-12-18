@@ -1,4 +1,4 @@
-from app.models import Objects, ObjectStatuses
+from app.database.models import Objects, ObjectStatuses
 from app.database.managers.abstract_manager import BaseDBManager  # Предполагается, что BaseDBManager в другом файле
 
 

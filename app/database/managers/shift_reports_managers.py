@@ -1,4 +1,4 @@
-from app.models import ShiftReports, ShiftReportDetails
+from app.database.models import ShiftReports, ShiftReportDetails
 from app.database.managers.abstract_manager import BaseDBManager  # Предполагается, что BaseDBManager в другом файле
 
 

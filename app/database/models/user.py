@@ -31,7 +31,7 @@ class Users(Base):
         # Проверяем, есть ли роль
         role_data = self.roles.to_dict() if self.roles else None
         return {
-            "user_id": self.user_id,
+            "user_id": str(self.user_id),
             "login": self.login,
             "name": self.name,
             #"role": self.role,

@@ -19,7 +19,7 @@ class ProjectSchedules(Base):
         # Проверяем, есть ли роль
         #role_data = self.role_obj.to_dict() if self.role_obj else None
         return {
-            "project_schedule_id": self.project_schedule_id,
+            "project_schedule_id": str(self.project_schedule_id),
             "work_id": self.work_id,
             "quantity": self.quantity,
             "date": self.date
