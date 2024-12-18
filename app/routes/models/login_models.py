@@ -12,6 +12,6 @@ refresh_model = Model('RefreshToken', {
 })
 
 response_auth = Model('Tokens', {
-    'access_token': fields.Raw(required=True, description='Access token for user'),
-    'refresh_token': fields.Raw(required=True, description='Refresh token for user')
+    'access_token': fields.String(required=True, description='Access token for user'),
+    'refresh_token': fields.String(required=True, description='Refresh token for user')
 })
