@@ -15,6 +15,25 @@ def setup_logger():
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
 
+        # Добавляем обработчик для записи логов в базу данных
+        logger.addHandler(DatabaseLogHandler())
 
     return logger
+
+
+class DatabaseLogHandler(logging.Handler):
+    def emit(self, record):
+        from app.database.managers.logs_manager import LogManager
+
+        log_entry = self.format(record)
+        db = LogManager()
+
+        # Извлекаем user_id из дополнительных данных
+        login = getattr(record, 'login', 'unknown')  # Если user_id не установлен, использовать 'unknown'
+
+        try:
+            # Записываем лог в базу данных
+            db.add_logs(login=login, action=record.levelname, message=log_entry)
+        except Exception as e:
+            print(f"Ошибка при записи лога в базу данных: {e}")
 

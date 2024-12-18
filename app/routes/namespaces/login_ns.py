@@ -2,7 +2,6 @@ from flask import request, jsonify
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, verify_jwt_in_request
 import json
-
 from app.routes.models.login_models import login_model, refresh_model, response_auth
 
 login_ns = Namespace('auth', description='Authentication related operations')
@@ -31,7 +30,8 @@ class Auth(Resource):
         user = db.filter_one_by_dict(login=login)
         identity = json.dumps({
             "user_id": user['user_id'],
-            "role": user['role']['role_id']
+            "role": user['role']['role_id'],
+            "login": login
         })
         # Генерируем Access и Refresh токены с дополнительной информацией
         access_token = create_access_token(identity=identity)

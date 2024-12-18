@@ -15,7 +15,7 @@ def protected():
     try:
         current_user = get_jwt_identity()
         current_user = json.loads(current_user)
-        logger.info(f"Пользователь авторизован: {current_user['user_id']}")
+        logger.info(f"Пользователь авторизован: {current_user['user_id']}",  extra={'login': current_user['login']})
         return jsonify({"message": "Access granted"}), 200
     except Exception as e:
         logger.error(f"Ошибка авторизации: {str(e)}")
