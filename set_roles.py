@@ -24,4 +24,5 @@ ids = ['user', 'admin', 'manager', 'project-leader']
 names = ['Пользователь', "Администратор", "Менеджер", "Руководитель проекта"]
 
 for i in range(0,4):
-    db.add(role_id=ids[i], name=names[i])
+    if not db.exists(role_id=ids[i]):
+        db.add(role_id=ids[i], name=names[i])
