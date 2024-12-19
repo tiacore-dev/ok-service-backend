@@ -12,6 +12,7 @@ user_create_model = Model('UserCreate', {
 })
 
 user_model = Model('User', {
+    "user_id": fields.String(required=True, description='ID пользователя'),
     'login': fields.String(required=True, description='Логин пользователя.'),
     "name": fields.String(required=True, description='Имя пользователя.'),
     "role": fields.String(required=True, description='Роль пользователя.'),

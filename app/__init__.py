@@ -3,7 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
-from config import Config
+from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
 from app.routes import register_namespaces, register_routes
 from app.database import init_db, set_db_globals
@@ -18,10 +18,17 @@ authorizations = {
 }
 
 
-def create_app():
+def create_app(config_name="development"):
     """Функция для создания экземпляра приложения"""
     app = Flask(__name__)
-    app.config.from_object(Config)
+    # Выбираем конфигурацию
+    if config_name == "development":
+        app.config.from_object(DevelopmentConfig)
+    elif config_name == "testing":
+        app.config.from_object(TestingConfig)
+    else:
+        raise ValueError(f"Неизвестное имя конфигурации: {config_name}")
+    # app.config.from_object(Config)
     # Добавляем ProxyFix для корректной обработки заголовков от прокси-сервера
     app.wsgi_app = ProxyFix(
         app.wsgi_app,

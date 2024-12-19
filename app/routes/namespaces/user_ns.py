@@ -1,5 +1,6 @@
 import json
 import logging
+from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -29,10 +30,9 @@ class UserAdd(Resource):
     @user_ns.response(500, "Internal Server Error")
     def post(self):
         current_user = json.loads(get_jwt_identity())
-        logger.info(
-            "Запрос на добавление нового пользователя.",
-            extra={"login": current_user.get('login')}
-        )
+        logger.info("Запрос на добавление нового пользователя.",
+                    extra={"login": current_user.get('login')}
+                    )
 
         login = request.json.get("login")
         password = request.json.get("password")
@@ -41,15 +41,12 @@ class UserAdd(Resource):
         category = request.json.get("category")
 
         # Логируем входные данные
-        logger.debug(
-            f"Параметры добавления пользователя: login={login}, password={
-                '*' if password else None}, name={name}, role={role}, category={category}",
-            extra={"login": current_user.get('login')}
-        )
+        logger.debug(f"Параметры добавления пользователя: login={login}, password={'*' if password else None}, name={name}, role={role}, category={category}",
+                     extra={"login": current_user.get('login')})
 
         if not (login and password and name and role):
-            logger.warning("Отсутствуют обязательные параметры для добавления пользователя", extra={
-                           "login": current_user.get('login')})
+            logger.warning("Отсутствуют обязательные параметры для добавления пользователя",
+                           extra={"login": current_user.get('login')})
             return {"msg": "Bad request, invalid data."}, 400
         try:
             from app.database.managers.user_manager import UserManager
@@ -58,16 +55,14 @@ class UserAdd(Resource):
                          extra={"login": current_user.get('login')})
             user_id = db.add_user(
                 login=login, password=password, role=role, category=category, name=name)
-            logger.info(
-                f"Успешно добавлен новый пользователь user_id={user_id}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.info(f"Успешно добавлен новый пользователь user_id={user_id}",
+                        extra={"login": current_user.get('login')}
+                        )
             return {"msg": "New user added successfully"}, 200
         except Exception as e:
-            logger.error(
-                f"Ошибка при добавлении пользователя: {e}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.error(f"Ошибка при добавлении пользователя: {e}",
+                         extra={"login": current_user.get('login')}
+                         )
             return {"msg": f"Error in adding new user: {e}"}, 500
 
 
@@ -79,22 +74,25 @@ class UserView(Resource):
     @user_ns.response(500, "Internal Server Error")
     def get(self, user_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(
-            f"Запрос на просмотр пользователя user_id={user_id}",
-            extra={"login": current_user.get('login')}
-        )
+        logger.info(f"Запрос на просмотр пользователя user_id={user_id}",
+                    extra={"login": current_user.get('login')})
         try:
+            # Преобразуем строку в UUID
+            try:
+                user_id = UUID(user_id)
+            except ValueError:
+                return {"msg": "Invalid user ID format"}, 400
             from app.database.managers.user_manager import UserManager
             db = UserManager()
             logger.debug("Получение пользователя из базы...",
                          extra={"login": current_user.get('login')})
             user = db.get_by_id(user_id)
             if not user:
-                logger.warning(f"Пользователь user_id={user_id} не найден", extra={
-                               "login": current_user.get('login')})
+                logger.warning(f"Пользователь user_id={user_id} не найден",
+                               extra={"login": current_user.get('login')})
                 return {"msg": "User not found"}, 404
-            logger.info(f"Пользователь user_id={user_id} найден успешно", extra={
-                        "login": current_user.get('login')})
+            logger.info(f"Пользователь user_id={user_id} найден успешно",
+                        extra={"login": current_user.get('login')})
             return {"msg": "User found successfully", "user": user}, 200
         except Exception as e:
             logger.error(
@@ -112,13 +110,18 @@ class UserDeleteSoft(Resource):
     @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(
-            f"Запрос на мягкое удаление пользователя user_id={user_id}",
-            extra={"login": current_user.get('login')}
-        )
+        logger.info(f"Запрос на мягкое удаление пользователя user_id={user_id}",
+                    extra={"login": current_user.get('login')}
+                    )
         try:
+            # Преобразуем строку в UUID
+            try:
+                user_id = UUID(user_id)
+            except ValueError:
+                return {"msg": "Invalid user ID format"}, 400
             from app.database.managers.user_manager import UserManager
             db = UserManager()
+
             logger.debug("Обновление статуса deleted пользователя в базе...",
                          extra={"login": current_user.get('login')})
             updated = db.update(record_id=user_id, deleted=True)
@@ -126,15 +129,13 @@ class UserDeleteSoft(Resource):
                 logger.warning(f"Пользователь user_id={user_id} не найден при мягком удалении",
                                extra={"login": current_user.get('login')})
                 return {"msg": "User not found"}, 404
-            logger.info(f"Пользователь user_id={user_id} мягко удален", extra={
-                        "login": current_user.get('login')})
+            logger.info(f"Пользователь user_id={user_id} мягко удален",
+                        extra={"login": current_user.get('login')})
             return {"msg": f"User {user_id} soft deleted successfully"}, 200
         except Exception as e:
-            logger.error(
-                f"Ошибка при мягком удалении пользователя user_id={
-                    user_id}: {e}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.error(f"Ошибка при мягком удалении пользователя user_id={user_id}: {e}",
+                         extra={"login": current_user.get('login')}
+                         )
             return {'msg': f"Error during soft deleting user: {e}"}, 500
 
 
@@ -146,12 +147,15 @@ class UserDeleteHard(Resource):
     @user_ns.response(500, "Internal Server Error")
     def delete(self, user_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(
-            f"""Запрос на окончательное (hard) удаление пользователя user_id=
-            {user_id}""",
-            extra={"login": current_user.get('login')}
-        )
+        logger.info(f"Запрос на окончательное (hard) удаление пользователя user_id={user_id}",
+                    extra={"login": current_user.get('login')}
+                    )
         try:
+            # Преобразуем строку в UUID
+            try:
+                user_id = UUID(user_id)
+            except ValueError:
+                return {"msg": "Invalid user ID format"}, 400
             from app.database.managers.user_manager import UserManager
             db = UserManager()
             logger.debug("Удаление пользователя из базы...",
@@ -161,15 +165,12 @@ class UserDeleteHard(Resource):
                 logger.warning(f"Пользователь user_id={user_id} не найден при hard удалении",
                                extra={"login": current_user.get('login')})
                 return {"msg": "User not found"}, 404
-            logger.info(f"Пользователь user_id={user_id} удален окончательно", extra={
-                        "login": current_user.get('login')})
+            logger.info(f"Пользователь user_id={user_id} удален окончательно",
+                        extra={"login": current_user.get('login')})
             return {"msg": f"User {user_id} hard deleted successfully"}, 200
         except Exception as e:
-            logger.error(
-                f"Ошибка при окончательном удалении пользователя user_id={
-                    user_id}: {e}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.error(f"Ошибка при окончательном удалении пользователя user_id={user_id}: {e}",
+                         extra={"login": current_user.get('login')})
             return {'msg': f"Error during hard deleting user: {e}"}, 500
 
 
@@ -183,10 +184,8 @@ class UserEdit(Resource):
     @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(
-            f"Запрос на редактирование пользователя user_id={user_id}",
-            extra={"login": current_user.get('login')}
-        )
+        logger.info(f"Запрос на редактирование пользователя user_id={user_id}",
+                    extra={"login": current_user.get('login')})
 
         login = request.json.get("login")
         password = request.json.get("password")
@@ -195,11 +194,8 @@ class UserEdit(Resource):
         category = request.json.get("category")
 
         # Логируем входные данные для редактирования
-        logger.debug(
-            f"Параметры редактирования: login={login}, password={
-                '*' if password else None}, name={name}, role={role}, category={category}",
-            extra={"login": current_user.get('login')}
-        )
+        logger.debug(f"Параметры редактирования: login={login}, password={'*' if password else None}, name={name}, role={role}, category={category}",
+                     extra={"login": current_user.get('login')})
 
         # Можно добавить базовую валидацию, если необходимо
         if not (login and name and role):
@@ -208,6 +204,11 @@ class UserEdit(Resource):
             return {"msg": "Bad request, invalid data."}, 400
 
         try:
+            # Преобразуем строку в UUID
+            try:
+                user_id = UUID(user_id)
+            except ValueError:
+                return {"msg": "Invalid user ID format"}, 400
             from app.database.managers.user_manager import UserManager
             db = UserManager()
             logger.debug("Обновление данных пользователя в базе...",
@@ -224,17 +225,12 @@ class UserEdit(Resource):
                              extra={"login": current_user.get('login')})
                 db.update_user_password(user_id, password)
 
-            logger.info(
-                f"Успешно отредактирован пользователь user_id={user_id}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.info(f"Успешно отредактирован пользователь user_id={user_id}",
+                        extra={"login": current_user.get('login')})
             return {"msg": "User edited successfully"}, 200
         except Exception as e:
-            logger.error(
-                f"Ошибка при редактировании пользователя user_id={
-                    user_id}: {e}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.error(f"Ошибка при редактировании пользователя user_id={user_id}: {e}",
+                         extra={"login": current_user.get('login')})
             return {"msg": f"Error in editing user: {e}"}, 500
 
 
@@ -246,10 +242,8 @@ class UserAll(Resource):
     @user_ns.response(500, "Internal Server Error")
     def get(self):
         current_user = json.loads(get_jwt_identity())
-        logger.info(
-            "Запрос на получение списка пользователей.",
-            extra={"login": current_user.get('login')}
-        )
+        logger.info("Запрос на получение списка пользователей.",
+                    extra={"login": current_user.get('login')})
 
         # Разбор аргументов через парсер
         args = user_filter_parser.parse_args()
@@ -266,11 +260,8 @@ class UserAll(Resource):
         }
 
         # Логируем параметры фильтрации
-        logger.debug(
-            f"Параметры фильтрации: offset={offset}, limit={limit}, sort_by={
-                sort_by}, sort_order={sort_order}, filters={filters}",
-            extra={"login": current_user.get('login')}
-        )
+        logger.debug(f"Параметры фильтрации: offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}, filters={filters}",
+                     extra={"login": current_user.get('login')})
 
         try:
             from app.database.managers.user_manager import UserManager
@@ -279,15 +270,10 @@ class UserAll(Resource):
                          extra={"login": current_user.get('login')})
             users = db.get_all_filtered(
                 offset, limit, sort_by, sort_order, **filters)
-            logger.info(
-                f"Успешно получен список пользователей: количество={
-                    len(users)}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.info(f"Успешно получен список пользователей: количество={len(users)}",
+                        extra={"login": current_user.get('login')})
             return {"users": users, "msg": "Users found successfully"}, 200
         except Exception as e:
-            logger.error(
-                f"Ошибка при получении списка пользователей: {e}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.error(f"Ошибка при получении списка пользователей: {e}",
+                         extra={"login": current_user.get('login')})
             return {'msg': f"Error during getting users: {e}"}, 500

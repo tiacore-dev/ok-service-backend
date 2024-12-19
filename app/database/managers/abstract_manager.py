@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from sqlalchemy import asc, desc
 import logging
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import inspect
 from app.database.db_globals import Session
 
@@ -21,6 +22,8 @@ class BaseDBManager(ABC):
         try:
             logger.debug("Начало сессии", extra={"login": "database"})
             yield session
+            logger.debug(f"Изменённые объекты: {session.dirty}",
+                         extra={"login": "database"})
             session.commit()
             logger.debug("Сессия успешно закоммичена",
                          extra={"login": "database"})
@@ -141,17 +144,23 @@ class BaseDBManager(ABC):
                                value in kwargs.items() if value is not None}
 
             if not filtered_kwargs:
-                logger.warning("No valid fields provided for update: %s", kwargs, extra={
-                               "login": "database"})
+                logger.warning("No valid fields provided for update: %s",
+                               kwargs, extra={"login": "database"})
                 return None
 
             logger.info("Updating record with ID: %s, fields: %s",
                         record_id, filtered_kwargs, extra={"login": "database"})
-            with self.session_scope():
+            with self.session_scope() as session:
                 record = self.get_record_by_id(record_id)
                 if record:
                     for key, value in filtered_kwargs.items():
                         setattr(record, key, value)
+                        # Уведомляем сессию об изменении
+                        flag_modified(record, key)
+
+                    session.add(record)  # Явно добавляем объект
+                    session.merge(record)  # Обновляем объект в текущей сессии
+
                     logger.info("Record updated successfully: %s",
                                 record, extra={"login": "database"})
                     return record
