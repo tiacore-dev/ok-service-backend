@@ -254,7 +254,7 @@ class UserAll(Resource):
         # Разбор аргументов через парсер
         args = user_filter_parser.parse_args()
         offset = args.get('offset', 0)
-        limit = args.get('limit', 10)
+        limit = args.get('limit', None)
         sort_by = args.get('sort_by')
         sort_order = args.get('sort_order', 'asc')
         filters = {
