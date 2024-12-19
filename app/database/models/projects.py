@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, UUID, ForeignKey, Boolean
-from app.database.db_setup import Base
 from uuid import uuid4
 from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, UUID, ForeignKey, Boolean
+from app.database.db_setup import Base
 
 
 class Projects(Base):

@@ -2,7 +2,7 @@ from flask_restx import fields, Model
 
 # Определение модели для логина
 login_model = Model('Login', {
-    'username': fields.String(required=True, description='Username for login'),
+    'login': fields.String(required=True, description='Username for login'),
     'password': fields.String(required=True, description='Password for login')
 })
 

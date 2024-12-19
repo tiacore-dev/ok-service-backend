@@ -1,10 +1,8 @@
-"""
-Модуль для работы с роутами, связанными с аккаунтом
-"""
-from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 import json
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 # Получаем логгер по его имени
 logger = logging.getLogger('ok_service')
 

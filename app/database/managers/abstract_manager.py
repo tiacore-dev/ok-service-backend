@@ -1,8 +1,9 @@
 from contextlib import contextmanager
 from abc import ABC, abstractmethod
-from app.database.db_globals import Session
-from sqlalchemy import inspect
+from sqlalchemy import asc, desc
 import logging
+from sqlalchemy import inspect
+from app.database.db_globals import Session
 
 logger = logging.getLogger('ok_service')
 
@@ -12,7 +13,6 @@ class BaseDBManager(ABC):
     @abstractmethod
     def model(self):
         """Метод, который возвращает модель (таблицу) для работы."""
-        pass
 
     @contextmanager
     def session_scope(self):
@@ -134,21 +134,31 @@ class BaseDBManager(ABC):
             raise
 
     def update(self, record_id, **kwargs):
-        """Обновление записи по ID."""
+        """Обновление записи по ID, игнорируя None в аргументах."""
         try:
+            # Убираем None из kwargs
+            filtered_kwargs = {key: value for key,
+                               value in kwargs.items() if value is not None}
+
+            if not filtered_kwargs:
+                logger.warning("No valid fields provided for update: %s", kwargs, extra={
+                               "login": "database"})
+                return None
+
             logger.info("Updating record with ID: %s, fields: %s",
-                        record_id, kwargs, extra={"login": "database"})
-            with self.session_scope() as session:
+                        record_id, filtered_kwargs, extra={"login": "database"})
+            with self.session_scope():
                 record = self.get_record_by_id(record_id)
                 if record:
-                    for key, value in kwargs.items():
+                    for key, value in filtered_kwargs.items():
                         setattr(record, key, value)
                     logger.info("Record updated successfully: %s",
                                 record, extra={"login": "database"})
+                    return record
                 else:
                     logger.warning("Record not found for update: %s",
                                    record_id, extra={"login": "database"})
-                return record
+                    return None
         except Exception as e:
             logger.error("Error updating record with ID %s: %s",
                          record_id, e, extra={"login": "database"})
@@ -262,3 +272,42 @@ class BaseDBManager(ABC):
             logger.error(f"Ошибка при проверке существования записи: {e}", extra={
                          "login": "database"})
             raise
+
+    def get_all_filtered(self, offset=0, limit=None, sort_by=None, sort_order='asc', **filters):
+        logger.debug("get_all_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
+                     extra={"login": "database"})
+
+        with self.session_scope() as session:
+            query = session.query(self.model)
+
+            # Применяем фильтры
+            for key, value in filters.items():
+                if value is not None and hasattr(self.model, key):
+                    query = query.filter(getattr(self.model, key) == value)
+                    logger.debug(f"Применяем фильтр: {key} = {value}",
+                                 extra={'login': 'database'})
+
+            # Применяем сортировку
+            if sort_by and hasattr(self.model, sort_by):
+                order = desc if sort_order == 'desc' else asc  # Выбор функции сортировки
+                query = query.order_by(order(getattr(self.model, sort_by)))
+                logger.debug(f"Применяем сортировку: {sort_by} {sort_order}",
+                             extra={"login": "database"})
+
+            # Применяем пагинацию
+            if offset:
+                query = query.offset(offset)
+                logger.debug(f"Применяем смещение: offset = {offset}",
+                             extra={"login": "database"})
+            if limit:
+                query = query.limit(limit)
+                logger.debug(f"Применяем лимит: limit = {limit}",
+                             extra={"login": "database"})
+
+            # Получаем записи
+            records = query.all()
+            logger.debug(f"Найдено записей: {len(records)}",
+                         extra={"login": "database"})
+
+            # Преобразуем записи в словари
+            return [record.to_dict() for record in records]

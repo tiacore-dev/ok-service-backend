@@ -7,7 +7,7 @@ dispatcher.py
 *.so
 
 
-
+.pylintrc
 # Distribution / packaging
 .Python
 build/

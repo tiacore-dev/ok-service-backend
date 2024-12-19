@@ -24,7 +24,7 @@ class UserManager(BaseDBManager):
 
             session.add(new_user)
             # При выходе из контекстного менеджера произойдёт commit
-            return new_user
+            return str(new_user.user_id)
 
     def check_password(self, username, password):
         """Проверяем пароль пользователя"""
@@ -34,10 +34,10 @@ class UserManager(BaseDBManager):
                 return True
             return False
 
-    def update_user_password(self, username, new_password):
+    def update_user_password(self, user_id, new_password):
         """Обновляем пароль пользователя"""
         with self.session_scope() as session:
-            user = session.query(self.model).filter_by(login=username).first()
+            user = session.query(self.model).filter_by(user_id=user_id).first()
             if user:
                 user.set_password(new_password)  # Обновляем хэш пароля
                 # Сессия будет закоммичена автоматически при выходе из контекстного менеджера

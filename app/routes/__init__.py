@@ -2,6 +2,7 @@ from flask import Flask
 from flask_restx import Api
 from .account_route import account_bp
 from .namespaces.login_ns import login_ns
+from .namespaces.user_ns import user_ns
 
 
 def register_routes(app: Flask):
@@ -10,4 +11,4 @@ def register_routes(app: Flask):
 
 def register_namespaces(api: Api):
     api.add_namespace(login_ns)
-    # api.add_namespace()
+    api.add_namespace(user_ns)

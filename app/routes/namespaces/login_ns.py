@@ -1,8 +1,8 @@
+import json
 from flask import request, jsonify
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import create_access_token, create_refresh_token
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
-import json
 from app.routes.models.login_models import login_model
 from app.routes.models.login_models import refresh_model, response_auth
 

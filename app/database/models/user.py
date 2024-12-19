@@ -1,8 +1,8 @@
+from uuid import uuid4
+from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, UUID, ForeignKey, Boolean
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.database.db_setup import Base
-from uuid import uuid4
-from sqlalchemy.orm import relationship
 
 
 class Users(Base):

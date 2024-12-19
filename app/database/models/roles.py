@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, UUID, ForeignKey
-from app.database.db_setup import Base
+from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
+from app.database.db_setup import Base
 
 
 class Roles(Base):

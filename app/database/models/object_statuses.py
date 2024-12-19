@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String
-from app.database.db_setup import Base
 from sqlalchemy.orm import relationship
+from app.database.db_setup import Base
 
 
 class ObjectStatuses(Base):
