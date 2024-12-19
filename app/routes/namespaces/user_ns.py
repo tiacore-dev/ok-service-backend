@@ -2,14 +2,16 @@ import json
 import logging
 from flask import request
 from flask_restx import Namespace, Resource
-from flask_jwt_extended import jwt_required
-from flask_jwt_extended import get_jwt_identity
-from app.routes.models.user_models import user_create_model, user_msg_model
-from app.routes.models.user_models import user_all_response, user_response
-from app.routes.models.user_models import user_filter_parser, user_model
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.routes.models.user_models import (
+    user_create_model, user_msg_model,
+    user_all_response, user_response,
+    user_filter_parser, user_model
+)
+
 logger = logging.getLogger('ok_service')
 
-user_ns = Namespace('user', description='Authentication related operations')
+user_ns = Namespace('user', description='User management operations')
 
 user_ns.models[user_create_model.name] = user_create_model
 user_ns.models[user_msg_model.name] = user_msg_model
@@ -23,74 +25,151 @@ class UserAdd(Resource):
     @jwt_required()
     @user_ns.expect(user_create_model)
     @user_ns.marshal_with(user_msg_model)
+    @user_ns.response(400, "Bad request, invalid data.")
+    @user_ns.response(500, "Internal Server Error")
     def post(self):
         current_user = json.loads(get_jwt_identity())
-        logger.info("Запрос на добавление нового пользователя.",
-                    extra={"login": current_user['login']})
+        logger.info(
+            "Запрос на добавление нового пользователя.",
+            extra={"login": current_user.get('login')}
+        )
+
         login = request.json.get("login")
         password = request.json.get("password")
         name = request.json.get("name")
         role = request.json.get("role")
         category = request.json.get("category")
+
+        # Логируем входные данные
+        logger.debug(
+            f"Параметры добавления пользователя: login={login}, password={
+                '*' if password else None}, name={name}, role={role}, category={category}",
+            extra={"login": current_user.get('login')}
+        )
+
         if not (login and password and name and role):
+            logger.warning("Отсутствуют обязательные параметры для добавления пользователя", extra={
+                           "login": current_user.get('login')})
             return {"msg": "Bad request, invalid data."}, 400
         try:
             from app.database.managers.user_manager import UserManager
-        # Создаем экземпляр менеджера базы данных
             db = UserManager()
-            user_id = db.add_user(login=login, password=password,
-                                  role=role, category=category, name=name)
-            logger.info("Успешно добавлен новый пользователь",
-                        extra={"login": current_user['login']})
-            return {"user_id": user_id, "msg": "New user added successfully"}, 200
+            logger.debug("Добавление пользователя в базу...",
+                         extra={"login": current_user.get('login')})
+            user_id = db.add_user(
+                login=login, password=password, role=role, category=category, name=name)
+            logger.info(
+                f"Успешно добавлен новый пользователь user_id={user_id}",
+                extra={"login": current_user.get('login')}
+            )
+            return {"msg": "New user added successfully"}, 200
         except Exception as e:
-            logger.error(f"Ошибка при добавлении пользователь: {e}",
-                         extra={"login": current_user['login']})
+            logger.error(
+                f"Ошибка при добавлении пользователя: {e}",
+                extra={"login": current_user.get('login')}
+            )
             return {"msg": f"Error in adding new user: {e}"}, 500
 
 
 @user_ns.route('/<string:user_id>/view')
 class UserView(Resource):
-    @ jwt_required()
+    @jwt_required()
     @user_ns.marshal_with(user_response)
+    @user_ns.response(404, "User not found")
+    @user_ns.response(500, "Internal Server Error")
     def get(self, user_id):
-        from app.database.managers.user_manager import UserManager
-        # Создаем экземпляр менеджера базы данных
-        db = UserManager()
+        current_user = json.loads(get_jwt_identity())
+        logger.info(
+            f"Запрос на просмотр пользователя user_id={user_id}",
+            extra={"login": current_user.get('login')}
+        )
         try:
+            from app.database.managers.user_manager import UserManager
+            db = UserManager()
+            logger.debug("Получение пользователя из базы...",
+                         extra={"login": current_user.get('login')})
             user = db.get_by_id(user_id)
-            return {"user": user, "msg": "User found successfully"}, 200
+            if not user:
+                logger.warning(f"Пользователь user_id={user_id} не найден", extra={
+                               "login": current_user.get('login')})
+                return {"msg": "User not found"}, 404
+            logger.info(f"Пользователь user_id={user_id} найден успешно", extra={
+                        "login": current_user.get('login')})
+            return {"msg": "User found successfully", "user": user}, 200
         except Exception as e:
+            logger.error(
+                f"Ошибка при получении пользователя user_id={user_id}: {e}",
+                extra={"login": current_user.get('login')}
+            )
             return {'msg': f"Error during getting user: {e}"}, 500
 
 
 @user_ns.route('/<string:user_id>/delete/soft')
 class UserDeleteSoft(Resource):
-    @ jwt_required()
+    @jwt_required()
     @user_ns.marshal_with(user_msg_model)
+    @user_ns.response(404, "User not found")
+    @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
-        from app.database.managers.user_manager import UserManager
-        # Создаем экземпляр менеджера базы данных
-        db = UserManager()
+        current_user = json.loads(get_jwt_identity())
+        logger.info(
+            f"Запрос на мягкое удаление пользователя user_id={user_id}",
+            extra={"login": current_user.get('login')}
+        )
         try:
-            db.update(record_id=user_id, deleted=True)
+            from app.database.managers.user_manager import UserManager
+            db = UserManager()
+            logger.debug("Обновление статуса deleted пользователя в базе...",
+                         extra={"login": current_user.get('login')})
+            updated = db.update(record_id=user_id, deleted=True)
+            if not updated:
+                logger.warning(f"Пользователь user_id={user_id} не найден при мягком удалении",
+                               extra={"login": current_user.get('login')})
+                return {"msg": "User not found"}, 404
+            logger.info(f"Пользователь user_id={user_id} мягко удален", extra={
+                        "login": current_user.get('login')})
             return {"msg": f"User {user_id} soft deleted successfully"}, 200
         except Exception as e:
+            logger.error(
+                f"Ошибка при мягком удалении пользователя user_id={
+                    user_id}: {e}",
+                extra={"login": current_user.get('login')}
+            )
             return {'msg': f"Error during soft deleting user: {e}"}, 500
 
 
 @user_ns.route('/<string:user_id>/delete/hard')
 class UserDeleteHard(Resource):
-    @ jwt_required()
+    @jwt_required()
     @user_ns.marshal_with(user_msg_model)
+    @user_ns.response(404, "User not found")
+    @user_ns.response(500, "Internal Server Error")
     def delete(self, user_id):
-        from app.database.managers.user_manager import UserManager
-        # Создаем экземпляр менеджера базы данных
-        db = UserManager()
+        current_user = json.loads(get_jwt_identity())
+        logger.info(
+            f"""Запрос на окончательное (hard) удаление пользователя user_id=
+            {user_id}""",
+            extra={"login": current_user.get('login')}
+        )
         try:
-            db.delete(record_id=user_id)
+            from app.database.managers.user_manager import UserManager
+            db = UserManager()
+            logger.debug("Удаление пользователя из базы...",
+                         extra={"login": current_user.get('login')})
+            deleted = db.delete(record_id=user_id)
+            if not deleted:
+                logger.warning(f"Пользователь user_id={user_id} не найден при hard удалении",
+                               extra={"login": current_user.get('login')})
+                return {"msg": "User not found"}, 404
+            logger.info(f"Пользователь user_id={user_id} удален окончательно", extra={
+                        "login": current_user.get('login')})
             return {"msg": f"User {user_id} hard deleted successfully"}, 200
         except Exception as e:
+            logger.error(
+                f"Ошибка при окончательном удалении пользователя user_id={
+                    user_id}: {e}",
+                extra={"login": current_user.get('login')}
+            )
             return {'msg': f"Error during hard deleting user: {e}"}, 500
 
 
@@ -99,58 +178,116 @@ class UserEdit(Resource):
     @jwt_required()
     @user_ns.expect(user_create_model)
     @user_ns.marshal_with(user_msg_model)
+    @user_ns.response(400, "Bad request, invalid data.")
+    @user_ns.response(404, "User not found")
+    @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info("Запрос на добавление нового пользователя.",
-                    extra={"login": current_user['login']})
+        logger.info(
+            f"Запрос на редактирование пользователя user_id={user_id}",
+            extra={"login": current_user.get('login')}
+        )
+
         login = request.json.get("login")
         password = request.json.get("password")
         name = request.json.get("name")
         role = request.json.get("role")
         category = request.json.get("category")
+
+        # Логируем входные данные для редактирования
+        logger.debug(
+            f"Параметры редактирования: login={login}, password={
+                '*' if password else None}, name={name}, role={role}, category={category}",
+            extra={"login": current_user.get('login')}
+        )
+
+        # Можно добавить базовую валидацию, если необходимо
+        if not (login and name and role):
+            logger.warning(f"Отсутствуют обязательные параметры для редактирования пользователя user_id={user_id}",
+                           extra={"login": current_user.get('login')})
+            return {"msg": "Bad request, invalid data."}, 400
+
         try:
             from app.database.managers.user_manager import UserManager
-            # Создаем экземпляр менеджера базы данных
             db = UserManager()
-            db.update(record_id=user_id, login=login,
-                      role=role, category=category, name=name)
+            logger.debug("Обновление данных пользователя в базе...",
+                         extra={"login": current_user.get('login')})
+            updated = db.update(record_id=user_id, login=login,
+                                role=role, category=category, name=name)
+            if not updated:
+                logger.warning(f"Пользователь user_id={user_id} не найден при редактировании",
+                               extra={"login": current_user.get('login')})
+                return {"msg": "User not found"}, 404
+
             if password:
+                logger.debug(f"Обновление пароля пользователя user_id={user_id}...",
+                             extra={"login": current_user.get('login')})
                 db.update_user_password(user_id, password)
-            logger.info(f"Успешно отредактирован пользователь {user_id}",
-                        extra={"login": current_user['login']})
+
+            logger.info(
+                f"Успешно отредактирован пользователь user_id={user_id}",
+                extra={"login": current_user.get('login')}
+            )
             return {"msg": "User edited successfully"}, 200
         except Exception as e:
-            logger.error(f"Ошибка при редактировании пользователь: {e}",
-                         extra={"login": current_user['login']})
+            logger.error(
+                f"Ошибка при редактировании пользователя user_id={
+                    user_id}: {e}",
+                extra={"login": current_user.get('login')}
+            )
             return {"msg": f"Error in editing user: {e}"}, 500
 
 
 @user_ns.route('/all')
 class UserAll(Resource):
-    @ jwt_required()
+    @jwt_required()
     @user_ns.expect(user_filter_parser)
     @user_ns.marshal_with(user_all_response)
+    @user_ns.response(500, "Internal Server Error")
     def get(self):
-        from app.database.managers.user_manager import UserManager
-        # Создаем экземпляр менеджера базы данных
-        db = UserManager()
-        offset = request.args.get(
-            'offset', default=0, type=int)  # По умолчанию 0
-        limit = request.args.get(
-            'limit', default=10, type=int)    # По умолчанию 10
-        sort_by = request.args.get('sort_by', None)  # Поле для сортировки
-        sort_order = request.args.get(
-            'sort_order', 'asc')  # Порядок сортировки
+        current_user = json.loads(get_jwt_identity())
+        logger.info(
+            "Запрос на получение списка пользователей.",
+            extra={"login": current_user.get('login')}
+        )
+
+        # Разбор аргументов через парсер
+        args = user_filter_parser.parse_args()
+        offset = args.get('offset', 0)
+        limit = args.get('limit', 10)
+        sort_by = args.get('sort_by')
+        sort_order = args.get('sort_order', 'asc')
         filters = {
-            'login': request.args.get('login'),
-            'name': request.args.get('name'),
-            'role': request.args.get('role'),
-            'category': request.args.get('category'),
-            'deleted': request.args.get('deleted', type=bool),
+            'login': args.get('login'),
+            'name': args.get('name'),
+            'role': args.get('role'),
+            'category': args.get('category'),
+            'deleted': args.get('deleted'),
         }
+
+        # Логируем параметры фильтрации
+        logger.debug(
+            f"Параметры фильтрации: offset={offset}, limit={limit}, sort_by={
+                sort_by}, sort_order={sort_order}, filters={filters}",
+            extra={"login": current_user.get('login')}
+        )
+
         try:
+            from app.database.managers.user_manager import UserManager
+            db = UserManager()
+            logger.debug("Получение списка пользователей из базы...",
+                         extra={"login": current_user.get('login')})
             users = db.get_all_filtered(
                 offset, limit, sort_by, sort_order, **filters)
-            return {"users": users, "msg": "User found successfully"}, 200
+            logger.info(
+                f"Успешно получен список пользователей: количество={
+                    len(users)}",
+                extra={"login": current_user.get('login')}
+            )
+            return {"users": users, "msg": "Users found successfully"}, 200
         except Exception as e:
-            return {'msg': f"Error during getting user: {e}"}, 500
+            logger.error(
+                f"Ошибка при получении списка пользователей: {e}",
+                extra={"login": current_user.get('login')}
+            )
+            return {'msg': f"Error during getting users: {e}"}, 500
