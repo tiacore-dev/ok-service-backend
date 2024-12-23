@@ -25,7 +25,7 @@ def setup_database():
 
     # Создаём таблицы
     Base.metadata.create_all(engine)
-    from set_roles import set_roles
+    from app.utils.set_roles import set_roles
     set_roles()
     yield  # Фикстура активна на протяжении всех тестов
 
