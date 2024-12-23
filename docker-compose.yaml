@@ -28,26 +28,19 @@ services:
     networks:
       - ok_network
 
-  init_roles:
-    build: .
-    command: python set_roles.py
-    depends_on:
-      - alembic
-    networks:
-      - ok_network
-    volumes:
-      - .:/app
 
-  init_password:
+  test:
     build: .
-    command: python set_admin.py  # Запуск скрипта для добавления админа
+    command: pytest --maxfail=3 --disable-warnings
     depends_on:
       - alembic
-      - init_roles
     networks:
       - ok_network
     volumes:
       - .:/app
+      - ./tests:/app/tests
+    environment:
+      - PYTHONPATH=/app
 
 
 

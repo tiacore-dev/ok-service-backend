@@ -7,6 +7,7 @@ from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
 from app.routes import register_namespaces, register_routes
 from app.database import init_db, set_db_globals
+from app.utils import set_admin, set_roles
 
 authorizations = {
     'Bearer': {
@@ -38,12 +39,15 @@ def create_app(config_name="development"):
         x_port=1   # Учитываем X-Forwarded-Port
     )
     # Инициализация базы данных
-    engine, Session, Base = init_db(app.config['SQLALCHEMY_DATABASE_URI'])
+    engine, Session, Base = init_db(
+        app.config['SQLALCHEMY_DATABASE_URI'], config_name)
     set_db_globals(engine, Session, Base)
     logger = setup_logger()
     logger.info("База данных успешно инициализирована.",
                 extra={'user_id': 'init'})
     # Инициализация JWT
+    set_roles()
+    set_admin()
     try:
         JWTManager(app)
         logger.info(f"JWT инициализирован. {app.config['JWT_EXPIRES']}",
