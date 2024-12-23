@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid4, UUID
 import pytest
 
 
@@ -14,18 +14,19 @@ def seed_user(db_session):
     Добавляет тестового пользователя в базу перед тестом.
     """
     from app.database.models import Users
-    password = "hashedpassword"
     user = Users(
         user_id=uuid4(),
         login="existing_user",
         name="Existing User",
-        role="user",
-        category=1
+        role='user',
+        category=1,
+        deleted=False
     )
-    user.set_password(password)
+    user.set_password("hashedpassword")
     db_session.add(user)
     db_session.commit()
-    return user
+    user_data = user.to_dict()
+    return user_data
 
 
 def test_add_user(client, jwt_token, db_session):
@@ -62,13 +63,21 @@ def test_view_user(client, jwt_token, seed_user):
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.get(
-        f"/user/{str(seed_user.user_id)}/view", headers=headers)
+        f"/user/{str(seed_user['user_id'])}/view", headers=headers)
 
     assert response.status_code == 200
     assert "user" in response.json
     assert response.json["msg"] == "User found successfully"
-    assert response.json["user"]["name"] == seed_user.name
-    assert response.json["user"]["login"] == seed_user.login
+
+    user_data = response.json["user"]
+    assert user_data["user_id"] == str(seed_user["user_id"])
+    assert user_data["name"] == seed_user["name"]
+    assert user_data["login"] == seed_user["login"]
+
+    # Проверяем вложенность роли
+    role_data = user_data["role"]
+    assert role_data["role_id"] == 'user'
+    assert role_data["name"] == 'Пользователь'
 
 
 def test_soft_delete_user(client, jwt_token, seed_user):
@@ -78,18 +87,18 @@ def test_soft_delete_user(client, jwt_token, seed_user):
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/user/{str(seed_user.user_id)}/delete/soft", headers=headers)
+        f"/user/{str(seed_user['user_id'])}/delete/soft", headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == f"""User {
-        str(seed_user.user_id)} soft deleted successfully"""
+        str(seed_user['user_id'])} soft deleted successfully"""
 
     # Проверяем, что пользователь помечен как удаленный
     from app.database.managers.user_manager import UserManager
     user_manager = UserManager()
     with user_manager.session_scope() as session:
         user = session.query(user_manager.model).filter_by(
-            user_id=seed_user.user_id).first()
+            user_id=UUID(seed_user['user_id'])).first()
         assert user.deleted is True
 
 
@@ -101,14 +110,15 @@ def test_hard_delete_user(client, jwt_token, seed_user, db_session):
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(
-        f"/user/{str(seed_user.user_id)}/delete/hard", headers=headers)
+        f"/user/{str(seed_user['user_id'])}/delete/hard", headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == f"""User {
-        str(seed_user.user_id)} hard deleted successfully"""
+        str(seed_user['user_id'])} hard deleted successfully"""
 
     # Проверяем, что пользователь удален из базы
-    user = db_session.query(Users).filter_by(user_id=seed_user.user_id).first()
+    user = db_session.query(Users).filter_by(
+        user_id=UUID(seed_user['user_id'])).first()
     assert user is None
 
 
@@ -126,7 +136,7 @@ def test_edit_user(client, jwt_token, seed_user):
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/user/{str(seed_user.user_id)}/edit", json=data, headers=headers
+        f"/user/{str(seed_user['user_id'])}/edit", json=data, headers=headers
     )
 
     # Проверяем успешность запроса
@@ -138,7 +148,7 @@ def test_edit_user(client, jwt_token, seed_user):
     user_manager = UserManager()
     with user_manager.session_scope() as session:
         user = session.query(user_manager.model).filter_by(
-            user_id=seed_user.user_id).first()
+            user_id=UUID(seed_user['user_id'])).first()
 
         # Проверяем обновленные данные
         assert user is not None
@@ -162,5 +172,11 @@ def test_get_all_users(client, jwt_token, seed_user):
 
     # Проверяем, что тестовый пользователь присутствует в списке
     users = response.json["users"]
-    assert any(u["user_id"] == str(seed_user.user_id)
-               for u in users)  # Преобразуем UUID в строку
+    user_data = next(
+        (u for u in users if u["user_id"] == str(seed_user["user_id"])), None)
+    assert user_data is not None
+
+    # Проверяем вложенность роли
+    role_data = user_data["role"]
+    assert role_data["role_id"] == 'user'
+    assert role_data["name"] == 'Пользователь'

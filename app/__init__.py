@@ -47,6 +47,7 @@ def create_app(config_name="development"):
                 extra={'user_id': 'init'})
 
     # Инициализация ролей и админа
+
     set_roles()
     set_admin()
 

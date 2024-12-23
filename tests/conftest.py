@@ -24,9 +24,9 @@ def setup_database():
     set_db_globals(engine, Session, Base)
 
     # Создаём таблицы
-    Base.metadata.create_all(engine)
-    from app.utils.db_setting_tables import set_roles
-    set_roles()
+    # Base.metadata.create_all(engine)
+    # from app.utils.db_setting_tables import set_roles
+    # set_roles()
     yield  # Фикстура активна на протяжении всех тестов
 
     # Удаляем таблицы после завершения тестов

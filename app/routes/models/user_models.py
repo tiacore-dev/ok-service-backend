@@ -11,14 +11,20 @@ user_create_model = Model('UserCreate', {
     "category": fields.Integer(required=False, description='Категория.'),
 })
 
+role_model = Model('Role', {
+    "role_id": fields.String(required=True, description="ID of the role"),
+    "name": fields.String(required=True, description="Name of the role")
+})
+
 user_model = Model('User', {
     "user_id": fields.String(required=True, description='ID пользователя'),
     'login': fields.String(required=True, description='Логин пользователя.'),
     "name": fields.String(required=True, description='Имя пользователя.'),
-    "role": fields.String(required=True, description='Роль пользователя.'),
+    "role": fields.Nested(role_model, required=True, description='Роль пользователя.'),
     "category": fields.Integer(required=False, description='Категория.'),
     "deleted": fields.Boolean(required=True, description='Удален ли пользователь.')
 })
+
 
 # Модель для ответа
 user_all_response = Model('UserResponse', {

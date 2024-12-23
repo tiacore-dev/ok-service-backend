@@ -7,7 +7,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.routes.models.user_models import (
     user_create_model, user_msg_model,
     user_all_response, user_response,
-    user_filter_parser, user_model
+    user_filter_parser, user_model,
+    role_model
 )
 
 logger = logging.getLogger('ok_service')
@@ -19,6 +20,7 @@ user_ns.models[user_msg_model.name] = user_msg_model
 user_ns.models[user_all_response.name] = user_all_response
 user_ns.models[user_response.name] = user_response
 user_ns.models[user_model.name] = user_model
+user_ns.models[role_model.name] = role_model
 
 
 @user_ns.route('/add')
