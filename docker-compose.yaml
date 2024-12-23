@@ -7,10 +7,6 @@ services:
     networks:
       - ok_network
 
-
-
-
-
   test:
     build: .
     command: pytest --maxfail=3 --disable-warnings

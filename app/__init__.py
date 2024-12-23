@@ -29,7 +29,7 @@ def create_app(config_name="development"):
         app.config.from_object(TestingConfig)
     else:
         raise ValueError(f"Неизвестное имя конфигурации: {config_name}")
-    # app.config.from_object(Config)
+
     # Добавляем ProxyFix для корректной обработки заголовков от прокси-сервера
     app.wsgi_app = ProxyFix(
         app.wsgi_app,
@@ -45,9 +45,12 @@ def create_app(config_name="development"):
     logger = setup_logger()
     logger.info("База данных успешно инициализирована.",
                 extra={'user_id': 'init'})
-    # Инициализация JWT
+
+    # Инициализация ролей и админа
     set_roles()
     set_admin()
+
+    # Инициализация JWT
     try:
         JWTManager(app)
         logger.info(f"JWT инициализирован. {app.config['JWT_EXPIRES']}",
@@ -56,6 +59,7 @@ def create_app(config_name="development"):
         logger.error(f"Ошибка при инициализации JWT: {e}",
                      extra={'user_id': 'init'})
         raise
+
     # Регистрация маршрутов
     try:
         register_routes(app)
@@ -75,6 +79,7 @@ def create_app(config_name="development"):
     )
     # Регистрация маршрутов
     register_namespaces(api)
+
     # Настройка CORS
     CORS(app, resources={r"/*": {"origins": app.config['ORIGIN']}})
     return app
