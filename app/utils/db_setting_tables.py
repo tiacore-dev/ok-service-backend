@@ -28,3 +28,12 @@ def set_roles():
     for i in range(0, 4):
         if not db.exists(role_id=ids[i]):
             db.add(role_id=ids[i], name=names[i])
+
+
+def set_object_status():
+    from app.database.managers.objects_managers import ObjectStatusesManager
+    db = ObjectStatusesManager()
+    db.add(
+        object_status_id='in_progress',
+        name="Active"
+    )

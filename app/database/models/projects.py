@@ -10,7 +10,7 @@ class Projects(Base):
     project_id = Column(UUID(as_uuid=True), primary_key=True,
                         default=uuid4, nullable=False)
     name = Column(String, nullable=False)
-    object = Column(String, ForeignKey('objects.object_id'), nullable=False)
+    object = Column(UUID, ForeignKey('objects.object_id'), nullable=False)
     project_leader = Column(UUID, ForeignKey('users.user_id'), nullable=True)
     deleted = Column(Boolean, nullable=False, default=False)
 

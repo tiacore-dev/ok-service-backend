@@ -38,17 +38,19 @@ class BaseDBManager(ABC):
     def add(self, **kwargs):
         """Добавление записи в базу данных."""
         try:
-            logger.debug(f"Добавление записи: {kwargs}", extra={
-                         "login": "database"})
+            logger.debug(f"Добавление записи: {kwargs}",
+                         extra={"login": "database"})
             with self.session_scope() as session:
                 new_record = self.model(**kwargs)
                 session.add(new_record)
-                logger.info(f"Запись добавлена: {new_record}", extra={
-                            "login": "database"})
-                return new_record
+                # session.flush()  # Применяем изменения и получаем `id` объекта
+                result = new_record.to_dict()  # Преобразуем объект в словарь
+                logger.info(f"Запись добавлена: {result}",
+                            extra={"login": "database"})
+                return result
         except Exception as e:
-            logger.error(f"Ошибка при добавлении записи: {e}", extra={
-                         "login": "database"})
+            logger.error(f"Ошибка при добавлении записи: {e}",
+                         extra={"login": "database"})
             raise
 
     def get_by_id(self, record_id):
