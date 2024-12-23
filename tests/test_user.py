@@ -71,7 +71,7 @@ def test_view_user(client, jwt_token, seed_user):
     assert response.json["user"]["login"] == seed_user.login
 
 
-def test_soft_delete_user(client, jwt_token, seed_user, db_session):
+def test_soft_delete_user(client, jwt_token, seed_user):
     """
     Тест на мягкое удаление пользователя.
     """
@@ -112,7 +112,7 @@ def test_hard_delete_user(client, jwt_token, seed_user, db_session):
     assert user is None
 
 
-def test_edit_user(client, jwt_token, seed_user, db_session):
+def test_edit_user(client, jwt_token, seed_user):
     """
     Тест на редактирование данных пользователя через API.
     """

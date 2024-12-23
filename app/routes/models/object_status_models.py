@@ -1,9 +1,5 @@
 from flask_restx import fields, Model, reqparse
 
-# Модель для создания статуса объекта
-object_status_create_model = Model('ObjectStatusCreate', {
-    'name': fields.String(required=True, description='Название статуса объекта.')
-})
 
 # Модель для одного статуса объекта
 object_status_model = Model('ObjectStatus', {
@@ -11,16 +7,6 @@ object_status_model = Model('ObjectStatus', {
     'name': fields.String(required=True, description='Название статуса объекта.')
 })
 
-# Модель для ответа при успешных действиях
-object_status_msg_model = Model('ObjectStatusMessage', {
-    'msg': fields.String(required=True, description='Сообщение.')
-})
-
-# Модель для ответа с данными одного статуса объекта
-object_status_response = Model('ObjectStatusResponse', {
-    'msg': fields.String(required=True, description='Сообщение.'),
-    'object_status': fields.Nested(object_status_model, required=True, description='Данные о статусе объекта.')
-})
 
 # Модель для ответа с данными нескольких статусов объектов
 object_status_all_response = Model('ObjectStatusAllResponse', {
