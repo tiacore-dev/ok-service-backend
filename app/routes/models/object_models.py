@@ -35,6 +35,10 @@ object_filter_parser.add_argument(
     'offset', type=int, default=0, help="Offset for pagination")
 object_filter_parser.add_argument(
     'limit', type=int, default=10, help="Limit for pagination")
+object_filter_parser.add_argument(
+    'sort_by', type=str, required=False, help='Поле для сортировки')
+object_filter_parser.add_argument('sort_order', type=str, required=False, choices=[
+    'asc', 'desc'], help='Порядок сортировки')
 object_filter_parser.add_argument('name', type=str, help="Filter by name")
 object_filter_parser.add_argument(
     'deleted', type=bool, help="Filter by deletion status")

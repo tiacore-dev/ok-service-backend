@@ -170,6 +170,8 @@ class ObjectAll(Resource):
         args = object_filter_parser.parse_args()
         offset = args.get('offset', 0)
         limit = args.get('limit', 10)
+        sort_by = args.get('sort_by')
+        sort_order = args.get('sort_order', 'asc')
         filters = {
             'name': args.get('name'),
             'deleted': args.get('deleted'),
@@ -182,7 +184,7 @@ class ObjectAll(Resource):
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()
             objects = db.get_all_filtered(
-                offset=offset, limit=limit, **filters)
+                offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
             logger.info(f"Successfully fetched {len(objects)} objects",
                         extra={"login": current_user})
             return {"msg": "Objects found successfully", "objects": objects}, 200
