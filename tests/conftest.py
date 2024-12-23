@@ -20,7 +20,7 @@ def setup_database():
     Инициализация глобальной базы данных для всех тестов.
     """
     # Инициализируем базу данных
-    engine, Session, Base = init_db(TEST_DATABASE_URL)
+    engine, Session, Base = init_db(TEST_DATABASE_URL, "testing")
     set_db_globals(engine, Session, Base)
 
     # Создаём таблицы
