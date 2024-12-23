@@ -7,14 +7,20 @@ object_create_model = Model('ObjectCreate', {
     "status": fields.String(required=False, description="Status ID of the object")
 })
 
+object_status_model = Model('ObjectStatus', {
+    "object_status_id": fields.String(required=True, description="ID of the object status"),
+    "name": fields.String(required=True, description="Name of the object status")
+})
+
 object_model = Model('Object', {
     "object_id": fields.String(required=True, description="ID of the object"),
     "name": fields.String(required=True, description="Name of the object"),
     "address": fields.String(required=False, description="Address of the object"),
     "description": fields.String(required=False, description="Description of the object"),
-    "status": fields.String(required=False, description="Status ID of the object"),
+    "status": fields.Nested(object_status_model, required=False, description="Status of the object"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })
+
 
 object_msg_model = Model('ObjectMessage', {
     "msg": fields.String(required=True, description="Response message")

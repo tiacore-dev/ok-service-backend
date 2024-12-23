@@ -9,22 +9,7 @@ def objects_manager(db_session):
 
 
 @pytest.fixture
-def seed_object_status(db_session):
-    """
-    Добавляет тестовый статус объекта в базу перед тестом.
-    """
-    from app.database.models import ObjectStatuses
-    status = ObjectStatuses(
-        object_status_id=str(uuid4()),
-        name="Active"
-    )
-    db_session.add(status)
-    db_session.commit()
-    return status.to_dict()
-
-
-@pytest.fixture
-def seed_object(db_session, seed_object_status):
+def seed_object(db_session):
     """
     Добавляет тестовый объект в базу перед тестом.
     """
@@ -34,15 +19,17 @@ def seed_object(db_session, seed_object_status):
         name="Test Object",
         address="123 Test St",
         description="Test description",
-        status=seed_object_status["object_status_id"],
-        deleted=False
+        status="in_progress"
     )
     db_session.add(obj)
     db_session.commit()
     return obj.to_dict()
 
 
-def test_add_object(client, jwt_token, db_session, seed_object_status):
+# object_status_id='in_progress',
+# name="Active"
+
+def test_add_object(client, jwt_token, db_session):
     """
     Тест на добавление нового объекта через API.
     """
@@ -52,7 +39,7 @@ def test_add_object(client, jwt_token, db_session, seed_object_status):
         "name": "New Object",
         "address": "456 Test Ln",
         "description": "New description",
-        "status": seed_object_status['object_status_id']
+        "status": 'in_progress'
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/objects/add", json=data, headers=headers)
@@ -66,7 +53,7 @@ def test_add_object(client, jwt_token, db_session, seed_object_status):
     assert obj.name == "New Object"
     assert obj.address == "456 Test Ln"
     assert obj.description == "New description"
-    assert obj.status == seed_object_status['object_status_id']
+    assert obj.status == 'in_progress'
 
 
 def test_view_object(client, jwt_token, seed_object):
@@ -80,8 +67,16 @@ def test_view_object(client, jwt_token, seed_object):
     assert response.status_code == 200
     assert "object" in response.json
     assert response.json["msg"] == "Object found successfully"
-    assert response.json["object"]["name"] == seed_object['name']
-    assert response.json["object"]["address"] == seed_object['address']
+
+    object_data = response.json["object"]
+    assert object_data["object_id"] == str(seed_object["object_id"])
+    assert object_data["name"] == seed_object["name"]
+    assert object_data["address"] == seed_object["address"]
+
+    # Проверяем вложенность status
+    status_data = object_data["status"]
+    assert status_data["object_status_id"] == 'in_progress'
+    assert status_data["name"] == 'Active'
 
 
 def test_soft_delete_object(client, jwt_token, seed_object):
@@ -168,5 +163,11 @@ def test_get_all_objects(client, jwt_token, seed_object):
 
     # Проверяем, что тестовый объект присутствует в списке
     objects = response.json["objects"]
-    assert any(o["object_id"] == str(seed_object['object_id'])
-               for o in objects)
+    object_data = next(
+        (o for o in objects if o["object_id"] == str(seed_object["object_id"])), None)
+    assert object_data is not None
+
+    # Проверяем вложенность status
+    status_data = object_data["status"]
+    assert status_data["object_status_id"] == 'in_progress'
+    assert status_data["name"] == 'Active'
