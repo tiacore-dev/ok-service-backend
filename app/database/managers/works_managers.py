@@ -10,14 +10,14 @@ class WorksManager(BaseDBManager):
         return Works
 
 
-class WorksPricessManager(BaseDBManager):
+class WorkPricesManager(BaseDBManager):
 
     @property
     def model(self):
         return WorkPrices
 
 
-class WorksCategoriesManager(BaseDBManager):
+class WorkCategoriesManager(BaseDBManager):
 
     @property
     def model(self):
