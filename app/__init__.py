@@ -7,7 +7,7 @@ from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
 from app.routes import register_namespaces, register_routes
 from app.database import init_db, set_db_globals
-from app.utils import set_admin, set_roles
+from app.utils.db_setting_tables import set_admin, set_roles
 
 authorizations = {
     'Bearer': {
