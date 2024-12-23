@@ -11,7 +11,7 @@ from app.database import init_db, set_db_globals
 load_dotenv()
 
 database_url = os.getenv('DATABASE_URL')
-
+# database_url = os.getenv('TEST_DATABASE_URL')
 engine, Session, Base = init_db(database_url)
 
 # Установка глобальных переменных для работы с базой данных
