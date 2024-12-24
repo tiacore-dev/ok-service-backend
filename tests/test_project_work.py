@@ -47,7 +47,7 @@ def test_add_project_work(client, jwt_token, db_session, seed_work):
         "signed": True
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.post("/project_work/add", json=data, headers=headers)
+    response = client.post("/project_works/add", json=data, headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == "New project work added successfully"
@@ -66,7 +66,7 @@ def test_view_project_work(client, jwt_token, seed_project_work, seed_work):
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.get(
-        f"/project_work/{str(seed_project_work['project_work_id'])}/view", headers=headers)
+        f"/project_works/{str(seed_project_work['project_work_id'])}/view", headers=headers)
 
     assert response.status_code == 200
     assert "project_work" in response.json
@@ -90,7 +90,7 @@ def test_soft_delete_project_work(client, jwt_token, seed_project_work):
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/project_work/{str(seed_project_work['project_work_id'])}/delete/soft", headers=headers)
+        f"/project_works/{str(seed_project_work['project_work_id'])}/delete/soft", headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == f"Project work {
@@ -105,7 +105,7 @@ def test_hard_delete_project_work(client, jwt_token, seed_project_work, db_sessi
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(
-        f"/project_work/{str(seed_project_work['project_work_id'])}/delete/hard", headers=headers)
+        f"/project_works/{str(seed_project_work['project_work_id'])}/delete/hard", headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == f"Project work {
@@ -129,7 +129,7 @@ def test_edit_project_work(client, jwt_token, seed_project_work, db_session):
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/project_work/{str(seed_project_work['project_work_id'])}/edit", json=data, headers=headers)
+        f"/project_works/{str(seed_project_work['project_work_id'])}/edit", json=data, headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == "Project work edited successfully"
@@ -147,7 +147,7 @@ def test_get_all_project_works(client, jwt_token, seed_project_work, seed_work):
     Тест на получение списка ProjectWorks через API.
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.get("/project_work/all", headers=headers)
+    response = client.get("/project_works/all", headers=headers)
 
     assert response.status_code == 200
     assert "project_works" in response.json

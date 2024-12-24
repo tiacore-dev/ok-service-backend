@@ -16,7 +16,7 @@ from app.routes.models.project_work_models import (
 logger = logging.getLogger('ok_service')
 
 project_work_ns = Namespace(
-    'project_work', description='Project Works management operations')
+    'project_works', description='Project Works management operations')
 
 # Инициализация моделей
 project_work_ns.models[project_work_create_model.name] = project_work_create_model

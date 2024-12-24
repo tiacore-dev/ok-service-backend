@@ -42,8 +42,8 @@ class WorkCategoryAdd(Resource):
             return {"msg": "Bad request, invalid data."}, 400
 
         try:
-            from app.database.managers.works_managers import WorksCategoriesManager
-            db = WorksCategoriesManager()
+            from app.database.managers.works_managers import WorkCategoriesManager
+            db = WorkCategoriesManager()
             logger.debug("Adding work category to the database...",
                          extra={"login": current_user})
             category_id = db.add(name=name)
@@ -65,8 +65,8 @@ class WorkCategoryView(Resource):
         logger.info(f"Request to view work category: {work_category_id}",
                     extra={"login": current_user})
 
-        from app.database.managers.works_managers import WorksCategoriesManager
-        db = WorksCategoriesManager()
+        from app.database.managers.works_managers import WorkCategoriesManager
+        db = WorkCategoriesManager()
 
         try:
             work_category = db.get_by_id(work_category_id)
@@ -88,8 +88,8 @@ class WorkCategoryDeleteSoft(Resource):
         logger.info(f"Request to soft delete work category: {work_category_id}",
                     extra={"login": current_user})
 
-        from app.database.managers.works_managers import WorksCategoriesManager
-        db = WorksCategoriesManager()
+        from app.database.managers.works_managers import WorkCategoriesManager
+        db = WorkCategoriesManager()
 
         try:
             updated = db.update(record_id=work_category_id, deleted=True)
@@ -111,8 +111,8 @@ class WorkCategoryDeleteHard(Resource):
         logger.info(f"Request to hard delete work category: {work_category_id}",
                     extra={"login": current_user})
 
-        from app.database.managers.works_managers import WorksCategoriesManager
-        db = WorksCategoriesManager()
+        from app.database.managers.works_managers import WorkCategoriesManager
+        db = WorkCategoriesManager()
 
         try:
             deleted = db.delete(record_id=work_category_id)
@@ -142,8 +142,8 @@ class WorkCategoryEdit(Resource):
                            extra={"login": current_user})
             return {"msg": "Bad request, invalid data."}, 400
 
-        from app.database.managers.works_managers import WorksCategoriesManager
-        db = WorksCategoriesManager()
+        from app.database.managers.works_managers import WorkCategoriesManager
+        db = WorkCategoriesManager()
 
         try:
             updated = db.update(record_id=work_category_id, name=name)
@@ -175,8 +175,8 @@ class WorkCategoryAll(Resource):
             'name': args.get('name')
         }
 
-        from app.database.managers.works_managers import WorksCategoriesManager
-        db = WorksCategoriesManager()
+        from app.database.managers.works_managers import WorkCategoriesManager
+        db = WorkCategoriesManager()
 
         try:
             work_categories = db.get_all_filtered(
