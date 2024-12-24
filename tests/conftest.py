@@ -14,24 +14,41 @@ load_dotenv()
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 
 
+# Глобальная переменная для хранения Base
+GLOBAL_BASE = None
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
     """
     Инициализация глобальной базы данных для всех тестов.
     """
+    global GLOBAL_BASE  # pylint: disable=global-statement
+
     # Инициализируем базу данных
     engine, Session, Base = init_db(TEST_DATABASE_URL, "testing")
     set_db_globals(engine, Session, Base)
 
-    # Создаём таблицы
-    # Base.metadata.create_all(engine)
-    # from app.utils.db_setting_tables import set_roles
-    # set_roles()
+    GLOBAL_BASE = Base  # Сохраняем Base в глобальной переменной
+
     yield  # Фикстура активна на протяжении всех тестов
 
     # Удаляем таблицы после завершения тестов
     Base.metadata.drop_all(engine)
     Session.remove()
+
+
+@pytest.fixture(autouse=True)
+def clean_db(db_session):
+    """
+    Автоматически очищает базу данных после каждого теста.
+    """
+    global GLOBAL_BASE  # pylint: disable=global-statement
+    yield
+    db_session.rollback()  # Отменяем все изменения, сделанные в тесте
+    for table in reversed(GLOBAL_BASE.metadata.sorted_tables):  # Используем GLOBAL_BASE
+        db_session.execute(table.delete())
+    db_session.commit()
 
 
 @pytest.fixture
