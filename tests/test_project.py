@@ -9,6 +9,21 @@ def projects_manager(db_session):
 
 
 @pytest.fixture
+def seed_object_status(db_session):
+    """
+    Добавляет тестовый статус объекта в базу перед тестом.
+    """
+    from app.database.models import ObjectStatuses
+    status = ObjectStatuses(
+        object_status_id=str(uuid4()),
+        name="Active"
+    )
+    db_session.add(status)
+    db_session.commit()
+    return status.to_dict()
+
+
+@pytest.fixture
 def seed_user(db_session):
     """
     Добавляет тестового пользователя в базу перед тестом.
@@ -17,18 +32,18 @@ def seed_user(db_session):
     user = Users(
         user_id=uuid4(),
         login="test_user",
-        password_hash="hashed_password",
         name="Test User",
-        role='user',
+        role="user",
         deleted=False
     )
+    user.set_password('qweasdzcx')
     db_session.add(user)
     db_session.commit()
     return user.to_dict()
 
 
 @pytest.fixture
-def seed_object(db_session):
+def seed_object(db_session, seed_object_status):
     """
     Добавляет тестовый объект в базу перед тестом.
     """
@@ -37,13 +52,15 @@ def seed_object(db_session):
         object_id=uuid4(),
         name="Test Object",
         address="123 Test St",
-        description="Test Description",
-        status=None,
+        description="Test description",
+        status=seed_object_status["object_status_id"],
         deleted=False
     )
     db_session.add(obj)
     db_session.commit()
-    return obj.to_dict()
+    obj_data = obj.to_dict()
+    obj_data["status"] = seed_object_status  # Добавляем вложенность
+    return obj_data
 
 
 @pytest.fixture
@@ -55,13 +72,16 @@ def seed_project(db_session, seed_user, seed_object):
     project = Projects(
         project_id=uuid4(),
         name="Test Project",
-        object=seed_object['object_id'],
-        project_leader=seed_user['user_id'],
+        object=seed_object["object_id"],
+        project_leader=seed_user["user_id"],
         deleted=False
     )
     db_session.add(project)
     db_session.commit()
-    return project.to_dict()
+    project_data = project.to_dict()
+    project_data["object"] = seed_object  # Вложенные данные объекта
+    project_data["project_leader"] = seed_user  # Вложенные данные пользователя
+    return project_data
 
 
 def test_add_project(client, jwt_token, db_session, seed_user, seed_object):
@@ -88,7 +108,7 @@ def test_add_project(client, jwt_token, db_session, seed_user, seed_object):
     assert str(project.project_leader) == seed_user['user_id']
 
 
-def test_view_project(client, jwt_token, seed_project):
+def test_view_project(client, jwt_token, seed_project, seed_user, seed_object):
     """
     Тест на просмотр данных проекта через API.
     """
@@ -99,7 +119,20 @@ def test_view_project(client, jwt_token, seed_project):
     assert response.status_code == 200
     assert "project" in response.json
     assert response.json["msg"] == "Project found successfully"
-    assert response.json["project"]["name"] == seed_project['name']
+
+    project_data = response.json["project"]
+    assert project_data["project_id"] == str(seed_project["project_id"])
+    assert project_data["name"] == seed_project["name"]
+
+    # Проверяем вложенность object
+    object_data = project_data["object"]
+    assert object_data["object_id"] == seed_object["object_id"]
+    assert object_data["name"] == seed_object["name"]
+
+    # Проверяем вложенность project_leader
+    leader_data = project_data["project_leader"]
+    assert leader_data["user_id"] == seed_user["user_id"]
+    assert leader_data["name"] == seed_user["name"]
 
 
 def test_soft_delete_project(client, jwt_token, seed_project):
@@ -168,7 +201,7 @@ def test_edit_project(client, jwt_token, seed_project):
         assert project.name == "Updated Project"
 
 
-def test_get_all_projects(client, jwt_token, seed_project):
+def test_get_all_projects(client, jwt_token, seed_project, seed_user, seed_object):
     """
     Тест на получение списка проектов через API.
     """
@@ -179,7 +212,17 @@ def test_get_all_projects(client, jwt_token, seed_project):
     assert "projects" in response.json
     assert response.json["msg"] == "Projects found successfully"
 
-    # Проверяем, что тестовый проект присутствует в списке
     projects = response.json["projects"]
-    assert any(p["project_id"] == str(seed_project['project_id'])
-               for p in projects)
+    project_data = next((p for p in projects if p["project_id"] == str(
+        seed_project["project_id"])), None)
+    assert project_data is not None
+
+    # Проверяем вложенность object
+    object_data = project_data["object"]
+    assert object_data["object_id"] == seed_object["object_id"]
+    assert object_data["name"] == seed_object["name"]
+
+    # Проверяем вложенность project_leader
+    leader_data = project_data["project_leader"]
+    assert leader_data["user_id"] == seed_user["user_id"]
+    assert leader_data["name"] == seed_user["name"]

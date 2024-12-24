@@ -9,7 +9,9 @@ from app.routes.models.project_models import (
     project_response,
     project_all_response,
     project_filter_parser,
-    project_model
+    project_model,
+    object_model,
+    user_model
 )
 
 logger = logging.getLogger('ok_service')
@@ -23,6 +25,8 @@ project_ns.models[project_msg_model.name] = project_msg_model
 project_ns.models[project_response.name] = project_response
 project_ns.models[project_all_response.name] = project_all_response
 project_ns.models[project_model.name] = project_model
+project_ns.models[object_model.name] = object_model
+project_ns.models[user_model.name] = user_model
 
 
 @project_ns.route('/add')
