@@ -1,4 +1,6 @@
 from flask_restx import Model, fields, reqparse
+from app.routes.models.user_models import user_model
+from app.routes.models.object_models import object_model
 
 # Модель для создания проекта
 project_create_model = Model('ProjectCreate', {
@@ -7,25 +9,6 @@ project_create_model = Model('ProjectCreate', {
     "project_leader": fields.String(required=False, description="User ID of the project leader")
 })
 
-# Модель для объекта проекта
-object_model = Model('Object', {
-    "object_id": fields.String(required=True, description="ID of the object"),
-    "name": fields.String(required=True, description="Name of the object"),
-    "address": fields.String(required=False, description="Address of the object"),
-    "description": fields.String(required=False, description="Description of the object"),
-    "status": fields.String(required=False, description="Status ID of the object"),
-    "deleted": fields.Boolean(required=True, description="Deletion status")
-})
-
-# Модель для лидера проекта
-user_model = Model('User', {
-    "user_id": fields.String(required=True, description="ID of the user"),
-    "login": fields.String(required=True, description="Login of the user"),
-    "name": fields.String(required=True, description="Name of the user"),
-    "role": fields.String(required=True, description="Role of the user"),
-    "category": fields.Integer(required=False, description="Category of the user"),
-    "deleted": fields.Boolean(required=True, description="Deletion status")
-})
 
 # Модель для проекта с вложенными данными
 project_model = Model('Project', {

@@ -11,12 +11,7 @@ from app.routes.models.shift_report_models import (
     shift_report_response,
     shift_report_all_response,
     shift_report_filter_parser,
-    shift_report_model,
-    user_model,
-    project_model,
-    object_model,
-    object_status_model,
-    role_model
+    shift_report_model
 )
 
 logger = logging.getLogger('ok_service')
@@ -30,11 +25,6 @@ shift_report_ns.models[shift_report_msg_model.name] = shift_report_msg_model
 shift_report_ns.models[shift_report_response.name] = shift_report_response
 shift_report_ns.models[shift_report_all_response.name] = shift_report_all_response
 shift_report_ns.models[shift_report_model.name] = shift_report_model
-shift_report_ns.models[user_model.name] = user_model
-shift_report_ns.models[project_model.name] = project_model
-shift_report_ns.models[object_model.name] = object_model
-shift_report_ns.models[object_status_model.name] = object_status_model
-shift_report_ns.models[role_model.name] = role_model
 
 
 @shift_report_ns.route('/add')

@@ -1,6 +1,6 @@
 from flask_restx import reqparse
 from flask_restx import fields, Model
-
+from app.routes.models.role_models import role_model
 
 # Определение модели для логина
 user_create_model = Model('UserCreate', {
@@ -11,10 +11,6 @@ user_create_model = Model('UserCreate', {
     "category": fields.Integer(required=False, description='Категория.'),
 })
 
-role_model = Model('Role', {
-    "role_id": fields.String(required=True, description="ID of the role"),
-    "name": fields.String(required=True, description="Name of the role")
-})
 
 user_model = Model('User', {
     "user_id": fields.String(required=True, description='ID пользователя'),

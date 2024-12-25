@@ -1,4 +1,5 @@
 from flask_restx import Model, fields, reqparse
+from app.routes.models.work_models import work_model
 
 # Модель для создания цены работы
 work_price_create_model = Model('WorkPriceCreate', {
@@ -6,14 +7,6 @@ work_price_create_model = Model('WorkPriceCreate', {
     "name": fields.String(required=True, description="Name of the work price"),
     "category": fields.Integer(required=True, description="Category of the work price"),
     "price": fields.Float(required=True, description="Price of the work")
-})
-
-# Модель для объекта работы
-work_model = Model('Work', {
-    "work_id": fields.String(required=True, description="ID of the work"),
-    "name": fields.String(required=True, description="Name of the work"),
-    "measurement_unit": fields.String(required=False, description="Measurement unit of the work"),
-    "deleted": fields.Boolean(required=True, description="Deletion status")
 })
 
 # Модель для объекта цены работы

@@ -81,9 +81,9 @@ def test_view_work(client, jwt_token, seed_work):
 
     # Проверяем данные из ответа
     work_data = response.json["work"]
-    assert work_data["work_id"] == str(seed_work['work_id'])
+    assert work_data["work_id"] == seed_work['work_id']
     assert work_data["name"] == seed_work['name']
-    assert work_data["category"] == str(seed_work['category'])
+    assert work_data["category"] == seed_work['category']
     assert work_data["measurement_unit"] == seed_work['measurement_unit']
 
 

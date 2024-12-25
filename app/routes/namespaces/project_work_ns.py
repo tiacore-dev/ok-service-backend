@@ -9,8 +9,7 @@ from app.routes.models.project_work_models import (
     project_work_response,
     project_work_all_response,
     project_work_filter_parser,
-    project_work_model,
-    work_model
+    project_work_model
 )
 
 logger = logging.getLogger('ok_service')
@@ -24,7 +23,6 @@ project_work_ns.models[project_work_msg_model.name] = project_work_msg_model
 project_work_ns.models[project_work_response.name] = project_work_response
 project_work_ns.models[project_work_all_response.name] = project_work_all_response
 project_work_ns.models[project_work_model.name] = project_work_model
-project_work_ns.models[work_model.name] = work_model
 
 
 @project_work_ns.route('/add')

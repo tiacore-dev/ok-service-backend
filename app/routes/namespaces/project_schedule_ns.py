@@ -10,8 +10,7 @@ from app.routes.models.project_schedule_models import (
     project_schedule_response,
     project_schedule_all_response,
     project_schedule_filter_parser,
-    project_schedule_model,
-    work_model
+    project_schedule_model
 )
 
 logger = logging.getLogger('ok_service')
@@ -25,7 +24,6 @@ project_schedule_ns.models[project_schedule_msg_model.name] = project_schedule_m
 project_schedule_ns.models[project_schedule_response.name] = project_schedule_response
 project_schedule_ns.models[project_schedule_all_response.name] = project_schedule_all_response
 project_schedule_ns.models[project_schedule_model.name] = project_schedule_model
-project_schedule_ns.models[work_model.name] = work_model
 
 
 @project_schedule_ns.route('/add')

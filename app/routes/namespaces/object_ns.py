@@ -9,8 +9,7 @@ from app.routes.models.object_models import (
     object_response,
     object_all_response,
     object_filter_parser,
-    object_model,
-    object_status_model
+    object_model
 )
 
 logger = logging.getLogger('ok_service')
@@ -23,7 +22,6 @@ object_ns.models[object_msg_model.name] = object_msg_model
 object_ns.models[object_response.name] = object_response
 object_ns.models[object_all_response.name] = object_all_response
 object_ns.models[object_model.name] = object_model
-object_ns.models[object_status_model.name] = object_status_model
 
 
 @object_ns.route('/add')

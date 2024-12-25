@@ -1,4 +1,5 @@
 from flask_restx import Model, fields, reqparse
+from app.routes.models.object_status_models import object_status_model
 
 object_create_model = Model('ObjectCreate', {
     "name": fields.String(required=True, description="Name of the object"),
@@ -7,10 +8,6 @@ object_create_model = Model('ObjectCreate', {
     "status": fields.String(required=False, description="Status ID of the object")
 })
 
-object_status_model = Model('ObjectStatus', {
-    "object_status_id": fields.String(required=True, description="ID of the object status"),
-    "name": fields.String(required=True, description="Name of the object status")
-})
 
 object_model = Model('Object', {
     "object_id": fields.String(required=True, description="ID of the object"),

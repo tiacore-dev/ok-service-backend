@@ -1,5 +1,6 @@
 # Models for project schedules namespace
 from flask_restx import Model, fields, reqparse
+from app.routes.models.work_models import work_model
 
 project_schedule_create_model = Model('ProjectScheduleCreate', {
     "work": fields.String(required=True, description="Work ID"),
@@ -7,13 +8,6 @@ project_schedule_create_model = Model('ProjectScheduleCreate', {
     "date": fields.Integer(required=False, description="Scheduled date")
 })
 
-work_model = Model('Work', {
-    "work_id": fields.String(required=True, description="ID of the work"),
-    "name": fields.String(required=True, description="Name of the work"),
-    "category": fields.String(required=False, description="Category of the work"),
-    "measurement_unit": fields.String(required=False, description="Measurement unit"),
-    "deleted": fields.Boolean(required=True, description="Deletion status of the work")
-})
 
 project_schedule_model = Model('ProjectSchedule', {
     "project_schedule_id": fields.String(required=True, description="ID of the project schedule"),

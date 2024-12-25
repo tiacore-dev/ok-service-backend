@@ -9,8 +9,7 @@ from app.routes.models.work_price_models import (
     work_price_response,
     work_price_all_response,
     work_price_filter_parser,
-    work_price_model,
-    work_model
+    work_price_model
 )
 
 logger = logging.getLogger('ok_service')
@@ -24,7 +23,6 @@ work_price_ns.models[work_price_msg_model.name] = work_price_msg_model
 work_price_ns.models[work_price_response.name] = work_price_response
 work_price_ns.models[work_price_all_response.name] = work_price_all_response
 work_price_ns.models[work_price_model.name] = work_price_model
-work_price_ns.models[work_model.name] = work_model
 
 
 @work_price_ns.route('/add')

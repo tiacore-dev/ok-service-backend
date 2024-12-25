@@ -1,48 +1,14 @@
 # Models for shift reports namespace
 from flask_restx import Model, fields, reqparse
+from app.routes.models.user_models import user_model
+from app.routes.models.project_models import project_model
+
 
 shift_report_create_model = Model('ShiftReportCreate', {
     "user": fields.String(required=True, description="User ID"),
     "date": fields.Integer(required=True, description="Report date"),
     "project": fields.String(required=True, description="Project ID"),
     "signed": fields.Boolean(required=True, description="Is the report signed"),
-})
-
-role_model = Model('Role', {
-    "role_id": fields.String(required=True, description="ID of the role"),
-    "name": fields.String(required=False, description="Role of the user")
-})
-
-user_model = Model('User', {
-    "user_id": fields.String(required=True, description="ID of the user"),
-    "login": fields.String(required=True, description="Login of the user"),
-    "name": fields.String(required=True, description="Name of the user"),
-    "role": fields.Nested(role_model, required=False, description="Role of the user"),
-    "deleted": fields.Boolean(required=True, description="Deletion status of the user")
-})
-
-
-object_status_model = Model('ObjectStatus', {
-    "object_status_id": fields.String(required=True, description="ID of the object status"),
-    "name": fields.String(required=True, description="Name of the object status")
-})
-
-# Extend object model to include nested object status details
-object_model = Model('Object', {
-    "object_id": fields.String(required=True, description="ID of the object"),
-    "name": fields.String(required=True, description="Name of the object"),
-    "address": fields.String(required=False, description="Address of the object"),
-    "description": fields.String(required=False, description="Description of the object"),
-    "status": fields.Nested(object_status_model, required=False, description="Object status details"),
-    "deleted": fields.Boolean(required=True, description="Deletion status of the object")
-})
-# Extend project model to include nested object and user details
-project_model = Model('Project', {
-    "project_id": fields.String(required=True, description="ID of the project"),
-    "name": fields.String(required=True, description="Name of the project"),
-    "object": fields.Nested(object_model, required=True, description="Object details"),
-    "project_leader": fields.Nested(user_model, required=False, description="Project leader details"),
-    "deleted": fields.Boolean(required=True, description="Deletion status of the project")
 })
 
 
