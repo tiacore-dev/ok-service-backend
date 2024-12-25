@@ -39,8 +39,7 @@ class ObjectStatusAll(Resource):
         sort_order = args.get('sort_order', 'asc')
         filters = {
             'object_status_id': args.get('object_status_id'),
-            'name': args.get('name'),
-            'deleted': args.get('deleted'),
+            'name': args.get('name')
         }
 
         logger.debug(
