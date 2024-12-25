@@ -11,6 +11,7 @@ from .namespaces.work_ns import work_ns
 from .namespaces.work_price_ns import work_price_ns
 from .namespaces.project_work_ns import project_work_ns
 from .namespaces.project_schedule_ns import project_schedule_ns
+from .namespaces.shift_report_ns import shift_report_ns
 
 
 def register_routes(app: Flask):
@@ -28,3 +29,4 @@ def register_namespaces(api: Api):
     api.add_namespace(work_price_ns)
     api.add_namespace(project_work_ns)
     api.add_namespace(project_schedule_ns)
+    api.add_namespace(shift_report_ns)

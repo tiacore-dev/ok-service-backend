@@ -68,5 +68,9 @@ project_filter_parser.add_argument('sort_order', type=str, required=False, choic
     'asc', 'desc'], help='Порядок сортировки')
 project_filter_parser.add_argument('name', type=str, help="Filter by name")
 project_filter_parser.add_argument(
-    'deleted', type=bool, help="Filter by deletion status"
+    'deleted',
+    # Интерпретация значения как логического
+    type=lambda x: x.lower() in ['true', '1'],
+    required=False,
+    help="Флаг для фильтрации по удаленным отчетам"
 )

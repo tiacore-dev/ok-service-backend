@@ -38,4 +38,4 @@ work_category_filter_parser.add_argument(
 work_category_filter_parser.add_argument(
     'name', type=str, required=False, help='Filter by name')
 work_category_filter_parser.add_argument(
-    'deleted', type=bool, required=False, help='Filter by deleted status')
+    'deleted', type=lambda x: x.lower() in ['true', '1'], required=False, help='Filter by deleted status')

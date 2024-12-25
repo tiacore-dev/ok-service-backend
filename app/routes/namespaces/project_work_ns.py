@@ -128,8 +128,8 @@ class ProjectWorkEdit(Resource):
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
         current_user = get_jwt_identity()
-        logger.info(f"Request to edit project work: {
-                    project_work_id}", extra={"login": current_user})
+        logger.info(f"Request to edit project work: {project_work_id}",
+                    extra={"login": current_user})
 
         data = request.json
         try:
@@ -158,7 +158,7 @@ class ProjectWorkAll(Resource):
 
         args = project_work_filter_parser.parse_args()
         offset = args.get('offset', 0)
-        limit = args.get('limit', 10)
+        limit = args.get('limit', None)
         sort_by = args.get('sort_by')
         sort_order = args.get('sort_order', 'asc')
         filters = {
@@ -173,10 +173,10 @@ class ProjectWorkAll(Resource):
             db = ProjectWorksManager()
             project_works = db.get_all_filtered(
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
-            logger.info(f"Successfully fetched {
-                        len(project_works)} project works", extra={"login": current_user})
+            logger.info(f"Successfully fetched {len(project_works)} project works",
+                        extra={"login": current_user})
             return {"msg": "Project works found successfully", "project_works": project_works}, 200
         except Exception as e:
-            logger.error(f"Error fetching project works: {
-                         e}", extra={"login": current_user})
+            logger.error(f"Error fetching project works: {e}",
+                         extra={"login": current_user})
             return {"msg": f"Error fetching project works: {e}"}, 500

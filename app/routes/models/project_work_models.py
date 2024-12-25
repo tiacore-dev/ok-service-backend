@@ -56,5 +56,5 @@ project_work_filter_parser.add_argument(
     'sort_order', type=str, required=False, choices=['asc', 'desc'], help='Order of sorting'
 )
 project_work_filter_parser.add_argument(
-    'signed', type=bool, required=False, help='Filter by signed status'
+    'signed', type=lambda x: x.lower() in ['true', '1'], required=False, help='Filter by signed status'
 )

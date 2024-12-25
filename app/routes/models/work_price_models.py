@@ -53,7 +53,12 @@ work_price_filter_parser.add_argument(
 )
 work_price_filter_parser.add_argument('name', type=str, help="Filter by name")
 work_price_filter_parser.add_argument(
-    'deleted', type=bool, help="Filter by deletion status")
+    'deleted',
+    # Интерпретация значения как логического
+    type=lambda x: x.lower() in ['true', '1'],
+    required=False,
+    help="Флаг для фильтрации по удаленным отчетам"
+)
 work_price_filter_parser.add_argument(
     'sort_by', type=str, required=False, help='Field for sorting'
 )

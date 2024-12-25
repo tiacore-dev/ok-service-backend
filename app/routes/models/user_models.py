@@ -62,4 +62,4 @@ user_filter_parser.add_argument(
 user_filter_parser.add_argument(
     'category', type=int, required=False, help='Фильтр по категории')
 user_filter_parser.add_argument(
-    'deleted', type=bool, required=False, help='Фильтр по удаленному статусу')
+    'deleted', type=lambda x: x.lower() in ['true', '1'],  required=False, help='Фильтр по удаленному статусу')

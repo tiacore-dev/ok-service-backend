@@ -43,7 +43,7 @@ work_filter_parser.add_argument(
 )
 work_filter_parser.add_argument('name', type=str, help="Filter by name")
 work_filter_parser.add_argument(
-    'deleted', type=bool, help="Filter by deletion status")
+    'deleted', type=lambda x: x.lower() in ['true', '1'], help="Filter by deletion status")
 work_filter_parser.add_argument(
     'sort_by', type=str, required=False, help='Field for sorting'
 )

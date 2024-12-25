@@ -1,7 +1,7 @@
+import logging
 from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from sqlalchemy import asc, desc
-import logging
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import inspect
 from app.database.db_globals import Session
@@ -294,7 +294,9 @@ class BaseDBManager(ABC):
             # Применяем фильтры
             for key, value in filters.items():
                 if value is not None and hasattr(self.model, key):
-                    query = query.filter(getattr(self.model, key) == value)
+                    column = getattr(self.model, key)
+
+                    query = query.filter(column == value)
                     logger.debug(f"Применяем фильтр: {key} = {value}",
                                  extra={'login': 'database'})
 
