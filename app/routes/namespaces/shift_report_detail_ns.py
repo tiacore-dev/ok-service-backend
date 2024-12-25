@@ -79,7 +79,7 @@ class ShiftReportDetailsView(Resource):
             return {"msg": f"Error viewing shift report detail: {e}"}, 500
 
 
-@shift_report_details_ns.route('/<string:detail_id>/delete')
+@shift_report_details_ns.route('/<string:detail_id>/delete/hard')
 class ShiftReportDetailsDelete(Resource):
     @jwt_required()
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
