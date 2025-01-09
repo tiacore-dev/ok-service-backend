@@ -1,3 +1,4 @@
+import logging
 from app.database.models import Users
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
@@ -22,7 +23,13 @@ class UserManager(BaseDBManager):
             # Установим пароль сразу после создания объекта
             new_user.set_password(password)
 
-            session.add(new_user)
+            try:
+                session.add(new_user)
+            except Exception as e:
+                logging.error(f"Ошибка добавления пользователя: {e}",
+                              extra={"login": "database"})
+                raise
+
             # При выходе из контекстного менеджера произойдёт commit
             return str(new_user.user_id)
 
@@ -41,3 +48,7 @@ class UserManager(BaseDBManager):
             if user:
                 user.set_password(new_password)  # Обновляем хэш пароля
                 # Сессия будет закоммичена автоматически при выходе из контекстного менеджера
+            else:
+                logging.warning(f"Пользователь с ID {user_id} не найден",
+                                extra={"login": "database"})
+                return False
