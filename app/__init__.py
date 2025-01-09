@@ -83,5 +83,5 @@ def create_app(config_name="development"):
     register_namespaces(api)
 
     # Настройка CORS
-    CORS(app, resources={r"/*": {"origins": app.config['ORIGIN']}})
+    CORS(app, resources={r"/*": {"origins": '*'}})
     return app
