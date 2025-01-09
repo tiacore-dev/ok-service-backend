@@ -12,6 +12,8 @@ refresh_model = Model('RefreshToken', {
 })
 
 response_auth = Model('Tokens', {
-    'access_token': fields.String(required=True, description='Access token for user'),
-    'refresh_token': fields.String(required=True, description='Refresh token for user')
+    'access_token': fields.String(description='Access token for user'),
+    'refresh_token': fields.String(description='Refresh token for user'),
+    'msg': fields.String(required=True, description='Message'),
+    'user_id': fields.String(description='ID of user')
 })

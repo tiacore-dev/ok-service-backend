@@ -1,10 +1,13 @@
 import json
+import logging
 from flask import request, jsonify
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import create_access_token, create_refresh_token
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from app.routes.models.login_models import login_model
 from app.routes.models.login_models import refresh_model, response_auth
+
+logger = logging.getLogger('ok_service')
 
 login_ns = Namespace('auth', description='Authentication related operations')
 
@@ -20,13 +23,15 @@ class AuthLogin(Resource):
     @login_ns.marshal_with(response_auth)
     def post(self):
         from app.database.managers.user_manager import UserManager
-        # Создаем экземпляр менеджера базы данных
         db = UserManager()
         login = request.json.get("login", None)
         password = request.json.get("password", None)
 
-        # Проверяем пользователя в базе данных
+        logger.info("Login attempt", extra={"login": login})
+
         if not (db.exists(login=login) and db.check_password(login, password)):
+            logger.warning("Authentication failed: bad username or password",
+                           extra={"login": login})
             return {"msg": "Bad username or password"}, 401
 
         user = db.filter_one_by_dict(login=login)
@@ -35,38 +40,42 @@ class AuthLogin(Resource):
             "role": user['role']['role_id'],
             "login": login
         })
-        # Генерируем Access и Refresh токены с дополнительной информацией
         access_token = create_access_token(identity=identity)
         refresh_token = create_refresh_token(identity=identity)
 
-        return {"access_token": access_token,
-                "refresh_token": refresh_token}, 200
+        logger.info("Authentication successful", extra={"login": login})
+        return {"access_token": access_token, "refresh_token": refresh_token,
+                "msg": "Authentication successful", "user_id": user['user_id']}, 200
 
 
 @login_ns.route('/refresh')
 class AuthRefresh(Resource):
-    # Использование модели для валидации запроса
     @login_ns.expect(refresh_model)
     @login_ns.marshal_with(response_auth)
     def post(self):
-        # Получение токена из тела запроса
         refresh_token = request.json.get('refresh_token', None)
+        logger.debug("Refresh token request received",
+                     extra={"refresh_token": refresh_token})
 
         if not refresh_token:
+            logger.error("Missing refresh token in request")
             return jsonify({"msg": "Missing refresh token"}), 400
 
         try:
-            # Явная валидация токена
             verify_jwt_in_request(refresh=True, locations=["json"])
+            logger.debug("Refresh token verified successfully")
         except Exception as e:
+            logger.error(f"Refresh token verification failed: {str(e)}",
+                         extra={"refresh_token": refresh_token})
             return jsonify({"msg": str(e)}), 401
 
-        # Получение текущего пользователя
         current_user = get_jwt_identity()
-
-        # Генерация нового access токена
+        logger.debug("Generating new access and refresh tokens",
+                     extra={"user": current_user})
         new_access_token = create_access_token(identity=current_user)
         new_refresh_token = create_refresh_token(identity=current_user)
-        return {"access_token": new_access_token,
-                "refresh_token": new_refresh_token
-                }, 200
+
+        logger.info("Tokens refreshed successfully",
+                    extra={"user": current_user})
+        return {"access_token": new_access_token, "refresh_token": new_refresh_token,
+                "msg": "Token refreshed successfully"}, 200
