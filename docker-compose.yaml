@@ -35,7 +35,7 @@ services:
       - HTTPS_PROXY=
     depends_on:
       - alembic
-      - test
+      #- test
     volumes:
       - .:/app
     command: gunicorn -c gunicorn.conf.py run:app
