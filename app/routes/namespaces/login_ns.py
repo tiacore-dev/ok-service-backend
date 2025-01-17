@@ -37,7 +37,7 @@ class AuthLogin(Resource):
         user = db.filter_one_by_dict(login=login)
         identity = json.dumps({
             "user_id": user['user_id'],
-            "role": user['role']['role_id'],
+            "role": user['role'],
             "login": login
         })
         access_token = create_access_token(identity=identity)
