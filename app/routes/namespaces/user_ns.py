@@ -4,6 +4,8 @@ from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.user_schemas import UserCreateSchema, UserFilterSchema
 from app.routes.models.user_models import (
     user_create_model, user_msg_model,
     user_all_response, user_response,
@@ -33,12 +35,18 @@ class UserAdd(Resource):
         logger.info("Запрос на добавление нового пользователя.",
                     extra={"login": current_user.get('login')}
                     )
-
-        login = request.json.get("login")
-        password = request.json.get("password")
-        name = request.json.get("name")
-        role = request.json.get("role")
-        category = request.json.get("category")
+        schema = UserCreateSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
+        login = data.get('login')
+        password = data.get("password")
+        name = data.get("name")
+        role = data.get("role")
+        category = data.get("category")
 
         # Логируем входные данные
         logger.debug(f"Параметры добавления пользователя: login={login}, password={'*' if password else None}, name={name}, role={role}, category={category}",
@@ -246,7 +254,14 @@ class UserAll(Resource):
                     extra={"login": current_user.get('login')})
 
         # Разбор аргументов через парсер
-        args = user_filter_parser.parse_args()
+        # Валидация query-параметров через Marshmallow
+        schema = UserFilterSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')

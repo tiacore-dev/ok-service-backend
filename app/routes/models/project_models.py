@@ -1,12 +1,10 @@
 from flask_restx import Model, fields, reqparse
-
+from app.schemas.project_schemas import ProjectCreateSchema
+from app.utils.helpers import generate_swagger_model
 
 # Модель для создания проекта
-project_create_model = Model('ProjectCreate', {
-    "name": fields.String(required=True, description="Name of the project"),
-    "object": fields.String(required=True, description="Object ID associated with the project"),
-    "project_leader": fields.String(required=False, description="User ID of the project leader")
-})
+project_create_model = generate_swagger_model(
+    ProjectCreateSchema(), "ProjectCreate")
 
 
 # Модель для проекта с вложенными данными

@@ -1,12 +1,10 @@
 from flask_restx import Model, fields, reqparse
+from app.schemas.object_schemas import ObjectCreateSchema
+from app.utils.helpers import generate_swagger_model
 
 
-object_create_model = Model('ObjectCreate', {
-    "name": fields.String(required=True, description="Name of the object"),
-    "address": fields.String(required=False, description="Address of the object"),
-    "description": fields.String(required=False, description="Description of the object"),
-    "status": fields.String(required=False, description="Status ID of the object")
-})
+object_create_model = generate_swagger_model(
+    ObjectCreateSchema(), "ObjectCreate")
 
 
 object_model = Model('Object', {

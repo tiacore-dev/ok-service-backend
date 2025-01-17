@@ -1,7 +1,10 @@
 import json
 import logging
 from flask_restx import Namespace, Resource
+from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.object_status_schemas import ObjectStatusFilterSchema
 from app.routes.models.object_status_models import (
     object_status_all_response,
     object_status_filter_parser,
@@ -31,8 +34,15 @@ class ObjectStatusAll(Resource):
             "Request to fetch all object statuses.",
             extra={"login": current_user.get('login')}
         )
+        # Валидация query-параметров через Marshmallow
+        schema = ObjectStatusFilterSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
 
-        args = object_status_filter_parser.parse_args()
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')

@@ -3,6 +3,8 @@ from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.project_schemas import ProjectCreateSchema, ProjectFilterSchema
 from app.routes.models.project_models import (
     project_create_model,
     project_msg_model,
@@ -35,7 +37,13 @@ class ProjectAdd(Resource):
         logger.info("Request to add new project",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ProjectCreateSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
@@ -171,8 +179,14 @@ class ProjectAll(Resource):
         current_user = get_jwt_identity()
         logger.info("Request to fetch all projects",
                     extra={"login": current_user})
-
-        args = project_filter_parser.parse_args()
+        # Валидация query-параметров через Marshmallow
+        schema = ProjectFilterSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')

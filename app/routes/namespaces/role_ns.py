@@ -1,12 +1,16 @@
 import json
 import logging
+from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.role_schemas import RoleFilterSchema
 from app.routes.models.role_models import (
     role_all_response,
     role_filter_parser,
     role_model
 )
+
 
 logger = logging.getLogger('ok_service')
 
@@ -31,8 +35,14 @@ class RoleAll(Resource):
             "Request to fetch all roles.",
             extra={"login": current_user.get('login')}
         )
-
-        args = role_filter_parser.parse_args()
+        # Валидация query-параметров через Marshmallow
+        schema = RoleFilterSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')

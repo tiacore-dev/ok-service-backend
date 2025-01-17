@@ -1,13 +1,11 @@
 # Models for shift reports namespace
 from flask_restx import Model, fields, reqparse
+from app.schemas.shift_report_schemas import ShiftReportCreateSchema
+from app.utils.helpers import generate_swagger_model
 
-
-shift_report_create_model = Model('ShiftReportCreate', {
-    "user": fields.String(required=True, description="User ID"),
-    "date": fields.Integer(required=True, description="Report date"),
-    "project": fields.String(required=True, description="Project ID"),
-    "signed": fields.Boolean(required=True, description="Is the report signed"),
-})
+# Модель для создания проекта
+shift_report_create_model = generate_swagger_model(
+    ShiftReportCreateSchema(), "ShiftReportCreate")
 
 
 shift_report_model = Model('ShiftReport', {

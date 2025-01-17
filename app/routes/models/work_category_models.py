@@ -1,9 +1,12 @@
 from flask_restx import Model, fields
 from flask_restx import reqparse
+from app.schemas.work_category_schemas import WorkCategoryCreateSchema
+from app.utils.helpers import generate_swagger_model
 
-work_category_create_model = Model('WorkCategoryCreate', {
-    'name': fields.String(required=True, description='Name of the work category.')
-})
+# Модель для создания проекта
+work_category_create_model = generate_swagger_model(
+    WorkCategoryCreateSchema(), "WorkCategoryCreate")
+
 
 work_category_model = Model('WorkCategory', {
     "work_category_id": fields.String(required=True, description='ID of the work category'),

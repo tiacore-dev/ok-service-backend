@@ -3,6 +3,8 @@ from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.work_price_schemas import WorkPriceCreateSchema, WorkPriceFilterSchema
 from app.routes.models.work_price_models import (
     work_price_create_model,
     work_price_msg_model,
@@ -35,7 +37,13 @@ class WorkPriceAdd(Resource):
         logger.info("Request to add new work price",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = WorkPriceCreateSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             from app.database.managers.works_managers import WorkPricesManager
             db = WorkPricesManager()
@@ -172,7 +180,14 @@ class WorkPriceAll(Resource):
         logger.info("Request to fetch all work prices",
                     extra={"login": current_user})
 
-        args = work_price_filter_parser.parse_args()
+        # Валидация query-параметров через Marshmallow
+        schema = WorkPriceFilterSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')

@@ -1,13 +1,10 @@
 from flask_restx import Model, fields, reqparse
+from app.schemas.work_price_schemas import WorkPriceCreateSchema
+from app.utils.helpers import generate_swagger_model
 
-
-# Модель для создания цены работы
-work_price_create_model = Model('WorkPriceCreate', {
-    "work": fields.String(required=True, description="ID of the associated work"),
-    "name": fields.String(required=True, description="Name of the work price"),
-    "category": fields.Integer(required=True, description="Category of the work price"),
-    "price": fields.Float(required=True, description="Price of the work")
-})
+# Модель для создания проекта
+work_price_create_model = generate_swagger_model(
+    WorkPriceCreateSchema(), "WorkPriceCreate")
 
 # Модель для объекта цены работы
 work_price_model = Model('WorkPrice', {

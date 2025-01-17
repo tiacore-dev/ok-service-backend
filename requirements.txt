@@ -10,3 +10,5 @@ Flask-Cors==5.0.0
 flask-restx==1.3.0
 pytest==8.3.4
 pytest-flask==1.3.0
+marshmallow==3.25.1
+flask-marshmallow==1.3.0

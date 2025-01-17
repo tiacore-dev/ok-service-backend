@@ -3,6 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_marshmallow import Marshmallow
 from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
 from app.routes import register_namespaces, register_routes
@@ -17,6 +18,9 @@ authorizations = {
         'description': 'Добавьте JWT-токен в формате: Bearer <jwt_token>'
     }
 }
+
+
+ma = Marshmallow()
 
 
 def create_app(config_name="development"):
@@ -71,6 +75,9 @@ def create_app(config_name="development"):
         logger.error(f"Ошибка при регистрации маршрутов: {e}",
                      extra={'user_id': 'init'})
         raise
+
+    # Инициализация Marshmallow
+    ma.init_app(app)
 
     # Инициализация API
     api = Api(

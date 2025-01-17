@@ -3,6 +3,8 @@ from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.object_schemas import ObjectCreateSchema, ObjectFilterSchema
 from app.routes.models.object_models import (
     object_create_model,
     object_msg_model,
@@ -11,8 +13,7 @@ from app.routes.models.object_models import (
     object_filter_parser,
     object_model
 )
-from app.utils.filters import filter_model_fields
-from app.database.models import Objects
+
 
 logger = logging.getLogger('ok_service')
 
@@ -40,7 +41,13 @@ class ObjectAdd(Resource):
         object_status_id = data.get("status")
         if not db_s.exists_by_id(record_id=object_status_id):
             return {"msg": "Invalid object status"}, 400
-        data = filter_model_fields(data, Objects)
+        schema = ObjectCreateSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()
@@ -167,21 +174,30 @@ class ObjectEdit(Resource):
 @object_ns.route('/all')
 class ObjectAll(Resource):
     @jwt_required()
-    @object_ns.expect(object_filter_parser)
+    @object_ns.expect(object_filter_parser)  # Используем для Swagger
     @object_ns.marshal_with(object_all_response)
     def get(self):
         current_user = get_jwt_identity()
         logger.info("Request to fetch all objects",
                     extra={"login": current_user})
 
-        args = object_filter_parser.parse_args()
-        offset = args.get('offset', 0)
-        limit = args.get('limit', None)
-        sort_by = args.get('sort_by')
-        sort_order = args.get('sort_order', 'asc')
+        # Валидация query-параметров через Marshmallow
+        schema = ObjectFilterSchema()
+        try:
+            data = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
+
+        # Извлекаем отвалидированные данные
+        offset = data.get('offset', 0)
+        limit = data.get('limit', None)
+        sort_by = data.get('sort_by')
+        sort_order = data.get('sort_order', 'asc')
         filters = {
-            'name': args.get('name'),
-            'deleted': args.get('deleted'),
+            'name': data.get('name'),
+            'deleted': data.get('deleted'),
         }
 
         logger.debug(f"Fetching objects with filters: {filters}, offset={offset}, limit={limit}",

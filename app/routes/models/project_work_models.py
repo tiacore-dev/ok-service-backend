@@ -1,4 +1,10 @@
 from flask_restx import Model, fields, reqparse
+from app.schemas.project_work_schemas import ProjectWorkCreateSchema
+from app.utils.helpers import generate_swagger_model
+
+# Модель для создания проекта
+project_work_create_model = generate_swagger_model(
+    ProjectWorkCreateSchema(), "ProjectWorkCreate")
 
 
 # Модель для ProjectWork
@@ -10,13 +16,6 @@ project_work_model = Model('ProjectWork', {
     "signed": fields.Boolean(required=True, description="If the project work is signed")
 })
 
-# Модель для создания ProjectWork
-project_work_create_model = Model('ProjectWorkCreate', {
-    "work": fields.String(required=True, description="ID of the associated work"),
-    "quantity": fields.Float(required=True, description="Quantity of the work"),
-    "summ": fields.Float(required=False, description="Sum of the project work"),
-    "signed": fields.Boolean(required=True, description="If the project work is signed")
-})
 
 # Модели для сообщений и ответов
 project_work_msg_model = Model('ProjectWorkMessage', {

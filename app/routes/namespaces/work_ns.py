@@ -3,6 +3,8 @@ from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.work_schemas import WorkCreateSchema, WorkFilterSchema
 from app.routes.models.work_models import (
     work_create_model,
     work_msg_model,
@@ -33,7 +35,13 @@ class WorkAdd(Resource):
         current_user = get_jwt_identity()
         logger.info("Request to add new work", extra={"login": current_user})
 
-        data = request.json
+        schema = WorkCreateSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             from app.database.managers.works_managers import WorksManager
             db = WorksManager()
@@ -170,7 +178,14 @@ class WorkAll(Resource):
         logger.info("Request to fetch all works",
                     extra={"login": current_user})
 
-        args = work_filter_parser.parse_args()
+        # Валидация query-параметров через Marshmallow
+        schema = WorkFilterSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')

@@ -2,10 +2,12 @@ import json
 import logging
 from flask import request, jsonify
 from flask_restx import Namespace, Resource
+from marshmallow import ValidationError
 from flask_jwt_extended import create_access_token, create_refresh_token
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from app.routes.models.login_models import login_model
 from app.routes.models.login_models import refresh_model, response_auth
+from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
 
 logger = logging.getLogger('ok_service')
 
@@ -24,8 +26,15 @@ class AuthLogin(Resource):
     def post(self):
         from app.database.managers.user_manager import UserManager
         db = UserManager()
-        login = request.json.get("login", None)
-        password = request.json.get("password", None)
+        schema = LoginSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
+        login = data.get("login", None)
+        password = data.get("password", None)
 
         logger.info("Login attempt", extra={"login": login})
 
@@ -53,7 +62,14 @@ class AuthRefresh(Resource):
     @login_ns.expect(refresh_model)
     @login_ns.marshal_with(response_auth)
     def post(self):
-        refresh_token = request.json.get('refresh_token', None)
+        schema = RefreshTokenSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
+        refresh_token = data.get('refresh_token', None)
         logger.debug("Refresh token request received",
                      extra={"refresh_token": refresh_token})
 

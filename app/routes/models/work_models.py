@@ -1,12 +1,11 @@
 from flask_restx import Model, fields, reqparse
+from app.schemas.work_schemas import WorkCreateSchema
+from app.utils.helpers import generate_swagger_model
 
+# Модель для создания проекта
+work_create_model = generate_swagger_model(
+    WorkCreateSchema(), "WorkCreate")
 
-# Модель для создания работы
-work_create_model = Model('WorkCreate', {
-    "name": fields.String(required=True, description="Name of the work"),
-    "category": fields.String(required=False, description="Work category ID"),
-    "measurement_unit": fields.String(required=False, description="Measurement unit of the work")
-})
 
 # Модель для объекта работы
 work_model = Model('Work', {

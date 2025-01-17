@@ -1,15 +1,11 @@
 from flask_restx import reqparse
 from flask_restx import fields, Model
+from app.schemas.user_schemas import UserCreateSchema
+from app.utils.helpers import generate_swagger_model
 
-
-# Определение модели для логина
-user_create_model = Model('UserCreate', {
-    'login': fields.String(required=True, description='Логин пользователя.'),
-    'password': fields.String(required=True, description='Пароль пользователя.'),
-    "name": fields.String(required=True, description='Имя пользователя.'),
-    "role": fields.String(required=True, description='Роль пользователя.'),
-    "category": fields.Integer(required=False, description='Категория.'),
-})
+# Модель для создания проекта
+user_create_model = generate_swagger_model(
+    UserCreateSchema(), "UserCreate")
 
 
 user_model = Model('User', {

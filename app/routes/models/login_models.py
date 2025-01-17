@@ -1,16 +1,16 @@
 from flask_restx import fields, Model
+from app.utils.helpers import generate_swagger_model
+from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
 
 # Определение модели для логина
-login_model = Model('Login', {
-    'login': fields.String(required=True, description='Username for login'),
-    'password': fields.String(required=True, description='Password for login')
-})
+login_model = generate_swagger_model(
+    LoginSchema(), "Login")
 
 # Определение модели для обновления токена
-refresh_model = Model('RefreshToken', {
-    'refresh_token': fields.String(required=True, description='Refresh token for renewing access token')
-})
+refresh_model = generate_swagger_model(
+    RefreshTokenSchema(), "RefreshToken")
 
+# Определение модели ответа сервера
 response_auth = Model('Tokens', {
     'access_token': fields.String(description='Access token for user'),
     'refresh_token': fields.String(description='Refresh token for user'),

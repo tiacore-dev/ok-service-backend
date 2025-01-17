@@ -4,6 +4,8 @@ from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.project_schedule_schemas import ProjectScheduleCreateSchema, ProjectScheduleFilterSchema
 from app.routes.models.project_schedule_models import (
     project_schedule_create_model,
     project_schedule_msg_model,
@@ -36,7 +38,13 @@ class ProjectScheduleAdd(Resource):
         logger.info("Request to add new project schedule",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ProjectScheduleCreateSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             from app.database.managers.projects_managers import ProjectSchedulesManager
             db = ProjectSchedulesManager()
@@ -143,7 +151,13 @@ class ProjectScheduleAll(Resource):
         logger.info("Request to fetch all project schedules",
                     extra={"login": current_user})
 
-        args = project_schedule_filter_parser.parse_args()
+        schema = ProjectScheduleFilterSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')

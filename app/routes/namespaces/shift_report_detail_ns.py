@@ -4,6 +4,8 @@ from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from marshmallow import ValidationError
+from app.schemas.shift_report_detail_schemas import ShiftReportDetailsCreateSchema, ShiftReportDetailsFilterSchema
 from app.routes.models.shift_report_detail_models import (
     shift_report_details_create_model,
     shift_report_details_msg_model,
@@ -37,7 +39,13 @@ class ShiftReportDetailsAdd(Resource):
         logger.info("Request to add new shift report detail",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ShiftReportDetailsCreateSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
             db = ShiftReportsDetailsManager()
@@ -144,7 +152,14 @@ class ShiftReportDetailsAll(Resource):
         logger.info("Request to fetch all shift report details",
                     extra={"login": current_user})
 
-        args = shift_report_details_filter_parser.parse_args()
+        # Валидация query-параметров через Marshmallow
+        schema = ShiftReportDetailsFilterSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
         offset = args.get('offset', 0)
         limit = args.get('limit', 10)
         sort_by = args.get('sort_by')
