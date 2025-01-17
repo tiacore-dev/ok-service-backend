@@ -1,5 +1,5 @@
 from flask_restx import Model, fields, reqparse
-from app.routes.models.work_category_models import work_category_model
+
 
 # Модель для создания работы
 work_create_model = Model('WorkCreate', {
@@ -12,7 +12,7 @@ work_create_model = Model('WorkCreate', {
 work_model = Model('Work', {
     "work_id": fields.String(required=True, description="ID of the work"),
     "name": fields.String(required=True, description="Name of the work"),
-    "category": fields.Nested(work_category_model, description="Work category data"),
+    "category": fields.String(description="Work category data"),
     "measurement_unit": fields.String(required=False, description="Measurement unit of the work"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })

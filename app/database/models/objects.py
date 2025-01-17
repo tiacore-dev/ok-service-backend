@@ -21,12 +21,12 @@ class Objects(Base):
     project = relationship("Projects", back_populates="objects")
 
     def to_dict(self):
-        status_data = self.object_status.to_dict() if self.object_status else self.status
+        # status_data = self.object_status.to_dict() if self.object_status else self.status
         return {
             "object_id": str(self.object_id),
             "name": self.name,
             "address": self.address if self.address else None,
             "description": self.description if self.description else None,
-            "status": status_data,
+            "status": self.status,
             "deleted": self.deleted
         }

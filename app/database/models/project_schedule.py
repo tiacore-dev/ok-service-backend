@@ -17,10 +17,10 @@ class ProjectSchedules(Base):
 
     def to_dict(self):
         # Проверяем, есть ли роль
-        work_data = self.works.to_dict() if self.works else str(self.work)
+        # work_data = self.works.to_dict() if self.works else str(self.work)
         return {
             "project_schedule_id": str(self.project_schedule_id),
-            "work": work_data,
+            "work": self.work,
             "quantity": self.quantity,
             "date": self.date
         }

@@ -21,13 +21,13 @@ class ShiftReportDetails(Base):
 
     def to_dict(self):
         # Проверяем, есть ли роль
-        shift_report_data = self.shift_reports.to_dict(
-        ) if self.shift_reports else str(self.shift_report)
-        work_data = self.works.to_dict() if self.works else str(self.work)
+        # shift_report_data = self.shift_reports.to_dict(
+        # ) if self.shift_reports else str(self.shift_report)
+        # work_data = self.works.to_dict() if self.works else str(self.work)
         return {
             "shift_report_details_id": str(self.shift_report_details_id),
-            "shift_report": shift_report_data,
-            "work": work_data,
+            "shift_report": self.shift_report,
+            "work": self.work,
             "quantity": self.quantity,
             "summ": self.summ
         }

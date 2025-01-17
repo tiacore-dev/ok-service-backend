@@ -18,10 +18,10 @@ class ProjectWorks(Base):
 
     def to_dict(self):
         # Проверяем, есть ли роль
-        work_data = self.works.to_dict() if self.works else str(self.work)
+        # work_data = self.works.to_dict() if self.works else str(self.work)
         return {
             "project_work_id": str(self.project_work_id),
-            "work": work_data,
+            "work": self.work,
             "quantity": self.quantity,
             "summ": self.summ if self.summ else None,
             "signed": self.signed

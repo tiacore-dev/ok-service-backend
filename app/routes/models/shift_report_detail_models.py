@@ -1,7 +1,6 @@
 # Models for shift report details namespace
 from flask_restx import Model, fields, reqparse
-from app.routes.models.shift_report_models import shift_report_model
-from app.routes.models.work_models import work_model
+
 
 shift_report_details_create_model = Model('ShiftReportDetailsCreate', {
     "shift_report": fields.String(required=True, description="Shift report ID"),
@@ -12,8 +11,8 @@ shift_report_details_create_model = Model('ShiftReportDetailsCreate', {
 
 shift_report_details_model = Model('ShiftReportDetails', {
     "shift_report_details_id": fields.String(required=True, description="ID of the shift report detail"),
-    "shift_report": fields.Nested(shift_report_model, required=True, description="Shift report details"),
-    "work": fields.Nested(work_model, required=True, description="Work details"),
+    "shift_report": fields.String(required=True, description="Shift report details"),
+    "work": fields.String(required=True, description="Work details"),
     "quantity": fields.Float(required=True, description="Quantity of work"),
     "summ": fields.Float(required=True, description="Total sum of work")
 })

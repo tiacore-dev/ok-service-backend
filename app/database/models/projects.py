@@ -20,12 +20,12 @@ class Projects(Base):
 
     def to_dict(self):
         # Проверяем, есть ли роль
-        object_data = self.objects.to_dict() if self.objects else str(self.object)
-        user_data = self.user.to_dict() if self.user else str(self.project_leader)
+        # object_data = self.objects.to_dict() if self.objects else str(self.object)
+        # user_data = self.user.to_dict() if self.user else str(self.project_leader)
         return {
             "project_id": str(self.project_id),
             "name": self.name,
-            "object": object_data,
-            "project_leader": user_data,
+            "object": self.object,
+            "project_leader": self.project_leader,
             "deleted": self.deleted
         }

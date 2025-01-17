@@ -1,5 +1,5 @@
 from flask_restx import Model, fields, reqparse
-from app.routes.models.object_status_models import object_status_model
+
 
 object_create_model = Model('ObjectCreate', {
     "name": fields.String(required=True, description="Name of the object"),
@@ -14,7 +14,7 @@ object_model = Model('Object', {
     "name": fields.String(required=True, description="Name of the object"),
     "address": fields.String(required=False, description="Address of the object"),
     "description": fields.String(required=False, description="Description of the object"),
-    "status": fields.Nested(object_status_model, required=False, description="Status of the object"),
+    "status": fields.String(required=False, description="Status of the object"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })
 

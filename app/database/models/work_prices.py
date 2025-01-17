@@ -19,10 +19,10 @@ class WorkPrices(Base):
 
     def to_dict(self):
         # Проверяем, есть ли роль
-        work_data = self.works.to_dict() if self.works else str(self.work)
+        # work_data = self.works.to_dict() if self.works else str(self.work)
         return {
             "work_price_id": str(self.work_price_id),
-            "work": work_data,
+            "work": self.work,
             "name": self.name,
             "category": self.category if self.category else None,
             "price": self.price if self.price else None,

@@ -22,13 +22,13 @@ class ShiftReports(Base):
 
     def to_dict(self):
         # Проверяем, есть ли роль
-        user_data = self.users.to_dict() if self.users else str(self.user)
-        project_data = self.projects.to_dict() if self.projects else str(self.project)
+        # user_data = self.users.to_dict() if self.users else str(self.user)
+        # project_data = self.projects.to_dict() if self.projects else str(self.project)
         return {
             "shift_report_id": str(self.shift_report_id),
-            "user": user_data,
+            "user": self.user,
             "date": self.date,
-            "project": project_data,
+            "project": self.project,
             "signed": self.signed,
             "deleted": self.deleted
         }

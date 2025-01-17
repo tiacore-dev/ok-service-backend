@@ -1,6 +1,5 @@
 from flask_restx import Model, fields, reqparse
-from app.routes.models.user_models import user_model
-from app.routes.models.object_models import object_model
+
 
 # Модель для создания проекта
 project_create_model = Model('ProjectCreate', {
@@ -14,8 +13,8 @@ project_create_model = Model('ProjectCreate', {
 project_model = Model('Project', {
     "project_id": fields.String(required=True, description="ID of the project"),
     "name": fields.String(required=True, description="Name of the project"),
-    "object": fields.Nested(object_model, required=True, description="Object data associated with the project"),
-    "project_leader": fields.Nested(user_model, required=False, description="User data of the project leader"),
+    "object": fields.String(required=True, description="Object data associated with the project"),
+    "project_leader": fields.String(required=False, description="User data of the project leader"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })
 

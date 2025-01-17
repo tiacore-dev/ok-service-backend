@@ -1,11 +1,10 @@
 from flask_restx import Model, fields, reqparse
-from app.routes.models.work_models import work_model
 
 
 # Модель для ProjectWork
 project_work_model = Model('ProjectWork', {
     "project_work_id": fields.String(required=True, description="ID of the project work"),
-    "work": fields.Nested(work_model, required=True, description="Work data associated with the project work"),
+    "work": fields.String(required=True, description="Work data associated with the project work"),
     "quantity": fields.Float(required=True, description="Quantity of the work"),
     "summ": fields.Float(required=False, description="Sum of the project work"),
     "signed": fields.Boolean(required=True, description="If the project work is signed")

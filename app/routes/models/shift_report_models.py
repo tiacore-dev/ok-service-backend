@@ -1,7 +1,5 @@
 # Models for shift reports namespace
 from flask_restx import Model, fields, reqparse
-from app.routes.models.user_models import user_model
-from app.routes.models.project_models import project_model
 
 
 shift_report_create_model = Model('ShiftReportCreate', {
@@ -14,9 +12,9 @@ shift_report_create_model = Model('ShiftReportCreate', {
 
 shift_report_model = Model('ShiftReport', {
     "shift_report_id": fields.String(required=True, description="ID of the shift report"),
-    "user": fields.Nested(user_model, required=True, description="User details"),
+    "user": fields.String(required=True, description="User details"),
     "date": fields.Integer(required=True, description="Report date"),
-    "project": fields.Nested(project_model, required=True, description="Project details"),
+    "project": fields.String(required=True, description="Project details"),
     "signed": fields.Boolean(required=True, description="Is the report signed"),
     "deleted": fields.Boolean(required=True, description="Deletion status of the shift report")
 })
