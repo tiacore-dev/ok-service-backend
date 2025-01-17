@@ -73,11 +73,7 @@ def test_view_user(client, jwt_token, seed_user):
     assert user_data["user_id"] == str(seed_user["user_id"])
     assert user_data["name"] == seed_user["name"]
     assert user_data["login"] == seed_user["login"]
-
-    # Проверяем вложенность роли
-    role_data = user_data["role"]
-    assert role_data["role_id"] == 'user'
-    assert role_data["name"] == 'Пользователь'
+    assert user_data["role"] == 'user'
 
 
 def test_soft_delete_user(client, jwt_token, seed_user):
@@ -175,8 +171,4 @@ def test_get_all_users(client, jwt_token, seed_user):
     user_data = next(
         (u for u in users if u["user_id"] == str(seed_user["user_id"])), None)
     assert user_data is not None
-
-    # Проверяем вложенность роли
-    role_data = user_data["role"]
-    assert role_data["role_id"] == 'user'
-    assert role_data["name"] == 'Пользователь'
+    assert user_data["role"] == 'user'

@@ -74,9 +74,7 @@ def test_view_object(client, jwt_token, seed_object):
     assert object_data["address"] == seed_object["address"]
 
     # Проверяем вложенность status
-    status_data = object_data["status"]
-    assert status_data["object_status_id"] == 'in_progress'
-    assert status_data["name"] == 'Active'
+    assert object_data["status"] == 'in_progress'
 
 
 def test_soft_delete_object(client, jwt_token, seed_object):
@@ -168,6 +166,4 @@ def test_get_all_objects(client, jwt_token, seed_object):
     assert object_data is not None
 
     # Проверяем вложенность status
-    status_data = object_data["status"]
-    assert status_data["object_status_id"] == 'in_progress'
-    assert status_data["name"] == 'Active'
+    assert object_data["status"] == 'in_progress'

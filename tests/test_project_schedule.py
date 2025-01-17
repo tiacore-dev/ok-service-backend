@@ -75,7 +75,7 @@ def test_view_project_schedule(client, jwt_token, seed_project_schedule, seed_wo
     assert "project_schedule" in response.json
     assert response.json["msg"] == "Project schedule found successfully"
     assert response.json["project_schedule"]["quantity"] == seed_project_schedule['quantity']
-    assert response.json["project_schedule"]["work"]["work_id"] == seed_work['work_id']
+    assert response.json["project_schedule"]["work"] == seed_work['work_id']
 
 
 def test_edit_project_schedule(client, jwt_token, seed_project_schedule):
@@ -137,4 +137,4 @@ def test_get_all_project_schedules(client, jwt_token, seed_project_schedule):
     schedules = response.json["project_schedules"]
     assert any(s["project_schedule_id"] == str(
         seed_project_schedule['project_schedule_id']) for s in schedules)
-    assert schedules[0]["work"]["work_id"] is not None
+    assert schedules[0]["work"] is not None

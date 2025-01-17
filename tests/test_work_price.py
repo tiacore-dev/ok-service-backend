@@ -91,13 +91,7 @@ def test_view_work_price(client, jwt_token, seed_work_price, seed_work):
         seed_work_price['work_price_id'])
     assert work_price_data["name"] == seed_work_price['name']
 
-    # Проверяем вложенность work
-    assert "work" in work_price_data
-    work_data = work_price_data["work"]
-    assert work_data["work_id"] == str(seed_work['work_id'])
-    assert work_data["name"] == seed_work['name']
-    assert work_data["measurement_unit"] == seed_work['measurement_unit']
-    assert work_data["deleted"] == seed_work['deleted']
+    assert work_price_data["work"] == str(seed_work['work_id'])
 
 
 def test_soft_delete_work_price(client, jwt_token, seed_work_price, db_session):

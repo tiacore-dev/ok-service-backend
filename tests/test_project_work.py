@@ -79,9 +79,7 @@ def test_view_project_work(client, jwt_token, seed_project_work, seed_work):
     assert project_work_data["summ"] == seed_project_work["summ"]
     assert project_work_data["signed"] == seed_project_work["signed"]
 
-    work_data = project_work_data["work"]
-    assert work_data["work_id"] == seed_work["work_id"]
-    assert work_data["name"] == seed_work["name"]
+    assert project_work_data["work"] == seed_work["work_id"]
 
 
 def test_soft_delete_project_work(client, jwt_token, seed_project_work):
@@ -158,6 +156,4 @@ def test_get_all_project_works(client, jwt_token, seed_project_work, seed_work):
         seed_project_work["project_work_id"])), None)
     assert project_work_data is not None
 
-    work_data = project_work_data["work"]
-    assert work_data["work_id"] == seed_work["work_id"]
-    assert work_data["name"] == seed_work["name"]
+    assert project_work_data["work"] == seed_work["work_id"]

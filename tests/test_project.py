@@ -125,14 +125,10 @@ def test_view_project(client, jwt_token, seed_project, seed_user, seed_object):
     assert project_data["name"] == seed_project["name"]
 
     # Проверяем вложенность object
-    object_data = project_data["object"]
-    assert object_data["object_id"] == seed_object["object_id"]
-    assert object_data["name"] == seed_object["name"]
+    assert project_data["object"] == seed_object["object_id"]
 
     # Проверяем вложенность project_leader
-    leader_data = project_data["project_leader"]
-    assert leader_data["user_id"] == seed_user["user_id"]
-    assert leader_data["name"] == seed_user["name"]
+    assert project_data["project_leader"] == seed_user["user_id"]
 
 
 def test_soft_delete_project(client, jwt_token, seed_project):
@@ -218,11 +214,7 @@ def test_get_all_projects(client, jwt_token, seed_project, seed_user, seed_objec
     assert project_data is not None
 
     # Проверяем вложенность object
-    object_data = project_data["object"]
-    assert object_data["object_id"] == seed_object["object_id"]
-    assert object_data["name"] == seed_object["name"]
+    assert project_data["object"] == seed_object["object_id"]
 
     # Проверяем вложенность project_leader
-    leader_data = project_data["project_leader"]
-    assert leader_data["user_id"] == seed_user["user_id"]
-    assert leader_data["name"] == seed_user["name"]
+    assert project_data["project_leader"] == seed_user["user_id"]

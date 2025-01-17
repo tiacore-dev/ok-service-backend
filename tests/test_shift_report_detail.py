@@ -177,23 +177,20 @@ def test_edit_shift_report_detail(client, jwt_token, seed_shift_report_detail):
         assert detail.summ == 300.0
 
 
-def test_delete_shift_report_detail(client, jwt_token, seed_shift_report_detail):
+def test_delete_shift_report_detail(client, jwt_token, seed_shift_report_detail, db_session):
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(f"""/shift_report_details/{
-                             seed_shift_report_detail['shift_report_details_id']}/delete""",
+                             seed_shift_report_detail['shift_report_details_id']}/delete/hard""",
                              headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == f"Shift report detail {
         seed_shift_report_detail['shift_report_details_id']} deleted successfully"
 
-    with client.application.app_context():
-        from app.database.db_globals import Session
-        session = Session()
-        from app.database.models import ShiftReportDetails
-        detail = session.query(ShiftReportDetails).filter_by(
-            shift_report_details_id=seed_shift_report_detail['shift_report_details_id']).first()
-        assert detail is None
+    from app.database.models import ShiftReportDetails
+    detail = db_session.query(ShiftReportDetails).filter_by(
+        shift_report_details_id=seed_shift_report_detail['shift_report_details_id']).first()
+    assert detail is None
 
 
 def test_get_all_shift_report_details_with_filters(client, jwt_token, seed_shift_report_detail, seed_shift_report, seed_work):

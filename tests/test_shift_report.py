@@ -121,8 +121,8 @@ def test_view_shift_report(client, jwt_token, seed_shift_report, seed_user, seed
     assert response.status_code == 200
     assert "shift_report" in response.json
     assert response.json["msg"] == "Shift report found successfully"
-    assert response.json["shift_report"]["user"]["user_id"] == seed_user['user_id']
-    assert response.json["shift_report"]["project"]["project_id"] == seed_project['project_id']
+    assert response.json["shift_report"]["user"] == seed_user['user_id']
+    assert response.json["shift_report"]["project"] == seed_project['project_id']
     assert response.json["shift_report"]["date"] == seed_shift_report['date']
     assert response.json["shift_report"]["signed"] == seed_shift_report['signed']
 
@@ -216,7 +216,7 @@ def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report
     assert len(shift_reports) > 0
     assert any(report["shift_report_id"] == seed_shift_report['shift_report_id']
                for report in shift_reports)
-    assert shift_reports[0]["user"]["user_id"] == seed_user['user_id']
-    assert shift_reports[0]["project"]["project_id"] == seed_project['project_id']
+    assert shift_reports[0]["user"] == seed_user['user_id']
+    assert shift_reports[0]["project"] == seed_project['project_id']
     assert shift_reports[0]["date"] == seed_shift_report['date']
     assert shift_reports[0]["signed"] == seed_shift_report['signed']
