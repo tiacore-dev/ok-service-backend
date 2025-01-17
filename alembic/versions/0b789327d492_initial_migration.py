@@ -10,7 +10,6 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID, NUMERIC
-from uuid import uuid4
 
 
 # revision identifiers, used by Alembic.
@@ -25,12 +24,12 @@ def upgrade():
     op.create_table(
         'logs',
         sa.Column('log_id', UUID(as_uuid=True), primary_key=True,
-                  nullable=False, default=uuid4),
+                  nullable=False),
         sa.Column('login', sa.String, nullable=False),
         sa.Column('action', sa.String(length=255), nullable=False),
         sa.Column('message', sa.Text, nullable=False),
         sa.Column('timestamp', sa.DateTime,
-                  nullable=True, default=sa.func.now())
+                  nullable=True)
     )
 
     op.create_table(
@@ -43,7 +42,7 @@ def upgrade():
     op.create_table(
         'objects',
         sa.Column('object_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
+                  primary_key=True, nullable=False),
         sa.Column('name', sa.String, nullable=False),
         sa.Column('address', sa.String, nullable=True),
         sa.Column('description', sa.String, nullable=True),
@@ -61,7 +60,7 @@ def upgrade():
     op.create_table(
         'users',
         sa.Column('user_id', UUID(as_uuid=True), primary_key=True,
-                  nullable=False, default=uuid4),
+                  nullable=False),
         sa.Column('login', sa.String, nullable=False),
         sa.Column('password_hash', sa.String, nullable=False),
         sa.Column('name', sa.String, nullable=False),
@@ -74,7 +73,7 @@ def upgrade():
     op.create_table(
         'projects',
         sa.Column('project_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
+                  primary_key=True, nullable=False),
         sa.Column('name', sa.String, nullable=False),
         sa.Column('object', UUID(as_uuid=True), sa.ForeignKey(
             'objects.object_id'), nullable=False),
@@ -86,7 +85,7 @@ def upgrade():
     op.create_table(
         'work_categories',
         sa.Column('work_category_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
+                  primary_key=True, nullable=False),
         sa.Column('name', sa.String, nullable=False),
         sa.Column('deleted', sa.Boolean, nullable=False, default=False)
     )
@@ -94,7 +93,7 @@ def upgrade():
     op.create_table(
         'works',
         sa.Column('work_id', UUID(as_uuid=True), primary_key=True,
-                  nullable=False, default=uuid4),
+                  nullable=False),
         sa.Column('name', sa.String, nullable=False),
         sa.Column('category', UUID(as_uuid=True), sa.ForeignKey(
             'work_categories.work_category_id'), nullable=True),
@@ -105,7 +104,7 @@ def upgrade():
     op.create_table(
         'project_works',
         sa.Column('project_work_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
+                  primary_key=True, nullable=False),
         sa.Column('work', UUID(as_uuid=True), sa.ForeignKey(
             'works.work_id'), nullable=False),
         sa.Column('quantity', NUMERIC(
@@ -117,7 +116,7 @@ def upgrade():
     op.create_table(
         'work_prices',
         sa.Column('work_price_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
+                  primary_key=True, nullable=False),
         sa.Column('work', UUID(as_uuid=True), sa.ForeignKey('works.work_id')),
         sa.Column('name', sa.String, nullable=False),
         sa.Column('category', sa.Integer, nullable=False),
@@ -128,7 +127,7 @@ def upgrade():
     op.create_table(
         'project_schedules',
         sa.Column('project_schedule_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
+                  primary_key=True, nullable=False),
         sa.Column('work', UUID(as_uuid=True), sa.ForeignKey(
             'works.work_id'), nullable=False),
         sa.Column('quantity', NUMERIC(precision=10, scale=2), nullable=False),
@@ -138,7 +137,7 @@ def upgrade():
     op.create_table(
         'shift_reports',
         sa.Column('shift_report_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
+                  primary_key=True, nullable=False),
         sa.Column('user', UUID(as_uuid=True), sa.ForeignKey(
             'users.user_id'), nullable=False),
         sa.Column('date', sa.Integer, nullable=False),
@@ -151,7 +150,7 @@ def upgrade():
     op.create_table(
         'shift_report_details',
         sa.Column('shift_report_details_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
+                  primary_key=True, nullable=False),
         sa.Column('shift_report', UUID(as_uuid=True), sa.ForeignKey(
             'shift_reports.shift_report_id'), nullable=False),
         sa.Column('work', UUID(as_uuid=True), sa.ForeignKey(
