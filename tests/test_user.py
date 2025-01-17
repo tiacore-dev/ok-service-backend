@@ -44,7 +44,7 @@ def test_add_user(client, jwt_token, db_session):
         "category": 1
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.post("/user/add", json=data, headers=headers)
+    response = client.post("/users/add", json=data, headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == "New user added successfully"
@@ -63,7 +63,7 @@ def test_view_user(client, jwt_token, seed_user):
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.get(
-        f"/user/{str(seed_user['user_id'])}/view", headers=headers)
+        f"/users/{str(seed_user['user_id'])}/view", headers=headers)
 
     assert response.status_code == 200
     assert "user" in response.json
@@ -87,7 +87,7 @@ def test_soft_delete_user(client, jwt_token, seed_user):
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/user/{str(seed_user['user_id'])}/delete/soft", headers=headers)
+        f"/users/{str(seed_user['user_id'])}/delete/soft", headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == f"""User {
@@ -110,7 +110,7 @@ def test_hard_delete_user(client, jwt_token, seed_user, db_session):
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(
-        f"/user/{str(seed_user['user_id'])}/delete/hard", headers=headers)
+        f"/users/{str(seed_user['user_id'])}/delete/hard", headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == f"""User {
@@ -136,7 +136,7 @@ def test_edit_user(client, jwt_token, seed_user):
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/user/{str(seed_user['user_id'])}/edit", json=data, headers=headers
+        f"/users/{str(seed_user['user_id'])}/edit", json=data, headers=headers
     )
 
     # Проверяем успешность запроса
@@ -163,7 +163,7 @@ def test_get_all_users(client, jwt_token, seed_user):
     Тест на получение списка пользователей через API.
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.get("/user/all", headers=headers)
+    response = client.get("/users/all", headers=headers)
 
     assert response.status_code == 200
     assert "users" in response.json
