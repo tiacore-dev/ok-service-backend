@@ -53,17 +53,6 @@ def upgrade():
     )
 
     op.create_table(
-        'project_works',
-        sa.Column('project_work_id', UUID(as_uuid=True),
-                  primary_key=True, nullable=False, default=uuid4),
-        sa.Column('work', UUID(as_uuid=True), sa.ForeignKey(
-            'works.work_id'), nullable=False),
-        sa.Column('quantity', NUMERIC(precision=10, scale=2), nullable=False),
-        sa.Column('summ', NUMERIC(precision=10, scale=2), nullable=True),
-        sa.Column('signed', sa.Boolean, nullable=False, default=False)
-    )
-
-    op.create_table(
         'roles',
         sa.Column('role_id', sa.String, primary_key=True, nullable=False),
         sa.Column('name', sa.String, nullable=False)
@@ -111,6 +100,18 @@ def upgrade():
             'work_categories.work_category_id'), nullable=True),
         sa.Column('measurement_unit', sa.String, nullable=True),
         sa.Column('deleted', sa.Boolean, nullable=False, default=False)
+    )
+
+    op.create_table(
+        'project_works',
+        sa.Column('project_work_id', UUID(as_uuid=True),
+                  primary_key=True, nullable=False, default=uuid4),
+        sa.Column('work', UUID(as_uuid=True), sa.ForeignKey(
+            'works.work_id'), nullable=False),
+        sa.Column('quantity', NUMERIC(
+            precision=10, scale=2), nullable=False),
+        sa.Column('summ', NUMERIC(precision=10, scale=2), nullable=True),
+        sa.Column('signed', sa.Boolean, nullable=False, default=False)
     )
 
     op.create_table(
