@@ -11,6 +11,8 @@ from app.routes.models.object_models import (
     object_filter_parser,
     object_model
 )
+from app.utils.filters import filter_model_fields
+from app.database.models import Objects
 
 logger = logging.getLogger('ok_service')
 
@@ -38,7 +40,7 @@ class ObjectAdd(Resource):
         object_status_id = data.get("status")
         if not db_s.exists_by_id(record_id=object_status_id):
             return {"msg": "Invalid object status"}, 400
-
+        data = filter_model_fields(data, Objects)
         try:
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()
