@@ -36,21 +36,15 @@ class BaseDBManager(ABC):
             logger.debug("Сессия закрыта", extra={"login": "database"})
 
     def add(self, **kwargs):
-        """Добавление записи в базу данных."""
         try:
-            logger.debug(f"Добавление записи: {kwargs}",
-                         extra={"login": "database"})
             with self.session_scope() as session:
                 new_record = self.model(**kwargs)
                 session.add(new_record)
-                # session.flush()  # Применяем изменения и получаем `id` объекта
-                result = new_record.to_dict()  # Преобразуем объект в словарь
-                logger.info(f"Запись добавлена: {result}",
-                            extra={"login": "database"})
-                return result
+                session.flush()  # Проверяем данные перед коммитом
+                return new_record.to_dict()
         except Exception as e:
-            logger.error(f"Ошибка при добавлении записи: {e}",
-                         extra={"login": "database"})
+            logger.error(f"""Ошибка при добавлении записи: {
+                         e}""", extra={"login": "database"})
             raise
 
     def get_by_id(self, record_id):
