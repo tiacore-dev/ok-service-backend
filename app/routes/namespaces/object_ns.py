@@ -32,8 +32,13 @@ class ObjectAdd(Resource):
     def post(self):
         current_user = get_jwt_identity()
         logger.info("Request to add new object", extra={"login": current_user})
-
+        from app.database.managers.objects_managers import ObjectStatusesManager
+        db_s = ObjectStatusesManager()
         data = request.json
+        object_status_id = data.get("status")
+        if not db_s.exists_by_id(record_id=object_status_id):
+            return {"msg": "Invalid object status"}, 400
+
         try:
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()

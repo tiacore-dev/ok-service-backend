@@ -12,7 +12,7 @@ from app.routes.models.user_models import (
 
 logger = logging.getLogger('ok_service')
 
-user_ns = Namespace('user', description='User management operations')
+user_ns = Namespace('users', description='User management operations')
 
 user_ns.models[user_create_model.name] = user_create_model
 user_ns.models[user_msg_model.name] = user_msg_model
