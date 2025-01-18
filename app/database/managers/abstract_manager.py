@@ -172,7 +172,9 @@ class BaseDBManager(ABC):
             logger.info("Deleting record with ID: %s",
                         record_id, extra={"login": "database"})
             with self.session_scope() as session:
-                record = self.get_record_by_id(record_id)
+                primary_key = inspect(self.model).primary_key[0].name
+                record = session.query(self.model).filter(
+                    getattr(self.model, primary_key) == record_id).first()
                 if record:
                     session.delete(record)
                     logger.info("Record deleted successfully: %s",
