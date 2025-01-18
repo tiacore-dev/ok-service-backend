@@ -17,7 +17,7 @@ from app.routes.models.work_category_models import (
 logger = logging.getLogger('ok_service')
 
 work_category_ns = Namespace(
-    'work_category', description='Work category management operations')
+    'work_categories', description='Work category management operations')
 
 work_category_ns.models[work_category_create_model.name] = work_category_create_model
 work_category_ns.models[work_category_msg_model.name] = work_category_msg_model
