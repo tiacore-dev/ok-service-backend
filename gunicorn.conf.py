@@ -7,9 +7,13 @@ load_dotenv()
 # Убедитесь, что порт задан с безопасным значением по умолчанию
 port = os.getenv('FLASK_PORT', '8000')
 
+# Количество CPU
+cpu_cores = cpu_count()
+
 bind = f"0.0.0.0:{port}"
-workers = cpu_count() * 2 + 1  # Динамическое определение количества воркеров
+workers = max(2, min(4, cpu_cores // 2))  # Баланс между ядрами и воркерами
 timeout = 600  # Увеличенное время ожидания
+threads = 4  # Увеличьте до 4 потоков на воркер
 
 # Логи
 loglevel = "info"
