@@ -147,16 +147,13 @@ class BaseDBManager(ABC):
             logger.info("Updating record with ID: %s, fields: %s",
                         record_id, filtered_kwargs, extra={"login": "database"})
             with self.session_scope() as session:
-                record = self.get_record_by_id(record_id)
+                primary_key = inspect(self.model).primary_key[0].name
+                record = session.query(self.model).filter(
+                    getattr(self.model, primary_key) == record_id).first()
                 if record:
                     for key, value in filtered_kwargs.items():
                         setattr(record, key, value)
-                        # Уведомляем сессию об изменении
                         flag_modified(record, key)
-
-                    session.add(record)  # Явно добавляем объект
-                    session.merge(record)  # Обновляем объект в текущей сессии
-
                     logger.info("Record updated successfully: %s",
                                 record, extra={"login": "database"})
                     return record
