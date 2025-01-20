@@ -39,7 +39,7 @@ class ShiftReportAdd(Resource):
         logger.info("Request to add new shift report",
                     extra={"login": current_user})
 
-        schema = ShiftReportEditSchema()
+        schema = ShiftReportCreateSchema()
         try:
             # Валидация входных данных
             data = schema.load(request.json)
