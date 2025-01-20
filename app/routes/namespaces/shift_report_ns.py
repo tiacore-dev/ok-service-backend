@@ -6,7 +6,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.shift_report_schemas import ShiftReportCreateSchema, ShiftReportFilterSchema
+from app.schemas.shift_report_schemas import ShiftReportCreateSchema, ShiftReportFilterSchema, ShiftReportEditSchema
 from app.routes.models.shift_report_models import (
     shift_report_create_model,
     shift_report_msg_model,
@@ -39,7 +39,7 @@ class ShiftReportAdd(Resource):
         logger.info("Request to add new shift report",
                     extra={"login": current_user})
 
-        schema = ShiftReportCreateSchema()
+        schema = ShiftReportEditSchema()
         try:
             # Валидация входных данных
             data = schema.load(request.json)
@@ -149,7 +149,14 @@ class ShiftReportEdit(Resource):
         logger.info(f"Request to edit shift report: {report_id}",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ShiftReportEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}")
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             try:
                 report_id = UUID(report_id)

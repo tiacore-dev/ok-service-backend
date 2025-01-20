@@ -4,7 +4,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.work_price_schemas import WorkPriceCreateSchema, WorkPriceFilterSchema
+from app.schemas.work_price_schemas import WorkPriceCreateSchema, WorkPriceFilterSchema, WorkPriceEditSchema
 from app.routes.models.work_price_models import (
     work_price_create_model,
     work_price_msg_model,
@@ -150,7 +150,13 @@ class WorkPriceEdit(Resource):
         logger.info(f"Request to edit work price: {work_price_id}",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = WorkPriceEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             try:
                 # Конвертируем строку в UUID

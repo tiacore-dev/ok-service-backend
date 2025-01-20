@@ -14,6 +14,16 @@ class ProjectWorkCreateSchema(Schema):
                             "required": "Field 'signed' is required."})
 
 
+class ProjectWorkEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Исключать лишние поля
+
+    work = fields.String(required=False, allow_none=True)
+    quantity = fields.Float(required=False, allow_none=True)
+    summ = fields.Float(required=False, allow_none=True)  # Опциональное поле
+    signed = fields.Boolean(required=False, allow_none=True)
+
+
 class ProjectWorkFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

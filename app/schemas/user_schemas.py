@@ -16,6 +16,17 @@ class UserCreateSchema(Schema):
     category = fields.Int(required=False)  # Опциональное поле
 
 
+class UserEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Исключать лишние поля
+
+    login = fields.String(required=False, allow_none=True)
+    password = fields.String(required=False, allow_none=True)
+    name = fields.String(vrequired=False, allow_none=True)
+    role = fields.String(required=False, allow_none=True)
+    category = fields.Int(required=False, allow_none=True)  # Опциональное поле
+
+
 class UserFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

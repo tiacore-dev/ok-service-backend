@@ -5,7 +5,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.user_schemas import UserCreateSchema, UserFilterSchema
+from app.schemas.user_schemas import UserCreateSchema, UserFilterSchema, UserEditSchema
 from app.routes.models.user_models import (
     user_create_model, user_msg_model,
     user_all_response, user_response,
@@ -194,12 +194,18 @@ class UserEdit(Resource):
         current_user = json.loads(get_jwt_identity())
         logger.info(f"Запрос на редактирование пользователя user_id={user_id}",
                     extra={"login": current_user.get('login')})
-
-        login = request.json.get("login")
-        password = request.json.get("password")
-        name = request.json.get("name")
-        role = request.json.get("role")
-        category = request.json.get("category")
+        schema = UserEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
+        login = data.get("login")
+        password = data.get("password")
+        name = data.get("name")
+        role = data.get("role")
+        category = data.get("category")
 
         # Логируем входные данные для редактирования
         logger.debug(f"Параметры редактирования: login={login}, password={'*' if password else None}, name={name}, role={role}, category={category}",

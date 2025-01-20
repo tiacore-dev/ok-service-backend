@@ -4,7 +4,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.work_schemas import WorkCreateSchema, WorkFilterSchema
+from app.schemas.work_schemas import WorkCreateSchema, WorkFilterSchema, WorkEditSchema
 from app.routes.models.work_models import (
     work_create_model,
     work_msg_model,
@@ -148,7 +148,13 @@ class WorkEdit(Resource):
         logger.info(f"Request to edit work: {work_id}",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = WorkEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             try:
                 # Конвертируем строку в UUID

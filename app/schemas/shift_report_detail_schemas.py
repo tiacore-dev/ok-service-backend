@@ -15,6 +15,16 @@ class ShiftReportDetailsCreateSchema(Schema):
                         "required": "Field 'summ' is required."})
 
 
+class ShiftReportDetailsEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Исключать лишние поля
+
+    shift_report = fields.String(required=False, allow_none=True)
+    work = fields.String(required=False, allow_none=True)
+    quantity = fields.Float(required=False, allow_none=True)
+    summ = fields.Float(required=False, allow_none=True)
+
+
 class ShiftReportDetailsFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

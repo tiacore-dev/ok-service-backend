@@ -9,6 +9,13 @@ class WorkCategoryCreateSchema(Schema):
                          "required": "Field 'name' is required."})
 
 
+class WorkCategoryEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Исключать лишние поля
+
+    name = fields.String(required=False, allow_none=True)
+
+
 class WorkCategoryFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

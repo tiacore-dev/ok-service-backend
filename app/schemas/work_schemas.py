@@ -11,6 +11,17 @@ class WorkCreateSchema(Schema):
     measurement_unit = fields.String(required=False)  # Опциональное поле
 
 
+class WorkEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Исключать лишние поля
+
+    name = fields.String(required=False, allow_none=True)
+    category = fields.String(
+        required=False, allow_none=True)  # Опциональное поле
+    measurement_unit = fields.String(
+        required=False, allow_none=True)  # Опциональное поле
+
+
 class WorkFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

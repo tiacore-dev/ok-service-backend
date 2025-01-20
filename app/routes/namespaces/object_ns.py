@@ -4,7 +4,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.object_schemas import ObjectCreateSchema, ObjectFilterSchema
+from app.schemas.object_schemas import ObjectCreateSchema, ObjectFilterSchema, ObjectEditSchema
 from app.routes.models.object_models import (
     object_create_model,
     object_msg_model,
@@ -152,7 +152,14 @@ class ObjectEdit(Resource):
         logger.info(f"Request to edit object: {object_id}",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ObjectEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error: {err.messages}")
+            return {"error": err.messages}, 400
         try:
             try:
                 # Конвертируем строку в UUID

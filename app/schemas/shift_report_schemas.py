@@ -15,6 +15,16 @@ class ShiftReportCreateSchema(Schema):
                             "required": "Field 'signed' is required."})
 
 
+class ShiftReportEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Исключать лишние поля
+
+    user = fields.String(required=False, allow_none=True)
+    date = fields.Int(required=False, allow_none=True)
+    project = fields.String(required=False, allow_none=True)
+    signed = fields.Boolean(required=False, allow_none=True)
+
+
 class ShiftReportFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

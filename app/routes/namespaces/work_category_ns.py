@@ -3,7 +3,7 @@ from flask_restx import Namespace, Resource
 from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.work_category_schemas import WorkCategoryCreateSchema, WorkCategoryFilterSchema
+from app.schemas.work_category_schemas import WorkCategoryCreateSchema, WorkCategoryFilterSchema, WorkCategoryEditSchema
 from app.routes.models.work_category_models import (
     work_category_create_model,
     work_category_model,
@@ -142,8 +142,14 @@ class WorkCategoryEdit(Resource):
         current_user = get_jwt_identity()
         logger.info(f"Request to edit work category: {work_category_id}",
                     extra={"login": current_user})
-
-        name = request.json.get("name")
+        schema = WorkCategoryEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
+        name = data.get("name")
 
         if not name:
             logger.warning("Missing required parameter: name",

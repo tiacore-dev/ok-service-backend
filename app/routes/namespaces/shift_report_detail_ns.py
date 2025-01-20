@@ -5,7 +5,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.shift_report_detail_schemas import ShiftReportDetailsCreateSchema, ShiftReportDetailsFilterSchema
+from app.schemas.shift_report_detail_schemas import ShiftReportDetailsCreateSchema, ShiftReportDetailsFilterSchema, ShiftReportDetailsEditSchema
 from app.routes.models.shift_report_detail_models import (
     shift_report_details_create_model,
     shift_report_details_msg_model,
@@ -123,7 +123,13 @@ class ShiftReportDetailsEdit(Resource):
         logger.info(f"Request to edit shift report detail: {detail_id}",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ShiftReportDetailsEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             try:
                 detail_id = UUID(detail_id)

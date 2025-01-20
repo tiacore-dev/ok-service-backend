@@ -12,6 +12,15 @@ class ProjectCreateSchema(Schema):
     project_leader = fields.String(required=False)
 
 
+class ProjectEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Исключать лишние поля
+
+    name = fields.String(required=False, allow_none=True)
+    object = fields.String(required=False, allow_none=True)
+    project_leader = fields.String(required=False, allow_none=True)
+
+
 class ProjectFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

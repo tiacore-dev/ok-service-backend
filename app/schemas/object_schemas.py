@@ -6,9 +6,18 @@ class ObjectCreateSchema(Schema):
         unknown = "exclude"  # Игнорировать лишние поля
     name = fields.String(required=True, error_messages={
                          "required": "Field 'name' is required."})
-    address = fields.String()
-    description = fields.String()
-    status = fields.String()
+    address = fields.String(required=False)
+    description = fields.String(required=False)
+    status = fields.String(required=False)
+
+
+class ObjectEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Игнорировать лишние поля
+    name = fields.String(required=False, allow_none=True)
+    address = fields.String(required=False, allow_none=True)
+    description = fields.String(required=False, allow_none=True)
+    status = fields.String(required=False, allow_none=True)
 
 
 class ObjectFilterSchema(Schema):

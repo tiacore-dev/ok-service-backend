@@ -12,6 +12,15 @@ class ProjectScheduleCreateSchema(Schema):
     date = fields.Int(required=False)  # Опциональное поле
 
 
+class ProjectScheduleEditSchema(Schema):
+    class Meta:
+        unknown = "exclude"  # Исключать лишние поля
+
+    work = fields.String(required=False, allow_none=True)
+    quantity = fields.Float(required=False, allow_none=True)
+    date = fields.Int(required=False, allow_none=True)  # Опциональное поле
+
+
 class ProjectScheduleFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

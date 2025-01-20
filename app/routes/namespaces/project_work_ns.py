@@ -4,7 +4,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.project_work_schemas import ProjectWorkCreateSchema, ProjectWorkFilterSchema
+from app.schemas.project_work_schemas import ProjectWorkCreateSchema, ProjectWorkFilterSchema, ProjectWorkEditSchema
 from app.routes.models.project_work_models import (
     project_work_create_model,
     project_work_msg_model,
@@ -137,7 +137,13 @@ class ProjectWorkEdit(Resource):
         logger.info(f"Request to edit project work: {project_work_id}",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ProjectWorkEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             project_work_id = UUID(project_work_id)
             from app.database.managers.projects_managers import ProjectWorksManager

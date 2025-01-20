@@ -5,7 +5,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.project_schedule_schemas import ProjectScheduleCreateSchema, ProjectScheduleFilterSchema
+from app.schemas.project_schedule_schemas import ProjectScheduleCreateSchema, ProjectScheduleFilterSchema, ProjectScheduleEditSchema
 from app.routes.models.project_schedule_models import (
     project_schedule_create_model,
     project_schedule_msg_model,
@@ -122,7 +122,13 @@ class ProjectScheduleEdit(Resource):
         logger.info(f"Request to edit project schedule: {schedule_id}",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ProjectScheduleEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             try:
                 schedule_id = UUID(schedule_id)

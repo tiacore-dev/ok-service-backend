@@ -4,7 +4,7 @@ from flask import request
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.project_schemas import ProjectCreateSchema, ProjectFilterSchema
+from app.schemas.project_schemas import ProjectCreateSchema, ProjectFilterSchema, ProjectEditSchema
 from app.routes.models.project_models import (
     project_create_model,
     project_msg_model,
@@ -150,7 +150,13 @@ class ProjectEdit(Resource):
         logger.info(f"Request to edit project: {project_id}",
                     extra={"login": current_user})
 
-        data = request.json
+        schema = ProjectEditSchema()
+        try:
+            # Валидация входных данных
+            data = schema.load(request.json)
+        except ValidationError as err:
+            # Возвращаем 400 с описанием ошибки
+            return {"error": err.messages}, 400
         try:
             try:
                 # Конвертируем строку в UUID
