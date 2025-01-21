@@ -6,6 +6,11 @@ dispatcher.py
 # C extensions
 *.so
 
+static/
+templates/
+
+vapid_private_key.pem
+vapid_public_key.pem
 
 .pylintrc
 # Distribution / packaging

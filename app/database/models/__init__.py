@@ -11,3 +11,4 @@ from .work_categories import WorkCategories
 from .work_prices import WorkPrices
 from .works import Works
 from .logs import Logs
+from .subscriptions import Subscriptions

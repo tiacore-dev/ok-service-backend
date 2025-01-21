@@ -13,4 +13,4 @@ app = create_app(config_name="development")
 
 # Запуск через Gunicorn будет автоматически управлять процессом запуска
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True, port=port)
