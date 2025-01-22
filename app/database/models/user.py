@@ -20,6 +20,7 @@ class Users(Base):
     roles = relationship("Roles", back_populates="user")
     project = relationship("Projects", back_populates="user")
     shift_report = relationship("ShiftReports", back_populates="users")
+    subscription = relationship("Subscriptions", back_populates="users")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

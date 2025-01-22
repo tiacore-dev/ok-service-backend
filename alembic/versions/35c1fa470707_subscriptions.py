@@ -23,6 +23,8 @@ def upgrade():
         'subscriptions',
         sa.Column('subscription_id', UUID(as_uuid=True), primary_key=True,
                   nullable=False),
+        sa.Column('user', UUID(as_uuid=True), sa.ForeignKey(
+            'users.user_id'), nullable=False),
         sa.Column('subscription_data', sa.Text, nullable=False)
     )
 

@@ -21,20 +21,21 @@ def notify_on_change(mapper, connection, target):
     from app.database.managers.subscription_manager import SubscriptionsManager
     db = SubscriptionsManager()
 
-    # Получаем подписчиков для таблицы
-    try:
-        subscriptions = db.get_all()
-        logger.info(f"Найдено {len(subscriptions)} подписчиков.")
-    except Exception as e:
-        logger.error(f"Ошибка получения подписчиков: {e}")
+    # Проверяем, есть ли поле user у измененной таблицы
+    user_id = getattr(target, 'user', None)
+    if not user_id:
+        logger.warning(f"""Таблица {
+                       target.__tablename__} не содержит поле 'user'. Уведомления не отправлены.""")
         return
 
-    for subscription in subscriptions:
-        try:
-            send_push_notification(subscription, target)
-        except Exception as ex:
-            logger.error(f"""Ошибка отправки уведомления для подписки {
-                         subscription['subscription_id']}: {ex}""")
+    # Получаем подписчиков для таблицы
+    try:
+        subscription = db.filter_by(user=user_id)
+        send_push_notification(subscription, target)
+    except Exception as ex:
+        logger.error(f"""Ошибка отправки уведомления для подписки {
+                     subscription['subscription_id']}: {ex}""")
+        return
 
 
 def send_push_notification(subscription, target):
@@ -65,16 +66,25 @@ def send_push_notification(subscription, target):
     except Exception as e:
         logger.error(f"Неизвестная ошибка при отправке уведомления: {e}")
 
+
 # Пример применения слушателя для событий в таблице
-
-
 def setup_listeners():
-    from app.database.models import Objects  # Ваша модель
-    logger.info("Настройка слушателей событий для модели Objects.")
+    from app.database.models import Projects  # Ваша модель
+    logger.info("Настройка слушателей событий для модели Projects.")
     try:
-        event.listen(Objects, 'after_insert', notify_on_change)
-        event.listen(Objects, 'after_update', notify_on_change)
-        event.listen(Objects, 'after_delete', notify_on_change)
+        event.listen(Projects, 'after_insert', notify_on_change)
+        event.listen(Projects, 'after_update', notify_on_change)
+        event.listen(Projects, 'after_delete', notify_on_change)
+        logger.info("Слушатели событий успешно настроены.")
+    except Exception as e:
+        logger.error(f"Ошибка настройки слушателей событий: {e}")
+
+    from app.database.models import ShiftReports
+    logger.info("Настройка слушателей событий для модели ShiftReports.")
+    try:
+        event.listen(ShiftReports, 'after_insert', notify_on_change)
+        event.listen(ShiftReports, 'after_update', notify_on_change)
+        event.listen(ShiftReports, 'after_delete', notify_on_change)
         logger.info("Слушатели событий успешно настроены.")
     except Exception as e:
         logger.error(f"Ошибка настройки слушателей событий: {e}")

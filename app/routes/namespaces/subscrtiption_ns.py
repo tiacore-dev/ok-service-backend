@@ -3,7 +3,7 @@ import json
 from uuid import UUID
 from base64 import urlsafe_b64encode
 from flask_restx import Namespace, Resource, fields
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from cryptography.hazmat.primitives.serialization import load_pem_public_key, load_pem_private_key, PublicFormat, Encoding
 from flask import request
 from pywebpush import webpush, WebPushException
@@ -59,7 +59,7 @@ class Subscribe(Resource):
     def post(self):
         from app.database.managers.subscription_manager import SubscriptionsManager
         db = SubscriptionsManager()
-
+        current_user = json.loads(get_jwt_identity())
         # Получаем "сырые" данные из тела запроса
         schema = ShiftReportCreateSchema()
         try:
@@ -74,7 +74,8 @@ class Subscribe(Resource):
             return {"message": "Subscription already exists."}, 200
 
         # Добавляем подписку
-        db.add(subscription_data=subscription_info)
+        db.add(subscription_data=subscription_info,
+               user=current_user['user_id'])
         return {"message": "Subscription added."}, 201
 
 
