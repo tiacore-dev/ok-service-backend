@@ -1,7 +1,17 @@
 services:
+  generate_keys:
+    build: .
+    command: python generate_keys.py
+  volumes:
+      - .:/app
+    networks:
+      - ok_network
+
   alembic:
     build: .
-    command: alembic upgrade head      
+    command: alembic upgrade head  
+    depends_on:
+      - generate_keys 
     volumes:
       - .:/app
     networks:
@@ -12,6 +22,7 @@ services:
     command: pytest --maxfail=3 --disable-warnings
     depends_on:
       - alembic
+      - generate_keys
     networks:
       - ok_network
     volumes:
