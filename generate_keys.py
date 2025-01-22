@@ -26,3 +26,6 @@ def generate_keys():
         f.write(public_key_pem)
 
     print("VAPID keys generated and saved!")
+
+
+generate_keys()
