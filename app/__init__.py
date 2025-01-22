@@ -9,7 +9,6 @@ from logger import setup_logger
 from app.routes import register_namespaces, register_routes
 from app.database import init_db, set_db_globals, setup_listeners
 from app.utils.db_setting_tables import set_admin, set_roles, set_object_status
-from generate_keys import generate_keys
 
 authorizations = {
     'Bearer': {
@@ -56,7 +55,6 @@ def create_app(config_name="development"):
     # set_roles()
     # set_admin()
     set_object_status()
-    generate_keys()
     setup_listeners()
 
     # Инициализация JWT

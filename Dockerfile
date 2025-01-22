@@ -26,3 +26,6 @@ RUN pip install gunicorn
 
 # Копируем весь код приложения в рабочую директорию
 COPY . .
+
+# Выполняем Python-скрипт на этапе сборки (опционально)
+RUN python generate_keys.py
