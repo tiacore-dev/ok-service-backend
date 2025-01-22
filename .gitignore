@@ -12,6 +12,8 @@ templates/
 vapid_private_key.pem
 vapid_public_key.pem
 
+app/routes/push_route.py
+
 .pylintrc
 # Distribution / packaging
 .Python

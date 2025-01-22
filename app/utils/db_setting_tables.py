@@ -33,8 +33,11 @@ def set_roles():
 def set_object_status():
     from app.database.managers.objects_managers import ObjectStatusesManager
     db = ObjectStatusesManager()
-    if not db.exists(object_status_id='in_progress'):
-        db.add(
-            object_status_id='in_progress',
-            name="Active"
-        )
+    ids = ['waiting', 'active', 'completed']
+    names = ['В Ожидании', "Действующий",
+             "Завершенный"]
+    db.delete(
+        record_id='in_progress')
+    for i in range(0, 3):
+        if not db.exists(object_status_id=ids[i]):
+            db.add(object_status_id=ids[i], name=names[i])

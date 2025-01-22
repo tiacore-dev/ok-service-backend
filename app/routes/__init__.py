@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_restx import Api
 from .account_route import account_bp
+#from .push_route import push_bp
 from .namespaces.login_ns import login_ns
 from .namespaces.user_ns import user_ns
 from .namespaces.object_status_ns import object_status_ns
@@ -19,6 +20,7 @@ from .namespaces.subscrtiption_ns import subscription_ns
 
 def register_routes(app: Flask):
     app.register_blueprint(account_bp)
+    #app.register_blueprint(push_bp)
 
 
 def register_namespaces(api: Api):

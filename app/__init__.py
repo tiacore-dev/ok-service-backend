@@ -57,7 +57,7 @@ def create_app(config_name="development"):
     set_admin()
     set_object_status()
     setup_listeners()
-    generate_keys
+    generate_keys()
 
     # Инициализация JWT
     try:
