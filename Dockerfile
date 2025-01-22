@@ -24,6 +24,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Устанавливаем Gunicorn
 RUN pip install gunicorn
 
+# Выполняем Python-скрипт на этапе сборки (опционально)
+RUN python generate_keys.py
 
 # Копируем весь код приложения в рабочую директорию
 COPY . .
