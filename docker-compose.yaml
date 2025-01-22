@@ -2,7 +2,7 @@ services:
   generate_keys:
     build: .
     command: python generate_keys.py
-  volumes:
+    volumes:
       - .:/app
     networks:
       - ok_network
