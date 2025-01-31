@@ -19,15 +19,12 @@ def seed_object(db_session):
         name="Test Object",
         address="123 Test St",
         description="Test description",
-        status="in_progress"
+        status="active"
     )
     db_session.add(obj)
     db_session.commit()
     return obj.to_dict()
 
-
-# object_status_id='in_progress',
-# name="Active"
 
 def test_add_object(client, jwt_token, db_session):
     """
@@ -39,7 +36,7 @@ def test_add_object(client, jwt_token, db_session):
         "name": "New Object",
         "address": "456 Test Ln",
         "description": "New description",
-        "status": 'in_progress'
+        "status": 'active'
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/objects/add", json=data, headers=headers)
@@ -53,7 +50,7 @@ def test_add_object(client, jwt_token, db_session):
     assert obj.name == "New Object"
     assert obj.address == "456 Test Ln"
     assert obj.description == "New description"
-    assert obj.status == 'in_progress'
+    assert obj.status == 'active'
 
 
 def test_view_object(client, jwt_token, seed_object):
@@ -74,7 +71,7 @@ def test_view_object(client, jwt_token, seed_object):
     assert object_data["address"] == seed_object["address"]
 
     # Проверяем вложенность status
-    assert object_data["status"] == 'in_progress'
+    assert object_data["status"] == 'active'
 
 
 def test_soft_delete_object(client, jwt_token, seed_object):
@@ -166,4 +163,4 @@ def test_get_all_objects(client, jwt_token, seed_object):
     assert object_data is not None
 
     # Проверяем вложенность status
-    assert object_data["status"] == 'in_progress'
+    assert object_data["status"] == 'active'

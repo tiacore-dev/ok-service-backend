@@ -1,6 +1,7 @@
 from flask_restx import Model, fields, reqparse
 from app.schemas.work_schemas import WorkCreateSchema
 from app.utils.helpers import generate_swagger_model
+from app.routes.models.work_category_models import work_category_model
 
 # Модель для создания проекта
 work_create_model = generate_swagger_model(
@@ -11,7 +12,7 @@ work_create_model = generate_swagger_model(
 work_model = Model('Work', {
     "work_id": fields.String(required=True, description="ID of the work"),
     "name": fields.String(required=True, description="Name of the work"),
-    "category": fields.String(description="Work category data"),
+    "category": fields.Nested(work_category_model, description="Work category data"),
     "measurement_unit": fields.String(required=False, description="Measurement unit of the work"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })

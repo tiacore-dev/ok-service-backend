@@ -1,7 +1,7 @@
 services:
   alembic:
     build: .
-    command: alembic upgrade head      
+    command: bash -c "alembic upgrade head && echo 'Migrations completed successfully' || exit 1"    
     volumes:
       - .:/app
     networks:
@@ -9,7 +9,7 @@ services:
 
   test:
     build: .
-    command: pytest --maxfail=3 --disable-warnings
+    command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
     depends_on:
       - alembic
     networks:

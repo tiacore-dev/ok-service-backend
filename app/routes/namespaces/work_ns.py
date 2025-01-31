@@ -1,4 +1,5 @@
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -77,7 +78,7 @@ class WorkView(Resource):
             work = db.get_by_id(work_id)
             if not work:
                 return {"msg": "Work not found"}, 404
-            return {"msg": "Work found successfully", "work": work}, 200
+            return {"msg": "Work found successfully", "work": json.dumps(work)}, 200
         except Exception as e:
             logger.error(f"Error viewing work: {e}",
                          extra={"login": current_user})
@@ -211,7 +212,7 @@ class WorkAll(Resource):
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
             logger.info(f"Successfully fetched {len(works)} works",
                         extra={"login": current_user})
-            return {"msg": "Works found successfully", "works": works}, 200
+            return {"msg": "Works found successfully", "works": json.dumps(works)}, 200
         except Exception as e:
             logger.error(f"Error fetching works: {e}",
                          extra={"login": current_user})

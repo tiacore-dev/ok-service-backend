@@ -1,4 +1,5 @@
 from uuid import uuid4
+import json
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, String, UUID, ForeignKey, Boolean
 from app.database.db_setup import Base
@@ -29,7 +30,7 @@ class Works(Base):
         return {
             "work_id": str(self.work_id),
             "name": self.name,
-            "category": category_data,
+            "category": json.dumps(category_data),
             "measurement_unit": self.measurement_unit if self.measurement_unit else None,
             "deleted": self.deleted
         }
