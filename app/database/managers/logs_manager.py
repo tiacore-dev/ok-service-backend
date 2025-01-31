@@ -1,10 +1,7 @@
-import logging
+
 from datetime import timedelta, datetime
 from app.database.models.logs import Logs
 from app.database.db_globals import Session
-
-
-logger = logging.getLogger('ok_service')
 
 
 class LogManager():
@@ -22,12 +19,10 @@ class LogManager():
             return new_record
         except Exception as e:
             session.rollback()
-            logger.error(f"Ошибка в сессии: {e}", extra={
-                "login": "database"})
+
             raise
         finally:
             session.close()
-            logger.debug(f"""Сессия закрыта""", extra={"login": "database"})
 
     def get_logs_by_date(self, date, offset=0, limit=10):
         """Получение логов по дате."""
@@ -36,12 +31,9 @@ class LogManager():
             return session.query(Logs).filter(Logs.timestamp >= date, Logs.timestamp < date + timedelta(days=1)).offset(offset).limit(limit).all()
         except Exception as e:
             session.rollback()
-            logger.error(f"Ошибка в сессии: {e}", extra={
-                "login": "database"})
             raise
         finally:
             session.close()
-            logger.debug(f"""Сессия закрыта""", extra={"login": "database"})
 
     def filter_by_date(self, user_id=None, date=None, offset=0, limit=10):
         """Фильтрация логов по дате и ID пользователя."""
@@ -58,12 +50,9 @@ class LogManager():
             return query.offset(offset).limit(limit).all()
         except Exception as e:
             session.rollback()
-            logger.error(f"Ошибка в сессии: {e}", extra={
-                "login": "database"})
             raise
         finally:
             session.close()
-            logger.debug(f"""Сессия закрыта""", extra={"login": "database"})
 
     def get_logs(self, user_id=None, date=None, offset=0, limit=10):
         """Получение логов с фильтрацией и пагинацией."""
@@ -93,14 +82,10 @@ class LogManager():
 
             # Форматируем логи в виде списка словарей
             result = [log.to_dict() for log in logs] if logs else []
-
             return result, total_count
 
         except Exception as e:
             session.rollback()
-            logger.error(f"Ошибка в сессии: {e}", extra={
-                "login": "database"})
             raise
         finally:
             session.close()
-            logger.debug(f"""Сессия закрыта""", extra={"login": "database"})
