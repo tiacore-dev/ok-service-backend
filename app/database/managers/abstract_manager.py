@@ -1,4 +1,5 @@
 import logging
+import time
 from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from sqlalchemy import asc, desc
@@ -17,23 +18,27 @@ class BaseDBManager(ABC):
 
     @contextmanager
     def session_scope(self):
-        """Контекстный менеджер для управления сессией."""
-        session = Session()  # Создаем экземпляр сессии
+        """Контекстный менеджер для управления сессией с логированием времени выполнения."""
+        session = Session()
+        start_time = time.time()
         try:
             logger.debug("Начало сессии", extra={"login": "database"})
             yield session
-            logger.debug(f"Изменённые объекты: {session.dirty}",
-                         extra={"login": "database"})
             session.commit()
+            logger.debug(f"""Изменённые объекты: {
+                session.dirty}""", extra={"login": "database"})
             logger.debug("Сессия успешно закоммичена",
                          extra={"login": "database"})
         except Exception as e:
             session.rollback()
-            logger.error(f"Ошибка в сессии: {e}", extra={"login": "database"})
+            logger.error(f"Ошибка в сессии: {e}", extra={
+                "login": "database"})
             raise
         finally:
             session.close()
-            logger.debug("Сессия закрыта", extra={"login": "database"})
+            elapsed_time = time.time() - start_time
+            logger.debug(f"""Сессия закрыта. Время выполнения: {
+                elapsed_time:.4f} сек""", extra={"login": "database"})
 
     def add(self, **kwargs):
         try:
