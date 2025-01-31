@@ -15,14 +15,15 @@ def init_db(database_url, config_name):
         pool_recycle=1800,  # Перезапуск соединения каждые 30 минут
         pool_pre_ping=True  # Проверка соединения перед выдачей из пула
     )
-    session_factory = sessionmaker(
-        bind=engine, autocommit=False, autoflush=False)  # Для тестов
-    Session = scoped_session(session_factory)
 
     if config_name == "testing":
-      # Для тестов
+        session_factory = sessionmaker(bind=engine)  # Для тестов
+        Session = scoped_session(session_factory)  # Для тестов
         from app.database.models import Users, ObjectStatuses, Logs, Roles  # pylint: disable=unused-import
         Base.metadata.create_all(engine)
         # Создание всех таблиц
+
+    else:
+        Session = sessionmaker(bind=engine)  # Для прода
 
     return engine, Session, Base
