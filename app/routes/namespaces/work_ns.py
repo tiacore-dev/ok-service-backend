@@ -78,7 +78,7 @@ class WorkView(Resource):
             work = db.get_by_id(work_id)
             if not work:
                 return {"msg": "Work not found"}, 404
-            return {"msg": "Work found successfully", "work": json.dumps(work)}, 200
+            return {"msg": "Work found successfully", "work": work}, 200
         except Exception as e:
             logger.error(f"Error viewing work: {e}",
                          extra={"login": current_user})

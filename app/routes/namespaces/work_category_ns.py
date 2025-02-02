@@ -81,7 +81,7 @@ class WorkCategoryView(Resource):
             work_category = db.get_by_id(work_category_id)
             if not work_category:
                 return {"msg": "Work category not found"}, 404
-            return {"msg": "Work category found successfully", "work_category": json.dumps(work_category)}, 200
+            return {"msg": "Work category found successfully", "work_category": work_category}, 200
         except Exception as e:
             logger.error(f"Error viewing work category: {e}",
                          extra={"login": current_user})
