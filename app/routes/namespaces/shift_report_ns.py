@@ -199,7 +199,7 @@ class ShiftReportAll(Resource):
         sort_order = args.get('sort_order', 'asc')
         filters = {
             'user': UUID(args.get('user')) if args.get('user') else None,
-            'date': int(args.get('date', None)),
+            'date': int(args.get('date', 0)),
             'project': UUID(args.get('project')) if args.get('project') else None,
             'deleted': args.get('deleted', None)
         }
