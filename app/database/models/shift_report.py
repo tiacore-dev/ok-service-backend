@@ -14,6 +14,7 @@ class ShiftReports(Base):
     project = Column(UUID, ForeignKey('projects.project_id'), nullable=False)
     signed = Column(Boolean, nullable=False, default=False)
     deleted = Column(Boolean, nullable=False, default=False)
+    number = Column(Integer, autoincrement=True)
 
     users = relationship("Users", back_populates="shift_report")
     projects = relationship("Projects", back_populates="shift_report")

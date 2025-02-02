@@ -17,9 +17,8 @@ class LogManager():
             session.add(new_record)  # Добавляем новый лог через сессию
             session.commit()  # Не забудьте зафиксировать изменения в базе данных
             return new_record
-        except Exception as e:
+        except Exception:
             session.rollback()
-
             raise
         finally:
             session.close()
@@ -29,7 +28,7 @@ class LogManager():
         session = self.Session()
         try:
             return session.query(Logs).filter(Logs.timestamp >= date, Logs.timestamp < date + timedelta(days=1)).offset(offset).limit(limit).all()
-        except Exception as e:
+        except Exception:
             session.rollback()
             raise
         finally:
@@ -48,7 +47,7 @@ class LogManager():
                 query = query.filter(Logs.timestamp >= date_obj,
                                      Logs.timestamp < date_obj + timedelta(days=1))
             return query.offset(offset).limit(limit).all()
-        except Exception as e:
+        except Exception:
             session.rollback()
             raise
         finally:
@@ -84,7 +83,7 @@ class LogManager():
             result = [log.to_dict() for log in logs] if logs else []
             return result, total_count
 
-        except Exception as e:
+        except Exception:
             session.rollback()
             raise
         finally:
