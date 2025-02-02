@@ -189,7 +189,7 @@ class WorkCategoryAll(Resource):
                          "login": current_user})
             return {"error": err.messages}, 400
         offset = args.get('offset', 0)
-        limit = args.get('limit', None)
+        limit = args.get('limit', 10)
         sort_by = args.get('sort_by')
         sort_order = args.get('sort_order', 'asc')
         filters = {
