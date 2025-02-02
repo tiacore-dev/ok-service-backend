@@ -1,5 +1,4 @@
 from uuid import uuid4
-import json
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, String, UUID, ForeignKey, Boolean
 from app.database.db_setup import Base
@@ -24,13 +23,11 @@ class Works(Base):
         "ShiftReportDetails", back_populates="works")
 
     def to_dict(self):
-        # Проверяем, есть ли роль
-        category_data = self.work_category.to_dict(
-        ) if self.work_category else str(self.category)
         return {
             "work_id": str(self.work_id),
             "name": self.name,
-            "category": json.dumps(category_data),
-            "measurement_unit": self.measurement_unit if self.measurement_unit else None,
+            # ❗ Без `json.dumps()`
+            "category": self.work_category.to_dict() if self.work_category else None,
+            "measurement_unit": self.measurement_unit,
             "deleted": self.deleted
         }

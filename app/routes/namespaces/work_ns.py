@@ -1,5 +1,4 @@
 import logging
-import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
