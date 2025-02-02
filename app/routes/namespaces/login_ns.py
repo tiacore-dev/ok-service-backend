@@ -44,6 +44,9 @@ class AuthLogin(Resource):
             return {"msg": "Bad username or password"}, 401
 
         user = db.filter_one_by_dict(login=login)
+        if not user:
+            logger.error("User not found", extra={"login": login})
+            return {"msg": "User not found"}, 404
         identity = json.dumps({
             "user_id": user['user_id'],
             "role": user['role'],
