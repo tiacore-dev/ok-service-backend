@@ -15,7 +15,8 @@ class Works(Base):
     measurement_unit = Column(String, nullable=True)
     deleted = Column(Boolean, nullable=False, default=False)
 
-    work_category = relationship("WorkCategories", back_populates="works")
+    work_category = relationship(
+        "WorkCategories", back_populates="works", lazy="joined")
     work_price = relationship("WorkPrices", back_populates="works")
     project_work = relationship("ProjectWorks", back_populates="works")
     project_schedule = relationship("ProjectSchedules", back_populates="works")
