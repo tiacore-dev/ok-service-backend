@@ -212,7 +212,7 @@ class WorkAll(Resource):
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
             logger.info(f"Successfully fetched {len(works)} works",
                         extra={"login": current_user})
-            return {"msg": "Works found successfully", "works": json.dumps(works)}, 200
+            return {"msg": "Works found successfully", "works": works}, 200
         except Exception as e:
             logger.error(f"Error fetching works: {e}",
                          extra={"login": current_user})
