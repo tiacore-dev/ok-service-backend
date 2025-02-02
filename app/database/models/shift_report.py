@@ -1,6 +1,6 @@
 from uuid import uuid4
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean, BigInteger
 from app.database.db_setup import Base
 
 
@@ -10,7 +10,7 @@ class ShiftReports(Base):
     shift_report_id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     user = Column(UUID, ForeignKey('users.user_id'), nullable=False)
-    date = Column(Integer, nullable=False)
+    date = Column(BigInteger, nullable=False)
     project = Column(UUID, ForeignKey('projects.project_id'), nullable=False)
     signed = Column(Boolean, nullable=False, default=False)
     deleted = Column(Boolean, nullable=False, default=False)
