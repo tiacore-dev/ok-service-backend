@@ -7,7 +7,7 @@ from flask_marshmallow import Marshmallow
 from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
 from app.routes import register_namespaces, register_routes
-from app.database import init_db, set_db_globals, setup_listeners
+from app.database import init_db, set_db_globals  # , setup_listeners
 from app.utils.db_setting_tables import set_admin, set_roles, set_object_status
 
 authorizations = {
@@ -55,7 +55,7 @@ def create_app(config_name="development"):
     # set_roles()
     # set_admin()
     set_object_status()
-    setup_listeners()
+    # setup_listeners()
 
     # Инициализация JWT
     try:
