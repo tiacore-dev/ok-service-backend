@@ -49,3 +49,18 @@ project_work_filter_parser.add_argument(
 project_work_filter_parser.add_argument(
     'signed', type=lambda x: x.lower() in ['true', '1'], required=False, help='Filter by signed status'
 )
+project_work_filter_parser.add_argument(
+    'work', type=str, required=False, help="Filter by work ID"
+)
+project_work_filter_parser.add_argument(
+    'min_quantity', type=float, required=False, help="Minimum quantity filter"
+)
+project_work_filter_parser.add_argument(
+    'max_quantity', type=float, required=False, help="Maximum quantity filter"
+)
+project_work_filter_parser.add_argument(
+    'min_summ', type=float, required=False, help="Minimum summ filter"
+)
+project_work_filter_parser.add_argument(
+    'max_summ', type=float, required=False, help="Maximum summ filter"
+)

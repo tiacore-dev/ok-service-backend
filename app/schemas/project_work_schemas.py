@@ -36,3 +36,8 @@ class ProjectWorkFilterSchema(Schema):
     sort_order = fields.String(required=False, validate=validate.OneOf(
         ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))
     signed = fields.Boolean(required=False)
+    work = fields.String(required=False)
+    min_quantity = fields.Float(required=False)
+    max_quantity = fields.Float(required=False)
+    min_summ = fields.Float(required=False)
+    max_summ = fields.Float(required=False)
