@@ -1,4 +1,5 @@
 import logging
+import os
 
 # Настройка логгера
 
@@ -12,31 +13,15 @@ def setup_logger():
         # Добавляем обработчик для вывода логов в консоль
         console_handler = logging.StreamHandler()
         log_format = "%(asctime)s %(levelname)s: %(message)s"
-        console_formatter = logging.Formatter(log_format)
+        log_formatter = logging.Formatter(log_format)
 
-        console_handler.setFormatter(console_formatter)
+        console_handler.setFormatter(log_formatter)
         logger.addHandler(console_handler)
 
-        # Добавляем обработчик для записи логов в базу данных
-        logger.addHandler(DatabaseLogHandler())
+        # Добавляем обработчик для записи логов в файл
+        log_file_path = os.path.join(os.getcwd(), "ok_service.log")
+        file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
+        file_handler.setFormatter(log_formatter)
+        logger.addHandler(file_handler)
 
     return logger
-
-
-class DatabaseLogHandler(logging.Handler):
-    def emit(self, record):
-        from app.database.managers.logs_manager import LogManager
-
-        log_entry = self.format(record)
-        db = LogManager()
-
-        # Извлекаем user_id из дополнительных данных
-        # Если user_id не установлен, использовать 'unknown'
-        login = getattr(record, 'login', 'unknown')
-
-        try:
-            # Записываем лог в базу данных
-            db.add_logs(login=login, action=record.levelname,
-                        message=log_entry)
-        except Exception as e:
-            print(f"Ошибка при записи лога в базу данных: {e}")
