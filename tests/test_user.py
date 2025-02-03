@@ -18,7 +18,7 @@ def seed_user(db_session):
         user_id=uuid4(),
         login="existing_user",
         name="Existing User",
-        role='user',
+        role='admin',
         category=1,
         deleted=False
     )
@@ -53,7 +53,7 @@ def test_add_user(client, jwt_token, db_session):
     user = db_session.query(Users).filter_by(login="test_user").first()
     assert user is not None
     assert user.name == "Test User"
-    assert user.role == "user"
+    assert user.role == "admin"
     assert user.category == 1
 
 
@@ -73,7 +73,7 @@ def test_view_user(client, jwt_token, seed_user):
     assert user_data["user_id"] == str(seed_user["user_id"])
     assert user_data["name"] == seed_user["name"]
     assert user_data["login"] == seed_user["login"]
-    assert user_data["role"] == 'user'
+    assert user_data["role"] == 'admin'
 
 
 def test_soft_delete_user(client, jwt_token, seed_user):
@@ -171,4 +171,4 @@ def test_get_all_users(client, jwt_token, seed_user):
     user_data = next(
         (u for u in users if u["user_id"] == str(seed_user["user_id"])), None)
     assert user_data is not None
-    assert user_data["role"] == 'user'
+    assert user_data["role"] == 'admin'
