@@ -32,5 +32,7 @@ class ProjectFilterSchema(Schema):
     sort_by = fields.String(required=False)
     sort_order = fields.String(required=False, validate=validate.OneOf(
         ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))
+    object = fields.String(required=False)
+    project_leader = fields.String(required=False)
     name = fields.String(required=False)
     deleted = fields.Boolean(required=False)
