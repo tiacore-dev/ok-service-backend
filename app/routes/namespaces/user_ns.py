@@ -32,6 +32,11 @@ class UserAdd(Resource):
     @user_ns.response(500, "Internal Server Error")
     def post(self):
         current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'admin':
+            logger.warning("Несанкционированный запрос на добавление нового пользователя.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info("Запрос на добавление нового пользователя.",
                     extra={"login": current_user.get('login')}
                     )
@@ -118,6 +123,11 @@ class UserDeleteSoft(Resource):
     @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
         current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'admin':
+            logger.warning(f"Несанкционированный запрос на мягкое удаление пользователя user_id={user_id}.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info(f"Запрос на мягкое удаление пользователя user_id={user_id}",
                     extra={"login": current_user.get('login')}
                     )
@@ -155,6 +165,11 @@ class UserDeleteHard(Resource):
     @user_ns.response(500, "Internal Server Error")
     def delete(self, user_id):
         current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'admin':
+            logger.warning(f"Несанкционированный запрос на окончательное (hard) удаление пользователя user_id={user_id}.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info(f"Запрос на окончательное (hard) удаление пользователя user_id={user_id}",
                     extra={"login": current_user.get('login')}
                     )
@@ -192,6 +207,11 @@ class UserEdit(Resource):
     @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
         current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'admin':
+            logger.warning(f"Несанкционированный запрос на редактирование пользователя user_id={user_id}.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info(f"Запрос на редактирование пользователя user_id={user_id}",
                     extra={"login": current_user.get('login')})
         schema = UserEditSchema()
