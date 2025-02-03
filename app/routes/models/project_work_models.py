@@ -10,6 +10,7 @@ project_work_create_model = generate_swagger_model(
 # Модель для ProjectWork
 project_work_model = Model('ProjectWork', {
     "project_work_id": fields.String(required=True, description="ID of the project work"),
+    "project": fields.String(required=True, description="Project data associated with the project work"),
     "work": fields.String(required=True, description="Work data associated with the project work"),
     "quantity": fields.Float(required=True, description="Quantity of the work"),
     "summ": fields.Float(required=False, description="Sum of the project work"),
@@ -51,6 +52,9 @@ project_work_filter_parser.add_argument(
 )
 project_work_filter_parser.add_argument(
     'work', type=str, required=False, help="Filter by work ID"
+)
+project_work_filter_parser.add_argument(
+    'project', type=str, required=False, help="Filter by project ID"
 )
 project_work_filter_parser.add_argument(
     'min_quantity', type=float, required=False, help="Minimum quantity filter"

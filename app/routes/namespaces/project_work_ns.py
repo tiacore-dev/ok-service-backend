@@ -182,6 +182,7 @@ class ProjectWorkAll(Resource):
         sort_order = args.get('sort_order', 'asc')
         filters = {
             'signed': args.get('signed'),
+            'project': args.get('project'),
             'work': args.get('work'),
             'min_quantity': args.get('min_quantity'),
             'max_quantity': args.get('max_quantity'),

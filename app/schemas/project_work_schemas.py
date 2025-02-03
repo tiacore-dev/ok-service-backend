@@ -4,7 +4,8 @@ from marshmallow import Schema, fields, validate
 class ProjectWorkCreateSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
-
+    project = fields.String(required=True, error_messages={
+        "required": "Field 'project' is required."})
     work = fields.String(required=True, error_messages={
                          "required": "Field 'work' is required."})
     quantity = fields.Float(required=True, error_messages={
@@ -17,7 +18,7 @@ class ProjectWorkCreateSchema(Schema):
 class ProjectWorkEditSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
-
+    project = fields.String(required=False, allow_none=True)
     work = fields.String(required=False, allow_none=True)
     quantity = fields.Float(required=False, allow_none=True)
     summ = fields.Float(required=False, allow_none=True)  # Опциональное поле
@@ -37,6 +38,7 @@ class ProjectWorkFilterSchema(Schema):
         ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))
     signed = fields.Boolean(required=False)
     work = fields.String(required=False)
+    project = fields.String(required=False)
     min_quantity = fields.Float(required=False)
     max_quantity = fields.Float(required=False)
     min_summ = fields.Float(required=False)

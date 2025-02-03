@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid4, UUID
 import pytest
 
 
@@ -18,10 +18,69 @@ def seed_work(db_session):
 
 
 @pytest.fixture
-def seed_project_work(db_session, seed_work):
+def seed_object(db_session):
+    """
+    Добавляет тестовый объект в базу перед тестом.
+    """
+    from app.database.models import Objects
+    obj = Objects(
+        object_id=uuid4(),
+        name="Test Object",
+        address="123 Test St",
+        description="Test description",
+        status="active",
+        deleted=False
+    )
+    db_session.add(obj)
+    db_session.commit()
+    obj_data = obj.to_dict()
+    return obj_data
+
+
+@pytest.fixture
+def seed_user(db_session):
+    """
+    Add a test user to the database.
+    """
+    from app.database.models import Users
+    user = Users(
+        user_id=uuid4(),
+        login="test_user",
+        password_hash="test_hash",
+        name="Test User",
+        role="user",
+        category=1,
+        deleted=False
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
+def seed_project(db_session, seed_user, seed_object):
+    """
+    Add a test project to the database.
+    """
+    from app.database.models import Projects
+    project = Projects(
+        project_id=uuid4(),
+        name="Test Project",
+        object=UUID(seed_object['object_id']),
+        project_leader=UUID(seed_user['user_id']),
+        deleted=False
+    )
+    db_session.add(project)
+    db_session.commit()
+    return project.to_dict()
+
+
+@pytest.fixture
+def seed_project_work(db_session, seed_work, seed_project):
     from app.database.models import ProjectWorks
     project_work = ProjectWorks(
         project_work_id=uuid4(),
+        project=seed_project['project_id'],
         work=seed_work["work_id"],
         quantity=100.0,
         summ=5000.0,
@@ -34,13 +93,14 @@ def seed_project_work(db_session, seed_work):
     return project_work_data
 
 
-def test_add_project_work(client, jwt_token, db_session, seed_work):
+def test_add_project_work(client, jwt_token, db_session, seed_work, seed_project):
     """
     Тест на добавление нового ProjectWork через API.
     """
     from app.database.models import ProjectWorks
 
     data = {
+        "project": seed_project['project_id'],
         "work": seed_work["work_id"],
         "quantity": 200.0,
         "summ": 10000.0,
