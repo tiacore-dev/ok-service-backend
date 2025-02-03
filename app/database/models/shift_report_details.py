@@ -7,7 +7,7 @@ from app.database.db_setup import Base
 class ShiftReportDetails(Base):
     __tablename__ = 'shift_report_details'
 
-    shift_report_details_id = Column(
+    shift_report_detail_id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     shift_report = Column(UUID, ForeignKey(
         'shift_reports.shift_report_id'), nullable=False)
@@ -25,7 +25,7 @@ class ShiftReportDetails(Base):
         # ) if self.shift_reports else str(self.shift_report)
         # work_data = self.works.to_dict() if self.works else str(self.work)
         return {
-            "shift_report_details_id": str(self.shift_report_details_id),
+            "shift_report_detail_id": str(self.shift_report_detail_id),
             "shift_report": self.shift_report,
             "work": self.work,
             "quantity": self.quantity,

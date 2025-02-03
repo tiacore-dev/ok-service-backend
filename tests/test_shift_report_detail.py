@@ -115,7 +115,7 @@ def seed_shift_report(db_session, seed_user, seed_project):
 def seed_shift_report_detail(db_session, seed_shift_report, seed_work):
     from app.database.models import ShiftReportDetails
     detail = ShiftReportDetails(
-        shift_report_details_id=uuid4(),
+        shift_report_detail_id=uuid4(),
         shift_report=UUID(seed_shift_report['shift_report_id']),
         work=UUID(seed_work['work_id']),
         quantity=10.5,
@@ -145,7 +145,7 @@ def test_view_shift_report_detail(client, jwt_token, seed_shift_report_detail):
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.get(
         f"""/shift_report_details/{
-            seed_shift_report_detail['shift_report_details_id']}/view""",
+            seed_shift_report_detail['shift_report_detail_id']}/view""",
         headers=headers)
 
     assert response.status_code == 200
@@ -161,7 +161,7 @@ def test_edit_shift_report_detail(client, jwt_token, seed_shift_report_detail):
         "summ": 300.0
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.patch(f"/shift_report_details/{seed_shift_report_detail['shift_report_details_id']}/edit",
+    response = client.patch(f"/shift_report_details/{seed_shift_report_detail['shift_report_detail_id']}/edit",
                             json=data, headers=headers)
 
     assert response.status_code == 200
@@ -172,7 +172,7 @@ def test_edit_shift_report_detail(client, jwt_token, seed_shift_report_detail):
         session = Session()
         from app.database.models import ShiftReportDetails
         detail = session.query(ShiftReportDetails).filter_by(
-            shift_report_details_id=seed_shift_report_detail['shift_report_details_id']).first()
+            shift_report_detail_id=seed_shift_report_detail['shift_report_detail_id']).first()
         assert detail.quantity == 30.0
         assert detail.summ == 300.0
 
@@ -180,16 +180,16 @@ def test_edit_shift_report_detail(client, jwt_token, seed_shift_report_detail):
 def test_delete_shift_report_detail(client, jwt_token, seed_shift_report_detail, db_session):
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(f"""/shift_report_details/{
-                             seed_shift_report_detail['shift_report_details_id']}/delete/hard""",
+                             seed_shift_report_detail['shift_report_detail_id']}/delete/hard""",
                              headers=headers)
 
     assert response.status_code == 200
     assert response.json["msg"] == f"Shift report detail {
-        seed_shift_report_detail['shift_report_details_id']} deleted successfully"
+        seed_shift_report_detail['shift_report_detail_id']} deleted successfully"
 
     from app.database.models import ShiftReportDetails
     detail = db_session.query(ShiftReportDetails).filter_by(
-        shift_report_details_id=seed_shift_report_detail['shift_report_details_id']).first()
+        shift_report_detail_id=seed_shift_report_detail['shift_report_detail_id']).first()
     assert detail is None
 
 
@@ -208,5 +208,5 @@ def test_get_all_shift_report_details_with_filters(client, jwt_token, seed_shift
 
     details = response.json["shift_report_details"]
     assert len(details) > 0
-    assert any(detail["shift_report_details_id"] ==
-               seed_shift_report_detail['shift_report_details_id'] for detail in details)
+    assert any(detail["shift_report_detail_id"] ==
+               seed_shift_report_detail['shift_report_detail_id'] for detail in details)
