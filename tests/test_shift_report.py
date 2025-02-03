@@ -7,6 +7,36 @@ logger = logging.getLogger('ok_service')
 
 
 @pytest.fixture
+def seed_work_category(db_session):
+    """
+    Добавляет тестовую категорию работы в базу перед тестом и возвращает словарь.
+    """
+    from app.database.models import WorkCategories
+    category = WorkCategories(
+        work_category_id=uuid4(),
+        name="Test Category"
+    )
+    db_session.add(category)
+    db_session.commit()
+    return category.to_dict()
+
+
+@pytest.fixture
+def seed_work(db_session, seed_work_category):
+    from app.database.models import Works
+    work = Works(
+        work_id=uuid4(),
+        name="Test Work",
+        category=UUID(seed_work_category['work_category_id']),
+        measurement_unit="units",
+        deleted=False
+    )
+    db_session.add(work)
+    db_session.commit()
+    return work.to_dict()
+
+
+@pytest.fixture
 def seed_object(db_session):
     """
     Добавляет тестовый объект в базу перед тестом.
@@ -83,7 +113,22 @@ def seed_shift_report(db_session, seed_user, seed_project):
     return report.to_dict()
 
 
-def test_add_shift_report(client, jwt_token, seed_user, seed_project):
+@pytest.fixture
+def seed_shift_report_detail(db_session, seed_shift_report, seed_work):
+    from app.database.models import ShiftReportDetails
+    detail = ShiftReportDetails(
+        shift_report_detail_id=uuid4(),
+        shift_report=UUID(seed_shift_report['shift_report_id']),
+        work=UUID(seed_work['work_id']),
+        quantity=10.5,
+        summ=105.0
+    )
+    db_session.add(detail)
+    db_session.commit()
+    return detail.to_dict()
+
+
+def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift_report_detail):
     """
     Test adding a new shift report via API.
     """
@@ -91,7 +136,12 @@ def test_add_shift_report(client, jwt_token, seed_user, seed_project):
         "user": seed_user['user_id'],
         "date": 20240102,
         "project": seed_project['project_id'],
-        "signed": True
+        "signed": True,
+        "details": [{
+            "work": seed_shift_report_detail['work'],
+            "summ": seed_shift_report_detail['summ'],
+            "quantity": seed_shift_report_detail['quantity']
+        }]
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/shift_reports/add", json=data, headers=headers)

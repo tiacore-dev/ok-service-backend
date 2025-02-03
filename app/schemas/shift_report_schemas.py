@@ -1,21 +1,45 @@
 from marshmallow import Schema, fields, validate, validates, ValidationError
-from app.schemas.validators import validate_user_exists, validate_project_exists
+from app.schemas.validators import validate_user_exists, validate_project_exists, validate_work_exists
+
+
+class ShiftReportDetailSchema(Schema):
+    """Схема для валидации деталей отчета"""
+    work = fields.String(required=True, error_messages={
+        "required": "Field 'work' is required."
+    }, validate=[validate_work_exists])
+
+    quantity = fields.Float(required=True, error_messages={
+        "required": "Field 'quantity' is required."
+    })
+
+    summ = fields.Float(required=True, error_messages={
+        "required": "Field 'summ' is required."
+    })
 
 
 class ShiftReportCreateSchema(Schema):
+    """Схема для валидации создания shift_report"""
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
 
     user = fields.String(required=True, error_messages={
-                         "required": "Field 'user' is required."}, validate=[validate_user_exists])
-    date = fields.Int(required=True, error_messages={
-                      "required": "Field 'date' is required."})
-    project = fields.String(required=True, error_messages={
-                            "required": "Field 'project' is required."}, validate=[validate_project_exists])
-    signed = fields.Boolean(required=False, error_messages={
-                            "required": "Field 'signed' is required."})
+        "required": "Field 'user' is required."
+    }, validate=[validate_user_exists])
 
-    @validates("date")
+    date = fields.Int(required=True, error_messages={
+        "required": "Field 'date' is required."
+    })
+
+    project = fields.String(required=True, error_messages={
+        "required": "Field 'project' is required."
+    }, validate=[validate_project_exists])
+
+    signed = fields.Boolean(required=False)
+
+    details = fields.List(fields.Nested(
+        ShiftReportDetailSchema), required=False)
+
+    @ validates("date")
     def validate_date(self, value):
         """Проверяем, что дата — корректный Unix timestamp"""
         if value < 0:
@@ -25,14 +49,15 @@ class ShiftReportCreateSchema(Schema):
 
 class ShiftReportEditSchema(Schema):
     class Meta:
-        unknown = "exclude"  # Исключать лишние поля
 
+        unknown = "exclude"  # Исключать лишние поля
     user = fields.String(required=False, allow_none=True,
                          validate=[validate_user_exists])
     date = fields.Int(required=False, allow_none=True)
     project = fields.String(required=False, allow_none=True, validate=[
-                            validate_project_exists])
-    signed = fields.Boolean(required=False, allow_none=True)
+        validate_project_exists])
+    signed = fields.Boolean(
+        required=False, allow_none=True)
 
 
 class ShiftReportFilterSchema(Schema):

@@ -1,11 +1,19 @@
 # Models for shift reports namespace
 from flask_restx import Model, fields, reqparse
-from app.schemas.shift_report_schemas import ShiftReportCreateSchema
+from app.schemas.shift_report_schemas import ShiftReportCreateSchema, ShiftReportDetailSchema
 from app.utils.helpers import generate_swagger_model
 
-# Модель для создания проекта
+
+# 1. Создаем модель `ShiftReportDetail`
+shift_report_detail_model = generate_swagger_model(
+    ShiftReportDetailSchema, "ShiftReportDetail"
+)
+
+
+# 3. Теперь создаем `ShiftReportCreate`, где `ShiftReportDetail` вложен
 shift_report_create_model = generate_swagger_model(
-    ShiftReportCreateSchema(), "ShiftReportCreate")
+    ShiftReportCreateSchema(), "ShiftReportCreate"
+)
 
 
 shift_report_model = Model('ShiftReport', {

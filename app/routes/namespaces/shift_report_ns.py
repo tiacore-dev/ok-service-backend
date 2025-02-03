@@ -8,6 +8,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from app.schemas.shift_report_schemas import ShiftReportCreateSchema, ShiftReportFilterSchema, ShiftReportEditSchema
 from app.routes.models.shift_report_models import (
+    shift_report_detail_model,
     shift_report_create_model,
     shift_report_msg_model,
     shift_report_response,
@@ -21,12 +22,17 @@ logger = logging.getLogger('ok_service')
 shift_report_ns = Namespace(
     'shift_reports', description='Shift reports management operations')
 
+print("Регистрируем shift_report_detail_model:", shift_report_detail_model)
+print("Регистрируем shift_report_create_model:", shift_report_create_model)
+
+
 # Initialize models
+shift_report_ns.models[shift_report_model.name] = shift_report_model
+shift_report_ns.models[shift_report_detail_model.name] = shift_report_detail_model
 shift_report_ns.models[shift_report_create_model.name] = shift_report_create_model
 shift_report_ns.models[shift_report_msg_model.name] = shift_report_msg_model
 shift_report_ns.models[shift_report_response.name] = shift_report_response
 shift_report_ns.models[shift_report_all_response.name] = shift_report_all_response
-shift_report_ns.models[shift_report_model.name] = shift_report_model
 
 
 @shift_report_ns.route('/add')
@@ -51,7 +57,8 @@ class ShiftReportAdd(Resource):
             db = ShiftReportsManager()
 
             # Add shift report
-            new_report = db.add(**data)  # Returns a dictionary
+            new_report = db.add_shift_report_with_details(
+                data)  # Returns a dictionary
             logger.info(f"New shift report added: {new_report['shift_report_id']}",
                         extra={"login": current_user})
             return {"msg": "New shift report added successfully"}, 200
