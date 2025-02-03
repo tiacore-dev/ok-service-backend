@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, validates, ValidationError
 
 
 class ShiftReportCreateSchema(Schema):
@@ -11,8 +11,15 @@ class ShiftReportCreateSchema(Schema):
                       "required": "Field 'date' is required."})
     project = fields.String(required=True, error_messages={
                             "required": "Field 'project' is required."})
-    signed = fields.Boolean(required=True, error_messages={
+    signed = fields.Boolean(required=False, error_messages={
                             "required": "Field 'signed' is required."})
+
+    @validates("date")
+    def validate_date(self, value):
+        """Проверяем, что дата — корректный Unix timestamp"""
+        if value < 0:
+            raise ValidationError(
+                "Field 'date' must be a positive Unix timestamp.")
 
 
 class ShiftReportEditSchema(Schema):
