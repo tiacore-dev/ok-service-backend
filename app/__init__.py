@@ -52,8 +52,8 @@ def create_app(config_name="development"):
 
     # Инициализация ролей и админа
 
-    # set_roles()
-    # set_admin()
+    set_roles()
+    set_admin()
     set_object_status()
     # setup_listeners()
 

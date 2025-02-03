@@ -9,7 +9,7 @@ shift_report_details_create_model = generate_swagger_model(
 
 
 shift_report_details_model = Model('ShiftReportDetails', {
-    "shift_report_details_id": fields.String(required=True, description="ID of the shift report detail"),
+    "shift_report_detail_id": fields.String(required=True, description="ID of the shift report detail"),
     "shift_report": fields.String(required=True, description="Shift report details"),
     "work": fields.String(required=True, description="Work details"),
     "quantity": fields.Float(required=True, description="Quantity of work"),

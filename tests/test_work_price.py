@@ -35,7 +35,6 @@ def seed_work_price(db_session, seed_work):
     work_price = WorkPrices(
         work_price_id=uuid4(),
         work=seed_work['work_id'],
-        name="Test Work Price",
         category=1,
         price=100.00,
         deleted=False
@@ -65,10 +64,9 @@ def test_add_work_price(client, jwt_token, seed_work, db_session):
 
     # Проверяем, что цена работы добавлена в базу
     work_price = db_session.query(WorkPrices).filter_by(
-        name="New Work Price").first()
+        category=2).first()
     assert work_price is not None
     assert str(work_price.work) == seed_work['work_id']
-    assert work_price.name == "New Work Price"
     assert work_price.category == 2
     assert work_price.price == 200.00
 
@@ -89,7 +87,6 @@ def test_view_work_price(client, jwt_token, seed_work_price, seed_work):
     work_price_data = response.json["work_price"]
     assert work_price_data["work_price_id"] == str(
         seed_work_price['work_price_id'])
-    assert work_price_data["name"] == seed_work_price['name']
 
     assert work_price_data["work"] == str(seed_work['work_id'])
 
@@ -156,7 +153,6 @@ def test_edit_work_price(client, jwt_token, seed_work_price, db_session):
     work_price = db_session.query(WorkPrices).filter_by(
         work_price_id=seed_work_price['work_price_id']).first()
     assert work_price is not None
-    assert work_price.name == "Updated Work Price"
     assert work_price.price == 300.00
 
 

@@ -45,7 +45,7 @@ def seed_object(db_session):
         name="Test Object",
         address="123 Test St",
         description="Test description",
-        status='in_progress',
+        status="active",
         deleted=False
     )
     db_session.add(obj)
