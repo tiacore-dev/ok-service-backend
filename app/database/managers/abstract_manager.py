@@ -1,5 +1,6 @@
 import logging
 import time
+import uuid
 from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from sqlalchemy import asc, desc
@@ -8,6 +9,8 @@ from sqlalchemy import inspect
 from app.database.db_globals import Session
 
 logger = logging.getLogger('ok_service')
+
+EXACT_MATCH_FIELDS = {"status", "role", "category"}
 
 
 class BaseDBManager(ABC):
@@ -286,7 +289,7 @@ class BaseDBManager(ABC):
         logger.debug("get_all_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
                      extra={"login": "database"})
 
-        with self.session_scope() as session:
+        with self.session_scope() as session:  # type: Session
             query = session.query(self.model)
 
             # Применяем фильтры
@@ -294,13 +297,37 @@ class BaseDBManager(ABC):
                 if value is not None and hasattr(self.model, key):
                     column = getattr(self.model, key)
 
-                    query = query.filter(column == value)
-                    logger.debug(f"Применяем фильтр: {key} = {value}",
-                                 extra={'login': 'database'})
+                    # Проверяем, является ли значение UUID (обычно 36 символов)
+                    if isinstance(value, uuid.UUID) or (isinstance(value, str) and len(value) == 36 and '-' in value):
+                        query = query.filter(column == value)
+                        logger.debug(f"Применяем точный UUID-фильтр: {key} = {value}",
+                                     extra={'login': 'database'})
+
+                    # Поля, требующие точного сравнения
+                    elif key in EXACT_MATCH_FIELDS:
+                        query = query.filter(column == value)
+                        logger.debug(f"Применяем точный фильтр для {key}: {key} = {value}",
+                                     extra={'login': 'database'})
+
+                    elif isinstance(value, str):
+                        value = value.strip()  # Убираем лишние пробелы
+
+                        if "%" not in value:
+                            # Добавляем wildcard, если строка достаточно длинная
+                            value = f"%{value}%"
+
+                        query = query.filter(column.ilike(value))
+                        logger.debug(f"Применяем ILIKE-фильтр: {key} LIKE {value}",
+                                     extra={'login': 'database'})
+
+                    else:
+                        query = query.filter(column == value)
+                        logger.debug(f"Применяем фильтр: {key} = {value}",
+                                     extra={'login': 'database'})
 
             # Применяем сортировку
             if sort_by and hasattr(self.model, sort_by):
-                order = desc if sort_order == 'desc' else asc  # Выбор функции сортировки
+                order = desc if sort_order == 'desc' else asc
                 query = query.order_by(order(getattr(self.model, sort_by)))
                 logger.debug(f"Применяем сортировку: {sort_by} {sort_order}",
                              extra={"login": "database"})
@@ -320,5 +347,4 @@ class BaseDBManager(ABC):
             logger.debug(f"Найдено записей: {len(records)}",
                          extra={"login": "database"})
 
-            # Преобразуем записи в словари
             return [record.to_dict() for record in records]

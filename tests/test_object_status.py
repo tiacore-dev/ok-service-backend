@@ -24,7 +24,11 @@ def seed_object_status(db_session):
 
 def test_get_all_object_statuses(client, jwt_token, seed_object_status):
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.get("/object_statuses/all", headers=headers)
+    params = {
+        "name": "Ex"
+    }
+    response = client.get("/object_statuses/all",
+                          query_string=params, headers=headers)
 
     assert response.status_code == 200
     assert "object_statuses" in response.json
