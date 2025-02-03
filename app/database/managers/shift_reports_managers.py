@@ -13,20 +13,22 @@ class ShiftReportsManager(BaseDBManager):
 
     def get_total_sum_by_shift_report(self, shift_report_id):
         """Возвращает сумму всех `summ` из shift_report_details для shift_report_id"""
-        with self.session_scope() as session:  # Предполагаем, что session есть в `BaseDBManager`
+        with self.session_scope() as session:
 
-            # Алайс для удобства
+            # Создаем алиасы для удобства
             sr = aliased(ShiftReports)
             srd = aliased(ShiftReportDetails)
 
             result = (
                 session.query(func.sum(srd.summ))
+                .select_from(sr)  # Явно указываем, с какой таблицы начинаем
+                # Указываем ON-условие
                 .join(srd, sr.shift_report_id == srd.shift_report)
                 .filter(sr.shift_report_id == shift_report_id)
                 .scalar()
             )
 
-            return result or 0  # Если нет записей, возвращаем 0
+            return result or 0  # Если записей нет, возвращаем 0
 
 
 class ShiftReportsDetailsManager(BaseDBManager):
