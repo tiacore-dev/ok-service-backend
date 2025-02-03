@@ -14,7 +14,8 @@ shift_report_model = Model('ShiftReport', {
     "date": fields.Integer(required=True, description="Report date"),
     "project": fields.String(required=True, description="Project details"),
     "signed": fields.Boolean(required=True, description="Is the report signed"),
-    "deleted": fields.Boolean(required=True, description="Deletion status of the shift report")
+    "deleted": fields.Boolean(required=True, description="Deletion status of the shift report"),
+    "number": fields.Integer(required=True, description="Number of shift report")
 })
 
 

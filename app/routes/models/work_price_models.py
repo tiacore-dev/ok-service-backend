@@ -10,7 +10,6 @@ work_price_create_model = generate_swagger_model(
 work_price_model = Model('WorkPrice', {
     "work_price_id": fields.String(required=True, description="ID of the work price"),
     "work": fields.String(required=True, description="Associated work data"),
-    "name": fields.String(required=True, description="Name of the work price"),
     "category": fields.Integer(required=True, description="Category of the work price"),
     "price": fields.Float(required=True, description="Price of the work"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
@@ -41,7 +40,16 @@ work_price_filter_parser.add_argument(
 work_price_filter_parser.add_argument(
     'limit', type=int, default=10, help="Limit for pagination"
 )
-work_price_filter_parser.add_argument('name', type=str, help="Filter by name")
+work_price_filter_parser.add_argument(
+    'work', type=str,  help="Work ID"
+)
+work_price_filter_parser.add_argument(
+    'category', type=int, required=False, help="Category filter"
+)
+work_price_filter_parser.add_argument(
+    'price', type=float, required=False, help="Price filter"
+)
+
 work_price_filter_parser.add_argument(
     'deleted',
     # Интерпретация значения как логического

@@ -199,8 +199,11 @@ class WorkPriceAll(Resource):
         sort_by = args.get('sort_by')
         sort_order = args.get('sort_order', 'asc')
         filters = {
-            'name': args.get('name'),
+            # name в модели WorkPrices отсутствует, возможно, ошибка
+            'work': args.get('work'),
             'deleted': args.get('deleted'),
+            'category': args.get('category'),
+            'price': args.get('price'),
         }
 
         logger.debug(f"Fetching work prices with filters: {filters}, offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}",

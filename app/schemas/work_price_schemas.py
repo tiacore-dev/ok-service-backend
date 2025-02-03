@@ -33,7 +33,9 @@ class WorkPriceFilterSchema(Schema):
         min=0, error="Offset must be non-negative."))
     limit = fields.Int(required=False, missing=10, validate=validate.Range(
         min=1, error="Limit must be at least 1."))
-    name = fields.String(required=False)
+    work = fields.String(required=False)
+    category = fields.Int(required=False)
+    price = fields.Float(required=False)
     deleted = fields.Boolean(required=False)
     sort_by = fields.String(required=False)
     sort_order = fields.String(required=False, validate=validate.OneOf(
