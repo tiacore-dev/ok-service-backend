@@ -11,7 +11,7 @@ class ProjectWorkCreateSchema(Schema):
     quantity = fields.Float(required=True, error_messages={
                             "required": "Field 'quantity' is required."})
     summ = fields.Float(required=False)  # Опциональное поле
-    signed = fields.Boolean(required=True, error_messages={
+    signed = fields.Boolean(required=False, error_messages={
                             "required": "Field 'signed' is required."})
 
 
