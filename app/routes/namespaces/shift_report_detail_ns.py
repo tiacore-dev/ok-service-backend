@@ -172,7 +172,11 @@ class ShiftReportDetailsAll(Resource):
         sort_order = args.get('sort_order', 'asc')
         filters = {
             'shift_report': args.get('shift_report'),
-            'work': args.get('work')
+            'work': args.get('work'),
+            'min_quantity': args.get('min_quantity'),
+            'max_quantity': args.get('max_quantity'),
+            'min_summ': args.get('min_summ'),
+            'max_summ': args.get('max_summ'),
         }
 
         logger.debug(f"Fetching shift report details with filters: {filters}, offset={offset}, limit={limit}",

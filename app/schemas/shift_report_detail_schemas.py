@@ -38,3 +38,7 @@ class ShiftReportDetailsFilterSchema(Schema):
         ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))
     shift_report = fields.String(required=False)
     work = fields.String(required=False)
+    min_quantity = fields.Float(required=False)
+    max_quantity = fields.Float(required=False)
+    min_summ = fields.Float(required=False)
+    max_summ = fields.Float(required=False)

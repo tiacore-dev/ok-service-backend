@@ -43,3 +43,15 @@ shift_report_details_filter_parser.add_argument(
     'shift_report', type=str, help="Filter by shift report ID")
 shift_report_details_filter_parser.add_argument(
     'work', type=str, help="Filter by work ID")
+shift_report_details_filter_parser.add_argument(
+    'min_quantity', type=float, required=False, help="Minimum quantity filter"
+)
+shift_report_details_filter_parser.add_argument(
+    'max_quantity', type=float, required=False, help="Maximum quantity filter"
+)
+shift_report_details_filter_parser.add_argument(
+    'min_summ', type=float, required=False, help="Minimum summ filter"
+)
+shift_report_details_filter_parser.add_argument(
+    'max_summ', type=float, required=False, help="Maximum summ filter"
+)
