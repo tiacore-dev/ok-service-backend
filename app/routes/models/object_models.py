@@ -48,3 +48,9 @@ object_filter_parser.add_argument(
     required=False,
     help="Флаг для фильтрации по удаленным отчетам"
 )
+object_filter_parser.add_argument(
+    'address', type=str, required=False, help="Filter by address"
+)
+object_filter_parser.add_argument(
+    'status', type=str, required=False, help="Filter by object status"
+)

@@ -28,5 +28,7 @@ class ObjectFilterSchema(Schema):
     sort_by = fields.String(required=False)
     sort_order = fields.String(
         required=False, validate=lambda x: x in ["asc", "desc"])
+    address = fields.String(required=False)
+    status = fields.String(required=False)
     name = fields.String(required=False)
     deleted = fields.Boolean(required=False)

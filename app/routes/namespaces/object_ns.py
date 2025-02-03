@@ -205,6 +205,8 @@ class ObjectAll(Resource):
         filters = {
             'name': data.get('name'),
             'deleted': data.get('deleted'),
+            'address': data.get('address'),
+            'status': data.get('status'),
         }
 
         logger.debug(f"Fetching objects with filters: {filters}, offset={offset}, limit={limit}",
