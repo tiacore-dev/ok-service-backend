@@ -7,8 +7,6 @@ class WorkPriceCreateSchema(Schema):
 
     work = fields.String(required=True, error_messages={
                          "required": "Field 'work' is required."})
-    name = fields.String(required=True, error_messages={
-                         "required": "Field 'name' is required."})
     category = fields.Int(required=True, error_messages={
                           "required": "Field 'category' is required."})
     price = fields.Float(required=True, error_messages={
@@ -20,7 +18,6 @@ class WorkPriceEditSchema(Schema):
         unknown = "exclude"  # Исключать лишние поля
 
     work = fields.String(required=False, allow_none=True)
-    name = fields.String(required=False, allow_none=True)
     category = fields.Int(required=False, allow_none=True)
     price = fields.Float(required=False, allow_none=True)
 
