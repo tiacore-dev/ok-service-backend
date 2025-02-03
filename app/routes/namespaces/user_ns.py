@@ -32,6 +32,7 @@ class UserAdd(Resource):
     @user_ns.response(500, "Internal Server Error")
     def post(self):
         current_user = json.loads(get_jwt_identity())
+        logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user['role'] != 'admin':
             logger.warning("Несанкционированный запрос на добавление нового пользователя.",
                            extra={"login": current_user.get('login')}

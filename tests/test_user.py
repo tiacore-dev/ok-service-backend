@@ -40,7 +40,7 @@ def test_add_user(client, jwt_token, db_session):
         "login": "test_user",
         "password": "securepassword",
         "name": "Test User",
-        "role": "user",
+        "role": "admin",
         "category": 1
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}

@@ -95,4 +95,4 @@ def jwt_token(test_app):
     Генерирует JWT токен для тестового пользователя.
     """
     with test_app.app_context():
-        return create_access_token(identity=json.dumps({"login": "test_admin"}))
+        return create_access_token(identity=json.dumps({"login": "test_admin", "role": "admin"}))
