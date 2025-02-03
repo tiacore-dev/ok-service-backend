@@ -214,6 +214,9 @@ class ShiftReportAll(Resource):
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
             logger.info(f"Successfully fetched {len(reports)} shift reports",
                         extra={"login": current_user})
+            for report in reports:
+                report['shift_report_details_sum'] = db.get_total_sum_by_shift_report(
+                    report['shift_report_id'])
             return {"msg": "Shift reports found successfully", "shift_reports": reports}, 200
         except Exception as e:
             logger.error(f"Error fetching shift reports: {e}",
