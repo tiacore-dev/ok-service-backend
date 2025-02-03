@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields
+from app.schemas.validators import validate_object_status_exists
 
 
 class ObjectCreateSchema(Schema):
@@ -8,7 +9,8 @@ class ObjectCreateSchema(Schema):
                          "required": "Field 'name' is required."})
     address = fields.String(required=False)
     description = fields.String(required=False)
-    status = fields.String(required=False)
+    status = fields.String(required=False, validate=[
+                           validate_object_status_exists])
 
 
 class ObjectEditSchema(Schema):
@@ -17,7 +19,8 @@ class ObjectEditSchema(Schema):
     name = fields.String(required=False, allow_none=True)
     address = fields.String(required=False, allow_none=True)
     description = fields.String(required=False, allow_none=True)
-    status = fields.String(required=False, allow_none=True)
+    status = fields.String(required=False, allow_none=True, validate=[
+                           validate_object_status_exists])
 
 
 class ObjectFilterSchema(Schema):

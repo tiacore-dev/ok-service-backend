@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validate
+from app.schemas.validators import validate_work_exists
 
 
 class ProjectScheduleCreateSchema(Schema):
@@ -6,7 +7,7 @@ class ProjectScheduleCreateSchema(Schema):
         unknown = "exclude"  # Исключать лишние поля
 
     work = fields.String(required=True, error_messages={
-                         "required": "Field 'work' is required."})
+                         "required": "Field 'work' is required."}, validate=[validate_work_exists])
     quantity = fields.Float(required=True, error_messages={
                             "required": "Field 'quantity' is required."})
     date = fields.Int(required=False)  # Опциональное поле
@@ -16,7 +17,8 @@ class ProjectScheduleEditSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
 
-    work = fields.String(required=False, allow_none=True)
+    work = fields.String(required=False, allow_none=True,
+                         validate=[validate_work_exists])
     quantity = fields.Float(required=False, allow_none=True)
     date = fields.Int(required=False, allow_none=True)  # Опциональное поле
 

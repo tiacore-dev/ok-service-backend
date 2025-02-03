@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validate
+from app.schemas.validators import validate_user_exists, validate_object_exists
 
 
 class ProjectCreateSchema(Schema):
@@ -8,8 +9,9 @@ class ProjectCreateSchema(Schema):
     name = fields.String(required=True, error_messages={
                          "required": "Field 'name' is required."})
     object = fields.String(required=True, error_messages={
-                           "required": "Field 'object' is required."})
-    project_leader = fields.String(required=False)
+                           "required": "Field 'object' is required."}, validate=[validate_object_exists])
+    project_leader = fields.String(
+        required=False, validate=[validate_user_exists])
 
 
 class ProjectEditSchema(Schema):
@@ -17,8 +19,10 @@ class ProjectEditSchema(Schema):
         unknown = "exclude"  # Исключать лишние поля
 
     name = fields.String(required=False, allow_none=True)
-    object = fields.String(required=False, allow_none=True)
-    project_leader = fields.String(required=False, allow_none=True)
+    object = fields.String(required=False, allow_none=True,
+                           validate=[validate_user_exists])
+    project_leader = fields.String(
+        required=False, allow_none=True, validate=[validate_user_exists])
 
 
 class ProjectFilterSchema(Schema):

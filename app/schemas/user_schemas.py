@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validate
+from app.schemas.validators import validate_role_exists
 
 
 class UserCreateSchema(Schema):
@@ -12,7 +13,7 @@ class UserCreateSchema(Schema):
     name = fields.String(required=True, error_messages={
                          "required": "Field 'name' is required."})
     role = fields.String(required=True, error_messages={
-                         "required": "Field 'role' is required."})
+                         "required": "Field 'role' is required."}, validate=[validate_role_exists])
     category = fields.Int(required=False)  # Опциональное поле
 
 
@@ -23,7 +24,8 @@ class UserEditSchema(Schema):
     login = fields.String(required=False, allow_none=True)
     password = fields.String(required=False, allow_none=True)
     name = fields.String(vrequired=False, allow_none=True)
-    role = fields.String(required=False, allow_none=True)
+    role = fields.String(required=False, allow_none=True,
+                         validate=[validate_role_exists])
     category = fields.Int(required=False, allow_none=True)  # Опциональное поле
 
 

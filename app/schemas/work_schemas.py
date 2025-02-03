@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validate
+from app.schemas.validators import validate_work_category_exists
 
 
 class WorkCreateSchema(Schema):
@@ -7,7 +8,8 @@ class WorkCreateSchema(Schema):
 
     name = fields.String(required=True, error_messages={
                          "required": "Field 'name' is required."})
-    category = fields.String(required=False)  # Опциональное поле
+    category = fields.String(required=False, validate=[
+                             validate_work_category_exists])  # Опциональное поле
     measurement_unit = fields.String(required=False)  # Опциональное поле
 
 
@@ -17,7 +19,8 @@ class WorkEditSchema(Schema):
 
     name = fields.String(required=False, allow_none=True)
     category = fields.String(
-        required=False, allow_none=True)  # Опциональное поле
+        required=False, allow_none=True, validate=[
+            validate_work_category_exists])  # Опциональное поле
     measurement_unit = fields.String(
         required=False, allow_none=True)  # Опциональное поле
 

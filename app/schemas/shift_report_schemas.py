@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validate, validates, ValidationError
+from app.schemas.validators import validate_user_exists, validate_project_exists
 
 
 class ShiftReportCreateSchema(Schema):
@@ -6,11 +7,11 @@ class ShiftReportCreateSchema(Schema):
         unknown = "exclude"  # Исключать лишние поля
 
     user = fields.String(required=True, error_messages={
-                         "required": "Field 'user' is required."})
+                         "required": "Field 'user' is required."}, validate=[validate_user_exists])
     date = fields.Int(required=True, error_messages={
                       "required": "Field 'date' is required."})
     project = fields.String(required=True, error_messages={
-                            "required": "Field 'project' is required."})
+                            "required": "Field 'project' is required."}, validate=[validate_project_exists])
     signed = fields.Boolean(required=False, error_messages={
                             "required": "Field 'signed' is required."})
 
@@ -26,9 +27,11 @@ class ShiftReportEditSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
 
-    user = fields.String(required=False, allow_none=True)
+    user = fields.String(required=False, allow_none=True,
+                         validate=[validate_user_exists])
     date = fields.Int(required=False, allow_none=True)
-    project = fields.String(required=False, allow_none=True)
+    project = fields.String(required=False, allow_none=True, validate=[
+                            validate_project_exists])
     signed = fields.Boolean(required=False, allow_none=True)
 
 

@@ -1,13 +1,14 @@
 from marshmallow import Schema, fields, validate
+from app.schemas.validators import validate_project_exists, validate_work_exists
 
 
 class ProjectWorkCreateSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
     project = fields.String(required=True, error_messages={
-        "required": "Field 'project' is required."})
+        "required": "Field 'project' is required."}, validate=[validate_project_exists])
     work = fields.String(required=True, error_messages={
-                         "required": "Field 'work' is required."})
+                         "required": "Field 'work' is required."}, validate=[validate_work_exists])
     quantity = fields.Float(required=True, error_messages={
                             "required": "Field 'quantity' is required."})
     summ = fields.Float(required=False)  # Опциональное поле
@@ -18,8 +19,10 @@ class ProjectWorkCreateSchema(Schema):
 class ProjectWorkEditSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
-    project = fields.String(required=False, allow_none=True)
-    work = fields.String(required=False, allow_none=True)
+    project = fields.String(required=False, allow_none=True, validate=[
+                            validate_project_exists])
+    work = fields.String(required=False, allow_none=True,
+                         validate=[validate_work_exists])
     quantity = fields.Float(required=False, allow_none=True)
     summ = fields.Float(required=False, allow_none=True)  # Опциональное поле
     signed = fields.Boolean(required=False, allow_none=True)
