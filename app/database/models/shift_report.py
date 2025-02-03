@@ -31,5 +31,6 @@ class ShiftReports(Base):
             "date": self.date,
             "project": self.project,
             "signed": self.signed,
-            "deleted": self.deleted
+            "deleted": self.deleted,
+            "number": self.number
         }
