@@ -52,7 +52,7 @@ class ProjectAdd(Resource):
             new_project = db.add(**data)  # Возвращается словарь
             logger.info(f"New project added: {new_project['project_id']}",
                         extra={"login": current_user})
-            return {"msg": "New project added successfully"}, 200
+            return {"msg": "New project added successfully", "project_id": new_project['project_id']}, 200
         except Exception as e:
             logger.error(f"Error adding project: {e}",
                          extra={"login": current_user})
@@ -106,7 +106,7 @@ class ProjectSoftDelete(Resource):
             updated = db.update(record_id=project_id, deleted=True)
             if not updated:
                 return {"msg": "Project not found"}, 404
-            return {"msg": f"Project {project_id} soft deleted successfully"}, 200
+            return {"msg": f"Project {project_id} soft deleted successfully", "project_id": project_id}, 200
         except Exception as e:
             logger.error(f"Error soft deleting project: {e}",
                          extra={"login": current_user})
@@ -133,7 +133,7 @@ class ProjectHardDelete(Resource):
             deleted = db.delete(record_id=project_id)
             if not deleted:
                 return {"msg": "Project not found"}, 404
-            return {"msg": f"Project {project_id} hard deleted successfully"}, 200
+            return {"msg": f"Project {project_id} hard deleted successfully", "project_id": project_id}, 200
         except Exception as e:
             logger.error(f"Error hard deleting project: {e}",
                          extra={"login": current_user})
@@ -169,7 +169,7 @@ class ProjectEdit(Resource):
             updated = db.update(record_id=project_id, **data)
             if not updated:
                 return {"msg": "Project not found"}, 404
-            return {"msg": "Project edited successfully"}, 200
+            return {"msg": "Project edited successfully", "project_id": project_id}, 200
         except Exception as e:
             logger.error(f"Error editing project: {e}",
                          extra={"login": current_user})

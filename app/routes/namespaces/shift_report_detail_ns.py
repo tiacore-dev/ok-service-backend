@@ -54,7 +54,7 @@ class ShiftReportDetailsAdd(Resource):
             new_detail = db.add(**data)  # Returns a dictionary
             logger.info(f"New shift report detail added: {new_detail['shift_report_detail_id']}",
                         extra={"login": current_user})
-            return {"msg": "New shift report detail added successfully"}, 200
+            return {"msg": "New shift report detail added successfully", "shift_report_detail_id": new_detail['shift_report_detail_id']}, 200
         except Exception as e:
             logger.error(f"Error adding shift report detail: {e}",
                          extra={"login": current_user})
@@ -106,7 +106,7 @@ class ShiftReportDetailsDelete(Resource):
             deleted = db.delete(record_id=detail_id)
             if not deleted:
                 return {"msg": "Shift report detail not found"}, 404
-            return {"msg": f"Shift report detail {detail_id} deleted successfully"}, 200
+            return {"msg": f"Shift report detail {detail_id} deleted successfully", "shift_report_detail_id": detail_id}, 200
         except Exception as e:
             logger.error(f"Error deleting shift report detail: {e}",
                          extra={"login": current_user})
@@ -141,7 +141,7 @@ class ShiftReportDetailsEdit(Resource):
             updated = db.update(record_id=detail_id, **data)
             if not updated:
                 return {"msg": "Shift report detail not found"}, 404
-            return {"msg": "Shift report detail updated successfully"}, 200
+            return {"msg": "Shift report detail updated successfully", "shift_report_detail_id": detail_id}, 200
         except Exception as e:
             logger.error(f"Error editing shift report detail: {e}",
                          extra={"login": current_user})

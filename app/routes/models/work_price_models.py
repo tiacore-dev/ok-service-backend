@@ -17,7 +17,8 @@ work_price_model = Model('WorkPrice', {
 
 # Модель для сообщений
 work_price_msg_model = Model('WorkPriceMessage', {
-    "msg": fields.String(required=True, description="Response message")
+    "msg": fields.String(required=True, description="Response message"),
+    "work_price_id": fields.String(description="ID of work price")
 })
 
 # Модель для ответа с одной ценой работы

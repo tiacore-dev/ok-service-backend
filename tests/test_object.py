@@ -43,10 +43,12 @@ def test_add_object(client, jwt_token, db_session):
 
     assert response.status_code == 200
     assert response.json["msg"] == "New object added successfully"
+    assert response.json['object_id'] != None
 
     # Проверяем, что объект добавлен в базу
     obj = db_session.query(Objects).filter_by(name="New Object").first()
     assert obj is not None
+    assert str(obj.object_id) == response.json['object_id']
     assert obj.name == "New Object"
     assert obj.address == "456 Test Ln"
     assert obj.description == "New description"
@@ -85,6 +87,7 @@ def test_soft_delete_object(client, jwt_token, seed_object):
     assert response.status_code == 200
     assert response.json["msg"] == f"""Object {
         str(seed_object['object_id'])} soft deleted successfully"""
+    assert response.json['object_id'] == seed_object['object_id']
 
     # Проверяем, что объект помечен как удаленный
     from app.database.managers.objects_managers import ObjectsManager
@@ -108,6 +111,7 @@ def test_hard_delete_object(client, jwt_token, seed_object, db_session):
     assert response.status_code == 200
     assert response.json["msg"] == f"Object {
         str(seed_object['object_id'])} hard deleted successfully"
+    assert response.json['object_id'] == seed_object['object_id']
 
     # Проверяем, что объект удален из базы
     obj = db_session.query(Objects).filter_by(
@@ -131,6 +135,7 @@ def test_edit_object(client, jwt_token, seed_object):
 
     assert response.status_code == 200
     assert response.json["msg"] == "Object edited successfully"
+    assert response.json['object_id'] == seed_object['object_id']
 
     # Проверяем обновленные данные в базе
     from app.database.managers.objects_managers import ObjectsManager

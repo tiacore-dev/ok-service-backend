@@ -16,7 +16,8 @@ project_schedule_model = Model('ProjectSchedule', {
 })
 
 project_schedule_msg_model = Model('ProjectScheduleMessage', {
-    "msg": fields.String(required=True, description="Response message")
+    "msg": fields.String(required=True, description="Response message"),
+    "project_schedule_id": fields.String(description="ID of project schedule")
 })
 
 project_schedule_response = Model('ProjectScheduleResponse', {

@@ -72,7 +72,7 @@ class UserAdd(Resource):
             logger.info(f"Успешно добавлен новый пользователь user_id={user_id}",
                         extra={"login": current_user.get('login')}
                         )
-            return {"msg": "New user added successfully"}, 200
+            return {"msg": "New user added successfully", "user_id": user_id}, 200
         except Exception as e:
             logger.error(f"Ошибка при добавлении пользователя: {e}",
                          extra={"login": current_user.get('login')}
@@ -150,7 +150,7 @@ class UserDeleteSoft(Resource):
                 return {"msg": "User not found"}, 404
             logger.info(f"Пользователь user_id={user_id} мягко удален",
                         extra={"login": current_user.get('login')})
-            return {"msg": f"User {user_id} soft deleted successfully"}, 200
+            return {"msg": f"User {user_id} soft deleted successfully", "user_id": user_id}, 200
         except Exception as e:
             logger.error(f"Ошибка при мягком удалении пользователя user_id={user_id}: {e}",
                          extra={"login": current_user.get('login')}
@@ -191,7 +191,7 @@ class UserDeleteHard(Resource):
                 return {"msg": "User not found"}, 404
             logger.info(f"Пользователь user_id={user_id} удален окончательно",
                         extra={"login": current_user.get('login')})
-            return {"msg": f"User {user_id} hard deleted successfully"}, 200
+            return {"msg": f"User {user_id} hard deleted successfully", "user_id": user_id}, 200
         except Exception as e:
             logger.error(f"Ошибка при окончательном удалении пользователя user_id={user_id}: {e}",
                          extra={"login": current_user.get('login')})
@@ -262,7 +262,7 @@ class UserEdit(Resource):
 
             logger.info(f"Успешно отредактирован пользователь user_id={user_id}",
                         extra={"login": current_user.get('login')})
-            return {"msg": "User edited successfully"}, 200
+            return {"msg": "User edited successfully", "user_id": user_id}, 200
         except Exception as e:
             logger.error(f"Ошибка при редактировании пользователя user_id={user_id}: {e}",
                          extra={"login": current_user.get('login')})

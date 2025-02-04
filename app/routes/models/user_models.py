@@ -26,7 +26,8 @@ user_all_response = Model('UserResponse', {
 
 # Определение модели для обновления токена
 user_msg_model = Model('RefreshToken', {
-    'msg': fields.String(required=True, description='Сообщение.')
+    'msg': fields.String(required=True, description='Сообщение.'),
+    "user_id": fields.String(description="ID of user")
 })
 
 user_response = Model('Tokens', {

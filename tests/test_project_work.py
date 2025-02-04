@@ -115,6 +115,8 @@ def test_add_project_work(client, jwt_token, db_session, seed_work, seed_project
     project_work = db_session.query(ProjectWorks).filter_by(
         work=seed_work["work_id"]).first()
     assert project_work is not None
+    assert str(
+        project_work.project_work_id) == response.json['project_work_id']
     assert project_work.quantity == 200.0
     assert project_work.summ == 10000.0
     assert project_work.signed is True
@@ -153,6 +155,7 @@ def test_soft_delete_project_work(client, jwt_token, seed_project_work):
     assert response.status_code == 200
     assert response.json["msg"] == f"Project work {
         seed_project_work['project_work_id']} soft deleted successfully"
+    assert response.json['project_work_id'] == seed_project_work['project_work_id']
 
 
 def test_hard_delete_project_work(client, jwt_token, seed_project_work, db_session):
@@ -168,6 +171,7 @@ def test_hard_delete_project_work(client, jwt_token, seed_project_work, db_sessi
     assert response.status_code == 200
     assert response.json["msg"] == f"Project work {
         seed_project_work['project_work_id']} hard deleted successfully"
+    assert response.json['project_work_id'] == seed_project_work['project_work_id']
 
     project_work = db_session.query(ProjectWorks).filter_by(
         project_work_id=seed_project_work["project_work_id"]).first()
@@ -191,6 +195,7 @@ def test_edit_project_work(client, jwt_token, seed_project_work, db_session):
 
     assert response.status_code == 200
     assert response.json["msg"] == "Project work edited successfully"
+    assert response.json['project_work_id'] == seed_project_work['project_work_id']
 
     project_work = db_session.query(ProjectWorks).filter_by(
         project_work_id=seed_project_work["project_work_id"]).first()

@@ -61,7 +61,7 @@ class ShiftReportAdd(Resource):
                 data)  # Returns a dictionary
             logger.info(f"New shift report added: {new_report['shift_report_id']}",
                         extra={"login": current_user})
-            return {"msg": "New shift report added successfully"}, 200
+            return {"msg": "New shift report added successfully", "shift_report_id": new_report['shift_report_id']}, 200
         except Exception as e:
             logger.error(f"Error adding shift report: {e}",
                          extra={"login": current_user})
@@ -113,7 +113,7 @@ class ShiftReportSoftDelete(Resource):
             updated = db.update(record_id=report_id, deleted=True)
             if not updated:
                 return {"msg": "Shift report not found"}, 404
-            return {"msg": f"Shift report {report_id} soft deleted successfully"}, 200
+            return {"msg": f"Shift report {report_id} soft deleted successfully", "shift_report_id": report_id}, 200
         except Exception as e:
             logger.error(f"Error soft deleting shift report: {e}",
                          extra={"login": current_user})
@@ -139,7 +139,7 @@ class ShiftReportHardDelete(Resource):
             deleted = db.delete(record_id=report_id)
             if not deleted:
                 return {"msg": "Shift report not found"}, 404
-            return {"msg": f"Shift report {report_id} hard deleted successfully"}, 200
+            return {"msg": f"Shift report {report_id} hard deleted successfully", "shift_report_id": report_id}, 200
         except Exception as e:
             logger.error(f"Error hard deleting shift report: {e}",
                          extra={"login": current_user})
@@ -175,7 +175,7 @@ class ShiftReportEdit(Resource):
             updated = db.update(record_id=report_id, **data)
             if not updated:
                 return {"msg": "Shift report not found"}, 404
-            return {"msg": "Shift report updated successfully"}, 200
+            return {"msg": "Shift report updated successfully", "shift_report_id": report_id}, 200
         except Exception as e:
             logger.error(f"Error editing shift report: {e}",
                          extra={"login": current_user})

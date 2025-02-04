@@ -66,6 +66,7 @@ def test_add_work_price(client, jwt_token, seed_work, db_session):
     work_price = db_session.query(WorkPrices).filter_by(
         category=2).first()
     assert work_price is not None
+    assert str(work_price.work_price_id) == response.json['work_price_id']
     assert str(work_price.work) == seed_work['work_id']
     assert work_price.category == 2
     assert work_price.price == 200.00

@@ -98,11 +98,13 @@ def test_add_project(client, jwt_token, db_session, seed_user, seed_object):
 
     assert response.status_code == 200
     assert response.json["msg"] == "New project added successfully"
+    assert response.json['project_id'] != None
 
     # Проверяем, что проект добавлен в базу
     from app.database.models import Projects
     project = db_session.query(Projects).filter_by(name="New Project").first()
     assert project is not None
+    assert str(project.project_id) == response.json['project_id']
     assert project.name == "New Project"
     assert str(project.object) == seed_object['object_id']
     assert str(project.project_leader) == seed_user['user_id']
@@ -142,6 +144,7 @@ def test_soft_delete_project(client, jwt_token, seed_project):
     assert response.status_code == 200
     assert response.json["msg"] == f"Project {
         seed_project['project_id']} soft deleted successfully"
+    assert response.json['project_id'] == seed_project['project_id']
 
     # Проверяем, что проект помечен как удаленный
     from app.database.models import Projects
@@ -162,6 +165,7 @@ def test_hard_delete_project(client, jwt_token, seed_project, db_session):
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(
         f"/projects/{str(seed_project['project_id'])}/delete/hard", headers=headers)
+    assert response.json['project_id'] == seed_project['project_id']
 
     assert response.status_code == 200
     assert response.json["msg"] == f"Project {
@@ -186,6 +190,7 @@ def test_edit_project(client, jwt_token, seed_project):
 
     assert response.status_code == 200
     assert response.json["msg"] == "Project edited successfully"
+    assert response.json['project_id'] == seed_project['project_id']
 
     # Проверяем обновленные данные в базе
     from app.database.models import Projects

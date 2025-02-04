@@ -62,6 +62,7 @@ def test_add_work(client, jwt_token, seed_work_category, db_session):
     # Проверяем, что работа добавлена в базу
     work = db_session.query(Works).filter_by(name="New Work").first()
     assert work is not None
+    assert str(work.work_id) == response.json['work_id']
     assert work.name == "New Work"
     assert str(work.category) == seed_work_category['work_category_id']
     assert work.measurement_unit == "New Unit"

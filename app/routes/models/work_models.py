@@ -19,7 +19,8 @@ work_model = Model('Work', {
 
 # Модель для сообщений
 work_msg_model = Model('WorkMessage', {
-    "msg": fields.String(required=True, description="Response message")
+    "msg": fields.String(required=True, description="Response message"),
+    "work_id": fields.String(description="ID of work")
 })
 
 # Модель для ответа с одной работой

@@ -60,6 +60,8 @@ def test_add_project_schedule(client, jwt_token, seed_work):
         session = Session()
         schedule = session.query(ProjectSchedules).filter_by(
             quantity=200.0).first()
+        assert str(
+            schedule.project_schedule_id) == response.json['project_schedule_id']
         assert schedule is not None
 
 
@@ -92,6 +94,7 @@ def test_edit_project_schedule(client, jwt_token, seed_project_schedule):
 
     assert response.status_code == 200
     assert response.json["msg"] == "Project schedule updated successfully"
+    assert response.json['project_schedule_id'] == seed_project_schedule['project_schedule_id']
 
     from app.database.models import ProjectSchedules
     with client.application.app_context():
@@ -115,6 +118,7 @@ def test_hard_delete_project_schedule(client, jwt_token, seed_project_schedule, 
     assert response.status_code == 200
     assert response.json["msg"] == f"Project schedule {
         str(seed_project_schedule['project_schedule_id'])} hard deleted successfully"
+    assert response.json['project_schedule_id'] == seed_project_schedule['project_schedule_id']
 
     from app.database.models import ProjectSchedules
     obj = db_session.query(ProjectSchedules).filter_by(

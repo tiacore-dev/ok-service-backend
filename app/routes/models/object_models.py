@@ -18,7 +18,8 @@ object_model = Model('Object', {
 
 
 object_msg_model = Model('ObjectMessage', {
-    "msg": fields.String(required=True, description="Response message")
+    "msg": fields.String(required=True, description="Response message"),
+    "object_id": fields.String(description="ID of object")
 })
 
 object_response = Model('ObjectResponse', {

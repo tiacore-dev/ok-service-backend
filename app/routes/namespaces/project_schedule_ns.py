@@ -53,7 +53,7 @@ class ProjectScheduleAdd(Resource):
             new_schedule = db.add(**data)  # Returns a dictionary
             logger.info(f"New project schedule added: {new_schedule['project_schedule_id']}",
                         extra={"login": current_user})
-            return {"msg": "New project schedule added successfully"}, 200
+            return {"msg": "New project schedule added successfully", "project_schedule_id": new_schedule['project_schedule_id']}, 200
         except Exception as e:
             logger.error(f"Error adding project schedule: {e}",
                          extra={"login": current_user})
@@ -105,7 +105,7 @@ class ProjectScheduleHardDelete(Resource):
             deleted = db.delete(record_id=schedule_id)
             if not deleted:
                 return {"msg": "Project schedule not found"}, 404
-            return {"msg": f"Project schedule {schedule_id} hard deleted successfully"}, 200
+            return {"msg": f"Project schedule {schedule_id} hard deleted successfully", "project_schedule_id": schedule_id}, 200
         except Exception as e:
             logger.error(f"Error hard deleting project schedule: {e}",
                          extra={"login": current_user})
@@ -140,7 +140,7 @@ class ProjectScheduleEdit(Resource):
             updated = db.update(record_id=schedule_id, **data)
             if not updated:
                 return {"msg": "Project schedule not found"}, 404
-            return {"msg": "Project schedule updated successfully"}, 200
+            return {"msg": "Project schedule updated successfully", "project_schedule_id": schedule_id}, 200
         except Exception as e:
             logger.error(f"Error editing project schedule: {e}",
                          extra={"login": current_user})

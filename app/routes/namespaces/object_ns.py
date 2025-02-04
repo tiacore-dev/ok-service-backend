@@ -56,7 +56,7 @@ class ObjectAdd(Resource):
             new_object = db.add(**data)  # Возвращается словарь
             logger.info(f"New object added: {new_object['object_id']}",
                         extra={"login": current_user})
-            return {"msg": "New object added successfully"}, 200
+            return {"msg": "New object added successfully", "object_id": new_object['object_id']}, 200
         except Exception as e:
             logger.error(f"Error adding object: {e}",
                          extra={"login": current_user})
@@ -109,7 +109,7 @@ class ObjectSoftDelete(Resource):
             updated = db.update(record_id=object_id, deleted=True)
             if not updated:
                 return {"msg": "Object not found"}, 404
-            return {"msg": f"Object {object_id} soft deleted successfully"}, 200
+            return {"msg": f"Object {object_id} soft deleted successfully", "object_id": object_id}, 200
         except Exception as e:
             logger.error(f"Error soft deleting object: {e}",
                          extra={"login": current_user})
@@ -135,7 +135,7 @@ class ObjectHardDelete(Resource):
             deleted = db.delete(record_id=object_id)
             if not deleted:
                 return {"msg": "Object not found"}, 404
-            return {"msg": f"Object {object_id} hard deleted successfully"}, 200
+            return {"msg": f"Object {object_id} hard deleted successfully", "object_id": object_id}, 200
         except Exception as e:
             logger.error(f"Error hard deleting object: {e}",
                          extra={"login": current_user})
@@ -171,7 +171,7 @@ class ObjectEdit(Resource):
             updated = db.update(record_id=object_id, **data)
             if not updated:
                 return {"msg": "Object not found"}, 404
-            return {"msg": "Object edited successfully"}, 200
+            return {"msg": "Object edited successfully", "object_id": object_id}, 200
         except Exception as e:
             logger.error(f"Error editing object: {e}",
                          extra={"login": current_user})

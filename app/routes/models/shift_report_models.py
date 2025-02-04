@@ -29,7 +29,8 @@ shift_report_model = Model('ShiftReport', {
 
 
 shift_report_msg_model = Model('ShiftReportMessage', {
-    "msg": fields.String(required=True, description="Response message")
+    "msg": fields.String(required=True, description="Response message"),
+    "shift_report_id": fields.String(description="ID of shift report")
 })
 
 shift_report_response = Model('ShiftReportResponse', {

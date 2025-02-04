@@ -40,6 +40,7 @@ def test_add_work_category(client, jwt_token, db_session):
     category = db_session.query(WorkCategories).filter_by(
         name="New Work Category").first()
     assert category is not None
+    assert str(category.work_category_id) == response.json['work_category_id']
     assert category.name == "New Work Category"
 
 

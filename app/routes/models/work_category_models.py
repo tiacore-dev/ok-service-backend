@@ -25,7 +25,8 @@ work_category_all_response = Model('WorkCategoryAllResponse', {
 })
 
 work_category_msg_model = Model('WorkCategoryMessage', {
-    'msg': fields.String(description='Response message')
+    'msg': fields.String(description='Response message'),
+    "work_category_id": fields.String(description="ID of work category")
 })
 
 

@@ -20,7 +20,8 @@ project_work_model = Model('ProjectWork', {
 
 # Модели для сообщений и ответов
 project_work_msg_model = Model('ProjectWorkMessage', {
-    "msg": fields.String(required=True, description="Response message")
+    "msg": fields.String(required=True, description="Response message"),
+    "project_work_id": fields.String(description="ID of project work")
 })
 
 project_work_response = Model('ProjectWorkResponse', {

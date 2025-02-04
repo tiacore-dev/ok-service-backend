@@ -19,7 +19,8 @@ project_model = Model('Project', {
 
 # Модель для сообщений
 project_msg_model = Model('ProjectMessage', {
-    "msg": fields.String(required=True, description="Response message")
+    "msg": fields.String(required=True, description="Response message"),
+    "project_id": fields.String(description="ID of project")
 })
 
 # Модель для ответа с одним проектом

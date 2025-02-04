@@ -54,10 +54,10 @@ class WorkCategoryAdd(Resource):
             db = WorkCategoriesManager()
             logger.debug("Adding work category to the database...",
                          extra={"login": current_user})
-            category_id = db.add(name=name)
-            logger.info(f"""Successfully added new work category: {category_id}""",
+            new_category = db.add(name=name)
+            logger.info(f"""Successfully added new work category: {new_category['work_category_id']}""",
                         extra={"login": current_user})
-            return {"msg": "New work category added successfully"}, 200
+            return {"msg": "New work category added successfully", "work_category_id": new_category['work_category_id']}, 200
         except Exception as e:
             logger.error(f"Error adding work category: {e}",
                          extra={"login": current_user})
@@ -103,7 +103,7 @@ class WorkCategoryDeleteSoft(Resource):
             updated = db.update(record_id=work_category_id, deleted=True)
             if not updated:
                 return {"msg": "Work category not found"}, 404
-            return {"msg": f"Work category {work_category_id} soft deleted successfully"}, 200
+            return {"msg": f"Work category {work_category_id} soft deleted successfully", "work_category_id": work_category_id}, 200
         except Exception as e:
             logger.error(f"Error soft deleting work category: {e}",
                          extra={"login": current_user})
@@ -126,7 +126,7 @@ class WorkCategoryDeleteHard(Resource):
             deleted = db.delete(record_id=work_category_id)
             if not deleted:
                 return {"msg": "Work category not found"}, 404
-            return {"msg": f"Work category {work_category_id} hard deleted successfully"}, 200
+            return {"msg": f"Work category {work_category_id} hard deleted successfully", "work_category_id": work_category_id}, 200
         except Exception as e:
             logger.error(f"Error hard deleting work category: {e}",
                          extra={"login": current_user})
@@ -163,7 +163,7 @@ class WorkCategoryEdit(Resource):
             updated = db.update(record_id=work_category_id, name=name)
             if not updated:
                 return {"msg": "Work category not found"}, 404
-            return {"msg": "Work category edited successfully"}, 200
+            return {"msg": "Work category edited successfully", "work_category_id": work_category_id}, 200
         except Exception as e:
             logger.error(f"Error editing work category: {e}",
                          extra={"login": current_user})

@@ -52,7 +52,7 @@ class WorkPriceAdd(Resource):
             new_work_price = db.add(**data)
             logger.info(f"New work price added: {new_work_price['work_price_id']}",
                         extra={"login": current_user})
-            return {"msg": "New work price added successfully"}, 200
+            return {"msg": "New work price added successfully", "work_price_id": new_work_price['work_price_id']}, 200
         except Exception as e:
             logger.error(f"Error adding work price: {e}",
                          extra={"login": current_user})
@@ -106,7 +106,7 @@ class WorkPriceSoftDelete(Resource):
             updated = db.update(record_id=work_price_id, deleted=True)
             if not updated:
                 return {"msg": "Work price not found"}, 404
-            return {"msg": f"Work price {work_price_id} soft deleted successfully"}, 200
+            return {"msg": f"Work price {work_price_id} soft deleted successfully", "work_price_id": work_price_id}, 200
         except Exception as e:
             logger.error(f"Error soft deleting work price: {e}",
                          extra={"login": current_user})
@@ -133,7 +133,7 @@ class WorkPriceHardDelete(Resource):
             deleted = db.delete(record_id=work_price_id)
             if not deleted:
                 return {"msg": "Work price not found"}, 404
-            return {"msg": f"Work price {work_price_id} hard deleted successfully"}, 200
+            return {"msg": f"Work price {work_price_id} hard deleted successfully", "work_price_id": work_price_id}, 200
         except Exception as e:
             logger.error(f"Error hard deleting work price: {e}",
                          extra={"login": current_user})
@@ -169,7 +169,7 @@ class WorkPriceEdit(Resource):
             updated = db.update(record_id=work_price_id, **data)
             if not updated:
                 return {"msg": "Work price not found"}, 404
-            return {"msg": "Work price edited successfully"}, 200
+            return {"msg": "Work price edited successfully", "work_price_id": work_price_id}, 200
         except Exception as e:
             logger.error(f"Error editing work price: {e}",
                          extra={"login": current_user})

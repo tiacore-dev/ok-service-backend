@@ -50,7 +50,7 @@ class WorkAdd(Resource):
             new_work = db.add(**data)
             logger.info(f"New work added: {new_work['work_id']}",
                         extra={"login": current_user})
-            return {"msg": "New work added successfully"}, 200
+            return {"msg": "New work added successfully", "work_id": new_work['work_id']}, 200
         except Exception as e:
             logger.error(f"Error adding work: {e}",
                          extra={"login": current_user})
@@ -104,7 +104,7 @@ class WorkSoftDelete(Resource):
             updated = db.update(record_id=work_id, deleted=True)
             if not updated:
                 return {"msg": "Work not found"}, 404
-            return {"msg": f"Work {work_id} soft deleted successfully"}, 200
+            return {"msg": f"Work {work_id} soft deleted successfully", "work_id": work_id}, 200
         except Exception as e:
             logger.error(f"Error soft deleting work: {e}",
                          extra={"login": current_user})
@@ -131,7 +131,7 @@ class WorkHardDelete(Resource):
             deleted = db.delete(record_id=work_id)
             if not deleted:
                 return {"msg": "Work not found"}, 404
-            return {"msg": f"Work {work_id} hard deleted successfully"}, 200
+            return {"msg": f"Work {work_id} hard deleted successfully", "work_id": work_id}, 200
         except Exception as e:
             logger.error(f"Error hard deleting work: {e}",
                          extra={"login": current_user})
@@ -167,7 +167,7 @@ class WorkEdit(Resource):
             updated = db.update(record_id=work_id, **data)
             if not updated:
                 return {"msg": "Work not found"}, 404
-            return {"msg": "Work edited successfully"}, 200
+            return {"msg": "Work edited successfully", "work_id": work_id}, 200
         except Exception as e:
             logger.error(f"Error editing work: {e}",
                          extra={"login": current_user})

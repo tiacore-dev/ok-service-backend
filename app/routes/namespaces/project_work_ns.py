@@ -51,7 +51,7 @@ class ProjectWorkAdd(Resource):
             new_project_work = db.add(**data)
             logger.info(f"New project work added: {new_project_work['project_work_id']}",
                         extra={"login": current_user})
-            return {"msg": "New project work added successfully"}, 200
+            return {"msg": "New project work added successfully", "project_work_id": new_project_work['project_work_id']}, 200
         except Exception as e:
             logger.error(f"Error adding project work: {e}",
                          extra={"login": current_user})
@@ -97,7 +97,7 @@ class ProjectWorkSoftDelete(Resource):
             updated = db.update(record_id=project_work_id, signed=False)
             if not updated:
                 return {"msg": "Project work not found"}, 404
-            return {"msg": f"Project work {project_work_id} soft deleted successfully"}, 200
+            return {"msg": f"Project work {project_work_id} soft deleted successfully", "project_work_id": project_work_id}, 200
         except Exception as e:
             logger.error(f"Error soft deleting project work: {e}",
                          extra={"login": current_user})
@@ -120,7 +120,7 @@ class ProjectWorkHardDelete(Resource):
             deleted = db.delete(record_id=project_work_id)
             if not deleted:
                 return {"msg": "Project work not found"}, 404
-            return {"msg": f"Project work {project_work_id} hard deleted successfully"}, 200
+            return {"msg": f"Project work {project_work_id} hard deleted successfully", "project_work_id": project_work_id}, 200
         except Exception as e:
             logger.error(f"Error hard deleting project work: {e}",
                          extra={"login": current_user})
@@ -151,7 +151,7 @@ class ProjectWorkEdit(Resource):
             updated = db.update(record_id=project_work_id, **data)
             if not updated:
                 return {"msg": "Project work not found"}, 404
-            return {"msg": "Project work edited successfully"}, 200
+            return {"msg": "Project work edited successfully", "project_work_id": project_work_id}, 200
         except Exception as e:
             logger.error(f"Error editing project work: {e}",
                          extra={"login": current_user})
