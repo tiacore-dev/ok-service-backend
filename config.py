@@ -12,6 +12,7 @@ class Config:
     TESTING = False
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+    DATABASE_NAME = os.getenv('DATABASE_NAME')
     SECRET_KEY = os.getenv('SECRET_KEY')
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_EXPIRES = timedelta(days=1)

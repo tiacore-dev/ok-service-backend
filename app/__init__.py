@@ -8,7 +8,9 @@ from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
 from app.routes import register_namespaces, register_routes
 from app.database import init_db, set_db_globals  # , setup_listeners
+from app.database.vacuum import start_background_task
 from app.utils.db_setting_tables import set_admin, set_roles, set_object_status
+
 
 authorizations = {
     'Bearer': {
@@ -49,6 +51,10 @@ def create_app(config_name="development"):
     logger = setup_logger()
     logger.info("База данных успешно инициализирована.",
                 extra={'user_id': 'init'})
+
+    # Запуск фоновой задачи при старте приложения
+    with app.app_context():
+        start_background_task()
 
     # Инициализация ролей и админа
 
