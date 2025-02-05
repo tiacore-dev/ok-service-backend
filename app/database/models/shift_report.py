@@ -1,7 +1,13 @@
+
+from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean, BigInteger
+from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean, BigInteger, Sequence
 from app.database.db_setup import Base
+
+# Создаем SEQUENCE (он должен быть заранее в БД)
+shift_reports_number_seq = Sequence(
+    "shift_reports_number_seq", start=1, increment=1)
 
 
 class ShiftReports(Base):
@@ -14,7 +20,8 @@ class ShiftReports(Base):
     project = Column(UUID, ForeignKey('projects.project_id'), nullable=False)
     signed = Column(Boolean, nullable=False, default=False)
     deleted = Column(Boolean, nullable=False, default=False)
-    number = Column(Integer, autoincrement=True, nullable=False, default=0)
+    number = Column(Integer, shift_reports_number_seq,
+                    server_default=shift_reports_number_seq.next_value(), unique=True, nullable=False)
 
     users = relationship("Users", back_populates="shift_report")
     projects = relationship("Projects", back_populates="shift_report")

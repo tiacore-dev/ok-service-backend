@@ -34,8 +34,8 @@ def map_field(field_obj):
 
         # ✅ Если модель уже зарегистрирована, возвращаем ее!
         if nested_model_name in registered_models:
-            print(f"⚠️ Используем уже зарегистрированную модель: {
-                  nested_model_name}")
+            # print(f"⚠️ Используем уже зарегистрированную модель: {
+            #      nested_model_name}")
             return fields.Nested(registered_models[nested_model_name])
 
         # ❗️ Если модели нет, создаем новую
@@ -57,7 +57,7 @@ def generate_swagger_model(schema: Schema, name: str) -> Model:
 
     # ✅ Проверяем, есть ли такая модель в реестре
     if fixed_name in registered_models:
-        print(f"⚠️ Используем уже созданную модель: {fixed_name}")
+        # print(f"⚠️ Используем уже созданную модель: {fixed_name}")
         return registered_models[fixed_name]
 
     model_fields = {}
@@ -67,7 +67,7 @@ def generate_swagger_model(schema: Schema, name: str) -> Model:
 
     model = Model(fixed_name, model_fields)
     registered_models[fixed_name] = model  # Сохраняем в реестр
-    print(f"✅ Создана модель {fixed_name} с полями: {
-          list(model_fields.keys())}")
+    # print(f"✅ Создана модель {fixed_name} с полями: {
+    #      list(model_fields.keys())}")
 
     return model
