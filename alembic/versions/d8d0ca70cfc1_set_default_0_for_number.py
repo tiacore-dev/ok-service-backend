@@ -1,8 +1,8 @@
-"""Add number to shift_reports
+"""Set default 0 for number
 
-Revision ID: 51564584ec74
-Revises: 35c1fa470707
-Create Date: 2025-02-02 15:05:08.412622
+Revision ID: d8d0ca70cfc1
+Revises: 4cde69444b31
+Create Date: 2025-02-05 13:44:01.115070
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '51564584ec74'
-down_revision: Union[str, None] = '35c1fa470707'
+revision: str = 'd8d0ca70cfc1'
+down_revision: Union[str, None] = '4cde69444b31'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
