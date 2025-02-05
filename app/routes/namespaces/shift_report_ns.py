@@ -1,6 +1,7 @@
 # Namespace for ShiftReports
 # Namespace for ShiftReports
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -188,7 +189,7 @@ class ShiftReportAll(Resource):
     @shift_report_ns.expect(shift_report_filter_parser)
     @shift_report_ns.marshal_with(shift_report_all_response)
     def get(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to fetch all shift reports",
                     extra={"login": current_user})
 
@@ -210,6 +211,8 @@ class ShiftReportAll(Resource):
             'project': UUID(args.get('project')) if args.get('project') else None,
             'deleted': args.get('deleted', None)
         }
+        if current_user['role'] == 'user':
+            filters['user'] = current_user['user_id']
 
         logger.debug(f"Fetching shift reports with filters: {filters}, offset={offset}, limit={limit}",
                      extra={"login": current_user})
