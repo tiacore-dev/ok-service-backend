@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.add_column('shift_reports', sa.Column(
-        'number', sa.Integer(), autoincrement=True))
+        'number', sa.Integer(), autoincrement=True, nullable=False))
 
 
 def downgrade() -> None:
