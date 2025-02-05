@@ -96,3 +96,21 @@ def jwt_token(test_app):
     """
     with test_app.app_context():
         return create_access_token(identity=json.dumps({"login": "test_admin", "role": "admin"}))
+
+
+@pytest.fixture
+def jwt_token_admin(test_app):
+    """
+    Генерирует JWT токен для администратора.
+    """
+    with test_app.app_context():
+        return create_access_token(identity=json.dumps({"login": "admin_user", "role": "admin"}))
+
+
+@pytest.fixture
+def jwt_token_user(test_app):
+    """
+    Генерирует JWT токен для обычного пользователя.
+    """
+    with test_app.app_context():
+        return create_access_token(identity=json.dumps({"login": "regular_user", "role": "user"}))

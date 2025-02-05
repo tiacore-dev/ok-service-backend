@@ -289,7 +289,7 @@ class BaseDBManager(ABC):
         logger.debug("get_all_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
                      extra={"login": "database"})
 
-        with self.session_scope() as session:  # type: Session
+        with self.session_scope() as session:
             query = session.query(self.model)
 
             # Применяем фильтры

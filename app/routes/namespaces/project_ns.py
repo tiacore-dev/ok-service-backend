@@ -1,4 +1,5 @@
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -182,7 +183,7 @@ class ProjectAll(Resource):
     @project_ns.expect(project_filter_parser)
     @project_ns.marshal_with(project_all_response)
     def get(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to fetch all projects",
                     extra={"login": current_user})
         # Валидация query-параметров через Marshmallow
@@ -210,7 +211,8 @@ class ProjectAll(Resource):
         try:
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
-            projects = db.get_all_filtered(
+            projects = db.get_all_filtered_with_status(
+                role=current_user['role'],
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
             logger.info(f"Successfully fetched {len(projects)} projects",
                         extra={"login": current_user})

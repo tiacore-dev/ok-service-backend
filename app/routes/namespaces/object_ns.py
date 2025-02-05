@@ -1,4 +1,5 @@
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -33,7 +34,13 @@ class ObjectAdd(Resource):
     @object_ns.expect(object_create_model)
     @object_ns.marshal_with(object_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
+        logger.debug(f"Decoded JWT Identity: {current_user}")
+        if current_user['role'] != 'admin':
+            logger.warning("Несанкционированный запрос на добавление нового объекта.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info("Request to add new object", extra={"login": current_user})
         from app.database.managers.objects_managers import ObjectStatusesManager
         db_s = ObjectStatusesManager()
@@ -68,7 +75,7 @@ class ObjectView(Resource):
     @jwt_required()
     @object_ns.marshal_with(object_response)
     def get(self, object_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to view object: {object_id}",
                     extra={"login": current_user})
         try:
@@ -82,6 +89,8 @@ class ObjectView(Resource):
             obj = db.get_by_id(object_id)
             if not obj:
                 return {"msg": "Object not found"}, 404
+            if current_user['role'] == 'user' and obj['status'] != 'active':
+                return {"msg": "Forbidden"}, 403
             return {"msg": "Object found successfully", "object": obj}, 200
         except Exception as e:
             logger.error(f"Error viewing object: {e}",
@@ -94,7 +103,13 @@ class ObjectSoftDelete(Resource):
     @jwt_required()
     @object_ns.marshal_with(object_msg_model)
     def patch(self, object_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
+        logger.debug(f"Decoded JWT Identity: {current_user}")
+        if current_user['role'] != 'admin':
+            logger.warning("Несанкционированный запрос на мягкое удаление объекта.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info(f"Request to soft delete object: {object_id}",
                     extra={"login": current_user})
         try:
@@ -121,7 +136,13 @@ class ObjectHardDelete(Resource):
     @jwt_required()
     @object_ns.marshal_with(object_msg_model)
     def delete(self, object_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
+        logger.debug(f"Decoded JWT Identity: {current_user}")
+        if current_user['role'] != 'admin':
+            logger.warning("Несанкционированный запрос на удаление (hard) объекта.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info(f"Request to hard delete object: {object_id}",
                     extra={"login": current_user})
         try:
@@ -148,7 +169,13 @@ class ObjectEdit(Resource):
     @object_ns.expect(object_create_model)
     @object_ns.marshal_with(object_msg_model)
     def patch(self, object_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
+        logger.debug(f"Decoded JWT Identity: {current_user}")
+        if current_user['role'] != 'admin':
+            logger.warning("Несанкционированный запрос на изменение объекта.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info(f"Request to edit object: {object_id}",
                     extra={"login": current_user})
 
@@ -184,7 +211,7 @@ class ObjectAll(Resource):
     @object_ns.expect(object_filter_parser)  # Используем для Swagger
     @object_ns.marshal_with(object_all_response)
     def get(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to fetch all objects",
                     extra={"login": current_user})
 
@@ -208,6 +235,8 @@ class ObjectAll(Resource):
             'address': data.get('address'),
             'status': data.get('status'),
         }
+        if current_user['role'] == 'user':
+            filters['status'] = 'active'
 
         logger.debug(f"Fetching objects with filters: {filters}, offset={offset}, limit={limit}",
                      extra={"login": current_user})
