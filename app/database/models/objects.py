@@ -14,16 +14,18 @@ class Objects(Base):
     description = Column(String, nullable=True)
     status = Column(String, ForeignKey(
         'object_statuses.object_status_id'), nullable=True)
+    manager = Column(UUID, ForeignKey('users.user_id'), nullable=True)
     deleted = Column(Boolean, nullable=False, default=False)
 
     # Определяем отношение к объекту ObjectStatuses
     object_status = relationship("ObjectStatuses", back_populates="object")
     project = relationship("Projects", back_populates="objects")
+    users = relationship("Users", back_populates="objects")
 
     def __repr__(self):
         return (f"<Objects(object_id={self.object_id}, name={self.name}, "
                 f"address={self.address}, description={self.description}, "
-                f"status={self.status}, deleted={self.deleted})>")
+                f"status={self.status}, manager={self.manager}, deleted={self.deleted})>")
 
     def to_dict(self):
         return {
@@ -32,5 +34,6 @@ class Objects(Base):
             "address": self.address if self.address else None,
             "description": self.description if self.description else None,
             "status": self.status,
+            "manager": str(self.manager),
             "deleted": self.deleted
         }

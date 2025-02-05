@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid4, UUID
 import pytest
 
 
@@ -9,7 +9,26 @@ def objects_manager(db_session):
 
 
 @pytest.fixture
-def seed_object(db_session):
+def seed_user(db_session):
+    """
+    Добавляет тестового пользователя в базу перед тестом.
+    """
+    from app.database.models import Users
+    user = Users(
+        user_id=uuid4(),
+        login="test_user",
+        name="Test User",
+        role="user",
+        deleted=False
+    )
+    user.set_password('qweasdzcx')
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
+def seed_object(db_session, seed_user):
     """
     Добавляет тестовый объект в базу перед тестом.
     """
@@ -19,6 +38,7 @@ def seed_object(db_session):
         name="Test Object",
         address="123 Test St",
         description="Test description",
+        manager=UUID(seed_user['user_id']),
         status="active"
     )
     db_session.add(obj)
@@ -26,7 +46,7 @@ def seed_object(db_session):
     return obj.to_dict()
 
 
-def test_add_object(client, jwt_token, db_session):
+def test_add_object(client, jwt_token, db_session, seed_user):
     """
     Тест на добавление нового объекта через API.
     """
@@ -36,6 +56,7 @@ def test_add_object(client, jwt_token, db_session):
         "name": "New Object",
         "address": "456 Test Ln",
         "description": "New description",
+        "manager": seed_user['user_id'],
         "status": 'active'
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
@@ -43,13 +64,13 @@ def test_add_object(client, jwt_token, db_session):
 
     assert response.status_code == 200
     assert response.json["msg"] == "New object added successfully"
-    assert response.json['object_id'] != None
 
     # Проверяем, что объект добавлен в базу
     obj = db_session.query(Objects).filter_by(name="New Object").first()
     assert obj is not None
     assert str(obj.object_id) == response.json['object_id']
     assert obj.name == "New Object"
+    assert str(obj.manager) == seed_user['user_id']
     assert obj.address == "456 Test Ln"
     assert obj.description == "New description"
     assert obj.status == 'active'

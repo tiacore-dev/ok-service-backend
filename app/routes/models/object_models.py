@@ -13,6 +13,7 @@ object_model = Model('Object', {
     "address": fields.String(required=False, description="Address of the object"),
     "description": fields.String(required=False, description="Description of the object"),
     "status": fields.String(required=False, description="Status of the object"),
+    "manager": fields.String(required=True, description="Manager of the object"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })
 

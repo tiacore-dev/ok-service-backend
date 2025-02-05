@@ -21,6 +21,7 @@ class Users(Base):
     project = relationship("Projects", back_populates="user")
     shift_report = relationship("ShiftReports", back_populates="users")
     subscription = relationship("Subscriptions", back_populates="users")
+    objects = relationship("Objects", back_populates="users")
 
     def __repr__(self):
         return (f"<Users(user_id={self.user_id}, login={self.login}, name={self.name}, "
