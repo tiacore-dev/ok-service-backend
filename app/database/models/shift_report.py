@@ -1,5 +1,4 @@
 
-from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean, BigInteger, Sequence
@@ -35,7 +34,6 @@ class ShiftReports(Base):
                 f"deleted={self.deleted}, number={self.number})>")
 
     def to_dict(self):
-
         return {
             "shift_report_id": str(self.shift_report_id),
             "user": self.user,
