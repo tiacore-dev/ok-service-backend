@@ -12,6 +12,9 @@ class ObjectStatuses(Base):
     # Опционально, если хотите указать обратную связь
     object = relationship("Objects", back_populates="object_status")
 
+    def __repr__(self):
+        return f"<ObjectStatuses(object_status_id={self.object_status_id}, name={self.name})>"
+
     def to_dict(self):
         return {
             "object_status_id": self.object_status_id,

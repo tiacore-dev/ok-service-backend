@@ -19,10 +19,11 @@ class Projects(Base):
     shift_report = relationship("ShiftReports", back_populates="projects")
     project_work = relationship("ProjectWorks", back_populates="projects")
 
+    def __repr__(self):
+        return (f"<Projects(project_id={self.project_id}, name={self.name}, "
+                f"object={self.object}, project_leader={self.project_leader}, deleted={self.deleted})>")
+
     def to_dict(self):
-        # Проверяем, есть ли роль
-        # object_data = self.objects.to_dict() if self.objects else str(self.object)
-        # user_data = self.user.to_dict() if self.user else str(self.project_leader)
         return {
             "project_id": str(self.project_id),
             "name": self.name,

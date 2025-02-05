@@ -11,6 +11,9 @@ class Roles(Base):
 
     user = relationship("Users", back_populates="roles")
 
+    def __repr__(self):
+        return f"<Roles(role_id={self.role_id}, name={self.name})>"
+
     def to_dict(self):
         return {
             "role_id": self.role_id,

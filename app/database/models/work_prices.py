@@ -16,9 +16,11 @@ class WorkPrices(Base):
 
     works = relationship("Works", back_populates="work_price")
 
+    def __repr__(self):
+        return (f"<WorkPrices(work_price_id={self.work_price_id}, work={self.work}, "
+                f"category={self.category}, price={self.price}, deleted={self.deleted})>")
+
     def to_dict(self):
-        # Проверяем, есть ли роль
-        # work_data = self.works.to_dict() if self.works else str(self.work)
         return {
             "work_price_id": str(self.work_price_id),
             "work": self.work,

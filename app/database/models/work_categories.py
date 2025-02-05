@@ -15,6 +15,10 @@ class WorkCategories(Base):
     # Опционально, если хотите указать обратную связь
     works = relationship("Works", back_populates="work_category")
 
+    def __repr__(self):
+        return (f"<WorkCategories(work_category_id={self.work_category_id}, "
+                f"name={self.name}, deleted={self.deleted})>")
+
     def to_dict(self):
         return {
             "work_category_id": str(self.work_category_id),

@@ -43,7 +43,7 @@ def clean_db(db_session):
     """
     Автоматически очищает базу данных после каждого теста.
     """
-    global GLOBAL_BASE  # pylint: disable=global-statement
+    global GLOBAL_BASE  # pylint: disable=global-variable-not-assigned
     yield
     db_session.rollback()  # Отменяем все изменения, сделанные в тесте
     for table in reversed(GLOBAL_BASE.metadata.sorted_tables):  # Используем GLOBAL_BASE

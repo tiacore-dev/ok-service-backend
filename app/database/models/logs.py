@@ -15,6 +15,9 @@ class Logs(Base):
     message = Column(Text, nullable=False)  # Сообщение лога
     timestamp = Column(DateTime, default=datetime.utcnow)  # Дата и время
 
+    def __repr__(self):
+        return f"<Logs(log_id={self.log_id}, login={self.login}, action={self.action}, timestamp={self.timestamp})>"
+
     def to_dict(self):
         """Преобразование объекта лога в словарь."""
         return {

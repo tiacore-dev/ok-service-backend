@@ -19,11 +19,12 @@ class ShiftReportDetails(Base):
         "ShiftReports", back_populates="shift_report_details")
     works = relationship("Works", back_populates="shift_report_details")
 
+    def __repr__(self):
+        return (f"<ShiftReportDetails(shift_report_detail_id={self.shift_report_detail_id}, "
+                f"shift_report={self.shift_report}, work={self.work}, "
+                f"quantity={self.quantity}, summ={self.summ})>")
+
     def to_dict(self):
-        # Проверяем, есть ли роль
-        # shift_report_data = self.shift_reports.to_dict(
-        # ) if self.shift_reports else str(self.shift_report)
-        # work_data = self.works.to_dict() if self.works else str(self.work)
         return {
             "shift_report_detail_id": str(self.shift_report_detail_id),
             "shift_report": self.shift_report,

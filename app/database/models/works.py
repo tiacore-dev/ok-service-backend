@@ -23,6 +23,10 @@ class Works(Base):
     shift_report_details = relationship(
         "ShiftReportDetails", back_populates="works")
 
+    def __repr__(self):
+        return (f"<Works(work_id={self.work_id}, name={self.name}, category={self.category}, "
+                f"measurement_unit={self.measurement_unit}, deleted={self.deleted})>")
+
     def to_dict(self):
         return {
             "work_id": str(self.work_id),

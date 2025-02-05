@@ -18,9 +18,12 @@ class ProjectWorks(Base):
     works = relationship("Works", back_populates="project_work")
     projects = relationship("Projects", back_populates="project_work")
 
+    def __repr__(self):
+        return (f"<ProjectWorks(project_work_id={self.project_work_id}, work={self.work}, "
+                f"project={self.project}, quantity={self.quantity}, summ={self.summ}, signed={self.signed})>")
+
     def to_dict(self):
-        # Проверяем, есть ли роль
-        # work_data = self.works.to_dict() if self.works else str(self.work)
+
         return {
             "project_work_id": str(self.project_work_id),
             "work": self.work,

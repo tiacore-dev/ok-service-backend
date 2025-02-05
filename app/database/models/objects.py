@@ -20,8 +20,12 @@ class Objects(Base):
     object_status = relationship("ObjectStatuses", back_populates="object")
     project = relationship("Projects", back_populates="objects")
 
+    def __repr__(self):
+        return (f"<Objects(object_id={self.object_id}, name={self.name}, "
+                f"address={self.address}, description={self.description}, "
+                f"status={self.status}, deleted={self.deleted})>")
+
     def to_dict(self):
-        # status_data = self.object_status.to_dict() if self.object_status else self.status
         return {
             "object_id": str(self.object_id),
             "name": self.name,

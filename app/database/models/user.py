@@ -22,6 +22,10 @@ class Users(Base):
     shift_report = relationship("ShiftReports", back_populates="users")
     subscription = relationship("Subscriptions", back_populates="users")
 
+    def __repr__(self):
+        return (f"<Users(user_id={self.user_id}, login={self.login}, name={self.name}, "
+                f"role={self.role}, category={self.category}, deleted={self.deleted})>")
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -29,8 +33,7 @@ class Users(Base):
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
-        # Проверяем, есть ли роль
-        # role_data = self.roles.to_dict() if self.roles else self.role
+
         return {
             "user_id": str(self.user_id),
             "login": self.login,
