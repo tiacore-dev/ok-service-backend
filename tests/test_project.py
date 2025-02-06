@@ -1,4 +1,6 @@
 from uuid import uuid4
+import json
+from flask_jwt_extended import decode_token
 import pytest
 
 
@@ -84,10 +86,17 @@ def seed_project(db_session, seed_user, seed_object):
     return project_data
 
 
-def test_add_project(client, jwt_token, db_session, seed_user, seed_object):
+def test_add_project(client, jwt_token, db_session, seed_user, seed_object, test_app):
     """
     Тест на добавление нового проекта через API.
     """
+    with test_app.app_context():  # Оборачиваем в контекст приложения
+        # Декодируем `jwt_token` и извлекаем `user_id`
+        decoded_token = decode_token(jwt_token)
+        # `sub` содержит JSON-строку
+        token_identity = json.loads(decoded_token["sub"])
+        token_user_id = token_identity["user_id"]  # Достаем `user_id`
+
     data = {
         "name": "New Project",
         "object": seed_object['object_id'],
@@ -105,6 +114,7 @@ def test_add_project(client, jwt_token, db_session, seed_user, seed_object):
     project = db_session.query(Projects).filter_by(name="New Project").first()
     assert project is not None
     assert str(project.project_id) == response.json['project_id']
+    assert str(project.created_by) == token_user_id
     assert project.name == "New Project"
     assert str(project.object) == seed_object['object_id']
     assert str(project.project_leader) == seed_user['user_id']

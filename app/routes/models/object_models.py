@@ -14,6 +14,8 @@ object_model = Model('Object', {
     "description": fields.String(required=False, description="Description of the object"),
     "status": fields.String(required=False, description="Status of the object"),
     "manager": fields.String(required=True, description="Manager of the object"),
+    "created_at": fields.String(required=True, description="Time object was created at"),
+    "created_by": fields.String(required=True, description="Creator of object"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })
 

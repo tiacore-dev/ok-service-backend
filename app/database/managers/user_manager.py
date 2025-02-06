@@ -10,7 +10,7 @@ class UserManager(BaseDBManager):
     def model(self):
         return Users
 
-    def add_user(self, login, password, name, role, category=None):
+    def add_user(self, login, password, name, role, category=None, created_by=None):
         """Добавление нового пользователя с хешированием пароля."""
         with self.session_scope() as session:
             new_user = self.model(
@@ -18,6 +18,7 @@ class UserManager(BaseDBManager):
                 name=name,
                 role=role,
                 category=category if category else None,
+                created_by=str(created_by) if created_by else None,
                 deleted=False
             )
             # Установим пароль сразу после создания объекта

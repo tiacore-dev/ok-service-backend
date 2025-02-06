@@ -1,4 +1,6 @@
 from uuid import uuid4, UUID
+import json
+from flask_jwt_extended import decode_token
 import pytest
 
 
@@ -29,12 +31,17 @@ def seed_user(db_session):
     return user_data
 
 
-def test_add_user(client, jwt_token, db_session):
+def test_add_user(client, jwt_token, db_session, test_app):
     """
     Тест на добавление нового пользователя через API.
     """
     from app.database.models import Users
-
+    with test_app.app_context():  # Оборачиваем в контекст приложения
+        # Декодируем `jwt_token` и извлекаем `user_id`
+        decoded_token = decode_token(jwt_token)
+        # `sub` содержит JSON-строку
+        token_identity = json.loads(decoded_token["sub"])
+        token_user_id = token_identity["user_id"]  # Достаем `user_id`
     # Данные для создания пользователя
     data = {
         "login": "test_user",
@@ -52,6 +59,7 @@ def test_add_user(client, jwt_token, db_session):
     # Проверяем, что пользователь добавлен в базу
     user = db_session.query(Users).filter_by(login="test_user").first()
     assert user is not None
+    assert str(user.created_by) == token_user_id
     assert user.name == "Test User"
     assert user.role == "admin"
     assert user.category == 1

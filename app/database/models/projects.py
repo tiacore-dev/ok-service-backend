@@ -1,6 +1,8 @@
 from uuid import uuid4
+from datetime import datetime
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, String, UUID, ForeignKey, Boolean
+from sqlalchemy.sql import text
+from sqlalchemy import Column, String, UUID, ForeignKey, Boolean, Integer
 from app.database.db_setup import Base
 
 
@@ -12,10 +14,23 @@ class Projects(Base):
     name = Column(String, nullable=False)
     object = Column(UUID, ForeignKey('objects.object_id'), nullable=False)
     project_leader = Column(UUID, ForeignKey('users.user_id'), nullable=True)
+    night_shift_available = Column(Boolean, nullable=False, default=False)
+    extreme_conditions_available = Column(
+        Boolean, nullable=False, default=False)
+    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+                        server_default=text("EXTRACT(EPOCH FROM NOW())"))
+    created_by = Column(UUID(as_uuid=True), ForeignKey(
+        'users.user_id'), nullable=True)
     deleted = Column(Boolean, nullable=False, default=False)
 
     objects = relationship("Objects", back_populates="project")
-    user = relationship("Users", back_populates="project")
+
+    # Указываем foreign_keys, чтобы явно указать, по какому полю связываются таблицы
+    leader = relationship(
+        "Users", back_populates="led_projects", foreign_keys=[project_leader])
+    project_creator = relationship(
+        "Users", back_populates="created_projects", foreign_keys=[created_by])
+
     shift_report = relationship("ShiftReports", back_populates="projects")
     project_work = relationship("ProjectWorks", back_populates="projects")
 
@@ -29,5 +44,9 @@ class Projects(Base):
             "name": self.name,
             "object": self.object,
             "project_leader": self.project_leader,
+            "night_shift_available": self.night_shift_available,
+            "extreme_conditions_available": self.extreme_conditions_available,
+            "created_at": self.created_at,
+            "created_by": self.created_by,
             "deleted": self.deleted
         }

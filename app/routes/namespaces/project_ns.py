@@ -34,7 +34,7 @@ class ProjectAdd(Resource):
     @project_ns.expect(project_create_model)
     @project_ns.marshal_with(project_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new project",
                     extra={"login": current_user})
 
@@ -50,7 +50,8 @@ class ProjectAdd(Resource):
             db = ProjectsManager()
 
             # Добавление проекта
-            new_project = db.add(**data)  # Возвращается словарь
+            # Возвращается словарь
+            new_project = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New project added: {new_project['project_id']}",
                         extra={"login": current_user})
             return {"msg": "New project added successfully", "project_id": new_project['project_id']}, 200

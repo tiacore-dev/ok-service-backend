@@ -1,5 +1,6 @@
 import json
 import os
+from uuid import uuid4
 import pytest
 from dotenv import load_dotenv
 from flask_jwt_extended import create_access_token
@@ -90,12 +91,39 @@ def client(test_app):
 
 
 @pytest.fixture
-def jwt_token(test_app):
+def jwt_token(test_app, db_session):
     """
-    Генерирует JWT токен для тестового пользователя.
+    Генерирует JWT токен для существующего в базе пользователя.
+    Если пользователя нет, создаёт нового.
     """
+    from app.database.models import Users
     with test_app.app_context():
-        return create_access_token(identity=json.dumps({"login": "test_admin", "role": "admin"}))
+        # Поиск существующего пользователя
+        user = db_session.query(Users).filter_by(login="test_admin").first()
+
+        # Если пользователя нет, создаём его
+        if not user:
+            user = Users(
+                user_id=uuid4(),
+                login="test_admin",
+                name="Test Admin",
+                role="admin",
+                password_hash="testpassword",  # Можно заменить на захешированный пароль
+                deleted=False
+            )
+            # Убедитесь, что метод `set_password` доступен
+            user.set_password("testpassword")
+            db_session.add(user)
+            db_session.commit()
+
+        # Генерация токена на основе реального пользователя
+        token_data = {
+            "login": user.login,
+            "role": user.role,
+            "user_id": str(user.user_id)
+        }
+
+        return create_access_token(identity=json.dumps(token_data))
 
 
 @pytest.fixture
@@ -104,7 +132,7 @@ def jwt_token_admin(test_app):
     Генерирует JWT токен для администратора.
     """
     with test_app.app_context():
-        return create_access_token(identity=json.dumps({"login": "admin_user", "role": "admin"}))
+        return create_access_token(identity=json.dumps({"login": "admin_user", "role": "admin", "user_id": "f83d4538-2e1b-49cc-80ae-16c9bcf58f6e"}))
 
 
 @pytest.fixture
@@ -113,4 +141,4 @@ def jwt_token_user(test_app):
     Генерирует JWT токен для обычного пользователя.
     """
     with test_app.app_context():
-        return create_access_token(identity=json.dumps({"login": "regular_user", "role": "user"}))
+        return create_access_token(identity=json.dumps({"login": "regular_user", "role": "user", "user_id": "f83d4538-2e1b-49cc-80ae-16c9bcf58f6e"}))

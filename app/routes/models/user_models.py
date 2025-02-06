@@ -14,6 +14,8 @@ user_model = Model('User', {
     "name": fields.String(required=True, description='Имя пользователя.'),
     "role": fields.String(required=True, description='Роль пользователя.'),
     "category": fields.Integer(required=False, description='Категория.'),
+    "created_at": fields.Integer(required=True, description="Date user was created at"),
+    "created_by": fields.String(required=True, description="Creator of user"),
     "deleted": fields.Boolean(required=True, description='Удален ли пользователь.')
 })
 

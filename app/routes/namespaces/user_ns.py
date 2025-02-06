@@ -68,7 +68,7 @@ class UserAdd(Resource):
             logger.debug("Добавление пользователя в базу...",
                          extra={"login": current_user.get('login')})
             user_id = db.add_user(
-                login=login, password=password, role=role, category=category, name=name)
+                login=login, password=password, role=role, category=category, name=name, created_by=current_user['user_id'])
             logger.info(f"Успешно добавлен новый пользователь user_id={user_id}",
                         extra={"login": current_user.get('login')}
                         )

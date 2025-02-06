@@ -60,7 +60,8 @@ class ObjectAdd(Resource):
             db = ObjectsManager()
 
             # Добавление объекта
-            new_object = db.add(**data)  # Возвращается словарь
+            # Возвращается словарь
+            new_object = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New object added: {new_object['object_id']}",
                         extra={"login": current_user})
             return {"msg": "New object added successfully", "object_id": new_object['object_id']}, 200

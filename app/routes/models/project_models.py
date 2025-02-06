@@ -13,6 +13,10 @@ project_model = Model('Project', {
     "name": fields.String(required=True, description="Name of the project"),
     "object": fields.String(required=True, description="Object data associated with the project"),
     "project_leader": fields.String(required=False, description="User data of the project leader"),
+    "night_shift_available": fields.Boolean(required=True, description="If night shifts are available"),
+    "extreme_conditions_available": fields.Boolean(required=True, description="If extreme conditions are available"),
+    "created_at": fields.Integer(required=True, description="Date project was created at"),
+    "created_by": fields.String(required=True, description="Creator of project"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })
 

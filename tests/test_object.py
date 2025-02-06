@@ -1,4 +1,6 @@
 from uuid import uuid4, UUID
+import json
+from flask_jwt_extended import decode_token
 import pytest
 
 
@@ -46,11 +48,18 @@ def seed_object(db_session, seed_user):
     return obj.to_dict()
 
 
-def test_add_object(client, jwt_token, db_session, seed_user):
+def test_add_object(client, jwt_token, db_session, seed_user, test_app):
     """
     Тест на добавление нового объекта через API.
     """
     from app.database.models import Objects
+
+    with test_app.app_context():  # Оборачиваем в контекст приложения
+        # Декодируем `jwt_token` и извлекаем `user_id`
+        decoded_token = decode_token(jwt_token)
+        # `sub` содержит JSON-строку
+        token_identity = json.loads(decoded_token["sub"])
+        token_user_id = token_identity["user_id"]  # Достаем `user_id`
 
     data = {
         "name": "New Object",
@@ -70,6 +79,7 @@ def test_add_object(client, jwt_token, db_session, seed_user):
     assert obj is not None
     assert str(obj.object_id) == response.json['object_id']
     assert obj.name == "New Object"
+    assert str(obj.created_by) == token_user_id  # Сравнение с `user_id` из JWT
     assert str(obj.manager) == seed_user['user_id']
     assert obj.address == "456 Test Ln"
     assert obj.description == "New description"
