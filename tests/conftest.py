@@ -103,11 +103,13 @@ def jwt_token(test_app, db_session):
 
         # Если пользователя нет, создаём его
         if not user:
+            user_id = uuid4()
             user = Users(
-                user_id=uuid4(),
+                user_id=user_id,
                 login="test_admin",
                 name="Test Admin",
                 role="admin",
+                created_by=user_id,
                 password_hash="testpassword",  # Можно заменить на захешированный пароль
                 deleted=False
             )
