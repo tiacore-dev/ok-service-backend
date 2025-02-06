@@ -36,8 +36,8 @@ class ShiftReportDetails(Base):
     def to_dict(self):
         return {
             "shift_report_detail_id": str(self.shift_report_detail_id),
-            "shift_report": self.shift_report,
-            "work": self.work,
+            "shift_report": str(self.shift_report),
+            "work": str(self.work),
             "quantity": self.quantity,
             "created_by": str(self.created_by),
             "created_at": self.created_at,

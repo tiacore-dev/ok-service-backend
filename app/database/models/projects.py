@@ -42,8 +42,8 @@ class Projects(Base):
         return {
             "project_id": str(self.project_id),
             "name": self.name,
-            "object": self.object,
-            "project_leader": self.project_leader,
+            "object": str(self.object),
+            "project_leader": str(self.project_leader),
             "night_shift_available": self.night_shift_available,
             "extreme_conditions_available": self.extreme_conditions_available,
             "created_at": self.created_at,

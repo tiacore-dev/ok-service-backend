@@ -32,7 +32,7 @@ class WorkPrices(Base):
     def to_dict(self):
         return {
             "work_price_id": str(self.work_price_id),
-            "work": self.work,
+            "work": str(self.work),
             "category": self.category if self.category else None,
             "price": self.price if self.price else None,
             "created_by": str(self.created_by),

@@ -30,7 +30,7 @@ class ProjectSchedules(Base):
     def to_dict(self):
         return {
             "project_schedule_id": str(self.project_schedule_id),
-            "work": self.work,
+            "work": str(self.work),
             "quantity": self.quantity,
             "created_by": str(self.created_by),
             "created_at": self.created_at,
