@@ -1,4 +1,5 @@
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -33,7 +34,7 @@ class ProjectWorkAdd(Resource):
     @project_work_ns.expect(project_work_create_model)
     @project_work_ns.marshal_with(project_work_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new project work",
                     extra={"login": current_user})
 
@@ -48,7 +49,8 @@ class ProjectWorkAdd(Resource):
             from app.database.managers.projects_managers import ProjectWorksManager
             db = ProjectWorksManager()
 
-            new_project_work = db.add(**data)
+            new_project_work = db.add(
+                created_by=current_user['user_id'], **data)
             logger.info(f"New project work added: {new_project_work['project_work_id']}",
                         extra={"login": current_user})
             return {"msg": "New project work added successfully", "project_work_id": new_project_work['project_work_id']}, 200

@@ -5,56 +5,6 @@ import pytest
 
 
 @pytest.fixture
-def seed_work_category(db_session):
-    """
-    Добавляет тестовую категорию работы в базу перед тестом и возвращает словарь.
-    """
-    from app.database.models import WorkCategories
-    category = WorkCategories(
-        work_category_id=uuid4(),
-        name="Test Category"
-    )
-    db_session.add(category)
-    db_session.commit()
-    return category.to_dict()
-
-
-@pytest.fixture
-def seed_work(db_session, seed_work_category):
-    from app.database.models import Works
-    work = Works(
-        work_id=uuid4(),
-        name="Test Work",
-        category=UUID(seed_work_category['work_category_id']),
-        measurement_unit="units",
-        deleted=False
-    )
-    db_session.add(work)
-    db_session.commit()
-    return work.to_dict()
-
-
-@pytest.fixture
-def seed_object(db_session):
-    """
-    Добавляет тестовый объект в базу перед тестом.
-    """
-    from app.database.models import Objects
-    obj = Objects(
-        object_id=uuid4(),
-        name="Test Object",
-        address="123 Test St",
-        description="Test description",
-        status="active",
-        deleted=False
-    )
-    db_session.add(obj)
-    db_session.commit()
-    obj_data = obj.to_dict()
-    return obj_data
-
-
-@pytest.fixture
 def seed_user(db_session):
     """
     Add a test user to the database.
@@ -75,6 +25,59 @@ def seed_user(db_session):
 
 
 @pytest.fixture
+def seed_work_category(db_session, seed_user):
+    """
+    Добавляет тестовую категорию работы в базу перед тестом и возвращает словарь.
+    """
+    from app.database.models import WorkCategories
+    category = WorkCategories(
+        work_category_id=uuid4(),
+        created_by=seed_user['user_id'],
+        name="Test Category"
+    )
+    db_session.add(category)
+    db_session.commit()
+    return category.to_dict()
+
+
+@pytest.fixture
+def seed_work(db_session, seed_work_category, seed_user):
+    from app.database.models import Works
+    work = Works(
+        work_id=uuid4(),
+        name="Test Work",
+        category=UUID(seed_work_category['work_category_id']),
+        measurement_unit="units",
+        created_by=seed_user['user_id'],
+        deleted=False
+    )
+    db_session.add(work)
+    db_session.commit()
+    return work.to_dict()
+
+
+@pytest.fixture
+def seed_object(db_session, seed_user):
+    """
+    Добавляет тестовый объект в базу перед тестом.
+    """
+    from app.database.models import Objects
+    obj = Objects(
+        object_id=uuid4(),
+        name="Test Object",
+        address="123 Test St",
+        description="Test description",
+        status="active",
+        created_by=seed_user['user_id'],
+        deleted=False
+    )
+    db_session.add(obj)
+    db_session.commit()
+    obj_data = obj.to_dict()
+    return obj_data
+
+
+@pytest.fixture
 def seed_project(db_session, seed_user, seed_object):
     """
     Add a test project to the database.
@@ -85,6 +88,7 @@ def seed_project(db_session, seed_user, seed_object):
         name="Test Project",
         object=UUID(seed_object['object_id']),
         project_leader=UUID(seed_user['user_id']),
+        created_by=seed_user['user_id'],
         deleted=False
     )
     db_session.add(project)
@@ -104,6 +108,7 @@ def seed_shift_report(db_session, seed_user, seed_project):
         date=20240101,
         project=UUID(seed_project['project_id']),
         signed=False,
+        created_by=seed_user['user_id'],
         deleted=False
     )
     db_session.add(report)
@@ -112,12 +117,13 @@ def seed_shift_report(db_session, seed_user, seed_project):
 
 
 @pytest.fixture
-def seed_shift_report_detail(db_session, seed_shift_report, seed_work):
+def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user):
     from app.database.models import ShiftReportDetails
     detail = ShiftReportDetails(
         shift_report_detail_id=uuid4(),
         shift_report=UUID(seed_shift_report['shift_report_id']),
         work=UUID(seed_work['work_id']),
+        created_by=seed_user['user_id'],
         quantity=10.5,
         summ=105.0
     )

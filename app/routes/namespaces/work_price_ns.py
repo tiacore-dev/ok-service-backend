@@ -1,4 +1,5 @@
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -33,7 +34,7 @@ class WorkPriceAdd(Resource):
     @work_price_ns.expect(work_price_create_model)
     @work_price_ns.marshal_with(work_price_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new work price",
                     extra={"login": current_user})
 
@@ -49,7 +50,7 @@ class WorkPriceAdd(Resource):
             db = WorkPricesManager()
 
             # Добавление цены работы
-            new_work_price = db.add(**data)
+            new_work_price = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New work price added: {new_work_price['work_price_id']}",
                         extra={"login": current_user})
             return {"msg": "New work price added successfully", "work_price_id": new_work_price['work_price_id']}, 200

@@ -1,4 +1,5 @@
 import logging
+from uuid import uuid4
 from app.database.models import Users
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
@@ -10,7 +11,7 @@ class UserManager(BaseDBManager):
     def model(self):
         return Users
 
-    def add_user(self, login, password, name, role, category=None, created_by=None):
+    def add_user(self, login, password, name, role, created_by, category=None):
         """Добавление нового пользователя с хешированием пароля."""
         with self.session_scope() as session:
             new_user = self.model(
@@ -18,7 +19,7 @@ class UserManager(BaseDBManager):
                 name=name,
                 role=role,
                 category=category if category else None,
-                created_by=str(created_by) if created_by else None,
+                created_by=str(created_by),
                 deleted=False
             )
             # Установим пароль сразу после создания объекта
@@ -33,6 +34,32 @@ class UserManager(BaseDBManager):
 
             # При выходе из контекстного менеджера произойдёт commit
             return str(new_user.user_id)
+
+    def create_main_admin(self,  password, category=None):
+        """Добавление нового пользователя с хешированием пароля."""
+        with self.session_scope() as session:
+            user_id = uuid4()
+            new_admin = self.model(
+                user_id=user_id,
+                login='admin',
+                name='admin',
+                role='admin',
+                category=category if category else None,
+                created_by=user_id,
+                deleted=False
+            )
+            # Установим пароль сразу после создания объекта
+            new_admin.set_password(password)
+
+            try:
+                session.add(new_admin)
+            except Exception as e:
+                logging.error(f"Ошибка добавления пользователя: {e}",
+                              extra={"login": "database"})
+                raise
+
+            # При выходе из контекстного менеджера произойдёт commit
+            return
 
     def check_password(self, username, password):
         """Проверяем пароль пользователя"""

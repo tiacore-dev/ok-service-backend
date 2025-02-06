@@ -4,7 +4,26 @@ from uuid import uuid4
 
 
 @pytest.fixture
-def seed_work(db_session):
+def seed_user(db_session):
+    """
+    Добавляет тестового пользователя в базу перед тестом.
+    """
+    from app.database.models import Users
+    user = Users(
+        user_id=uuid4(),
+        login="test_user",
+        name="Test User",
+        role="user",
+        deleted=False
+    )
+    user.set_password('qweasdzcx')
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
+def seed_work(db_session, seed_user):
     """
     Add a test work to the database.
     """
@@ -14,6 +33,7 @@ def seed_work(db_session):
         name="Test Work",
         category=None,
         measurement_unit="hours",
+        created_by=seed_user['user_id'],
         deleted=False
     )
     db_session.add(work)
@@ -22,7 +42,7 @@ def seed_work(db_session):
 
 
 @pytest.fixture
-def seed_project_schedule(db_session, seed_work):
+def seed_project_schedule(db_session, seed_work, seed_user):
     """
     Add a test project schedule to the database.
     """
@@ -31,6 +51,7 @@ def seed_project_schedule(db_session, seed_work):
         project_schedule_id=uuid4(),
         work=seed_work['work_id'],
         quantity=100.5,
+        created_by=seed_user['user_id'],
         date=20231225
     )
     db_session.add(schedule)

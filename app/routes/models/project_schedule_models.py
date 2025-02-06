@@ -12,6 +12,8 @@ project_schedule_model = Model('ProjectSchedule', {
     "project_schedule_id": fields.String(required=True, description="ID of the project schedule"),
     "work": fields.String(required=True, description="Work details"),
     "quantity": fields.Float(required=True, description="Quantity of work"),
+    "created_at": fields.Integer(required=True, description="Date project schedule was created at"),
+    "created_by": fields.String(required=True, description="Creator of project schedule"),
     "date": fields.Integer(required=False, description="Scheduled date")
 })
 

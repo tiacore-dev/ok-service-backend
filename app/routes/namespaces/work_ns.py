@@ -1,4 +1,5 @@
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -32,7 +33,7 @@ class WorkAdd(Resource):
     @work_ns.expect(work_create_model)
     @work_ns.marshal_with(work_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new work", extra={"login": current_user})
 
         schema = WorkCreateSchema()
@@ -47,7 +48,7 @@ class WorkAdd(Resource):
             db = WorksManager()
 
             # Добавление работы
-            new_work = db.add(**data)
+            new_work = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New work added: {new_work['work_id']}",
                         extra={"login": current_user})
             return {"msg": "New work added successfully", "work_id": new_work['work_id']}, 200

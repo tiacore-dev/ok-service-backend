@@ -18,9 +18,9 @@ class Users(Base):
     role = Column(String, ForeignKey('roles.role_id'), nullable=False)
     category = Column(Integer, nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey(
-        'users.user_id'), nullable=True)
+        'users.user_id'), nullable=False)
     created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
-                        server_default=text("EXTRACT(EPOCH FROM NOW())"))
+                        server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
     deleted = Column(Boolean, nullable=False, default=False)
 
     roles = relationship("Roles", back_populates="user")
@@ -37,8 +37,24 @@ class Users(Base):
     created_objects = relationship(
         "Objects",  back_populates="object_creator", foreign_keys="[Objects.created_by]")
 
-    shift_report = relationship("ShiftReports", back_populates="users")
+    shift_report = relationship(
+        "ShiftReports", back_populates="users", foreign_keys="[ShiftReports.user]")
+    created_shift_reports = relationship(
+        "ShiftReports", back_populates="shift_report_creator", foreign_keys="[ShiftReports.created_by]")
+
     subscription = relationship("Subscriptions", back_populates="users")
+
+    created_project_schedules = relationship(
+        "ProjectSchedules", back_populates="project_schedule_creator")
+    created_project_works = relationship(
+        "ProjectWorks", back_populates="project_work_creator")
+    created_shift_report_details = relationship(
+        "ShiftReportDetails", back_populates="shift_report_details_creator")
+    created_work_categories = relationship(
+        "WorkCategories", back_populates="work_category_creator")
+    created_work_prices = relationship(
+        "WorkPrices", back_populates="work_price_creator")
+    created_works = relationship("Works", back_populates="work_creator")
 
     # Самореференсная связь
     creator = relationship("Users", remote_side=[

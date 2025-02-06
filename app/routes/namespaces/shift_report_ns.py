@@ -42,7 +42,7 @@ class ShiftReportAdd(Resource):
     @shift_report_ns.expect(shift_report_create_model)
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new shift report",
                     extra={"login": current_user})
 
@@ -59,7 +59,8 @@ class ShiftReportAdd(Resource):
 
             # Add shift report
             new_report = db.add_shift_report_with_details(
-                data)  # Returns a dictionary
+                # Returns a dictionary
+                data, created_by=current_user['user_id'])
             logger.info(f"New shift report added: {new_report['shift_report_id']}",
                         extra={"login": current_user})
             return {"msg": "New shift report added successfully", "shift_report_id": new_report['shift_report_id']}, 200

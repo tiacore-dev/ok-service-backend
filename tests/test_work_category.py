@@ -9,13 +9,33 @@ def works_categories_manager(db_session):
 
 
 @pytest.fixture
-def seed_work_category(db_session):
+def seed_user(db_session):
+    """
+    Добавляет тестового пользователя в базу перед тестом.
+    """
+    from app.database.models import Users
+    user = Users(
+        user_id=uuid4(),
+        login="test_user",
+        name="Test User",
+        role="user",
+        deleted=False
+    )
+    user.set_password('qweasdzcx')
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
+def seed_work_category(db_session, seed_user):
     """
     Добавляет тестовую категорию работы в базу перед тестом и возвращает словарь.
     """
     from app.database.models import WorkCategories
     category = WorkCategories(
         work_category_id=uuid4(),
+        created_by=seed_user['user_id'],
         name="Test Category"
     )
     db_session.add(category)

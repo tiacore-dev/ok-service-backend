@@ -9,7 +9,6 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from uuid import UUID
 
 
 # revision identifiers, used by Alembic.
@@ -22,12 +21,11 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Добавляем новый столбец с типом Integer и default значением в формате timestamp
     op.add_column("users", sa.Column(
-        'created_at', sa.Integer(), server_default=sa.text("EXTRACT(EPOCH FROM NOW())"), nullable=True
+        'created_at', sa.Integer(), server_default=sa.text("EXTRACT(EPOCH FROM NOW())"), nullable=False
     ))
     # Добавляем новый столбец created_by
     op.add_column('users', sa.Column(
-        'created_by', sa.UUID(), nullable=True, default=UUID(
-            "00000000-0000-0000-0000-000000000000")))
+        'created_by', sa.UUID(), nullable=False))
 
     # Добавляем ForeignKey (FK) на users.user_id
     op.create_foreign_key(

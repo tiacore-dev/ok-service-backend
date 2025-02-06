@@ -1,5 +1,6 @@
 # Namespace for ProjectSchedules
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -34,7 +35,7 @@ class ProjectScheduleAdd(Resource):
     @project_schedule_ns.expect(project_schedule_create_model)
     @project_schedule_ns.marshal_with(project_schedule_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new project schedule",
                     extra={"login": current_user})
 
@@ -50,7 +51,8 @@ class ProjectScheduleAdd(Resource):
             db = ProjectSchedulesManager()
 
             # Add project schedule
-            new_schedule = db.add(**data)  # Returns a dictionary
+            # Returns a dictionary
+            new_schedule = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New project schedule added: {new_schedule['project_schedule_id']}",
                         extra={"login": current_user})
             return {"msg": "New project schedule added successfully", "project_schedule_id": new_schedule['project_schedule_id']}, 200

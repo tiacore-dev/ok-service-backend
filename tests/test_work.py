@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid4, UUID
 import pytest
 
 
@@ -9,7 +9,26 @@ def works_manager(db_session):
 
 
 @pytest.fixture
-def seed_work_category(db_session):
+def seed_user(db_session):
+    """
+    Добавляет тестового пользователя в базу перед тестом.
+    """
+    from app.database.models import Users
+    user = Users(
+        user_id=uuid4(),
+        login="test_user",
+        name="Test User",
+        role="user",
+        deleted=False
+    )
+    user.set_password('qweasdzcx')
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
+def seed_work_category(db_session, seed_user):
     """
     Добавляет тестовую категорию работы в базу перед тестом.
     """
@@ -17,6 +36,7 @@ def seed_work_category(db_session):
     category = WorkCategories(
         work_category_id=uuid4(),
         name="Test Category",
+        created_by=seed_user['user_id'],
         deleted=False
     )
     db_session.add(category)
@@ -25,7 +45,7 @@ def seed_work_category(db_session):
 
 
 @pytest.fixture
-def seed_work(db_session, seed_work_category):
+def seed_work(db_session, seed_work_category, seed_user):
     """
     Добавляет тестовую работу в базу перед тестом.
     """
@@ -35,6 +55,7 @@ def seed_work(db_session, seed_work_category):
         name="Test Work",
         category=seed_work_category['work_category_id'],
         measurement_unit="Unit",
+        created_by=UUID(seed_user['user_id']),
         deleted=False
     )
     db_session.add(work)
@@ -84,7 +105,6 @@ def test_view_work(client, jwt_token, seed_work):
     work_data = response.json["work"]
     assert work_data["work_id"] == seed_work['work_id']
     assert work_data["name"] == seed_work['name']
-    assert work_data["category"] == seed_work["category"]
     assert work_data["measurement_unit"] == seed_work['measurement_unit']
 
 

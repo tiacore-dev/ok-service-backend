@@ -20,24 +20,30 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade():
     """Добавляем `DEFAULT 0` для колонки `number`"""
-    op.alter_column(
-        'shift_reports',  # Таблица
-        'number',  # Поле
-        existing_type=sa.Integer(),
-        nullable=False,
-        server_default=sa.text("0")  # Добавляем значение по умолчанию
+
+    # ✅ 1. Сначала создаем колонку
+    op.add_column(
+        'shift_reports',
+        # Временно nullable=True
+        sa.Column('number', sa.Integer(), nullable=True)
     )
 
-    # Обновляем существующие NULL-значения, если они есть
+    # ✅ 2. Заполняем NULL значением 0 (иначе ALTER COLUMN упадёт)
     op.execute("UPDATE shift_reports SET number = 0 WHERE number IS NULL")
 
-
-def downgrade():
-    """Откатываем изменения"""
+    # ✅ 3. Делаем колонку NOT NULL и задаем DEFAULT 0
     op.alter_column(
         'shift_reports',
         'number',
         existing_type=sa.Integer(),
         nullable=False,
-        server_default=None  # Убираем `DEFAULT 0`
+        server_default=sa.text("0")
+    )
+
+
+def downgrade():
+    """Откатываем изменения"""
+    op.drop_column(
+        'shift_reports',
+        'number'
     )

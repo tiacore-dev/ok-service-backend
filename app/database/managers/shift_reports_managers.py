@@ -31,7 +31,7 @@ class ShiftReportsManager(BaseDBManager):
 
             return result or 0  # Если записей нет, возвращаем 0
 
-    def add_shift_report_with_details(self, data):
+    def add_shift_report_with_details(self, data, created_by):
         """Добавляет shift_report и shift_report_details в одной транзакции"""
 
         shift_report_data = {
@@ -40,6 +40,7 @@ class ShiftReportsManager(BaseDBManager):
             "date": data['date'],
             "project": UUID(data['project']),
             "signed": data.get("signed", False),  # По умолчанию False
+            "created_by": created_by
         }
 
         shift_report_details_data = data.get(
@@ -59,7 +60,8 @@ class ShiftReportsManager(BaseDBManager):
                             shift_report=new_report.shift_report_id,
                             work=UUID(detail['work']),
                             quantity=detail['quantity'],
-                            summ=detail['summ']
+                            summ=detail['summ'],
+                            created_by=created_by
                         ) for detail in shift_report_details_data
                     ]
 

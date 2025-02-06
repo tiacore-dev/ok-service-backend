@@ -14,6 +14,8 @@ project_work_model = Model('ProjectWork', {
     "work": fields.String(required=True, description="Work data associated with the project work"),
     "quantity": fields.Float(required=True, description="Quantity of the work"),
     "summ": fields.Float(required=False, description="Sum of the project work"),
+    "created_at": fields.Integer(required=True, description="Date project work was created at"),
+    "created_by": fields.String(required=True, description="Creator of project work"),
     "signed": fields.Boolean(required=True, description="If the project work is signed")
 })
 

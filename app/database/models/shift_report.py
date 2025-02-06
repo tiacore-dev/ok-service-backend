@@ -1,5 +1,7 @@
 
 from uuid import uuid4
+from datetime import datetime
+from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean, BigInteger, Sequence
 from app.database.db_setup import Base
@@ -18,14 +20,22 @@ class ShiftReports(Base):
     date = Column(BigInteger, nullable=False)
     project = Column(UUID, ForeignKey('projects.project_id'), nullable=False)
     signed = Column(Boolean, nullable=False, default=False)
+    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+                        server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
+    created_by = Column(UUID, ForeignKey(
+        'users.user_id'), nullable=False)
     deleted = Column(Boolean, nullable=False, default=False)
     number = Column(Integer, shift_reports_number_seq,
                     server_default=shift_reports_number_seq.next_value(), unique=True, nullable=False)
 
-    users = relationship("Users", back_populates="shift_report")
     projects = relationship("Projects", back_populates="shift_report")
     shift_report_details = relationship(
         "ShiftReportDetails", back_populates="shift_reports")
+
+    shift_report_creator = relationship(
+        "Users", back_populates="created_shift_reports", foreign_keys=[created_by])
+    users = relationship(
+        "Users", back_populates="shift_report", foreign_keys=[user])
 
     def __repr__(self):
         return (f"<ShiftReports(shift_report_id={self.shift_report_id}, user={self.user}, "
@@ -41,5 +51,7 @@ class ShiftReports(Base):
             "project": self.project,
             "signed": self.signed,
             "deleted": self.deleted,
+            "created_by": self.created_by,
+            "created_at": self.created_at,
             "number": self.number
         }

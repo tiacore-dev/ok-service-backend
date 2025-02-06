@@ -28,11 +28,11 @@ def upgrade():
     )
     # Добавляем новый столбец с типом Integer и default значением в формате timestamp
     op.add_column("objects", sa.Column(
-        'created_at', sa.Integer(), server_default=sa.text("EXTRACT(EPOCH FROM NOW())"), nullable=True
+        'created_at', sa.Integer(), server_default=sa.text("EXTRACT(EPOCH FROM NOW())"), nullable=False
     ))
     # Добавляем новый столбец created_by
     op.add_column('objects', sa.Column(
-        'created_by', sa.UUID(), nullable=True))
+        'created_by', sa.UUID(), nullable=False))
 
     # Добавляем ForeignKey (FK) на users.user_id
     op.create_foreign_key(
@@ -44,11 +44,11 @@ def upgrade():
 
     # Добавляем новый столбец с типом Integer и default значением в формате timestamp
     op.add_column("projects", sa.Column(
-        'created_at', sa.Integer(), server_default=sa.text("EXTRACT(EPOCH FROM NOW())"), nullable=True
+        'created_at', sa.Integer(), server_default=sa.text("EXTRACT(EPOCH FROM NOW())"), nullable=False
     ))
     # Добавляем новый столбец created_by
     op.add_column('projects', sa.Column(
-        'created_by', sa.UUID(), nullable=True))
+        'created_by', sa.UUID(), nullable=False))
 
     # Добавляем ForeignKey (FK) на users.user_id
     op.create_foreign_key(

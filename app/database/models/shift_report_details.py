@@ -1,6 +1,8 @@
 from uuid import uuid4
+from datetime import datetime
+from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, UUID, ForeignKey, Numeric
+from sqlalchemy import Column, UUID, ForeignKey, Numeric, Integer
 from app.database.db_setup import Base
 
 
@@ -14,10 +16,17 @@ class ShiftReportDetails(Base):
     work = Column(UUID, ForeignKey('works.work_id'), nullable=False)
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
     summ = Column(Numeric(precision=10, scale=2), nullable=False)
+    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+                        server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
+    created_by = Column(UUID, ForeignKey(
+        'users.user_id'), nullable=False)
 
     shift_reports = relationship(
         "ShiftReports", back_populates="shift_report_details")
     works = relationship("Works", back_populates="shift_report_details")
+
+    shift_report_details_creator = relationship(
+        "Users", back_populates="created_shift_report_details")
 
     def __repr__(self):
         return (f"<ShiftReportDetails(shift_report_detail_id={self.shift_report_detail_id}, "
@@ -30,5 +39,7 @@ class ShiftReportDetails(Base):
             "shift_report": self.shift_report,
             "work": self.work,
             "quantity": self.quantity,
+            "created_by": self.created_by,
+            "created_at": self.created_at,
             "summ": self.summ
         }

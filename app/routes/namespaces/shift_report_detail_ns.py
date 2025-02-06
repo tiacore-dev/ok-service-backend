@@ -1,5 +1,6 @@
 # Namespace for ShiftReportDetails
 import logging
+import json
 from uuid import UUID
 from flask import request
 from flask_restx import Namespace, Resource
@@ -35,7 +36,7 @@ class ShiftReportDetailsAdd(Resource):
     @shift_report_details_ns.expect(shift_report_details_create_model)
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new shift report detail",
                     extra={"login": current_user})
 
@@ -51,7 +52,8 @@ class ShiftReportDetailsAdd(Resource):
             db = ShiftReportsDetailsManager()
 
             # Add shift report detail
-            new_detail = db.add(**data)  # Returns a dictionary
+            # Returns a dictionary
+            new_detail = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New shift report detail added: {new_detail['shift_report_detail_id']}",
                         extra={"login": current_user})
             return {"msg": "New shift report detail added successfully", "shift_report_detail_id": new_detail['shift_report_detail_id']}, 200

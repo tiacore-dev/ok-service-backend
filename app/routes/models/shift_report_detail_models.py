@@ -13,6 +13,8 @@ shift_report_details_model = Model('ShiftReportDetails', {
     "shift_report": fields.String(required=True, description="Shift report details"),
     "work": fields.String(required=True, description="Work details"),
     "quantity": fields.Float(required=True, description="Quantity of work"),
+    "created_at": fields.Integer(required=True, description="Date shift report detail was created at"),
+    "created_by": fields.String(required=True, description="Creator of shift report detail"),
     "summ": fields.Float(required=True, description="Total sum of work")
 })
 

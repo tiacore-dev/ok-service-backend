@@ -1,4 +1,6 @@
 from uuid import uuid4
+from datetime import datetime
+from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean, Numeric
 from app.database.db_setup import Base
@@ -12,9 +14,16 @@ class WorkPrices(Base):
     work = Column(UUID, ForeignKey('works.work_id'))
     category = Column(Integer, nullable=False)
     price = Column(Numeric(precision=10, scale=2), nullable=False)
+    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+                        server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
+    created_by = Column(UUID, ForeignKey(
+        'users.user_id'), nullable=False)
     deleted = Column(Boolean, nullable=False, default=False)
 
     works = relationship("Works", back_populates="work_price")
+
+    work_price_creator = relationship(
+        "Users", back_populates="created_work_prices")
 
     def __repr__(self):
         return (f"<WorkPrices(work_price_id={self.work_price_id}, work={self.work}, "
@@ -26,5 +35,7 @@ class WorkPrices(Base):
             "work": self.work,
             "category": self.category if self.category else None,
             "price": self.price if self.price else None,
+            "created_by": self.created_by,
+            "created_at": self.created_at,
             "deleted": self.deleted
         }

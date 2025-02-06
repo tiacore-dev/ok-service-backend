@@ -45,7 +45,7 @@ def seed_user(db_session):
 
 
 @pytest.fixture
-def seed_object(db_session, seed_object_status):
+def seed_object(db_session, seed_object_status, seed_user):
     """
     Добавляет тестовый объект в базу перед тестом.
     """
@@ -56,6 +56,7 @@ def seed_object(db_session, seed_object_status):
         address="123 Test St",
         description="Test description",
         status=seed_object_status["object_status_id"],
+        created_by=seed_user['user_id'],
         deleted=False
     )
     db_session.add(obj)

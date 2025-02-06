@@ -12,6 +12,8 @@ work_price_model = Model('WorkPrice', {
     "work": fields.String(required=True, description="Associated work data"),
     "category": fields.Integer(required=True, description="Category of the work price"),
     "price": fields.Float(required=True, description="Price of the work"),
+    "created_at": fields.Integer(required=True, description="Date work price was created at"),
+    "created_by": fields.String(required=True, description="Creator of work price"),
     "deleted": fields.Boolean(required=True, description="Deletion status")
 })
 

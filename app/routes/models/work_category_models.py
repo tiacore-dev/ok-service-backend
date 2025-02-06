@@ -11,6 +11,8 @@ work_category_create_model = generate_swagger_model(
 work_category_model = Model('WorkCategory', {
     "work_category_id": fields.String(required=True, description='ID of the work category'),
     "name": fields.String(required=True, description='Name of the work category'),
+    "created_at": fields.Integer(required=True, description="Date work category was created at"),
+    "created_by": fields.String(required=True, description="Creator of work category"),
     "deleted": fields.Boolean(required=True, description='Deleted status of the work category')
 })
 

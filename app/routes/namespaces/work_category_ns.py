@@ -1,4 +1,5 @@
 import logging
+import json
 from flask_restx import Namespace, Resource
 from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -32,7 +33,7 @@ class WorkCategoryAdd(Resource):
     @work_category_ns.expect(work_category_create_model)
     @work_category_ns.marshal_with(work_category_msg_model)
     def post(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new work category.",
                     extra={"login": current_user})
         schema = WorkCategoryCreateSchema()
@@ -54,7 +55,8 @@ class WorkCategoryAdd(Resource):
             db = WorkCategoriesManager()
             logger.debug("Adding work category to the database...",
                          extra={"login": current_user})
-            new_category = db.add(name=name)
+            new_category = db.add(
+                created_by=current_user['user_id'], name=name)
             logger.info(f"""Successfully added new work category: {new_category['work_category_id']}""",
                         extra={"login": current_user})
             return {"msg": "New work category added successfully", "work_category_id": new_category['work_category_id']}, 200
