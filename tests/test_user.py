@@ -11,18 +11,25 @@ def user_manager(db_session):
 
 
 @pytest.fixture
-def seed_user(db_session):
+def seed_user(db_session, test_app, jwt_token):
     """
     Добавляет тестового пользователя в базу перед тестом.
     """
     from app.database.models import Users
-    user_id = uuid4()
+
+    with test_app.app_context():  # Оборачиваем в контекст приложения
+        # Декодируем `jwt_token` и извлекаем `user_id`
+        decoded_token = decode_token(jwt_token)
+        # `sub` содержит JSON-строку
+        token_identity = json.loads(decoded_token["sub"])
+        token_user_id = token_identity["user_id"]  # Достаем `user_id`
+
     user = Users(
-        user_id=user_id,
+        user_id=uuid4(),
         login="test_user",
         name="Test User",
-        role="user",
-        created_by=user_id,
+        role="admin",
+        created_by=token_user_id,
         deleted=False
     )
     user.set_password('qweasdzcx')
