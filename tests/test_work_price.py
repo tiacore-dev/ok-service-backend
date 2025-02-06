@@ -9,46 +9,6 @@ def work_prices_manager(db_session):
 
 
 @pytest.fixture
-def seed_user(db_session):
-    """
-    Добавляет тестового пользователя в базу перед тестом.
-    """
-    from app.database.models import Users
-    user_id = uuid4()
-    user = Users(
-        user_id=user_id,
-        login="test_user",
-        name="Test User",
-        role="user",
-        created_by=user_id,
-        deleted=False
-    )
-    user.set_password('qweasdzcx')
-    db_session.add(user)
-    db_session.commit()
-    return user.to_dict()
-
-
-@pytest.fixture
-def seed_work(db_session, seed_user):
-    """
-    Добавляет тестовую работу в базу перед тестом.
-    """
-    from app.database.models import Works
-    work = Works(
-        work_id=uuid4(),
-        name="Test Work",
-        category=None,
-        measurement_unit="Unit",
-        created_by=seed_user['user_id'],
-        deleted=False
-    )
-    db_session.add(work)
-    db_session.commit()
-    return work.to_dict()
-
-
-@pytest.fixture
 def seed_work_price(db_session, seed_work, seed_user):
     """
     Добавляет тестовую цену работы в базу перед тестом.

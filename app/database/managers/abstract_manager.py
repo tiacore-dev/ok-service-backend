@@ -1,6 +1,7 @@
 import logging
 import time
 import uuid
+from uuid import UUID
 from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from sqlalchemy import asc, desc
@@ -23,15 +24,15 @@ class BaseDBManager(ABC):
     def session_scope(self):
         """Контекстный менеджер для управления сессией с логированием времени выполнения."""
         session = Session()
-        start_time = time.time()
+        # start_time = time.time()
         try:
             logger.debug("Начало сессии", extra={"login": "database"})
             yield session
             session.commit()
-            logger.debug(f"""Изменённые объекты: {
-                session.dirty}""", extra={"login": "database"})
-            logger.debug("Сессия успешно закоммичена",
-                         extra={"login": "database"})
+            # logger.debug(f"""Изменённые объекты: {
+            #    session.dirty}""", extra={"login": "database"})
+            # logger.debug("Сессия успешно закоммичена",
+            #             extra={"login": "database"})
         except Exception as e:
             session.rollback()
             logger.error(f"Ошибка в сессии: {e}", extra={
@@ -39,9 +40,9 @@ class BaseDBManager(ABC):
             raise
         finally:
             session.close()
-            elapsed_time = time.time() - start_time
-            logger.debug(f"""Сессия закрыта. Время выполнения: {
-                elapsed_time:.4f} сек""", extra={"login": "database"})
+            # elapsed_time = time.time() - start_time
+            # logger.debug(f"""Сессия закрыта. Время выполнения: {
+            #    elapsed_time:.4f} сек""", extra={"login": "database"})
 
     def add(self, **kwargs):
         try:
@@ -290,6 +291,7 @@ class BaseDBManager(ABC):
                      extra={"login": "database"})
 
         with self.session_scope() as session:
+
             query = session.query(self.model)
 
             # Применяем фильтры
@@ -300,7 +302,7 @@ class BaseDBManager(ABC):
                     # Проверяем, является ли значение UUID (обычно 36 символов)
                     if isinstance(value, uuid.UUID) or (isinstance(value, str) and len(value) == 36 and '-' in value):
                         query = query.filter(column == value)
-                        logger.debug(f"Применяем точный UUID-фильтр: {key} = {value}",
+                        logger.debug(f"Применяем точный UUID-фильтр: {key} = {UUID(value)}",
                                      extra={'login': 'database'})
 
                     # Поля, требующие точного сравнения

@@ -9,44 +9,6 @@ def works_manager(db_session):
 
 
 @pytest.fixture
-def seed_user(db_session):
-    """
-    Добавляет тестового пользователя в базу перед тестом.
-    """
-    from app.database.models import Users
-    user_id = uuid4()
-    user = Users(
-        user_id=user_id,
-        login="test_user",
-        name="Test User",
-        role="user",
-        created_by=user_id,
-        deleted=False
-    )
-    user.set_password('qweasdzcx')
-    db_session.add(user)
-    db_session.commit()
-    return user.to_dict()
-
-
-@pytest.fixture
-def seed_work_category(db_session, seed_user):
-    """
-    Добавляет тестовую категорию работы в базу перед тестом.
-    """
-    from app.database.models import WorkCategories
-    category = WorkCategories(
-        work_category_id=uuid4(),
-        name="Test Category",
-        created_by=seed_user['user_id'],
-        deleted=False
-    )
-    db_session.add(category)
-    db_session.commit()
-    return category.to_dict()
-
-
-@pytest.fixture
 def seed_work(db_session, seed_work_category, seed_user):
     """
     Добавляет тестовую работу в базу перед тестом.

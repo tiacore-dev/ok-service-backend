@@ -1,6 +1,6 @@
 import json
 import os
-from uuid import uuid4
+from uuid import uuid4, UUID
 import pytest
 from dotenv import load_dotenv
 from flask_jwt_extended import create_access_token
@@ -129,18 +129,182 @@ def jwt_token(test_app, db_session):
 
 
 @pytest.fixture
-def jwt_token_admin(test_app):
+def jwt_token_admin(test_app, seed_admin):
     """
     Генерирует JWT токен для администратора.
     """
     with test_app.app_context():
-        return create_access_token(identity=json.dumps({"login": "admin_user", "role": "admin", "user_id": "f83d4538-2e1b-49cc-80ae-16c9bcf58f6e"}))
+        # Генерация токена на основе реального пользователя
+        token_data = {
+            "login": seed_admin['login'],
+            "role": seed_admin['role'],
+            "user_id": seed_admin['user_id']
+        }
+
+        return create_access_token(identity=json.dumps(token_data))
 
 
 @pytest.fixture
-def jwt_token_user(test_app):
+def jwt_token_user(test_app, seed_user):
     """
     Генерирует JWT токен для обычного пользователя.
     """
     with test_app.app_context():
-        return create_access_token(identity=json.dumps({"login": "regular_user", "role": "user", "user_id": "f83d4538-2e1b-49cc-80ae-16c9bcf58f6e"}))
+        # Генерация токена на основе реального пользователя
+        token_data = {
+            "login": seed_user['login'],
+            "role": seed_user['role'],
+            "user_id": seed_user['user_id']
+        }
+
+        return create_access_token(identity=json.dumps(token_data))
+
+
+@pytest.fixture
+def seed_user(db_session):
+    """
+    Добавляет тестового пользователя в базу перед тестом.
+    """
+    from app.database.models import Users
+    user_id = uuid4()
+    user = Users(
+        user_id=user_id,
+        login="test_user",
+        name="Test User",
+        role="user",
+        created_by=user_id,
+        deleted=False
+    )
+    user.set_password('qweasdzcx')
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
+def seed_admin(db_session):
+    """
+    Добавляет тестового пользователя в базу перед тестом.
+    """
+    from app.database.models import Users
+    user_id = uuid4()
+    user = Users(
+        user_id=user_id,
+        login="test_admin",
+        name="Test Admin",
+        role="admin",
+        created_by=user_id,
+        deleted=False
+    )
+    user.set_password('qweasdzcx')
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
+def seed_work_category(db_session, seed_user):
+    """
+    Добавляет тестовую категорию работы в базу перед тестом и возвращает словарь.
+    """
+    from app.database.models import WorkCategories
+    category = WorkCategories(
+        work_category_id=uuid4(),
+        created_by=seed_user['user_id'],
+        name="Test Category"
+    )
+    db_session.add(category)
+    db_session.commit()
+    return category.to_dict()
+
+
+@pytest.fixture
+def seed_work(db_session, seed_work_category, seed_user):
+    from app.database.models import Works
+    work = Works(
+        work_id=uuid4(),
+        name="Test Work",
+        category=UUID(seed_work_category['work_category_id']),
+        measurement_unit="units",
+        created_by=seed_user['user_id'],
+        deleted=False
+    )
+    db_session.add(work)
+    db_session.commit()
+    return work.to_dict()
+
+
+@pytest.fixture
+def seed_object(db_session, seed_user):
+    """
+    Добавляет тестовый объект в базу перед тестом.
+    """
+    from app.database.models import Objects
+    obj = Objects(
+        object_id=uuid4(),
+        name="Test Object",
+        address="123 Test St",
+        description="Test description",
+        status="active",
+        created_by=seed_user['user_id'],
+        deleted=False
+    )
+    db_session.add(obj)
+    db_session.commit()
+    obj_data = obj.to_dict()
+    return obj_data
+
+
+@pytest.fixture
+def seed_project(db_session, seed_user, seed_object):
+    """
+    Add a test project to the database.
+    """
+    from app.database.models import Projects
+    project = Projects(
+        project_id=uuid4(),
+        name="Test Project",
+        object=UUID(seed_object['object_id']),
+        project_leader=UUID(seed_user['user_id']),
+        created_by=seed_user['user_id'],
+        deleted=False
+    )
+    db_session.add(project)
+    db_session.commit()
+    return project.to_dict()
+
+
+@pytest.fixture
+def seed_shift_report(db_session, seed_user, seed_project):
+    """
+    Add a test shift report to the database.
+    """
+    from app.database.models import ShiftReports
+    report = ShiftReports(
+        shift_report_id=uuid4(),
+        user=UUID(seed_user['user_id']),
+        date=20240101,
+        project=UUID(seed_project['project_id']),
+        created_by=UUID(seed_user['user_id']),
+        signed=False,
+        deleted=False
+    )
+    db_session.add(report)
+    db_session.commit()
+    return report.to_dict()
+
+
+@pytest.fixture
+def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user):
+    from app.database.models import ShiftReportDetails
+    detail = ShiftReportDetails(
+        shift_report_detail_id=uuid4(),
+        shift_report=UUID(seed_shift_report['shift_report_id']),
+        work=UUID(seed_work['work_id']),
+        quantity=10.5,
+        created_by=seed_user['user_id'],
+        summ=105.0
+    )
+    db_session.add(detail)
+    db_session.commit()
+    return detail.to_dict()

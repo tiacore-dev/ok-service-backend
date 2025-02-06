@@ -57,7 +57,9 @@ class ShiftReportAdd(Resource):
             from app.database.managers.shift_reports_managers import ShiftReportsManager
             db = ShiftReportsManager()
 
-            # Add shift report
+            if current_user['role'] == 'user':
+                data['user'] = current_user['user_id']
+                data['signed'] = False
             new_report = db.add_shift_report_with_details(
                 # Returns a dictionary
                 data, created_by=current_user['user_id'])
@@ -101,7 +103,7 @@ class ShiftReportSoftDelete(Resource):
     @jwt_required()
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to soft delete shift report: {report_id}",
                     extra={"login": current_user})
         try:
@@ -112,6 +114,18 @@ class ShiftReportSoftDelete(Resource):
 
             from app.database.managers.shift_reports_managers import ShiftReportsManager
             db = ShiftReportsManager()
+
+            # Проверки по ролям
+            shift_report = db.get_by_id(record_id=report_id)
+            if shift_report['user'] != current_user['user_id'] and current_user['role'] == 'user':
+                logger.warning(f"Trying to soft delete not user's shift report",
+                               extra={"login": current_user})
+                return {"msg": "User cannot soft delete not his shift report"}, 403
+            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
+                logger.warning(f"Trying to soft delete signed shift report",
+                               extra={"login": current_user})
+                return {"msg": "User cannot soft delete signed shift report"}, 403
+
             updated = db.update(record_id=report_id, deleted=True)
             if not updated:
                 return {"msg": "Shift report not found"}, 404
@@ -127,7 +141,7 @@ class ShiftReportHardDelete(Resource):
     @jwt_required()
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def delete(self, report_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to hard delete shift report: {report_id}",
                     extra={"login": current_user})
         try:
@@ -138,6 +152,18 @@ class ShiftReportHardDelete(Resource):
 
             from app.database.managers.shift_reports_managers import ShiftReportsManager
             db = ShiftReportsManager()
+
+            # Проверки по ролям
+            shift_report = db.get_by_id(record_id=report_id)
+            if shift_report['user'] != current_user['user_id'] and current_user['role'] == 'user':
+                logger.warning(f"Trying to hard delete not user's shift report",
+                               extra={"login": current_user})
+                return {"msg": "User cannot hard delete not his shift report"}, 403
+            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
+                logger.warning(f"Trying to hard delete signed shift report",
+                               extra={"login": current_user})
+                return {"msg": "User cannot hard delete signed shift report"}, 403
+
             deleted = db.delete(record_id=report_id)
             if not deleted:
                 return {"msg": "Shift report not found"}, 404
@@ -154,7 +180,7 @@ class ShiftReportEdit(Resource):
     @shift_report_ns.expect(shift_report_create_model)
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit shift report: {report_id}",
                     extra={"login": current_user})
 
@@ -174,6 +200,18 @@ class ShiftReportEdit(Resource):
 
             from app.database.managers.shift_reports_managers import ShiftReportsManager
             db = ShiftReportsManager()
+
+            # Проверки по ролям
+            shift_report = db.get_by_id(record_id=report_id)
+            if shift_report['user'] != current_user['user_id'] and current_user['role'] == 'user':
+                logger.warning(f"Trying to edit not user's shift report",
+                               extra={"login": current_user})
+                return {"msg": "User cannot edit not his shift report"}, 403
+            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
+                logger.warning(f"Trying to edit signed shift report",
+                               extra={"login": current_user})
+                return {"msg": "User cannot edit signed shift report"}, 403
+
             updated = db.update(record_id=report_id, **data)
             if not updated:
                 return {"msg": "Shift report not found"}, 404
@@ -207,9 +245,9 @@ class ShiftReportAll(Resource):
         sort_by = args.get('sort_by')
         sort_order = args.get('sort_order', 'asc')
         filters = {
-            'user': UUID(args.get('user')) if args.get('user') else None,
+            'user': args.get('user') if args.get('user') else None,
             'date': int(args.get('date')) if args.get('date') else None,
-            'project': UUID(args.get('project')) if args.get('project') else None,
+            'project': args.get('project') if args.get('project') else None,
             'deleted': args.get('deleted', None)
         }
         if current_user['role'] == 'user':

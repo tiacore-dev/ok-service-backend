@@ -10,46 +10,6 @@ def objects_manager(db_session):
     return ObjectsManager(session=db_session)
 
 
-@pytest.fixture
-def seed_user(db_session):
-    """
-    Добавляет тестового пользователя в базу перед тестом.
-    """
-    from app.database.models import Users
-    user_id = uuid4()
-    user = Users(
-        user_id=user_id,
-        login="test_user",
-        name="Test User",
-        role="user",
-        created_by=user_id,
-        deleted=False
-    )
-    user.set_password('qweasdzcx')
-    db_session.add(user)
-    db_session.commit()
-    return user.to_dict()
-
-
-@pytest.fixture
-def seed_object(db_session, seed_user):
-    """
-    Добавляет тестовый объект в базу перед тестом.
-    """
-    from app.database.models import Objects
-    obj = Objects(
-        object_id=uuid4(),
-        name="Test Object",
-        address="123 Test St",
-        description="Test description",
-        manager=UUID(seed_user['user_id']),
-        status="active"
-    )
-    db_session.add(obj)
-    db_session.commit()
-    return obj.to_dict()
-
-
 def test_add_object(client, jwt_token, db_session, seed_user, test_app):
     """
     Тест на добавление нового объекта через API.
