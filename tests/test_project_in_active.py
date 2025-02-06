@@ -8,11 +8,13 @@ def seed_user(db_session):
     Добавляет тестового пользователя в базу перед тестом.
     """
     from app.database.models import Users
+    user_id = uuid4()
     user = Users(
-        user_id=uuid4(),
+        user_id=user_id,
         login="test_user",
         name="Test User",
         role="user",
+        created_by=user_id,
         deleted=False
     )
     user.set_password('qweasdzcx')
@@ -22,7 +24,7 @@ def seed_user(db_session):
 
 
 @pytest.fixture
-def seed_active_object(db_session):
+def seed_active_object(db_session, seed_user):
     """
     Добавляет тестовый объект со статусом 'active' в базу перед тестом.
     """
@@ -33,6 +35,7 @@ def seed_active_object(db_session):
         address="123 Active St",
         description="Active object",
         status="active",
+        created_by=seed_user['user_id'],
         deleted=False
     )
     db_session.add(obj)
@@ -41,7 +44,7 @@ def seed_active_object(db_session):
 
 
 @pytest.fixture
-def seed_inactive_object(db_session):
+def seed_inactive_object(db_session, seed_user):
     """
     Добавляет тестовый объект со статусом 'waiting' в базу перед тестом.
     """
@@ -52,6 +55,7 @@ def seed_inactive_object(db_session):
         address="456 Inactive St",
         description="Inactive object",
         status="waiting",
+        created_by=seed_user['user_id'],
         deleted=False
     )
     db_session.add(obj)

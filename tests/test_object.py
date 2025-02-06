@@ -16,11 +16,13 @@ def seed_user(db_session):
     Добавляет тестового пользователя в базу перед тестом.
     """
     from app.database.models import Users
+    user_id = uuid4()
     user = Users(
-        user_id=uuid4(),
+        user_id=user_id,
         login="test_user",
         name="Test User",
         role="user",
+        created_by=user_id,
         deleted=False
     )
     user.set_password('qweasdzcx')
