@@ -11,6 +11,27 @@ def user_manager(db_session):
 
 
 @pytest.fixture
+def seed_admin(db_session):
+    """
+    Добавляет тестового админа в базу перед тестом.
+    """
+    from app.database.models import Users
+    user_id = uuid4()
+    user = Users(
+        user_id=user_id,
+        login="admin",
+        name="admin",
+        role="admin",
+        created_by=user_id,
+        deleted=False
+    )
+    user.set_password('qweasdzcx')
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
 def seed_user(db_session, test_app, jwt_token):
     """
     Добавляет тестового пользователя в базу перед тестом.
@@ -131,6 +152,25 @@ def test_hard_delete_user(client, jwt_token, seed_user, db_session):
     user = db_session.query(Users).filter_by(
         user_id=UUID(seed_user['user_id'])).first()
     assert user is None
+
+
+def test_hard_delete_admin(client, jwt_token, seed_admin, db_session):
+    """
+    Тест на жесткое удаление пользователя.
+    """
+    from app.database.models import Users
+
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    response = client.delete(
+        f"/users/{str(seed_admin['user_id'])}/delete/hard", headers=headers)
+
+    assert response.status_code == 403
+    assert response.json["msg"] == "You cannot delete admin"
+
+    # Проверяем, что пользователь удален из базы
+    user = db_session.query(Users).filter_by(
+        user_id=UUID(seed_admin['user_id'])).first()
+    assert user is not None
 
 
 def test_edit_user(client, jwt_token, seed_user):

@@ -51,7 +51,7 @@ class ShiftReports(Base):
             "project": self.project,
             "signed": self.signed,
             "deleted": self.deleted,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "created_at": self.created_at,
             "number": self.number
         }

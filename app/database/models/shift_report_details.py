@@ -39,7 +39,7 @@ class ShiftReportDetails(Base):
             "shift_report": self.shift_report,
             "work": self.work,
             "quantity": self.quantity,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "created_at": self.created_at,
             "summ": self.summ
         }

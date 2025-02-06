@@ -47,6 +47,6 @@ class Projects(Base):
             "night_shift_available": self.night_shift_available,
             "extreme_conditions_available": self.extreme_conditions_available,
             "created_at": self.created_at,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "deleted": self.deleted
         }

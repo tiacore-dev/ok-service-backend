@@ -35,7 +35,7 @@ class WorkPrices(Base):
             "work": self.work,
             "category": self.category if self.category else None,
             "price": self.price if self.price else None,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "created_at": self.created_at,
             "deleted": self.deleted
         }

@@ -32,7 +32,7 @@ class ProjectSchedules(Base):
             "project_schedule_id": str(self.project_schedule_id),
             "work": self.work,
             "quantity": self.quantity,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "created_at": self.created_at,
             "date": self.date
         }

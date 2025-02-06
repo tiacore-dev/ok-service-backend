@@ -32,7 +32,7 @@ class WorkCategories(Base):
         return {
             "work_category_id": str(self.work_category_id),
             "name": self.name,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "created_at": self.created_at,
             "deleted": self.deleted
         }

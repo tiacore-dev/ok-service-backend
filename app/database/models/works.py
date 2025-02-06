@@ -41,7 +41,7 @@ class Works(Base):
             "name": self.name,
             "category": self.work_category.to_dict() if self.work_category else None,
             "measurement_unit": self.measurement_unit,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "created_at": self.created_at,
             "deleted": self.deleted
         }

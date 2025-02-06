@@ -77,7 +77,7 @@ class Users(Base):
             "name": self.name,
             "role": self.role,
             "category": self.category if self.category else None,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "created_at": self.created_at,
             "deleted": self.deleted
         }

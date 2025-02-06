@@ -184,6 +184,11 @@ class UserDeleteHard(Resource):
             db = UserManager()
             logger.debug("Удаление пользователя из базы...",
                          extra={"login": current_user.get('login')})
+            user = db.get_by_id(record_id=user_id)
+            if user['created_by'] == user['user_id']:
+                logger.warning(f"Попытка удлить админа",
+                               extra={"login": current_user.get('login')})
+                return {"msg": "You cannot delete admin"}, 403
             deleted = db.delete(record_id=user_id)
             if not deleted:
                 logger.warning(f"Пользователь user_id={user_id} не найден при hard удалении",

@@ -47,6 +47,6 @@ class Objects(Base):
             "status": self.status,
             "manager": str(self.manager),
             "created_at": self.created_at,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "deleted": self.deleted
         }

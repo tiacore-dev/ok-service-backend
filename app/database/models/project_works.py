@@ -39,7 +39,7 @@ class ProjectWorks(Base):
             "project": self.project,
             "quantity": self.quantity,
             "summ": self.summ if self.summ else None,
-            "created_by": self.created_by,
+            "created_by": str(self.created_by),
             "created_at": self.created_at,
             "signed": self.signed
         }
