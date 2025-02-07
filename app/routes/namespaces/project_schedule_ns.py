@@ -45,6 +45,7 @@ class ProjectScheduleAdd(Resource):
         try:
             # Валидация входных данных
             data = schema.load(request.json)
+            logger.info(f"Полученные данные: {data}")
         except ValidationError as err:
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
@@ -55,7 +56,14 @@ class ProjectScheduleAdd(Resource):
             if current_user['role'] == 'project-leader':
                 led_projects = db_p.get_all_filtered(
                     project_leader=current_user['user_id'])
-                if str(data['project']) not in led_projects:
+                logger.info(f"Найденные projects: {led_projects}")
+                led_project_ids = {p['project_id']
+                                   # Собираем ID проектов
+                                   for p in led_projects}
+                if str(data['project']) not in led_project_ids:
+
+                    logger.warning("Trying to add now own project schedule", extra={
+                                   "login": current_user})
                     return {"msg": "You cannot add not your projects"}, 403
 
             # Returns a dictionary

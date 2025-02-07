@@ -1,4 +1,3 @@
-
 from uuid import uuid4
 from app.database.models import ShiftReports
 

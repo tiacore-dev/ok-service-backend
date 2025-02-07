@@ -48,13 +48,19 @@ class ProjectWorkAdd(Resource):
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
-            from app.database.managers.projects_managers import ProjectSchedulesManager, ProjectsManager
-            db = ProjectSchedulesManager()
+            from app.database.managers.projects_managers import ProjectWorksManager, ProjectsManager
+            db = ProjectWorksManager()
             db_p = ProjectsManager()
             if current_user['role'] == 'project-leader':
+                data['signed'] = False
                 led_projects = db_p.get_all_filtered(
                     project_leader=current_user['user_id'])
-                if str(data['project']) not in led_projects:
+                led_project_ids = {p['project_id']
+                                   # Собираем ID проектов
+                                   for p in led_projects}
+                if str(data['project']) not in led_project_ids:
+                    logger.warning("Trying to add now own project work", extra={
+                                   "login": current_user})
                     return {"msg": "You cannot add not your projects"}, 403
 
             new_project_work = db.add(
