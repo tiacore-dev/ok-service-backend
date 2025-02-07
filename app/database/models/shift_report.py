@@ -24,7 +24,8 @@ class ShiftReports(Base):
                         server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
     created_by = Column(UUID, ForeignKey(
         'users.user_id'), nullable=False)
-
+    night_shift = Column(Boolean, nullable=False, default=False)
+    extreme_conditions = Column(Boolean, nullable=False, default=False)
     deleted = Column(Boolean, nullable=False, default=False)
     number = Column(Integer, shift_reports_number_seq,
                     server_default=shift_reports_number_seq.next_value(), unique=True, nullable=False)
@@ -54,5 +55,7 @@ class ShiftReports(Base):
             "deleted": self.deleted,
             "created_by": str(self.created_by),
             "created_at": self.created_at,
+            "night_shift": self.night_shift,
+            "extreme_confitions": self.extreme_conditions,
             "number": self.number
         }

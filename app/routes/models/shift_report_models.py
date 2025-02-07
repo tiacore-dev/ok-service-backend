@@ -26,6 +26,8 @@ shift_report_model = Model('ShiftReport', {
     "number": fields.Integer(required=True, description="Number of shift report"),
     "created_at": fields.Integer(required=True, description="Date shift report was created at"),
     "created_by": fields.String(required=True, description="Creator of shift report"),
+    "night_shift": fields.Boolean(required=True, description="Night shift"),
+    "extreme_conditions": fields.Boolean(required=True, description="Extreme conditions"),
     "shift_report_details_sum": fields.Float(required=False, description="Sum of shift_report_details")
 })
 
@@ -60,6 +62,21 @@ shift_report_filter_parser.add_argument(
     'date', type=int, help="Filter by date")
 shift_report_filter_parser.add_argument(
     'project', type=str, help="Filter by project ID")
+shift_report_filter_parser.add_argument(
+    'night_shift',
+    # Интерпретация значения как логического
+    type=lambda x: x.lower() in ['true', '1'],
+    required=False,
+    help="Флаг для фильтрации по удаленным отчетам"
+)
+shift_report_filter_parser.add_argument(
+    'extreme_conditions',
+    # Интерпретация значения как логического
+    type=lambda x: x.lower() in ['true', '1'],
+    required=False,
+    help="Флаг для фильтрации по удаленным отчетам"
+)
+
 shift_report_filter_parser.add_argument(
     'deleted',
     # Интерпретация значения как логического

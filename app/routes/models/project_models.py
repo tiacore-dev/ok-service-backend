@@ -59,6 +59,20 @@ project_filter_parser.add_argument(
 )
 project_filter_parser.add_argument('name', type=str, help="Filter by name")
 project_filter_parser.add_argument(
+    'night_shift_available',
+    # Интерпретация значения как логического
+    type=lambda x: x.lower() in ['true', '1'],
+    required=False,
+    help="Флаг для фильтрации по удаленным отчетам"
+)
+project_filter_parser.add_argument(
+    'extreme_conditions_available',
+    # Интерпретация значения как логического
+    type=lambda x: x.lower() in ['true', '1'],
+    required=False,
+    help="Флаг для фильтрации по удаленным отчетам"
+)
+project_filter_parser.add_argument(
     'deleted',
     # Интерпретация значения как логического
     type=lambda x: x.lower() in ['true', '1'],

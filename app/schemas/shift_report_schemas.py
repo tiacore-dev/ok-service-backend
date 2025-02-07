@@ -36,10 +36,14 @@ class ShiftReportCreateSchema(Schema):
 
     signed = fields.Boolean(required=False)
 
+    night_shift = fields.Boolean(required=False)
+
+    extreme_conditions = fields.Boolean(required=False)
+
     details = fields.List(fields.Nested(
         ShiftReportDetailSchema), required=False)
 
-    @ validates("date")
+    @validates("date")
     def validate_date(self, value):
         """Проверяем, что дата — корректный Unix timestamp"""
         if value < 0:
@@ -58,6 +62,8 @@ class ShiftReportEditSchema(Schema):
         validate_project_exists])
     signed = fields.Boolean(
         required=False, allow_none=True)
+    night_shift = fields.Boolean(required=False, allow_none=True)
+    extreme_conditions = fields.Boolean(required=False, allow_none=True)
 
 
 class ShiftReportFilterSchema(Schema):
@@ -74,4 +80,6 @@ class ShiftReportFilterSchema(Schema):
     user = fields.String(required=False)
     date = fields.Int(required=False)
     project = fields.String(required=False)
+    night_shift = fields.Boolean(required=False)
+    extreme_conditions = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False)
