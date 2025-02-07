@@ -33,6 +33,8 @@ class Projects(Base):
 
     shift_report = relationship("ShiftReports", back_populates="projects")
     project_work = relationship("ProjectWorks", back_populates="projects")
+    project_schedule = relationship(
+        "ProjectSchedules", back_populates="projects")
 
     def __repr__(self):
         return (f"<Projects(project_id={self.project_id}, name={self.name}, "

@@ -48,8 +48,14 @@ class ProjectWorkAdd(Resource):
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
-            from app.database.managers.projects_managers import ProjectWorksManager
-            db = ProjectWorksManager()
+            from app.database.managers.projects_managers import ProjectSchedulesManager, ProjectsManager
+            db = ProjectSchedulesManager()
+            db_p = ProjectsManager()
+            if current_user['role'] == 'project-leader':
+                led_projects = db_p.get_all_filtered(
+                    project_leader=current_user['user_id'])
+                if str(data['project']) not in led_projects:
+                    return {"msg": "You cannot add not your projects"}, 403
 
             new_project_work = db.add(
                 created_by=current_user['user_id'], **data)
@@ -243,6 +249,8 @@ class ProjectWorkAll(Resource):
             'max_quantity': args.get('max_quantity'),
             'min_summ': args.get('min_summ'),
             'max_summ': args.get('max_summ'),
+            'created_by': args.get('created_by'),
+            'created_at': args.get('created_at'),
         }
 
         logger.debug(f"Fetching project works with filters: {filters}, offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}",

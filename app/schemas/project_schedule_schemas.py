@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, validate
-from app.schemas.validators import validate_work_exists
+from app.schemas.validators import validate_work_exists, validate_project_exists
 
 
 class ProjectScheduleCreateSchema(Schema):
@@ -8,6 +8,8 @@ class ProjectScheduleCreateSchema(Schema):
 
     work = fields.String(required=True, error_messages={
                          "required": "Field 'work' is required."}, validate=[validate_work_exists])
+    project = fields.String(required=True, error_messages={
+        "required": "Field 'project' is required."}, validate=[validate_project_exists])
     quantity = fields.Float(required=True, error_messages={
                             "required": "Field 'quantity' is required."})
     date = fields.Int(required=False)  # Опциональное поле
@@ -19,6 +21,8 @@ class ProjectScheduleEditSchema(Schema):
 
     work = fields.String(required=False, allow_none=True,
                          validate=[validate_work_exists])
+    project = fields.String(required=False,  validate=[
+                            validate_project_exists])
     quantity = fields.Float(required=False, allow_none=True)
     date = fields.Int(required=False, allow_none=True)  # Опциональное поле
 
@@ -35,4 +39,5 @@ class ProjectScheduleFilterSchema(Schema):
     sort_order = fields.String(required=False, validate=validate.OneOf(
         ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))
     work = fields.String(required=False)
+    project = fields.String(required=False)
     date = fields.Int(required=False)

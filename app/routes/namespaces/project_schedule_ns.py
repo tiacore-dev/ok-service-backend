@@ -49,10 +49,15 @@ class ProjectScheduleAdd(Resource):
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
-            from app.database.managers.projects_managers import ProjectSchedulesManager
+            from app.database.managers.projects_managers import ProjectSchedulesManager, ProjectsManager
             db = ProjectSchedulesManager()
+            db_p = ProjectsManager()
+            if current_user['role'] == 'project-leader':
+                led_projects = db_p.get_all_filtered(
+                    project_leader=current_user['user_id'])
+                if str(data['project']) not in led_projects:
+                    return {"msg": "You cannot add not your projects"}, 403
 
-            # Add project schedule
             # Returns a dictionary
             new_schedule = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New project schedule added: {new_schedule['project_schedule_id']}",
@@ -80,6 +85,7 @@ class ProjectScheduleView(Resource):
 
             from app.database.managers.projects_managers import ProjectSchedulesManager
             db = ProjectSchedulesManager()
+
             schedule = db.get_by_id(schedule_id)
             if not schedule:
                 return {"msg": "Project schedule not found"}, 404
@@ -107,6 +113,17 @@ class ProjectScheduleHardDelete(Resource):
 
             from app.database.managers.projects_managers import ProjectSchedulesManager
             db = ProjectSchedulesManager()
+
+            # Проверки по ролям
+            schedule = db.get_by_id(record_id=schedule_id)
+            if current_user['role'] == 'project-leader':
+                led_schedules = db.get_schedule_ids_by_project_leader(
+                    current_user['user_id'])
+                if str(schedule_id) not in led_schedules:
+                    logger.warning(f"Trying to soft delete not user's project schedule",
+                                   extra={"login": current_user})
+                    return {"msg": "Forbidden"}, 403
+
             deleted = db.delete(record_id=schedule_id)
             if not deleted:
                 return {"msg": "Project schedule not found"}, 404
@@ -143,6 +160,17 @@ class ProjectScheduleEdit(Resource):
 
             from app.database.managers.projects_managers import ProjectSchedulesManager
             db = ProjectSchedulesManager()
+
+            # Проверки по ролям
+            schedule = db.get_by_id(record_id=schedule_id)
+            if current_user['role'] == 'project-leader':
+                led_schedules = db.get_schedule_ids_by_project_leader(
+                    current_user['user_id'])
+                if str(schedule_id) not in led_schedules:
+                    logger.warning(f"Trying to edit not user's project schedule",
+                                   extra={"login": current_user})
+                    return {"msg": "Forbidden"}, 403
+
             updated = db.update(record_id=schedule_id, **data)
             if not updated:
                 return {"msg": "Project schedule not found"}, 404
@@ -175,8 +203,11 @@ class ProjectScheduleAll(Resource):
         sort_by = args.get('sort_by')
         sort_order = args.get('sort_order', 'asc')
         filters = {
+            'project': args.get('project'),
             'work': args.get('work'),
-            'date': args.get('date')
+            'date': args.get('date'),
+            'created_by': args.get('created_by'),
+            'created_at': args.get('created_at'),
         }
 
         logger.debug(f"Fetching project schedules with filters: {filters}, offset={offset}, limit={limit}",

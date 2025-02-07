@@ -248,6 +248,8 @@ class ShiftReportAll(Resource):
             'user': args.get('user') if args.get('user') else None,
             'date': int(args.get('date')) if args.get('date') else None,
             'project': args.get('project') if args.get('project') else None,
+            'created_by': args.get('created_by'),
+            'created_at': args.get('created_at'),
             'deleted': args.get('deleted', None)
         }
         if current_user['role'] == 'user':

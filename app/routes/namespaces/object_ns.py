@@ -235,6 +235,8 @@ class ObjectAll(Resource):
             'deleted': data.get('deleted'),
             'address': data.get('address'),
             'status': data.get('status'),
+            'created_by': data.get('created_by'),
+            'created_at': data.get('created_at'),
         }
         if current_user['role'] == 'user':
             filters['status'] = 'active'

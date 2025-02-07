@@ -304,6 +304,8 @@ class UserAll(Resource):
             'role': args.get('role'),
             'category': args.get('category'),
             'deleted': args.get('deleted'),
+            'created_by': args.get('created_by'),
+            'created_at': args.get('created_at'),
         }
 
         # Логируем параметры фильтрации

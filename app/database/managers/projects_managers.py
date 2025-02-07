@@ -96,6 +96,23 @@ class ProjectSchedulesManager(BaseDBManager):
     def model(self):
         return ProjectSchedules
 
+    def get_schedule_ids_by_project_leader(self, user_id):
+        """
+        Возвращает ID всех ProjectWorks, где пользователь является project_leader.
+        """
+        with self.session_scope() as session:
+            schedule_ids = session.query(ProjectSchedules.project_schedule_id).join(
+                Projects, ProjectSchedules.project == Projects.project_id
+            ).filter(
+                Projects.project_leader == UUID(user_id)
+            ).all()
+
+            # ✅ Достаём первый элемент из tuple
+            result = [str(schedule_id[0]) for schedule_id in schedule_ids]
+            logger.debug(f"Найдено {len(result)} работ для project_leader={user_id}",
+                         extra={"login": "database"})
+            return result
+
 
 class ProjectWorksManager(BaseDBManager):
 

@@ -209,6 +209,8 @@ class WorkAll(Resource):
         filters = {
             'name': args.get('name'),
             'deleted': args.get('deleted'),
+            'created_by': args.get('created_by'),
+            'created_at': args.get('created_at'),
         }
 
         logger.debug(f"Fetching works with filters: {filters}, offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}",

@@ -215,6 +215,8 @@ class WorkPriceAll(Resource):
             'deleted': args.get('deleted'),
             'category': args.get('category'),
             'price': args.get('price'),
+            'created_by': args.get('created_by'),
+            'created_at': args.get('created_at'),
         }
 
         logger.debug(f"Fetching work prices with filters: {filters}, offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}",

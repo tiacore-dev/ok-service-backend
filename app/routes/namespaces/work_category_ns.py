@@ -200,7 +200,9 @@ class WorkCategoryAll(Resource):
         sort_by = args.get('sort_by')
         sort_order = args.get('sort_order', 'asc')
         filters = {
-            'name': args.get('name')
+            'name': args.get('name'),
+            'created_by': args.get('created_by'),
+            'created_at': args.get('created_at'),
         }
 
         from app.database.managers.works_managers import WorkCategoriesManager

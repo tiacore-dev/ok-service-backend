@@ -10,6 +10,7 @@ project_schedule_create_model = generate_swagger_model(
 
 project_schedule_model = Model('ProjectSchedule', {
     "project_schedule_id": fields.String(required=True, description="ID of the project schedule"),
+    "project": fields.String(required=True, description="Project details"),
     "work": fields.String(required=True, description="Work details"),
     "quantity": fields.Float(required=True, description="Quantity of work"),
     "created_at": fields.Integer(required=True, description="Date project schedule was created at"),
@@ -43,5 +44,7 @@ project_schedule_filter_parser.add_argument('sort_order', type=str, required=Fal
     'asc', 'desc'], help='Sort order')
 project_schedule_filter_parser.add_argument(
     'work', type=str, help="Filter by work ID")
+project_schedule_filter_parser.add_argument(
+    'project', type=str, help="Filter by project ID")
 project_schedule_filter_parser.add_argument(
     'date', type=int, help="Filter by date")

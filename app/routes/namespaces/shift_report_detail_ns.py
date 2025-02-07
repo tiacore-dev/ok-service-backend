@@ -179,6 +179,8 @@ class ShiftReportDetailsAll(Resource):
             'max_quantity': args.get('max_quantity'),
             'min_summ': args.get('min_summ'),
             'max_summ': args.get('max_summ'),
+            'created_by': args.get('created_by'),
+            'created_at': args.get('created_at'),
         }
 
         logger.debug(f"Fetching shift report details with filters: {filters}, offset={offset}, limit={limit}",
