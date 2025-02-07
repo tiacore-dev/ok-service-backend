@@ -1,5 +1,4 @@
 import logging
-import time
 import uuid
 from uuid import UUID
 from contextlib import contextmanager

@@ -14,6 +14,7 @@ from app.routes.models.project_models import (
     project_filter_parser,
     project_model
 )
+from app.decorators import user_forbidden
 
 logger = logging.getLogger('ok_service')
 
@@ -31,6 +32,7 @@ project_ns.models[project_model.name] = project_model
 @project_ns.route('/add')
 class ProjectAdd(Resource):
     @jwt_required()
+    @user_forbidden
     @project_ns.expect(project_create_model)
     @project_ns.marshal_with(project_msg_model)
     def post(self):
@@ -48,8 +50,8 @@ class ProjectAdd(Resource):
         try:
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
-
-            # Добавление проекта
+            if current_user['role'] == 'project-leader':
+                data['project_leader'] = current_user['user_id']
             # Возвращается словарь
             new_project = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New project added: {new_project['project_id']}",
@@ -91,9 +93,10 @@ class ProjectView(Resource):
 @project_ns.route('/<string:project_id>/delete/soft')
 class ProjectSoftDelete(Resource):
     @jwt_required()
+    @user_forbidden
     @project_ns.marshal_with(project_msg_model)
     def patch(self, project_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to soft delete project: {project_id}",
                     extra={"login": current_user})
         try:
@@ -105,6 +108,14 @@ class ProjectSoftDelete(Resource):
 
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
+
+            # Проверки по ролям
+            project = db.get_by_id(record_id=project_id)
+            if project['project_leader'] != current_user['user_id'] and current_user['role'] == 'project-leader':
+                logger.warning("Trying to soft delete not user's project",
+                               extra={"login": current_user})
+                return {"msg": "User cannot hard delete not his shift report"}, 403
+
             updated = db.update(record_id=project_id, deleted=True)
             if not updated:
                 return {"msg": "Project not found"}, 404
@@ -118,9 +129,10 @@ class ProjectSoftDelete(Resource):
 @project_ns.route('/<string:project_id>/delete/hard')
 class ProjectHardDelete(Resource):
     @jwt_required()
+    @user_forbidden
     @project_ns.marshal_with(project_msg_model)
     def delete(self, project_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to hard delete project: {project_id}",
                     extra={"login": current_user})
         try:
@@ -132,6 +144,14 @@ class ProjectHardDelete(Resource):
 
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
+
+            # Проверки по ролям
+            project = db.get_by_id(record_id=project_id)
+            if project['project_leader'] != current_user['user_id'] and current_user['role'] == 'project-leader':
+                logger.warning("Trying to hard delete not user's project",
+                               extra={"login": current_user})
+                return {"msg": "User cannot hard delete not his shift report"}, 403
+
             deleted = db.delete(record_id=project_id)
             if not deleted:
                 return {"msg": "Project not found"}, 404
@@ -145,10 +165,11 @@ class ProjectHardDelete(Resource):
 @project_ns.route('/<string:project_id>/edit')
 class ProjectEdit(Resource):
     @jwt_required()
+    @user_forbidden
     @project_ns.expect(project_create_model)
     @project_ns.marshal_with(project_msg_model)
     def patch(self, project_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit project: {project_id}",
                     extra={"login": current_user})
 
@@ -168,6 +189,14 @@ class ProjectEdit(Resource):
 
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
+
+            # Проверки по ролям
+            project = db.get_by_id(record_id=project_id)
+            if project['project_leader'] != current_user['user_id'] and current_user['role'] == 'project-leader':
+                logger.warning("Trying to edit not user's project",
+                               extra={"login": current_user})
+                return {"msg": "User cannot edit not his shift report"}, 403
+
             updated = db.update(record_id=project_id, **data)
             if not updated:
                 return {"msg": "Project not found"}, 404
@@ -213,7 +242,7 @@ class ProjectAll(Resource):
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
             projects = db.get_all_filtered_with_status(
-                role=current_user['role'],
+                user=current_user,
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
             logger.info(f"Successfully fetched {len(projects)} projects",
                         extra={"login": current_user})

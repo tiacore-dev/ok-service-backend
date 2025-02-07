@@ -13,6 +13,7 @@ from app.routes.models.work_category_models import (
     work_category_msg_model,
     work_category_filter_parser
 )
+from app.decorators import admin_required
 
 
 logger = logging.getLogger('ok_service')
@@ -30,6 +31,7 @@ work_category_ns.models[work_category_model.name] = work_category_model
 @work_category_ns.route('/add')
 class WorkCategoryAdd(Resource):
     @jwt_required()
+    @admin_required
     @work_category_ns.expect(work_category_create_model)
     @work_category_ns.marshal_with(work_category_msg_model)
     def post(self):
@@ -71,7 +73,7 @@ class WorkCategoryView(Resource):
     @jwt_required()
     @work_category_ns.marshal_with(work_category_response)
     def get(self, work_category_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to view work category: {work_category_id}",
                     extra={"login": current_user})
 
@@ -92,9 +94,10 @@ class WorkCategoryView(Resource):
 @work_category_ns.route('/<string:work_category_id>/delete/soft')
 class WorkCategoryDeleteSoft(Resource):
     @jwt_required()
+    @admin_required
     @work_category_ns.marshal_with(work_category_msg_model)
     def patch(self, work_category_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to soft delete work category: {work_category_id}",
                     extra={"login": current_user})
 
@@ -115,9 +118,10 @@ class WorkCategoryDeleteSoft(Resource):
 @work_category_ns.route('/<string:work_category_id>/delete/hard')
 class WorkCategoryDeleteHard(Resource):
     @jwt_required()
+    @admin_required
     @work_category_ns.marshal_with(work_category_msg_model)
     def delete(self, work_category_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to hard delete work category: {work_category_id}",
                     extra={"login": current_user})
 
@@ -138,10 +142,11 @@ class WorkCategoryDeleteHard(Resource):
 @work_category_ns.route('/<string:work_category_id>/edit')
 class WorkCategoryEdit(Resource):
     @jwt_required()
+    @admin_required
     @work_category_ns.expect(work_category_create_model)
     @work_category_ns.marshal_with(work_category_msg_model)
     def patch(self, work_category_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit work category: {work_category_id}",
                     extra={"login": current_user})
         schema = WorkCategoryEditSchema()

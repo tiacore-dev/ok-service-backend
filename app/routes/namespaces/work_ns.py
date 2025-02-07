@@ -14,6 +14,7 @@ from app.routes.models.work_models import (
     work_filter_parser,
     work_model
 )
+from app.decorators import admin_required
 
 logger = logging.getLogger('ok_service')
 
@@ -30,12 +31,17 @@ work_ns.models[work_model.name] = work_model
 @work_ns.route('/add')
 class WorkAdd(Resource):
     @jwt_required()
+    @admin_required
     @work_ns.expect(work_create_model)
     @work_ns.marshal_with(work_msg_model)
     def post(self):
         current_user = json.loads(get_jwt_identity())
         logger.info("Request to add new work", extra={"login": current_user})
-
+        if current_user['role'] != 'admin':
+            logger.warning("Несанкционированный запрос на добавление нового объекта.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         schema = WorkCreateSchema()
         try:
             # Валидация входных данных
@@ -88,9 +94,10 @@ class WorkView(Resource):
 @work_ns.route('/<string:work_id>/delete/soft')
 class WorkSoftDelete(Resource):
     @jwt_required()
+    @admin_required
     @work_ns.marshal_with(work_msg_model)
     def patch(self, work_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to soft delete work: {work_id}",
                     extra={"login": current_user})
         try:
@@ -115,9 +122,10 @@ class WorkSoftDelete(Resource):
 @work_ns.route('/<string:work_id>/delete/hard')
 class WorkHardDelete(Resource):
     @jwt_required()
+    @admin_required
     @work_ns.marshal_with(work_msg_model)
     def delete(self, work_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to hard delete work: {work_id}",
                     extra={"login": current_user})
         try:
@@ -142,10 +150,11 @@ class WorkHardDelete(Resource):
 @work_ns.route('/<string:work_id>/edit')
 class WorkEdit(Resource):
     @jwt_required()
+    @admin_required
     @work_ns.expect(work_create_model)
     @work_ns.marshal_with(work_msg_model)
     def patch(self, work_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit work: {work_id}",
                     extra={"login": current_user})
 

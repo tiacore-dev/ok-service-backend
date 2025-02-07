@@ -14,6 +14,7 @@ from app.routes.models.project_work_models import (
     project_work_filter_parser,
     project_work_model
 )
+from app.decorators import user_forbidden
 
 logger = logging.getLogger('ok_service')
 
@@ -31,6 +32,7 @@ project_work_ns.models[project_work_model.name] = project_work_model
 @project_work_ns.route('/add')
 class ProjectWorkAdd(Resource):
     @jwt_required()
+    @user_forbidden
     @project_work_ns.expect(project_work_create_model)
     @project_work_ns.marshal_with(project_work_msg_model)
     def post(self):
@@ -86,9 +88,10 @@ class ProjectWorkView(Resource):
 @project_work_ns.route('/<string:project_work_id>/delete/soft')
 class ProjectWorkSoftDelete(Resource):
     @jwt_required()
+    @user_forbidden
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to soft delete project work: {project_work_id}",
                     extra={"login": current_user})
 
@@ -96,6 +99,21 @@ class ProjectWorkSoftDelete(Resource):
             project_work_id = UUID(project_work_id)
             from app.database.managers.projects_managers import ProjectWorksManager
             db = ProjectWorksManager()
+
+            # Проверки по ролям
+            project_work = db.get_by_id(record_id=project_work_id)
+            if current_user['role'] == 'project-leader':
+                led_project_works = db.get_work_ids_by_project_leader(
+                    current_user['user_id'])
+                if str(project_work_id) not in led_project_works:
+                    logger.warning(f"Trying to soft delete not user's project_work",
+                                   extra={"login": current_user})
+                    return {"msg": "Forbidden"}, 403
+                elif str(project_work_id) in led_project_works and project_work['signed'] == True:
+                    logger.warning(f"Trying to soft delete signed shift report",
+                                   extra={"login": current_user})
+                    return {"msg": "User cannot soft delete signed shift report"}, 403
+
             updated = db.update(record_id=project_work_id, signed=False)
             if not updated:
                 return {"msg": "Project work not found"}, 404
@@ -109,9 +127,10 @@ class ProjectWorkSoftDelete(Resource):
 @project_work_ns.route('/<string:project_work_id>/delete/hard')
 class ProjectWorkHardDelete(Resource):
     @jwt_required()
+    @user_forbidden
     @project_work_ns.marshal_with(project_work_msg_model)
     def delete(self, project_work_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to hard delete project work: {project_work_id}",
                     extra={"login": current_user})
 
@@ -119,6 +138,20 @@ class ProjectWorkHardDelete(Resource):
             project_work_id = UUID(project_work_id)
             from app.database.managers.projects_managers import ProjectWorksManager
             db = ProjectWorksManager()
+
+            project_work = db.get_by_id(record_id=project_work_id)
+            if current_user['role'] == 'project-leader':
+                led_project_works = db.get_work_ids_by_project_leader(
+                    current_user['user_id'])
+                if str(project_work_id) not in led_project_works:
+                    logger.warning(f"Trying to soft delete not user's project_work",
+                                   extra={"login": current_user})
+                    return {"msg": "Forbidden"}, 403
+                elif str(project_work_id) in led_project_works and project_work['signed'] == True:
+                    logger.warning(f"Trying to soft delete signed shift report",
+                                   extra={"login": current_user})
+                    return {"msg": "User cannot soft delete signed shift report"}, 403
+
             deleted = db.delete(record_id=project_work_id)
             if not deleted:
                 return {"msg": "Project work not found"}, 404
@@ -132,10 +165,11 @@ class ProjectWorkHardDelete(Resource):
 @project_work_ns.route('/<string:project_work_id>/edit')
 class ProjectWorkEdit(Resource):
     @jwt_required()
+    @user_forbidden
     @project_work_ns.expect(project_work_create_model)
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit project work: {project_work_id}",
                     extra={"login": current_user})
 
@@ -150,6 +184,25 @@ class ProjectWorkEdit(Resource):
             project_work_id = UUID(project_work_id)
             from app.database.managers.projects_managers import ProjectWorksManager
             db = ProjectWorksManager()
+
+            project_work = db.get_by_id(record_id=project_work_id)
+            if current_user['role'] == 'project-leader':
+                led_project_works = db.get_work_ids_by_project_leader(
+                    current_user['user_id'])
+                logger.debug(f"DEBUG: Project leader {current_user['user_id']} управляет работами: {led_project_works}",
+                             extra={"login": current_user})
+
+                logger.debug(f"DEBUG: Проверяем работу {project_work_id} в списке работ лидера",
+                             extra={"login": current_user})
+                if str(project_work_id) not in led_project_works:
+                    logger.warning(f"Trying to soft delete not user's project_work",
+                                   extra={"login": current_user})
+                    return {"msg": "Forbidden"}, 403
+                elif str(project_work_id) in led_project_works and project_work['signed'] == True:
+                    logger.warning(f"Trying to soft delete signed shift report",
+                                   extra={"login": current_user})
+                    return {"msg": "User cannot soft delete signed shift report"}, 403
+
             updated = db.update(record_id=project_work_id, **data)
             if not updated:
                 return {"msg": "Project work not found"}, 404

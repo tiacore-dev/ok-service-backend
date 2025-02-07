@@ -1,5 +1,6 @@
 import logging
 import uuid
+from uuid import UUID
 from sqlalchemy.orm import joinedload
 from sqlalchemy import and_, asc, desc
 from app.database.models import Projects, ProjectSchedules, ProjectWorks, Objects
@@ -17,7 +18,7 @@ class ProjectsManager(BaseDBManager):
     def model(self):
         return Projects
 
-    def get_all_filtered_with_status(self, role, offset=0, limit=None, sort_by=None, sort_order='asc', **filters):
+    def get_all_filtered_with_status(self, user, offset=0, limit=None, sort_by=None, sort_order='asc', **filters):
         logger.debug("get_all_filtered_with_status вызывается с фильтрацией, сортировкой и проверкой статуса объекта.",
                      extra={"login": "database"})
 
@@ -26,12 +27,11 @@ class ProjectsManager(BaseDBManager):
                 Projects.objects))  # Используем joinload для оптимизации
 
             # Если пользователь — обычный "user", фильтруем проекты по статусу объекта
-            if role == "user":
+            if user['role'] == "user":
                 query = query.join(Objects, Projects.object == Objects.object_id).filter(
                     Objects.status == "active")
                 logger.debug("Фильтрация: только проекты с объектами в статусе 'active'.",
                              extra={"login": "database"})
-
             # Применяем стандартные фильтры из filters
             filter_conditions = []
             for key, value in filters.items():
@@ -102,3 +102,20 @@ class ProjectWorksManager(BaseDBManager):
     @property
     def model(self):
         return ProjectWorks
+
+    def get_work_ids_by_project_leader(self, user_id):
+        """
+        Возвращает ID всех ProjectWorks, где пользователь является project_leader.
+        """
+        with self.session_scope() as session:
+            work_ids = session.query(ProjectWorks.project_work_id).join(
+                Projects, ProjectWorks.project == Projects.project_id
+            ).filter(
+                Projects.project_leader == UUID(user_id)
+            ).all()
+
+            # ✅ Достаём первый элемент из tuple
+            result = [str(work_id[0]) for work_id in work_ids]
+            logger.debug(f"Найдено {len(result)} работ для project_leader={user_id}",
+                         extra={"login": "database"})
+            return result

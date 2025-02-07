@@ -24,6 +24,7 @@ class ShiftReports(Base):
                         server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
     created_by = Column(UUID, ForeignKey(
         'users.user_id'), nullable=False)
+
     deleted = Column(Boolean, nullable=False, default=False)
     number = Column(Integer, shift_reports_number_seq,
                     server_default=shift_reports_number_seq.next_value(), unique=True, nullable=False)

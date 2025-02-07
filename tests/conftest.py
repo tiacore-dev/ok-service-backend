@@ -161,6 +161,22 @@ def jwt_token_user(test_app, seed_user):
 
 
 @pytest.fixture
+def jwt_token_leader(test_app, seed_leader):
+    """
+    Генерирует JWT токен для обычного пользователя.
+    """
+    with test_app.app_context():
+        # Генерация токена на основе реального пользователя
+        token_data = {
+            "login": seed_leader['login'],
+            "role": seed_leader['role'],
+            "user_id": seed_leader['user_id']
+        }
+
+        return create_access_token(identity=json.dumps(token_data))
+
+
+@pytest.fixture
 def seed_user(db_session):
     """
     Добавляет тестового пользователя в базу перед тестом.
@@ -172,6 +188,27 @@ def seed_user(db_session):
         login="test_user",
         name="Test User",
         role="user",
+        created_by=user_id,
+        deleted=False
+    )
+    user.set_password('qweasdzcx')
+    db_session.add(user)
+    db_session.commit()
+    return user.to_dict()
+
+
+@pytest.fixture
+def seed_leader(db_session):
+    """
+    Добавляет тестового пользователя в базу перед тестом.
+    """
+    from app.database.models import Users
+    user_id = uuid4()
+    user = Users(
+        user_id=user_id,
+        login="test_leader",
+        name="Test Leader",
+        role="project-leader",
         created_by=user_id,
         deleted=False
     )

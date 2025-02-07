@@ -15,6 +15,7 @@ from app.routes.models.project_schedule_models import (
     project_schedule_filter_parser,
     project_schedule_model
 )
+from app.decorators import user_forbidden
 
 logger = logging.getLogger('ok_service')
 
@@ -32,6 +33,7 @@ project_schedule_ns.models[project_schedule_model.name] = project_schedule_model
 @project_schedule_ns.route('/add')
 class ProjectScheduleAdd(Resource):
     @jwt_required()
+    @user_forbidden
     @project_schedule_ns.expect(project_schedule_create_model)
     @project_schedule_ns.marshal_with(project_schedule_msg_model)
     def post(self):
@@ -91,9 +93,10 @@ class ProjectScheduleView(Resource):
 @project_schedule_ns.route('/<string:schedule_id>/delete/hard')
 class ProjectScheduleHardDelete(Resource):
     @jwt_required()
+    @user_forbidden
     @project_schedule_ns.marshal_with(project_schedule_msg_model)
     def delete(self, schedule_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to hard delete project schedule: {schedule_id}",
                     extra={"login": current_user})
         try:
@@ -117,10 +120,11 @@ class ProjectScheduleHardDelete(Resource):
 @project_schedule_ns.route('/<string:schedule_id>/edit')
 class ProjectScheduleEdit(Resource):
     @jwt_required()
+    @user_forbidden
     @project_schedule_ns.expect(project_schedule_create_model)
     @project_schedule_ns.marshal_with(project_schedule_msg_model)
     def patch(self, schedule_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit project schedule: {schedule_id}",
                     extra={"login": current_user})
 

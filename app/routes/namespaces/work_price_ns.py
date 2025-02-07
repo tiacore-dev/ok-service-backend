@@ -14,6 +14,7 @@ from app.routes.models.work_price_models import (
     work_price_filter_parser,
     work_price_model
 )
+from app.decorators import admin_required
 
 logger = logging.getLogger('ok_service')
 
@@ -31,10 +32,16 @@ work_price_ns.models[work_price_model.name] = work_price_model
 @work_price_ns.route('/add')
 class WorkPriceAdd(Resource):
     @jwt_required()
+    @admin_required
     @work_price_ns.expect(work_price_create_model)
     @work_price_ns.marshal_with(work_price_msg_model)
     def post(self):
         current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'admin':
+            logger.warning("Несанкционированный запрос на добавление нового объекта.",
+                           extra={"login": current_user.get('login')}
+                           )
+            return {"msg": "Forbidden"}, 403
         logger.info("Request to add new work price",
                     extra={"login": current_user})
 
@@ -90,9 +97,10 @@ class WorkPriceView(Resource):
 @work_price_ns.route('/<string:work_price_id>/delete/soft')
 class WorkPriceSoftDelete(Resource):
     @jwt_required()
+    @admin_required
     @work_price_ns.marshal_with(work_price_msg_model)
     def patch(self, work_price_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to soft delete work price: {work_price_id}",
                     extra={"login": current_user})
         try:
@@ -117,9 +125,10 @@ class WorkPriceSoftDelete(Resource):
 @work_price_ns.route('/<string:work_price_id>/delete/hard')
 class WorkPriceHardDelete(Resource):
     @jwt_required()
+    @admin_required
     @work_price_ns.marshal_with(work_price_msg_model)
     def delete(self, work_price_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to hard delete work price: {work_price_id}",
                     extra={"login": current_user})
         try:
@@ -144,10 +153,11 @@ class WorkPriceHardDelete(Resource):
 @work_price_ns.route('/<string:work_price_id>/edit')
 class WorkPriceEdit(Resource):
     @jwt_required()
+    @admin_required
     @work_price_ns.expect(work_price_create_model)
     @work_price_ns.marshal_with(work_price_msg_model)
     def patch(self, work_price_id):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit work price: {work_price_id}",
                     extra={"login": current_user})
 
