@@ -1,0 +1,24 @@
+[MASTER]
+# Определяет, какие файлы анализировать (например, игнорировать тесты)
+ignore=tests
+
+[MESSAGES CONTROL]
+# Отключаем ненужные предупреждения
+disable=logging-format-interpolation, 
+        missing-docstring, 
+        too-few-public-methods,
+        missing-class-docstring,
+        line-too-long,
+        logging-fstring-interpolation,
+        import-outside-toplevel,
+        broad-exception-caught
+
+[FORMAT]
+# Настройки форматирования кода
+max-line-length=100
+
+[DESIGN]
+# Отключаем проверку на слишком мало/много публичных методов в классах
+max-attributes=10
+max-public-methods=20
+max-args=5

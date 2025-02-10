@@ -1,5 +1,4 @@
 # Namespace for ShiftReports
-# Namespace for ShiftReports
 import logging
 import json
 from uuid import UUID
@@ -23,8 +22,6 @@ logger = logging.getLogger('ok_service')
 shift_report_ns = Namespace(
     'shift_reports', description='Shift reports management operations')
 
-print("Регистрируем shift_report_detail_model:", shift_report_detail_model)
-print("Регистрируем shift_report_create_model:", shift_report_create_model)
 
 
 # Initialize models
@@ -118,11 +115,11 @@ class ShiftReportSoftDelete(Resource):
             # Проверки по ролям
             shift_report = db.get_by_id(record_id=report_id)
             if shift_report['user'] != current_user['user_id'] and current_user['role'] == 'user':
-                logger.warning(f"Trying to soft delete not user's shift report",
+                logger.warning("Trying to soft delete not user's shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot soft delete not his shift report"}, 403
             elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
-                logger.warning(f"Trying to soft delete signed shift report",
+                logger.warning("Trying to soft delete signed shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot soft delete signed shift report"}, 403
 
@@ -156,11 +153,11 @@ class ShiftReportHardDelete(Resource):
             # Проверки по ролям
             shift_report = db.get_by_id(record_id=report_id)
             if shift_report['user'] != current_user['user_id'] and current_user['role'] == 'user':
-                logger.warning(f"Trying to hard delete not user's shift report",
+                logger.warning("Trying to hard delete not user's shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot hard delete not his shift report"}, 403
             elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
-                logger.warning(f"Trying to hard delete signed shift report",
+                logger.warning("Trying to hard delete signed shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot hard delete signed shift report"}, 403
 
@@ -204,11 +201,11 @@ class ShiftReportEdit(Resource):
             # Проверки по ролям
             shift_report = db.get_by_id(record_id=report_id)
             if shift_report['user'] != current_user['user_id'] and current_user['role'] == 'user':
-                logger.warning(f"Trying to edit not user's shift report",
+                logger.warning("Trying to edit not user's shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot edit not his shift report"}, 403
             elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
-                logger.warning(f"Trying to edit signed shift report",
+                logger.warning("Trying to edit signed shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot edit signed shift report"}, 403
 

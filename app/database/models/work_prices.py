@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean, Numeric
+from sqlalchemy import Column, Integer, UUID, ForeignKey, Boolean, Numeric, CheckConstraint
 from app.database.db_setup import Base
 
 
@@ -19,6 +19,10 @@ class WorkPrices(Base):
     created_by = Column(UUID, ForeignKey(
         'users.user_id'), nullable=False)
     deleted = Column(Boolean, nullable=False, default=False)
+
+    __table_args__ = (
+        CheckConstraint("category IN (0, 1, 2, 3, 4)", name="check_products_category_values"),
+    )
 
     works = relationship("Works", back_populates="work_price")
 

@@ -9,7 +9,7 @@ class WorkPriceCreateSchema(Schema):
     work = fields.String(required=True, error_messages={
                          "required": "Field 'work' is required."}, validate=[validate_work_exists])
     category = fields.Int(required=True, error_messages={
-                          "required": "Field 'category' is required."})
+                          "required": "Field 'category' is required."}, validate=validate.OneOf([0, 1, 2, 3, 4]))
     price = fields.Float(required=True, error_messages={
                          "required": "Field 'price' is required."})
 
@@ -20,7 +20,7 @@ class WorkPriceEditSchema(Schema):
 
     work = fields.String(required=False, allow_none=True,
                          validate=[validate_work_exists])
-    category = fields.Int(required=False, allow_none=True)
+    category = fields.Int(required=False, allow_none=True, validate=validate.OneOf([0, 1, 2, 3, 4]))
     price = fields.Float(required=False, allow_none=True)
 
 

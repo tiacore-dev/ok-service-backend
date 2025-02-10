@@ -14,7 +14,9 @@ class UserCreateSchema(Schema):
                          "required": "Field 'name' is required."})
     role = fields.String(required=True, error_messages={
                          "required": "Field 'role' is required."}, validate=[validate_role_exists])
-    category = fields.Int(required=False)  # Опциональное поле
+    category = fields.Int(required=False, validate=validate.OneOf([0, 1, 2, 3, 4]))  # Опциональное поле
+
+
 
 
 class UserEditSchema(Schema):
@@ -26,7 +28,7 @@ class UserEditSchema(Schema):
     name = fields.String(vrequired=False, allow_none=True)
     role = fields.String(required=False, allow_none=True,
                          validate=[validate_role_exists])
-    category = fields.Int(required=False, allow_none=True)  # Опциональное поле
+    category = fields.Int(required=False, allow_none=True, validate=validate.OneOf([0, 1, 2, 3, 4]))  # Опциональное поле
 
 
 class UserFilterSchema(Schema):

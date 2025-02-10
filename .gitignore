@@ -14,7 +14,7 @@ vapid_public_key.pem
 
 app/routes/push_route.py
 
-.pylintrc
+# .pylintrc
 # Distribution / packaging
 .Python
 build/
