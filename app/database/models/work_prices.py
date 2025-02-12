@@ -21,7 +21,8 @@ class WorkPrices(Base):
     deleted = Column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
-        CheckConstraint("category IN (0, 1, 2, 3, 4)", name="check_products_category_values"),
+        CheckConstraint("category IN (0, 1, 2, 3, 4)",
+                        name="check_products_category_values"),
     )
 
     works = relationship("Works", back_populates="work_price")

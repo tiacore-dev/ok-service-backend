@@ -53,13 +53,12 @@ class UserManager(BaseDBManager):
 
             try:
                 session.add(new_admin)
+                # При выходе из контекстного менеджера произойдёт commit
+                return user_id
             except Exception as e:
                 logging.error(f"Ошибка добавления пользователя: {e}",
                               extra={"login": "database"})
                 raise
-
-            # При выходе из контекстного менеджера произойдёт commit
-            return
 
     def check_password(self, username, password):
         """Проверяем пароль пользователя"""

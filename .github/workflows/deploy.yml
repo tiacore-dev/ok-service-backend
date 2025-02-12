@@ -24,7 +24,7 @@ jobs:
 
       - name: Deploy to Development
         if: github.ref_name == 'dev'
-        run: ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd apps/ok-service-backend-dev && git pull origin dev && docker compose down && docker compose up -d"
+        run: ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd apps/ok-service-backend-dev && git pull origin dev && docker compose down && docker compose up --build -d"
       
       - name: Deploy to Stage
         if: github.ref_name == 'stage'

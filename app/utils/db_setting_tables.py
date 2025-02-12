@@ -10,8 +10,12 @@ def set_admin():
     from app.database.managers.user_manager import UserManager
     db = UserManager()
     if not db.exists(login='admin'):
-        db.create_main_admin(password=password)
+        admin_id = db.create_main_admin(password=password)
         print('New admin added successfully')
+        return admin_id
+    else:
+        admin = db.filter_one_by_dict(login='admin')
+        return admin['user_id']
 
 
 def set_roles():
