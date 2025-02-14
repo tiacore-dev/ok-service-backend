@@ -13,7 +13,7 @@ class RoleFilterSchema(Schema):
     )
     limit = fields.Int(
         required=False,
-        missing=10,
+        missing=1000,
         validate=validate.Range(min=1, error="Limit must be at least 1."),
         description="Лимит записей."
     )

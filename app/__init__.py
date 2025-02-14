@@ -12,6 +12,7 @@ from app.database import init_db, set_db_globals  # , setup_listeners
 from app.database.vacuum import start_background_task
 from app.utils.db_setting_tables import set_admin, set_roles, set_object_status
 from app.utils.db_works import put_works_in_db
+from app.utils.db_users import put_users_in_db
 
 
 authorizations = {
@@ -55,8 +56,8 @@ def create_app(config_name="development"):
                 extra={'user_id': 'init'})
 
     # Запуск фоновой задачи при старте приложения
-    # with app.app_context():
-    #    start_background_task()
+    with app.app_context():
+        start_background_task()
 
     # Инициализация ролей и админа
 
@@ -67,6 +68,11 @@ def create_app(config_name="development"):
     db = WorksManager()
     if db.get_all() == []:
         put_works_in_db(admin_id)
+    from app.database.managers.user_manager import UserManager
+    db = UserManager()
+    if len(db.get_all()) == 1:
+        put_users_in_db(admin_id)
+
     # setup_listeners()
 
     # Инициализация JWT

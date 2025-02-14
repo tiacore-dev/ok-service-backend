@@ -13,6 +13,9 @@ vapid_private_key.pem
 vapid_public_key.pem
 
 works.xlsx
+users.docx
+users.xlsx
+processed_users.xlsx
 
 app/routes/push_route.py
 

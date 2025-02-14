@@ -20,7 +20,8 @@ class WorkPriceEditSchema(Schema):
 
     work = fields.String(required=False, allow_none=True,
                          validate=[validate_work_exists])
-    category = fields.Int(required=False, allow_none=True, validate=validate.OneOf([0, 1, 2, 3, 4]))
+    category = fields.Int(required=False, allow_none=True,
+                          validate=validate.OneOf([0, 1, 2, 3, 4]))
     price = fields.Float(required=False, allow_none=True)
 
 
@@ -30,7 +31,7 @@ class WorkPriceFilterSchema(Schema):
 
     offset = fields.Int(required=False, missing=0, validate=validate.Range(
         min=0, error="Offset must be non-negative."))
-    limit = fields.Int(required=False, missing=10, validate=validate.Range(
+    limit = fields.Int(required=False, missing=1000, validate=validate.Range(
         min=1, error="Limit must be at least 1."))
     work = fields.String(required=False)
     category = fields.Int(required=False)
