@@ -35,6 +35,7 @@ class AuthLogin(Resource):
             return {"error": err.messages}, 400
         login = data.get("login", None)
         password = str(data.get("password", None))
+        logger.info(f"Полученный пароль: {password}")
 
         logger.info("Login attempt", extra={"login": login})
 
