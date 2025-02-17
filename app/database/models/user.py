@@ -1,4 +1,5 @@
 from uuid import uuid4
+import logging
 from datetime import datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
@@ -73,6 +74,11 @@ class Users(Base):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
+        logging.debug(
+            f"Проверяемый пароль: {password} (тип: {type(password)})")
+        logging.debug(
+            f"Хеш в БД: {self.password_hash} (тип: {type(self.password_hash)})")
+
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
