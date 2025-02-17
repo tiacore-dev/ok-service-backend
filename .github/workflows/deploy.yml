@@ -42,4 +42,4 @@ jobs:
       
       - name: Deploy to Stage
         if: github.ref_name == 'stage'
-        run: ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER_STAGE }}@${{ secrets.SERVER_IP_STAGE }} "cd apps/ok-service-backend-stage && git pull origin stage && docker compose down && docker compose up --build -d"
+        run: ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER_STAGE }}@${{ secrets.SERVER_IP_STAGE }} "cd apps/ok-service-backend-stage && git pull origin stage && docker compose down && docker compose up -d"

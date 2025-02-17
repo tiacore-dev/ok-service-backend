@@ -7,7 +7,7 @@ def put_users_in_db(admin_id):
 
     # Читаем данные из Excel
     df_users = pd.read_excel(file_path)
-
+    print(df_users.head())  # Посмотрим первые строки
     # Импортируем менеджер пользователей
     from app.database.managers.user_manager import UserManager
 
