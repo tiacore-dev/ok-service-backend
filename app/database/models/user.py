@@ -7,8 +7,6 @@ from sqlalchemy import Column, BigInteger, String, UUID, ForeignKey, Boolean, Ch
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.database.db_setup import Base
 
-logger = logging.getLogger('ok_service')
-
 
 class Users(Base):
     __tablename__ = 'users'
@@ -76,12 +74,6 @@ class Users(Base):
         self.password_hash = generate_password_hash(str(password))
 
     def check_password(self, password):
-        logger.info(
-            f"Проверяемый пароль: {password} (тип: {type(password)})")
-        logger.info(
-            f"Хеш в БД: {self.password_hash} (тип: {type(self.password_hash)})")
-        logger.info(
-            f"Сгенерированный хэш по полученному паролю: {generate_password_hash(password)}")
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):

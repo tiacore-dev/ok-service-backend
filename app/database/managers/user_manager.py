@@ -71,14 +71,8 @@ class UserManager(BaseDBManager):
             try:
                 user = session.query(self.model).filter_by(
                     login=username).first()
-                # Это сработает?
-                logger.info(f"Найденный пользователь: {user}")
-                if user:
-                    logger.info(f"Проверяем пароль у {user.login}")
                 if user and user.check_password(password):
-                    logger.info("Пароль правильный")
                     return True
-                logger.warning("Неверный пароль")
                 return False
             except Exception as e:
                 logger.error(f"Database error in check_password: {e}")
