@@ -73,7 +73,7 @@ class Users(Base):
                 f"role={self.role}, category={self.category}, deleted={self.deleted})>")
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(str(password))
 
     def check_password(self, password):
         logger.info(

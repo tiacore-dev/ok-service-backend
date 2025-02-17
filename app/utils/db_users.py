@@ -26,7 +26,8 @@ def put_users_in_db(admin_id):
         # Проверим, правильно ли хранится
         user_manager.add_user(
             login=row["Логин"],
-            password=password_str,  # Передаем как строку
+            password=password_str.strip().encode(
+                "utf-8").decode("utf-8"),  # Передаем как строку
             name=row["ФИО"],
             role=row["Роль"],
             created_by=created_by,

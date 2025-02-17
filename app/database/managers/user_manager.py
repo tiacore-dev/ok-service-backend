@@ -27,8 +27,9 @@ class UserManager(BaseDBManager):
                 created_by=str(created_by),
                 deleted=False
             )
-            new_user.set_password(password)  # Здесь хешируется
-            print(f"STORED HASH: {new_user.password_hash}")  # Проверяем хеш
+            new_user.set_password(str(password))  # Здесь хешируется
+            # Проверяем хеш
+            logger.info(f"STORED HASH: {new_user.password_hash}")
 
             try:
                 session.add(new_user)
