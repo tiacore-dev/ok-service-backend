@@ -35,12 +35,8 @@ class AuthLogin(Resource):
             return {"error": err.messages}, 400
         login = data.get("login", None)
         password = str(data.get("password", None))
-        logger.info(f"Полученный пароль: {password}")
-        logger.debug(f"Тип пароля в роуте: {type(password)}")
 
         logger.info("Login attempt", extra={"login": login})
-        logger.info(
-            f"User exists check: {db.exists(login=login)} for login {login}")
 
         if not (db.exists(login=login) and db.check_password_db(login, password)):
             logger.warning("Authentication failed: bad username or password",

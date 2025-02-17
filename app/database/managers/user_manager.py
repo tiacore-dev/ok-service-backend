@@ -4,6 +4,8 @@ from app.database.models import Users
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
 
+logger = logging.getLogger('ok_service')
+
 
 class UserManager(BaseDBManager):
 
@@ -14,7 +16,7 @@ class UserManager(BaseDBManager):
     def add_user(self, login, password, name, role, created_by, category=None):
         password = str(password)  # Принудительная конвертация
         print(f"FINAL PASSWORD BEFORE HASHING: {password}")
-        logging.debug(f"Тип пароля при добавлении в бд: {type(password)}")
+        logger.debug(f"Тип пароля при добавлении в бд: {type(password)}")
 
         with self.session_scope() as session:
             new_user = self.model(
@@ -31,7 +33,7 @@ class UserManager(BaseDBManager):
             try:
                 session.add(new_user)
             except Exception as e:
-                logging.error(f"Ошибка добавления пользователя: {e}", extra={
+                logger.error(f"Ошибка добавления пользователя: {e}", extra={
                     "login": "database"})
                 raise
 
@@ -58,8 +60,8 @@ class UserManager(BaseDBManager):
                 # При выходе из контекстного менеджера произойдёт commit
                 return user_id
             except Exception as e:
-                logging.error(f"Ошибка добавления пользователя: {e}",
-                              extra={"login": "database"})
+                logger.error(f"Ошибка добавления пользователя: {e}",
+                             extra={"login": "database"})
                 raise
 
     def check_password_db(self, username, password):
@@ -69,16 +71,16 @@ class UserManager(BaseDBManager):
                 user = session.query(self.model).filter_by(
                     login=username).first()
                 # Это сработает?
-                logging.info(f"Найденный пользователь: {user}")
+                logger.info(f"Найденный пользователь: {user}")
                 if user:
-                    logging.info(f"Проверяем пароль у {user.login}")
+                    logger.info(f"Проверяем пароль у {user.login}")
                 if user and user.check_password(password):
-                    logging.info("Пароль правильный")
+                    logger.info("Пароль правильный")
                     return True
-                logging.warning("Неверный пароль")
+                logger.warning("Неверный пароль")
                 return False
             except Exception as e:
-                logging.error(f"Database error in check_password: {e}")
+                logger.error(f"Database error in check_password: {e}")
                 return False
 
     def update_user_password(self, user_id, new_password):
@@ -89,6 +91,6 @@ class UserManager(BaseDBManager):
                 user.set_password(new_password)  # Обновляем хэш пароля
                 # Сессия будет закоммичена автоматически при выходе из контекстного менеджера
             else:
-                logging.warning(f"Пользователь с ID {user_id} не найден",
-                                extra={"login": "database"})
+                logger.warning(f"Пользователь с ID {user_id} не найден",
+                               extra={"login": "database"})
                 return False
