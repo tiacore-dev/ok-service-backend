@@ -74,9 +74,9 @@ class Users(Base):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        logging.debug(
+        logging.info(
             f"Проверяемый пароль: {password} (тип: {type(password)})")
-        logging.debug(
+        logging.info(
             f"Хеш в БД: {self.password_hash} (тип: {type(self.password_hash)})")
 
         return check_password_hash(self.password_hash, password)
