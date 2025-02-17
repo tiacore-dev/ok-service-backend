@@ -62,7 +62,7 @@ class UserManager(BaseDBManager):
                               extra={"login": "database"})
                 raise
 
-    def check_password(self, username, password):
+    def check_password_db(self, username, password):
         """Проверяем пароль пользователя"""
         with self.session_scope() as session:
             try:
