@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, String, UUID, ForeignKey, Boolean, Integer
+from sqlalchemy import Column, String, UUID, ForeignKey, Boolean, BigInteger
 from app.database.db_setup import Base
 
 
@@ -15,7 +15,7 @@ class Works(Base):
     category = Column(UUID, ForeignKey(
         'work_categories.work_category_id'), nullable=True)
     measurement_unit = Column(String, nullable=True)
-    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+    created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),
                         server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
     created_by = Column(UUID, ForeignKey(
         'users.user_id'), nullable=False)

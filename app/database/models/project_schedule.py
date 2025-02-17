@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer,  UUID, ForeignKey, Numeric
+from sqlalchemy import Column, BigInteger,  UUID, ForeignKey, Numeric
 from app.database.db_setup import Base
 
 
@@ -14,8 +14,8 @@ class ProjectSchedules(Base):
     project = Column(UUID, ForeignKey('projects.project_id'), nullable=False)
     work = Column(UUID, ForeignKey('works.work_id'), nullable=False)
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
-    date = Column(Integer, nullable=True)
-    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+    date = Column(BigInteger, nullable=True)
+    created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),
                         server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
     created_by = Column(UUID, ForeignKey(
         'users.user_id'), nullable=False)

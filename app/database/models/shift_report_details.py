@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, UUID, ForeignKey, Numeric, Integer
+from sqlalchemy import Column, UUID, ForeignKey, Numeric, BigInteger
 from app.database.db_setup import Base
 
 
@@ -16,7 +16,7 @@ class ShiftReportDetails(Base):
     work = Column(UUID, ForeignKey('works.work_id'), nullable=False)
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
     summ = Column(Numeric(precision=10, scale=2), nullable=False)
-    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+    created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),
                         server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
     created_by = Column(UUID, ForeignKey(
         'users.user_id'), nullable=False)

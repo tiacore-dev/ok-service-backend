@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, UUID, ForeignKey, Boolean, CheckConstraint
+from sqlalchemy import Column, BigInteger, String, UUID, ForeignKey, Boolean, CheckConstraint, Integer
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.database.db_setup import Base
 
@@ -19,12 +19,13 @@ class Users(Base):
     category = Column(Integer, nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey(
         'users.user_id'), nullable=False)
-    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+    created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),
                         server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
     deleted = Column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
-        CheckConstraint("category IN (0, 1, 2, 3, 4)", name="check_category_values"),
+        CheckConstraint("category IN (0, 1, 2, 3, 4)",
+                        name="check_category_values"),
     )
 
     roles = relationship("Roles", back_populates="user")

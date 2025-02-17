@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
-from sqlalchemy import Column, String, UUID, ForeignKey, Boolean, Integer
+from sqlalchemy import Column, String, UUID, ForeignKey, Boolean, BigInteger
 from app.database.db_setup import Base
 
 
@@ -17,7 +17,7 @@ class Projects(Base):
     night_shift_available = Column(Boolean, nullable=False, default=False)
     extreme_conditions_available = Column(
         Boolean, nullable=False, default=False)
-    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+    created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),
                         server_default=text("EXTRACT(EPOCH FROM NOW())"))
     created_by = Column(UUID(as_uuid=True), ForeignKey(
         'users.user_id'), nullable=True)

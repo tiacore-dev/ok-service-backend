@@ -1,8 +1,7 @@
 from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.sql import text
-
-from sqlalchemy import Column, String, ForeignKey, Boolean, UUID, Integer
+from sqlalchemy import Column, String, ForeignKey, Boolean, UUID, BigInteger
 from sqlalchemy.orm import relationship
 from app.database.db_setup import Base
 
@@ -18,7 +17,7 @@ class Objects(Base):
     status = Column(String, ForeignKey(
         'object_statuses.object_status_id'), nullable=True)
     manager = Column(UUID, ForeignKey('users.user_id'), nullable=True)
-    created_at = Column(Integer, default=lambda: int(datetime.utcnow(
+    created_at = Column(BigInteger, default=lambda: int(datetime.utcnow(
     ).timestamp()), server_default=text("EXTRACT(EPOCH FROM NOW())"))
     created_by = Column(UUID(as_uuid=True), ForeignKey(
         'users.user_id'), nullable=True)

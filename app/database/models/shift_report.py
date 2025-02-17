@@ -20,7 +20,7 @@ class ShiftReports(Base):
     date = Column(BigInteger, nullable=False)
     project = Column(UUID, ForeignKey('projects.project_id'), nullable=False)
     signed = Column(Boolean, nullable=False, default=False)
-    created_at = Column(Integer, default=lambda: int(datetime.utcnow().timestamp()),
+    created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),
                         server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
     created_by = Column(UUID, ForeignKey(
         'users.user_id'), nullable=False)
