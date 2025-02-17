@@ -36,6 +36,7 @@ class AuthLogin(Resource):
         login = data.get("login", None)
         password = str(data.get("password", None))
         logger.info(f"Полученный пароль: {password}")
+        logger.debug(f"Тип пароля в роуте: {type(password)}")
 
         logger.info("Login attempt", extra={"login": login})
 

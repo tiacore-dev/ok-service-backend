@@ -12,7 +12,10 @@ class UserManager(BaseDBManager):
         return Users
 
     def add_user(self, login, password, name, role, created_by, category=None):
-        """Добавление нового пользователя с хешированием пароля."""
+        password = str(password)  # Принудительная конвертация
+        print(f"FINAL PASSWORD BEFORE HASHING: {password}")
+        logging.debug(f"Тип пароля при добавлении в бд: {type(password)}")
+
         with self.session_scope() as session:
             new_user = self.model(
                 login=login,
@@ -22,17 +25,16 @@ class UserManager(BaseDBManager):
                 created_by=str(created_by),
                 deleted=False
             )
-            # Установим пароль сразу после создания объекта
-            new_user.set_password(str(password))
+            new_user.set_password(password)  # Здесь хешируется
+            print(f"STORED HASH: {new_user.password_hash}")  # Проверяем хеш
 
             try:
                 session.add(new_user)
             except Exception as e:
-                logging.error(f"Ошибка добавления пользователя: {e}",
-                              extra={"login": "database"})
+                logging.error(f"Ошибка добавления пользователя: {e}", extra={
+                    "login": "database"})
                 raise
 
-            # При выходе из контекстного менеджера произойдёт commit
             return str(new_user.user_id)
 
     def create_main_admin(self,  password, category=None):

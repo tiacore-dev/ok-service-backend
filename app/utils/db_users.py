@@ -33,6 +33,7 @@ def put_users_in_db(admin_id):
             category=int(row["Категория"]) if pd.notna(
                 row["Категория"]) else None
         )
+        logger.debug(f"Тип пароля при записи в бд: {type(password_str)}")
 
     logger.info("Пользователи успешно добавлены в базу данных!")
     # Сохраняем таблицу в Exceд
