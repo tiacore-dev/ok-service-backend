@@ -80,7 +80,8 @@ class Users(Base):
             f"Проверяемый пароль: {password} (тип: {type(password)})")
         logger.info(
             f"Хеш в БД: {self.password_hash} (тип: {type(self.password_hash)})")
-
+        logger.info(
+            f"Сгенерированный хэш по полученному паролю: {generate_password_hash(password)}")
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
