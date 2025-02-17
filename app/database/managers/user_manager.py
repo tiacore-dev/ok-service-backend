@@ -68,12 +68,18 @@ class UserManager(BaseDBManager):
             try:
                 user = session.query(self.model).filter_by(
                     login=username).first()
+                # Это сработает?
+                logging.info(f"Найденный пользователь: {user}")
+                if user:
+                    logging.info(f"Проверяем пароль у {user.login}")
                 if user and user.check_password(password):
+                    logging.info("Пароль правильный")
                     return True
+                logging.warning("Неверный пароль")
                 return False
             except Exception as e:
                 logging.error(f"Database error in check_password: {e}")
-                raise
+                return False
 
     def update_user_password(self, user_id, new_password):
         """Обновляем пароль пользователя"""
