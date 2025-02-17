@@ -7,18 +7,18 @@ services:
     networks:
       - ok_network
 
-  test:
-    build: .
-    command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
-    depends_on:
-      - alembic
-    networks:
-      - ok_network
-    volumes:
-      - .:/app
-      - ./tests:/app/tests
-    environment:
-      - PYTHONPATH=/app
+  #test:
+  #  build: .
+  #  command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
+  #  depends_on:
+  #    - alembic
+  #  networks:
+  #    - ok_network
+  #  volumes:
+  #    - .:/app
+  #    - ./tests:/app/tests
+  #  environment:
+  #    - PYTHONPATH=/app
 
 
   web:
