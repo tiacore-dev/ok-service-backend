@@ -24,6 +24,7 @@ def put_users_in_db(admin_id):
             category=int(row["Категория"]) if pd.notna(
                 row["Категория"]) else None  # Явная проверка
         )
+        print(str(row['Пароль']))
 
     print("Пользователи успешно добавлены в базу данных!")
     # Сохраняем таблицу в Exceд

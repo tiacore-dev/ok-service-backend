@@ -23,7 +23,7 @@ class UserManager(BaseDBManager):
                 deleted=False
             )
             # Установим пароль сразу после создания объекта
-            new_user.set_password(password)
+            new_user.set_password(str(password))
 
             try:
                 session.add(new_user)
