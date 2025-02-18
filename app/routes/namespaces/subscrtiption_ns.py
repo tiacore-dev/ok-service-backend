@@ -122,7 +122,7 @@ class SendNotification(Resource):
             webpush(
                 subscription_info=subscription_info_corrected,
                 data=json.dumps(
-                    {"title": "Test Notification", "body": message}),
+                    {"header": "Test Notification", "text": message}),
                 vapid_private_key=urlsafe_b64encode(
                     private_key.private_numbers().private_value.to_bytes(
                         length=(private_key.key_size + 7) // 8,
