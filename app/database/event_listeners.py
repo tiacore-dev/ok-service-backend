@@ -68,7 +68,7 @@ def send_push_notification(subscription, target):
 
 
 # Пример применения слушателя для событий в таблице
-"""def setup_listeners():
+def setup_listeners():
     from app.database.models import Projects  # Ваша модель
     logger.info("Настройка слушателей событий для модели Projects.")
     try:
@@ -88,4 +88,3 @@ def send_push_notification(subscription, target):
         logger.info("Слушатели событий успешно настроены.")
     except Exception as e:
         logger.error(f"Ошибка настройки слушателей событий: {e}")
-"""

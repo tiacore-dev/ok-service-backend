@@ -121,9 +121,9 @@ class SendNotification(Resource):
             return {"error": "Failed to send notification."}, 500
 
 
-@ subscription_ns.route('/<string:subscription_id>/unsubscribe')
+@subscription_ns.route('/<string:subscription_id>/unsubscribe')
 class Unsubscribe(Resource):
-    @ jwt_required()
+    @jwt_required()
     @subscription_ns.marshal_with(subscription_msg_model)
     def delete(self, subscription_id):
         from app.database.managers.subscription_manager import SubscriptionsManager
