@@ -45,7 +45,8 @@ subscription_create_model = generate_swagger_model(
 subscription_ns.models[subscription_create_model.name] = subscription_create_model
 
 subscription_msg_model = subscription_ns.model('SubscriptionMessage', {
-    'msg': fields.String(description='Response message')
+    'msg': fields.String(description='Response message'),
+    "subscription_id": fields.String(description='ID of subscription')
 })
 
 notification_model = subscription_ns.model('Notification', {
@@ -83,10 +84,10 @@ class Subscribe(Resource):
             return {"message": "Subscription already exists."}, 200
 
         # Сохраняем подписку
-        db.add(subscription_data=subscription_info,
-               user=current_user['user_id'])
+        subscription = db.add(subscription_data=subscription_info,
+                              user=current_user['user_id'])
 
-        return {"message": "Subscription added."}, 201
+        return {"message": "Subscription added.", "subscription_id": subscription['subscription_id']}, 201
 
 
 @subscription_ns.route('/send_notification')
@@ -103,7 +104,7 @@ class SendNotification(Resource):
         if not subscription_id:
             logger.warning("No subscription_id provided.")
             return {"message": "No subscription ID provided."}, 400
-
+        subscription_id = UUID(subscription_id)
         subscription = db.get_by_id(subscription_id)
         if not subscription:
             logger.warning(f"No subscription found for ID: {subscription_id}")
