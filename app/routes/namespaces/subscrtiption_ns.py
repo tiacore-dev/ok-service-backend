@@ -60,6 +60,7 @@ class Subscribe(Resource):
         from app.database.managers.subscription_manager import SubscriptionsManager
         db = SubscriptionsManager()
         current_user = json.loads(get_jwt_identity())
+        logger.info(f"Полученные данные: {request.json}")
         # Получаем "сырые" данные из тела запроса
         schema = ShiftReportCreateSchema()
         try:
