@@ -112,8 +112,15 @@ class SendNotification(Resource):
         subscription_info = json.loads(subscription['subscription_data'])
 
         try:
+            subscription_info_corrected = {
+                "endpoint": subscription_info["endpoint"],
+                "keys": {
+                    "p256dh": subscription_info["p256dh"],
+                    "auth": subscription_info["auth"]
+                }
+            }
             webpush(
-                subscription_info=subscription_info,
+                subscription_info=subscription_info_corrected,
                 data=json.dumps(
                     {"title": "Test Notification", "body": message}),
                 vapid_private_key=urlsafe_b64encode(
