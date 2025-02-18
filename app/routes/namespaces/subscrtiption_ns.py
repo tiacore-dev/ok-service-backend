@@ -61,25 +61,28 @@ class Subscribe(Resource):
     @subscription_ns.marshal_with(subscription_msg_model)
     def post(self):
         from app.database.managers.subscription_manager import SubscriptionsManager
+
         db = SubscriptionsManager()
         current_user = json.loads(get_jwt_identity())
         logger.info(f"Полученные данные: {request.json}")
 
-        # Валидация входных данных
+        # Используем правильную схему
         schema = SubscriptionSchema()
         try:
+            # Загружаем и валидируем данные
             data = schema.load(request.json)
         except ValidationError as err:
+            logger.error(f"Ошибка валидации данных: {err.messages}")
             return {"error": err.messages}, 400
 
-        # Преобразуем объект в JSON-строку
+        # Преобразуем объект в JSON-строку перед сохранением
         subscription_info = json.dumps(data)
 
-        # Проверяем существование подписки
+        # Проверяем, существует ли подписка
         if db.exists(subscription_data=subscription_info):
             return {"message": "Subscription already exists."}, 200
 
-        # Добавляем подписку в виде JSON-строки
+        # Сохраняем подписку
         db.add(subscription_data=subscription_info,
                user=current_user['user_id'])
 
