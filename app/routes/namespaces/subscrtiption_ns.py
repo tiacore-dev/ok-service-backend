@@ -8,7 +8,8 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key, lo
 from flask import request
 from pywebpush import webpush, WebPushException
 from marshmallow import ValidationError
-from app.schemas.shift_report_schemas import ShiftReportCreateSchema
+from app.utils.helpers import generate_swagger_model
+from app.schemas.subscription_schemas import SubscriptionSchema
 
 subscription_ns = Namespace(
     'subscriptions', description='Subscription actions')
@@ -37,9 +38,11 @@ VAPID_CLAIMS = {
 }
 
 # Определяем модель, которая описывает входные данные
-subscription_create_model = subscription_ns.model('SubscriptionCreate', {
-    'subscription_info': fields.String(required=True, description='Subscription info in raw text')
-})
+subscription_create_model = generate_swagger_model(
+    SubscriptionSchema(), 'SubscriptionCreate'
+)
+
+subscription_ns.models[subscription_create_model.name] = subscription_create_model
 
 subscription_msg_model = subscription_ns.model('SubscriptionMessage', {
     'msg': fields.String(description='Response message')
@@ -61,22 +64,25 @@ class Subscribe(Resource):
         db = SubscriptionsManager()
         current_user = json.loads(get_jwt_identity())
         logger.info(f"Полученные данные: {request.json}")
-        # Получаем "сырые" данные из тела запроса
-        schema = ShiftReportCreateSchema()
+
+        # Валидация входных данных
+        schema = SubscriptionSchema()
         try:
-            # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
-        subscription_info = data.get('transcription_info')
+
+        # Преобразуем объект в JSON-строку
+        subscription_info = json.dumps(data)
+
         # Проверяем существование подписки
         if db.exists(subscription_data=subscription_info):
             return {"message": "Subscription already exists."}, 200
 
-        # Добавляем подписку
+        # Добавляем подписку в виде JSON-строки
         db.add(subscription_data=subscription_info,
                user=current_user['user_id'])
+
         return {"message": "Subscription added."}, 201
 
 
