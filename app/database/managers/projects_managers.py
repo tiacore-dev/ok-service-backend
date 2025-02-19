@@ -138,23 +138,24 @@ class ProjectWorksManager(BaseDBManager):
             return result
 
     def get_manager(self, project):
-        """Получение ID менеджера проекта по project"""
+        """Получение ID менеджера объекта по project"""
         try:
             logger.debug(f"Получение manager ID для project: {project}", extra={
                          "login": "database"})
 
             with self.session_scope() as session:
-                project_work = session.query(self.model).options(
-                    joinedload(self.model.projects).joinedload(
-                        self.model.projects.objects)
-                ).filter(self.model.project == project).first()
+                # 🔥 Загружаем Projects и Objects через Projects
+                project_data = session.query(Projects).options(
+                    # Теперь objects загружается через Projects
+                    joinedload(Projects.objects)
+                ).filter(Projects.project_id == project).first()
 
-                if not project_work or not project_work.projects or not project_work.projects.objects:
-                    logger.warning(
-                        f"ProjectWork с project {project} или его проект/объект не найден", extra={"login": "database"})
+                if not project_data or not project_data.objects:
+                    logger.warning(f"Проект {project} или его объект не найден", extra={
+                                   "login": "database"})
                     return None
 
-                manager_id = project_work.projects.objects.manager
+                manager_id = project_data.objects.manager  # 🔥 Теперь это корректно
                 if not manager_id:
                     logger.warning(f"У объекта проекта {project} нет менеджера", extra={
                                    "login": "database"})
