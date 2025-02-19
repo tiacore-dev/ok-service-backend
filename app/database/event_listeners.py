@@ -4,7 +4,6 @@ from uuid import UUID
 import logging
 from base64 import urlsafe_b64encode
 from sqlalchemy import event
-from sqlalchemy.orm.attributes import get_history
 from pywebpush import webpush, WebPushException
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from config import Config
