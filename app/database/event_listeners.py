@@ -26,7 +26,7 @@ VAPID_CLAIMS = {
 NOTIFICATION_HANDLERS = {}
 
 
-def notify_on_project_works_change(target, event_name):
+def notify_on_project_works_change(target, event_name, Session):
     """Обработчик уведомлений для ProjectWorks"""
     logger.info(
         f"[ProjectWorks] Изменение обнаружено (event: {event_name}): ID={target.project_work_id}")
@@ -36,27 +36,27 @@ def notify_on_project_works_change(target, event_name):
 
     db = SubscriptionsManager()
     project_manager = ProjectWorksManager()
-
+    session = Session()
     try:
         # Генерируем ссылку
         link = f"https://{ORIGIN}/projects/{target.project}"
-        from app.database.db_globals import Session
-        session = Session()
+
         if event_name == 'insert':
             # ⚡ Обновляем target из БД, чтобы получить актуальные данные
 
+            time.sleep(0.5)
             session.refresh(target)
             logger.info(
                 f"[ProjectWorks] Обрабатываем вставку новой записи: {target.project_work_id}")
             # ⚠️ Ждём, пока запись появится в БД (до 3 попыток)
-            user_id = None
-            for attempt in range(3):
-                user_id = project_manager.get_manager(target.project_work_id)
-                if user_id:
-                    break  # Если нашли, выходим из цикла
-                logger.warning(
-                    f"[ShiftReports] Попытка {attempt+1}: Запись ещё не найдена. Ждём 0.5 секунды...")
-                time.sleep(0.5)  # Ожидание перед повторной попытко
+            # user_id = None
+            # for attempt in range(3):
+            user_id = project_manager.get_manager(target.project_work_id)
+            #    if user_id:
+            #        break  # Если нашли, выходим из цикла
+            #    logger.warning(
+            #        f"[ShiftReports] Попытка {attempt+1}: Запись ещё не найдена. Ждём 0.5 секунды...")
+            #    time.sleep(0.5)  # Ожидание перед повторной попытко
             # user_id = project_manager.get_manager(target.project_work_id)
             if not user_id:
                 logger.warning(
@@ -71,6 +71,8 @@ def notify_on_project_works_change(target, event_name):
             }
 
         elif event_name == 'update':
+
+            time.sleep(0.5)
             session.refresh(target)
             logger.info(
                 f"[ProjectWorks] Обрабатываем обновление записи: {target.project_work_id}")
@@ -94,19 +96,20 @@ def notify_on_project_works_change(target, event_name):
                         "url": link
                     }
             else:
-                session.close()
+
                 logger.debug(
                     f"[ProjectWorks] Поле signed не изменилось с False → True. Уведомление не отправляется.")
                 return
-        session.close()
         send_push_notification(subscription, message_data)
 
     except Exception as ex:
         logger.error(
             f"[ProjectWorks] Ошибка при отправке уведомления: {ex}", exc_info=True)
+    finally:
+        session.close()
 
 
-def notify_on_shift_reports_change(target, event_name):
+def notify_on_shift_reports_change(target, event_name, Session):
     """Обработчик уведомлений для ShiftReports"""
     logger.info(
         f"[ShiftReports] Изменение обнаружено (event: {event_name}): ID={target.shift_report_id}")
@@ -116,28 +119,28 @@ def notify_on_shift_reports_change(target, event_name):
 
     db = SubscriptionsManager()
     shift_manager = ShiftReportsManager()
-
+    session = Session()
     try:
         link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
-        from app.database.db_globals import Session
-        session = Session()
+
         if event_name == 'insert':
 
+            time.sleep(0.3)
             session.refresh(target)
 
             logger.info(
                 f"[ShiftReports] Обрабатываем вставку нового отчёта: {target.shift_report_id}")
 
             # ⚠️ Ждём, пока запись появится в БД (до 3 попыток)
-            user_id = None
-            for attempt in range(3):
-                user_id = shift_manager.get_project_leader(
-                    target.shift_report_id)
-                if user_id:
-                    break  # Если нашли, выходим из цикла
-                logger.warning(
-                    f"[ShiftReports] Попытка {attempt+1}: Запись ещё не найдена. Ждём 0.5 секунды...")
-                time.sleep(0.5)  # Ожидание перед повторной попытко
+            # user_id = None
+            # for attempt in range(3):
+            user_id = shift_manager.get_project_leader(
+                target.shift_report_id)
+            #    if user_id:
+            #        break  # Если нашли, выходим из цикла
+            #    logger.warning(
+            #        f"[ShiftReports] Попытка {attempt+1}: Запись ещё не найдена. Ждём 0.5 секунды...")
+            #    time.sleep(0.5)  # Ожидание перед повторной попытко
             if not user_id:
                 logger.warning(
                     f"[ShiftReports] Не найден user_id для {target.shift_report_id}. Уведомление не отправлено.")
@@ -151,6 +154,7 @@ def notify_on_shift_reports_change(target, event_name):
             }
 
         elif event_name == 'update':
+            time.sleep(0.3)
             session.refresh(target)
             logger.info(
                 f"[ShiftReports] Обрабатываем обновление сменного отчёта: {target.shift_report_id}")
@@ -173,19 +177,19 @@ def notify_on_shift_reports_change(target, event_name):
                         "url": link
                     }
             else:
-                session.close()
                 logger.debug(
                     f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
                 return
-        session.close()
         send_push_notification(subscription, message_data)
 
     except Exception as ex:
         logger.error(
             f"[ShiftReports] Ошибка при отправке уведомления: {ex}", exc_info=True)
+    finally:
+        session.close()
 
 
-def notify_on_change(mapper, connection, target, event_name):
+def notify_on_change(mapper, connection, target, event_name, Session):
     """Общий обработчик изменений"""
     table_name = target.__tablename__
     logger.info(
@@ -193,7 +197,7 @@ def notify_on_change(mapper, connection, target, event_name):
 
     handler = NOTIFICATION_HANDLERS.get(table_name)
     if handler:
-        handler(target, event_name)
+        handler(target, event_name, Session)
     else:
         logger.warning(
             f"[GLOBAL] Нет обработчика для таблицы {table_name}. Уведомления не отправлены.")
@@ -227,20 +231,20 @@ NOTIFICATION_HANDLERS["project_works"] = notify_on_project_works_change
 NOTIFICATION_HANDLERS["shift_reports"] = notify_on_shift_reports_change
 
 
-def setup_listeners():
-    """Настройка слушателей событий"""
+def setup_listeners(Session):
+    """Настройка слушателей событий с передачей `Session`"""
     from app.database.models import ProjectWorks, ShiftReports
 
     logger.info("[GLOBAL] Настройка слушателей событий")
     try:
-        event.listen(ProjectWorks, 'after_insert', lambda m,
-                     c, t: notify_on_change(m, c, t, "insert"))
-        event.listen(ProjectWorks, 'after_update', lambda m,
-                     c, t: notify_on_change(m, c, t, "update"))
-        event.listen(ShiftReports, 'after_insert', lambda m,
-                     c, t: notify_on_change(m, c, t, "insert"))
-        event.listen(ShiftReports, 'after_update', lambda m,
-                     c, t: notify_on_change(m, c, t, "update"))
+        event.listen(ProjectWorks, 'after_insert', lambda m, c,
+                     t: notify_on_change(m, c, t, "insert", Session))
+        event.listen(ProjectWorks, 'after_update', lambda m, c,
+                     t: notify_on_change(m, c, t, "update", Session))
+        event.listen(ShiftReports, 'after_insert', lambda m, c,
+                     t: notify_on_change(m, c, t, "insert", Session))
+        event.listen(ShiftReports, 'after_update', lambda m, c,
+                     t: notify_on_change(m, c, t, "update", Session))
         logger.info("[GLOBAL] Слушатели событий успешно настроены.")
     except Exception as e:
         logger.error(

@@ -73,7 +73,7 @@ def create_app(config_name="development"):
     # if len(db.get_all()) == 1:
     #    put_users_in_db(admin_id)
 
-    setup_listeners()
+    setup_listeners(Session)
 
     # Инициализация JWT
     try:
