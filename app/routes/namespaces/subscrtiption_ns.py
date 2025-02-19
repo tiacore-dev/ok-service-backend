@@ -80,8 +80,8 @@ class Subscribe(Resource):
         subscription_info = json.dumps(data)
 
         # Проверяем, существует ли подписка
-        # if db.exists(subscription_data=subscription_info):
-        #    return {"message": "Subscription already exists."}, 200
+        if db.exists(user=current_user['user_id']):
+            return {"message": "Subscription already exists."}, 200
 
         # Сохраняем подписку
         subscription = db.add(subscription_data=subscription_info,
