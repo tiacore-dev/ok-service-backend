@@ -63,12 +63,11 @@ def notify_on_project_works_change(target, event_name):
 
             logger.info(
                 f"[ProjectWorks] Обрабатываем обновление записи: {target.project_work_id}")
-
-            history = get_history(target, "signed")
-            logger.debug(f"[ProjectWorks] История изменения signed: {history}")
-
-            if history.has_changes and len(history.deleted) > 0 and len(history.added) > 0:
-                if history.deleted[0] is False and history.added[0] is True:
+            project_work = project_manager.get_by_id(target.project_work_id)
+            if project_work:
+                previous_signed = project_work['signed']  # Старое значение
+                current_signed = target.signed  # Новое значение
+                if previous_signed is False and current_signed is True:
                     user_id = project_manager.get_project_leader(
                         target.project_work_id)
                     if not user_id:
@@ -76,18 +75,18 @@ def notify_on_project_works_change(target, event_name):
                             f"[ProjectWorks] Не найден project_leader для {target.project_work_id}. Уведомление не отправлено.")
                         return
 
-                    subscription = db.filter_by(user=user_id)
+                    subscription = db.filter_one_by_dict(user=UUID(user_id))
                     message_data = {
                         "title": "Проектная работа подписана",
                         "body": f"Проектная работа с ID: {target.project_work_id} была подписана",
                         "url": link
                     }
-            else:
+                else:
 
-                logger.debug(
-                    f"[ProjectWorks] Поле signed не изменилось с False → True. Уведомление не отправляется.")
-                return
-        send_push_notification(subscription, message_data)
+                    logger.debug(
+                        f"[ProjectWorks] Поле signed не изменилось с False → True. Уведомление не отправляется.")
+                    return
+        send_push_notification(subscription['subscription_data'], message_data)
 
     except Exception as ex:
         logger.error(
@@ -153,7 +152,8 @@ def notify_on_shift_reports_change(target, event_name):
                     logger.debug(
                         f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
 
-        send_push_notification(subscription['subscription_data'], message_data)
+        send_push_notification(
+            subscription['subscription_data'], json.loads(message_data))
 
     except Exception as ex:
         logger.error(
@@ -190,7 +190,7 @@ def send_push_notification(subscription, message_data):
         }
         webpush(
             subscription_info=subscription_info_corrected,
-            data=message_data,
+            data=json.dumps(message_data),
             vapid_private_key=urlsafe_b64encode(
                 private_key.private_numbers().private_value.to_bytes(
                     length=(private_key.key_size + 7) // 8,
