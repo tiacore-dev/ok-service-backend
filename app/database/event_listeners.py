@@ -40,10 +40,10 @@ def notify_on_project_works_change(target, event_name):
     try:
         # Генерируем ссылку
         link = f"https://{ORIGIN}/projects/{target.project}"
-
+        session = Session()
         if event_name == 'insert':
             # ⚡ Обновляем target из БД, чтобы получить актуальные данные
-            session = Session()
+
             session.refresh(target)
             logger.info(
                 f"[ProjectWorks] Обрабатываем вставку новой записи: {target.project_work_id}")
@@ -70,6 +70,7 @@ def notify_on_project_works_change(target, event_name):
             }
 
         elif event_name == 'update':
+            session.refresh(target)
             logger.info(
                 f"[ProjectWorks] Обрабатываем обновление записи: {target.project_work_id}")
 
@@ -116,9 +117,9 @@ def notify_on_shift_reports_change(target, event_name):
 
     try:
         link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
-
+        session = Session()
         if event_name == 'insert':
-            session = Session()
+
             session.refresh(target)
             logger.info(
                 f"[ShiftReports] Обрабатываем вставку нового отчёта: {target.shift_report_id}")
@@ -146,6 +147,7 @@ def notify_on_shift_reports_change(target, event_name):
             }
 
         elif event_name == 'update':
+            session.refresh(target)
             logger.info(
                 f"[ShiftReports] Обрабатываем обновление сменного отчёта: {target.shift_report_id}")
 
