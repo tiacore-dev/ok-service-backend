@@ -136,3 +136,66 @@ class ProjectWorksManager(BaseDBManager):
             logger.debug(f"Найдено {len(result)} работ для project_leader={user_id}",
                          extra={"login": "database"})
             return result
+
+    def get_manager(self, project_work_id):
+        """Получение ID менеджера проекта по project_work_id"""
+        try:
+            logger.debug(f"Получение manager ID для project_work_id: {project_work_id}", extra={
+                         "login": "database"})
+
+            with self.session_scope() as session:
+                project_work = session.query(self.model).options(
+                    joinedload(self.model.projects).joinedload(
+                        Projects.objects)
+                ).filter(self.model.project_work_id == project_work_id).first()
+
+                if not project_work or not project_work.projects or not project_work.projects.objects:
+                    logger.warning(
+                        f"ProjectWork с ID {project_work_id} или его проект/объект не найден", extra={"login": "database"})
+                    return None
+
+                manager_id = project_work.projects.objects.manager
+                if not manager_id:
+                    logger.warning(f"У объекта проекта ProjectWork {project_work_id} нет менеджера", extra={
+                                   "login": "database"})
+                    return None
+
+                logger.info(f"Найден manager ID {manager_id} для project_work_id {project_work_id}", extra={
+                            "login": "database"})
+                return str(manager_id)  # Приводим UUID к строке
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении manager ID: {e}", extra={
+                         "login": "database"})
+            raise
+
+    def get_project_leader(self, project_work_id):
+        """Получение ID руководителя проекта по project_work_id"""
+        try:
+            logger.debug(f"Получение project_leader ID для project_work_id: {project_work_id}", extra={
+                         "login": "database"})
+
+            with self.session_scope() as session:
+                project_work = session.query(self.model).options(
+                    joinedload(self.model.projects)
+                ).filter(self.model.project_work_id == project_work_id).first()
+
+                if not project_work or not project_work.projects:
+                    logger.warning(f"ProjectWork с ID {project_work_id} или его проект не найден", extra={
+                                   "login": "database"})
+                    return None
+
+                project_leader = project_work.projects.project_leader
+                if not project_leader:
+                    logger.warning(f"У проекта ProjectWork {project_work_id} нет руководителя", extra={
+                                   "login": "database"})
+                    return None
+
+                logger.info(f"Найден project_leader ID {project_leader} для project_work_id {project_work_id}", extra={
+                            "login": "database"})
+                return str(project_leader)  # Приводим UUID к строке
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении project_leader ID: {e}", extra={
+                         "login": "database"})
+            raise

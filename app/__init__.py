@@ -62,16 +62,16 @@ def create_app(config_name="development"):
     # Инициализация ролей и админа
 
     set_roles()
-    admin_id = set_admin()
+    # admin_id = set_admin()
     set_object_status()
-    from app.database.managers.works_managers import WorksManager
-    db = WorksManager()
-    if db.get_all() == []:
-        put_works_in_db(admin_id)
-    from app.database.managers.user_manager import UserManager
-    db = UserManager()
-    if len(db.get_all()) == 1:
-        put_users_in_db(admin_id)
+    # from app.database.managers.works_managers import WorksManager
+    # db = WorksManager()
+    # if db.get_all() == []:
+    #    put_works_in_db(admin_id)
+    # from app.database.managers.user_manager import UserManager
+    # db = UserManager()
+    # if len(db.get_all()) == 1:
+    #    put_users_in_db(admin_id)
 
     setup_listeners()
 
