@@ -54,9 +54,9 @@ def notify_on_project_works_change(target, event_name):
 
             subscription = db.filter_by(user=user_id)
             message_data = {
-                "title": "Добавлена новая проектная работа",
-                "body": f"Создана новая проектная работа с ID: {target.project_work_id}",
-                "url": link
+                "header": "Добавлена новая проектная работа",
+                "text": f"Создана новая проектная работа с ID: {target.project_work_id}",
+                # "url": link
             }
 
         elif event_name == 'update':
@@ -77,9 +77,9 @@ def notify_on_project_works_change(target, event_name):
 
                     subscription = db.filter_one_by_dict(user=UUID(user_id))
                     message_data = {
-                        "title": "Проектная работа подписана",
-                        "body": f"Проектная работа с ID: {target.project_work_id} была подписана",
-                        "url": link
+                        "header": "Проектная работа подписана",
+                        "text": f"Проектная работа с ID: {target.project_work_id} была подписана",
+                        # "url": link
                     }
                 else:
 
@@ -122,9 +122,9 @@ def notify_on_shift_reports_change(target, event_name):
 
             subscription = db.filter_by(user=user_id)
             message_data = {
-                "title": "Добавлен новый сменный отчёт",
-                "body": f"Создан новый сменный отчёт ID: {target.shift_report_id}",
-                "url": link
+                "header": "Добавлен новый сменный отчёт",
+                "text": f"Создан новый сменный отчёт ID: {target.shift_report_id}",
+                # "url": link
             }
 
         elif event_name == 'update':
@@ -144,16 +144,16 @@ def notify_on_shift_reports_change(target, event_name):
 
                     subscription = db.filter_one_by_dict(user=UUID(user_id))
                     message_data = {
-                        "title": "Сменный отчёт подписан",
-                        "body": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
-                        "url": link
+                        "header": "Сменный отчёт подписан",
+                        "text": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
+                        # "url": link
                     }
                 else:
                     logger.debug(
                         f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
 
         send_push_notification(
-            subscription['subscription_data'], json.loads(message_data))
+            subscription['subscription_data'], message_data)
 
     except Exception as ex:
         logger.error(
