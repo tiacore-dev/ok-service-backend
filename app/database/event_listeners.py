@@ -38,7 +38,7 @@ def notify_on_project_works_change(target, event_name):
     project_manager = ProjectWorksManager()
     try:
         # Генерируем ссылку
-        link = f"https://{ORIGIN}/projects/{target.project}"
+        # link = f"https://{ORIGIN}/projects/{target.project}"
 
         if event_name == 'insert':
             # ⚡ Обновляем target из БД, чтобы получить актуальные данные
@@ -85,6 +85,8 @@ def notify_on_project_works_change(target, event_name):
                     logger.debug(
                         f"[ProjectWorks] Поле signed не изменилось с False → True. Уведомление не отправляется.")
                     return
+        else:
+            return
         send_push_notification(subscription['subscription_data'], message_data)
 
     except Exception as ex:
@@ -104,7 +106,7 @@ def notify_on_shift_reports_change(target, event_name):
     shift_manager = ShiftReportsManager()
 
     try:
-        link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
+        # link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
 
         if event_name == 'insert':
 
@@ -150,6 +152,8 @@ def notify_on_shift_reports_change(target, event_name):
                 else:
                     logger.debug(
                         f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
+            else:
+                return
 
         send_push_notification(
             subscription['subscription_data'], message_data)
