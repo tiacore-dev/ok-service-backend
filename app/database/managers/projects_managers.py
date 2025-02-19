@@ -148,7 +148,7 @@ class ProjectWorksManager(BaseDBManager):
                     joinedload(self.model.projects),  # Загружаем проект
                     # Загружаем объект, связанный с проектом
                     joinedload(Projects.objects)
-                ).filter(self.model.project == project, self.model.deleted == False).first()
+                ).filter(self.model.project == project).first()
 
                 if not project_work or not project_work.projects or not project_work.projects.objects:
                     logger.warning(
