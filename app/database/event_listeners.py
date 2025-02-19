@@ -189,7 +189,7 @@ def send_push_notification(subscription, message_data):
             }
         }
         webpush(
-            subscription_info=json.loads(
+            subscription_info=json.dumps(
                 subscription_info_corrected),
             data=json.dumps(message_data),
             vapid_private_key=urlsafe_b64encode(
