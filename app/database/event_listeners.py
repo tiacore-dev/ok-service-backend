@@ -46,7 +46,7 @@ def notify_on_project_works_change(target, event_name):
             logger.info(
                 f"[ProjectWorks] Обрабатываем вставку новой записи: {target.project_work_id}")
 
-            user_id = project_manager.get_manager(target.project_work_id)
+            user_id = project_manager.get_manager(target.project)
             if not user_id:
                 logger.warning(
                     f"[ProjectWorks] Не найден user_id для {target.project_work_id}. Уведомление не отправлено.")
@@ -113,7 +113,7 @@ def notify_on_shift_reports_change(target, event_name):
                 f"[ShiftReports] Обрабатываем вставку нового отчёта: {target.shift_report_id}")
 
             user_id = shift_manager.get_project_leader(
-                target.shift_report_id)
+                target.project)
 
             if not user_id:
                 logger.warning(
@@ -217,19 +217,15 @@ def setup_listeners():
 
     logger.info("[GLOBAL] Настройка слушателей событий")
     try:
-        def delayed_notify(m, c, t, event_name):
-            """Добавляем задержку перед вызовом notify_on_change()"""
-            time.sleep(2)  # 🔥 Даем время БД на коммит
-            notify_on_change(m, c, t, event_name)
 
         event.listen(ProjectWorks, 'after_insert', lambda m,
-                     c, t: delayed_notify(m, c, t, "insert"))
+                     c, t: notify_on_change(m, c, t, "insert"))
         event.listen(ProjectWorks, 'after_update', lambda m,
-                     c, t: delayed_notify(m, c, t, "update"))
+                     c, t: notify_on_change(m, c, t, "update"))
         event.listen(ShiftReports, 'after_insert', lambda m,
-                     c, t: delayed_notify(m, c, t, "insert"))
+                     c, t: notify_on_change(m, c, t, "insert"))
         event.listen(ShiftReports, 'after_update', lambda m,
-                     c, t: delayed_notify(m, c, t, "update"))
+                     c, t: notify_on_change(m, c, t, "update"))
 
         logger.info("[GLOBAL] Слушатели событий успешно настроены.")
     except Exception as e:

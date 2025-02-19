@@ -137,30 +137,30 @@ class ProjectWorksManager(BaseDBManager):
                          extra={"login": "database"})
             return result
 
-    def get_manager(self, project_work_id):
+    def get_manager(self, project):
         """Получение ID менеджера проекта по project_work_id"""
         try:
-            logger.debug(f"Получение manager ID для project_work_id: {project_work_id}", extra={
+            logger.debug(f"Получение manager ID для project_work_id: {project}", extra={
                          "login": "database"})
 
             with self.session_scope() as session:
                 project_work = session.query(self.model).options(
                     joinedload(self.model.projects).joinedload(
                         Projects.objects)
-                ).filter(self.model.project_work_id == project_work_id).first()
+                ).filter(self.model.project == project).first()
 
                 if not project_work or not project_work.projects or not project_work.projects.objects:
                     logger.warning(
-                        f"ProjectWork с ID {project_work_id} или его проект/объект не найден", extra={"login": "database"})
+                        f"ProjectWork с ID {project} или его проект/объект не найден", extra={"login": "database"})
                     return None
 
                 manager_id = project_work.projects.objects.manager
                 if not manager_id:
-                    logger.warning(f"У объекта проекта ProjectWork {project_work_id} нет менеджера", extra={
+                    logger.warning(f"У объекта проекта ProjectWork нет менеджера", extra={
                                    "login": "database"})
                     return None
 
-                logger.info(f"Найден manager ID {manager_id} для project_work_id {project_work_id}", extra={
+                logger.info(f"Найден manager ID {manager_id} для project_work_id", extra={
                             "login": "database"})
                 return str(manager_id)  # Приводим UUID к строке
 

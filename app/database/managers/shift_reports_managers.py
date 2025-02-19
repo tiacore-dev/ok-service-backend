@@ -81,29 +81,29 @@ class ShiftReportsManager(BaseDBManager):
                 session.rollback()
                 raise e  # Выбрасываем исключение выше, чтобы обработать в API
 
-    def get_project_leader(self, shift_report_id):
+    def get_project_leader(self, project):
         """Получение руководителя проекта по shift_report_id"""
         try:
-            logger.debug(f"Получение project_leader для shift_report_id: {shift_report_id}", extra={
+            logger.debug(f"Получение project_leader для project: {project}", extra={
                          "login": "database"})
 
             with self.session_scope() as session:
                 shift_report = session.query(self.model).options(
                     joinedload(self.model.projects)
-                ).filter(self.model.shift_report_id == shift_report_id, self.model.deleted is False).first()
+                ).filter(self.model.project == project, self.model.deleted is False).first()
 
                 if not shift_report:
-                    logger.warning(f"ShiftReport с ID {shift_report_id} не найден", extra={
+                    logger.warning(f"ShiftReport с ID  не найден", extra={
                                    "login": "database"})
                     return None
 
                 project_leader = shift_report.projects.project_leader
                 if not project_leader:
-                    logger.warning(f"У проекта ShiftReport {shift_report_id} нет руководителя", extra={
+                    logger.warning(f"У проекта ShiftReport  нет руководителя", extra={
                                    "login": "database"})
                     return None
 
-                logger.info(f"Найден project_leader {project_leader} для shift_report_id {shift_report_id}", extra={
+                logger.info(f"Найден project_leader {project_leader} для shift_report_id", extra={
                             "login": "database"})
                 return str(project_leader)
 
