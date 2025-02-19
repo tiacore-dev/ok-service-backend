@@ -1,4 +1,5 @@
 import json
+import time
 import logging
 from base64 import urlsafe_b64encode
 from sqlalchemy import event
@@ -6,6 +7,7 @@ from sqlalchemy.orm.attributes import get_history
 from pywebpush import webpush, WebPushException
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from config import Config
+from app.database.db_globals import Session
 
 logger = logging.getLogger('ok_service')
 
@@ -39,11 +41,22 @@ def notify_on_project_works_change(target, event_name):
         # Генерируем ссылку
         link = f"https://{ORIGIN}/projects/{target.project}"
 
-        if event_name == 'commit':
+        if event_name == 'insert':
+            # ⚡ Обновляем target из БД, чтобы получить актуальные данные
+            session = Session()
+            session.refresh(target)
             logger.info(
                 f"[ProjectWorks] Обрабатываем вставку новой записи: {target.project_work_id}")
-
-            user_id = project_manager.get_manager(target.project_work_id)
+            # ⚠️ Ждём, пока запись появится в БД (до 3 попыток)
+            user_id = None
+            for attempt in range(3):
+                user_id = project_manager.get_manager(target.project_work_id)
+                if user_id:
+                    break  # Если нашли, выходим из цикла
+                logger.warning(
+                    f"[ShiftReports] Попытка {attempt+1}: Запись ещё не найдена. Ждём 0.5 секунды...")
+                time.sleep(0.5)  # Ожидание перед повторной попытко
+            # user_id = project_manager.get_manager(target.project_work_id)
             if not user_id:
                 logger.warning(
                     f"[ProjectWorks] Не найден user_id для {target.project_work_id}. Уведомление не отправлено.")
@@ -104,11 +117,22 @@ def notify_on_shift_reports_change(target, event_name):
     try:
         link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
 
-        if event_name == 'commit':
+        if event_name == 'insert':
+            session = Session()
+            session.refresh(target)
             logger.info(
                 f"[ShiftReports] Обрабатываем вставку нового отчёта: {target.shift_report_id}")
 
-            user_id = shift_manager.get_project_leader(target.shift_report_id)
+            # ⚠️ Ждём, пока запись появится в БД (до 3 попыток)
+            user_id = None
+            for attempt in range(3):
+                user_id = shift_manager.get_project_leader(
+                    target.shift_report_id)
+                if user_id:
+                    break  # Если нашли, выходим из цикла
+                logger.warning(
+                    f"[ShiftReports] Попытка {attempt+1}: Запись ещё не найдена. Ждём 0.5 секунды...")
+                time.sleep(0.5)  # Ожидание перед повторной попытко
             if not user_id:
                 logger.warning(
                     f"[ShiftReports] Не найден user_id для {target.shift_report_id}. Уведомление не отправлено.")
@@ -202,12 +226,12 @@ def setup_listeners():
 
     logger.info("[GLOBAL] Настройка слушателей событий")
     try:
-        event.listen(ProjectWorks, 'after_commit', lambda m,
-                     c, t: notify_on_change(m, c, t, "commit"))
+        event.listen(ProjectWorks, 'after_insert', lambda m,
+                     c, t: notify_on_change(m, c, t, "insert"))
         event.listen(ProjectWorks, 'after_update', lambda m,
                      c, t: notify_on_change(m, c, t, "update"))
-        event.listen(ShiftReports, 'after_commit', lambda m,
-                     c, t: notify_on_change(m, c, t, "commit"))
+        event.listen(ShiftReports, 'after_insert', lambda m,
+                     c, t: notify_on_change(m, c, t, "insert"))
         event.listen(ShiftReports, 'after_update', lambda m,
                      c, t: notify_on_change(m, c, t, "update"))
         logger.info("[GLOBAL] Слушатели событий успешно настроены.")
