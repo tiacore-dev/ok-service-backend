@@ -1,5 +1,6 @@
 import json
 import time
+from uuid import UUID
 import logging
 from base64 import urlsafe_b64encode
 from sqlalchemy import event
@@ -142,7 +143,7 @@ def notify_on_shift_reports_change(target, event_name):
                             f"[ShiftReports] Не найден user_id для {target.shift_report_id}. Уведомление не отправлено.")
                         return
 
-                    subscription = db.filter_by(user=user_id)
+                    subscription = db.filter_by(user=UUID(user_id))
                     message_data = {
                         "title": "Сменный отчёт подписан",
                         "body": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
