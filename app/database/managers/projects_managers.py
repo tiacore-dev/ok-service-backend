@@ -145,8 +145,9 @@ class ProjectWorksManager(BaseDBManager):
 
             with self.session_scope() as session:
                 project_work = session.query(self.model).options(
-                    joinedload(self.model.projects).joinedload(
-                        self.model.projects.objects)
+                    joinedload(self.model.projects),  # Загружаем проект
+                    # Загружаем объект, связанный с проектом
+                    joinedload(Projects.objects)
                 ).filter(self.model.project == project, self.model.deleted == False).first()
 
                 if not project_work or not project_work.projects or not project_work.projects.objects:
