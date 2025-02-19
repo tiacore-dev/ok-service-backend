@@ -128,16 +128,14 @@ def notify_on_shift_reports_change(target, event_name):
             }
 
         elif event_name == 'update':
-
             logger.info(
                 f"[ShiftReports] Обрабатываем обновление сменного отчёта: {target.shift_report_id}")
             shift_report = shift_manager.get_record_by_id(
                 target.shift_report_id)
-            history = get_history(shift_report, "signed")
-            logger.debug(f"[ShiftReports] История изменения signed: {history}")
-
-            if history.has_changes and len(history.deleted) > 0 and len(history.added) > 0:
-                if history.deleted[0] is False and history.added[0] is True:
+            if shift_report:
+                previous_signed = shift_report.signed  # Старое значение
+                current_signed = target.signed  # Новое значение
+                if previous_signed is False and current_signed is True:
                     user_id = getattr(target, 'user', None)
                     if not user_id:
                         logger.warning(
@@ -150,10 +148,10 @@ def notify_on_shift_reports_change(target, event_name):
                         "body": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
                         "url": link
                     }
-            else:
-                logger.debug(
-                    f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
-                return
+                else:
+                    logger.debug(
+                        f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
+
         send_push_notification(subscription, message_data)
 
     except Exception as ex:
