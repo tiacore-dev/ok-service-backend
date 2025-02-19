@@ -52,7 +52,7 @@ def notify_on_project_works_change(target, event_name):
                     f"[ProjectWorks] Не найден user_id для {target.project_work_id}. Уведомление не отправлено.")
                 return
 
-            subscription = db.filter_by(user=user_id)
+            subscription = db.filter_one_by_dict(user=UUID(user_id))
             message_data = {
                 "header": "Добавлена новая проектная работа",
                 "text": f"Создана новая проектная работа с ID: {target.project_work_id}",
@@ -120,7 +120,7 @@ def notify_on_shift_reports_change(target, event_name):
                     f"[ShiftReports] Не найден user_id для {target.shift_report_id}. Уведомление не отправлено.")
                 return
 
-            subscription = db.filter_by(user=user_id)
+            subscription = db.filter_one_by_dict(user=UUID(user_id))
             message_data = {
                 "header": "Добавлен новый сменный отчёт",
                 "text": f"Создан новый сменный отчёт ID: {target.shift_report_id}",
@@ -219,7 +219,7 @@ def setup_listeners():
     try:
         def delayed_notify(m, c, t, event_name):
             """Добавляем задержку перед вызовом notify_on_change()"""
-            time.sleep(0.5)  # 🔥 Даем время БД на коммит
+            time.sleep(2)  # 🔥 Даем время БД на коммит
             notify_on_change(m, c, t, event_name)
 
         event.listen(ProjectWorks, 'after_insert', lambda m,
