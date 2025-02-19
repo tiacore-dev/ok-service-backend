@@ -7,7 +7,7 @@ from sqlalchemy.orm.attributes import get_history
 from pywebpush import webpush, WebPushException
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from config import Config
-from app.database.db_globals import Session
+
 
 logger = logging.getLogger('ok_service')
 
@@ -40,6 +40,7 @@ def notify_on_project_works_change(target, event_name):
     try:
         # Генерируем ссылку
         link = f"https://{ORIGIN}/projects/{target.project}"
+        from app.database.db_globals import Session
         session = Session()
         if event_name == 'insert':
             # ⚡ Обновляем target из БД, чтобы получить актуальные данные
@@ -118,6 +119,7 @@ def notify_on_shift_reports_change(target, event_name):
 
     try:
         link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
+        from app.database.db_globals import Session
         session = Session()
         if event_name == 'insert':
 
