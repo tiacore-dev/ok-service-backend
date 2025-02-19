@@ -153,7 +153,7 @@ def notify_on_shift_reports_change(target, event_name):
                     logger.debug(
                         f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
 
-        send_push_notification(subscription, message_data)
+        send_push_notification(subscription['subscription_data'], message_data)
 
     except Exception as ex:
         logger.error(
