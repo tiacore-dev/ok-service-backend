@@ -190,8 +190,8 @@ def send_push_notification(subscription, message_data):
 
 
 # ⚡ Заполняем диспетчер
-NOTIFICATION_HANDLERS["ProjectWorks"] = notify_on_project_works_change
-NOTIFICATION_HANDLERS["ShiftReports"] = notify_on_shift_reports_change
+NOTIFICATION_HANDLERS["project_works"] = notify_on_project_works_change
+NOTIFICATION_HANDLERS["shift_reports"] = notify_on_shift_reports_change
 
 
 def setup_listeners():
