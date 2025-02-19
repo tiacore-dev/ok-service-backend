@@ -131,8 +131,9 @@ def notify_on_shift_reports_change(target, event_name):
 
             logger.info(
                 f"[ShiftReports] Обрабатываем обновление сменного отчёта: {target.shift_report_id}")
-
-            history = get_history(target, "signed")
+            shift_report = shift_manager.get_record_by_id(
+                target.shift_report_id)
+            history = get_history(shift_report, "signed")
             logger.debug(f"[ShiftReports] История изменения signed: {history}")
 
             if history.has_changes and len(history.deleted) > 0 and len(history.added) > 0:
