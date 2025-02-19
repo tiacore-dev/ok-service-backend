@@ -143,7 +143,7 @@ def notify_on_shift_reports_change(target, event_name):
                             f"[ShiftReports] Не найден user_id для {target.shift_report_id}. Уведомление не отправлено.")
                         return
 
-                    subscription = db.filter_by(user=UUID(user_id))
+                    subscription = db.filter_one_by_dict(user=UUID(user_id))
                     message_data = {
                         "title": "Сменный отчёт подписан",
                         "body": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
