@@ -130,10 +130,10 @@ def notify_on_shift_reports_change(target, event_name):
         elif event_name == 'update':
             logger.info(
                 f"[ShiftReports] Обрабатываем обновление сменного отчёта: {target.shift_report_id}")
-            shift_report = shift_manager.get_record_by_id(
+            shift_report = shift_manager.get_by_id(
                 target.shift_report_id)
             if shift_report:
-                previous_signed = shift_report.signed  # Старое значение
+                previous_signed = shift_report['signed']  # Старое значение
                 current_signed = target.signed  # Новое значение
                 if previous_signed is False and current_signed is True:
                     user_id = getattr(target, 'user', None)
