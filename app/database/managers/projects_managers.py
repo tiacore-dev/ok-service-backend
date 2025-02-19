@@ -138,29 +138,29 @@ class ProjectWorksManager(BaseDBManager):
             return result
 
     def get_manager(self, project):
-        """Получение ID менеджера проекта по project_work_id"""
+        """Получение ID менеджера проекта по project"""
         try:
-            logger.debug(f"Получение manager ID для project_work_id: {project}", extra={
+            logger.debug(f"Получение manager ID для project: {project}", extra={
                          "login": "database"})
 
             with self.session_scope() as session:
                 project_work = session.query(self.model).options(
                     joinedload(self.model.projects).joinedload(
-                        Projects.objects)
-                ).filter(self.model.project == project).first()
+                        self.model.projects.objects)
+                ).filter(self.model.project == project, self.model.deleted == False).first()
 
                 if not project_work or not project_work.projects or not project_work.projects.objects:
                     logger.warning(
-                        f"ProjectWork с ID {project} или его проект/объект не найден", extra={"login": "database"})
+                        f"ProjectWork с project {project} или его проект/объект не найден", extra={"login": "database"})
                     return None
 
                 manager_id = project_work.projects.objects.manager
                 if not manager_id:
-                    logger.warning(f"У объекта проекта ProjectWork нет менеджера", extra={
+                    logger.warning(f"У объекта проекта {project} нет менеджера", extra={
                                    "login": "database"})
                     return None
 
-                logger.info(f"Найден manager ID {manager_id} для project_work_id", extra={
+                logger.info(f"Найден manager ID {manager_id} для project {project}", extra={
                             "login": "database"})
                 return str(manager_id)  # Приводим UUID к строке
 

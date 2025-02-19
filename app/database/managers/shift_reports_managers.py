@@ -82,7 +82,7 @@ class ShiftReportsManager(BaseDBManager):
                 raise e  # Выбрасываем исключение выше, чтобы обработать в API
 
     def get_project_leader(self, project):
-        """Получение руководителя проекта по shift_report_id"""
+        """Получение руководителя проекта по project"""
         try:
             logger.debug(f"Получение project_leader для project: {project}", extra={
                          "login": "database"})
@@ -90,20 +90,20 @@ class ShiftReportsManager(BaseDBManager):
             with self.session_scope() as session:
                 shift_report = session.query(self.model).options(
                     joinedload(self.model.projects)
-                ).filter(self.model.project == project, self.model.deleted is False).first()
+                ).filter(self.model.project == project).first()
 
                 if not shift_report:
-                    logger.warning(f"ShiftReport с ID  не найден", extra={
+                    logger.warning(f"ShiftReport с project {project} не найден", extra={
                                    "login": "database"})
                     return None
 
                 project_leader = shift_report.projects.project_leader
                 if not project_leader:
-                    logger.warning(f"У проекта ShiftReport  нет руководителя", extra={
+                    logger.warning(f"У проекта {project} нет руководителя", extra={
                                    "login": "database"})
                     return None
 
-                logger.info(f"Найден project_leader {project_leader} для shift_report_id", extra={
+                logger.info(f"Найден project_leader {project_leader} для project {project}", extra={
                             "login": "database"})
                 return str(project_leader)
 
