@@ -175,13 +175,21 @@ def notify_on_change(mapper, connection, target, event_name):
             f"[GLOBAL] Нет обработчика для таблицы {table_name}. Уведомления не отправлены.")
 
 
-def send_push_notification(subscription, message_data):
+def send_push_notification(subscription_info, message_data):
     """Отправка WebPush-уведомления"""
     logger.debug(f"[WebPush] Подготовка к отправке: {message_data}")
 
     try:
+        subscription_info_corrected = {
+            "endpoint": subscription_info["endpoint"],
+            "keys": {
+                "p256dh": subscription_info["p256dh"],
+                "auth": subscription_info["auth"]
+            }
+        }
         webpush(
-            subscription_info=json.loads(subscription['subscription_data']),
+            subscription_info=json.loads(
+                subscription_info_corrected['subscription_data']),
             data=json.dumps(message_data),
             vapid_private_key=urlsafe_b64encode(
                 private_key.private_numbers().private_value.to_bytes(
