@@ -93,10 +93,11 @@ def notify_on_project_works_change(target, event_name):
                         "url": link
                     }
             else:
+                session.close()
                 logger.debug(
                     f"[ProjectWorks] Поле signed не изменилось с False → True. Уведомление не отправляется.")
                 return
-
+        session.close()
         send_push_notification(subscription, message_data)
 
     except Exception as ex:
@@ -121,6 +122,7 @@ def notify_on_shift_reports_change(target, event_name):
         if event_name == 'insert':
 
             session.refresh(target)
+
             logger.info(
                 f"[ShiftReports] Обрабатываем вставку нового отчёта: {target.shift_report_id}")
 
@@ -169,10 +171,11 @@ def notify_on_shift_reports_change(target, event_name):
                         "url": link
                     }
             else:
+                session.close()
                 logger.debug(
                     f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
                 return
-
+        session.close()
         send_push_notification(subscription, message_data)
 
     except Exception as ex:
