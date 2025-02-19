@@ -39,7 +39,7 @@ def notify_on_project_works_change(target, event_name):
         # Генерируем ссылку
         link = f"https://{ORIGIN}/projects/{target.project}"
 
-        if event_name == 'insert':
+        if event_name == 'commit':
             logger.info(
                 f"[ProjectWorks] Обрабатываем вставку новой записи: {target.project_work_id}")
 
@@ -63,20 +63,21 @@ def notify_on_project_works_change(target, event_name):
             history = get_history(target, "signed")
             logger.debug(f"[ProjectWorks] История изменения signed: {history}")
 
-            if history.has_changes and history.deleted[0] is False and history.added[0] is True:
-                user_id = project_manager.get_project_leader(
-                    target.project_work_id)
-                if not user_id:
-                    logger.warning(
-                        f"[ProjectWorks] Не найден project_leader для {target.project_work_id}. Уведомление не отправлено.")
-                    return
+            if history.has_changes and len(history.deleted) > 0 and len(history.added) > 0:
+                if history.deleted[0] is False and history.added[0] is True:
+                    user_id = project_manager.get_project_leader(
+                        target.project_work_id)
+                    if not user_id:
+                        logger.warning(
+                            f"[ProjectWorks] Не найден project_leader для {target.project_work_id}. Уведомление не отправлено.")
+                        return
 
-                subscription = db.filter_by(user=user_id)
-                message_data = {
-                    "title": "Проектная работа подписана",
-                    "body": f"Проектная работа с ID: {target.project_work_id} была подписана",
-                    "url": link
-                }
+                    subscription = db.filter_by(user=user_id)
+                    message_data = {
+                        "title": "Проектная работа подписана",
+                        "body": f"Проектная работа с ID: {target.project_work_id} была подписана",
+                        "url": link
+                    }
             else:
                 logger.debug(
                     f"[ProjectWorks] Поле signed не изменилось с False → True. Уведомление не отправляется.")
@@ -103,7 +104,7 @@ def notify_on_shift_reports_change(target, event_name):
     try:
         link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
 
-        if event_name == 'insert':
+        if event_name == 'commit':
             logger.info(
                 f"[ShiftReports] Обрабатываем вставку нового отчёта: {target.shift_report_id}")
 
@@ -127,19 +128,20 @@ def notify_on_shift_reports_change(target, event_name):
             history = get_history(target, "signed")
             logger.debug(f"[ShiftReports] История изменения signed: {history}")
 
-            if history.has_changes and history.deleted[0] is False and history.added[0] is True:
-                user_id = getattr(target, 'user', None)
-                if not user_id:
-                    logger.warning(
-                        f"[ShiftReports] Не найден user_id для {target.shift_report_id}. Уведомление не отправлено.")
-                    return
+            if history.has_changes and len(history.deleted) > 0 and len(history.added) > 0:
+                if history.deleted[0] is False and history.added[0] is True:
+                    user_id = getattr(target, 'user', None)
+                    if not user_id:
+                        logger.warning(
+                            f"[ShiftReports] Не найден user_id для {target.shift_report_id}. Уведомление не отправлено.")
+                        return
 
-                subscription = db.filter_by(user=user_id)
-                message_data = {
-                    "title": "Сменный отчёт подписан",
-                    "body": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
-                    "url": link
-                }
+                    subscription = db.filter_by(user=user_id)
+                    message_data = {
+                        "title": "Сменный отчёт подписан",
+                        "body": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
+                        "url": link
+                    }
             else:
                 logger.debug(
                     f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
@@ -200,12 +202,12 @@ def setup_listeners():
 
     logger.info("[GLOBAL] Настройка слушателей событий")
     try:
-        event.listen(ProjectWorks, 'after_insert', lambda m,
-                     c, t: notify_on_change(m, c, t, "insert"))
+        event.listen(ProjectWorks, 'after_commit', lambda m,
+                     c, t: notify_on_change(m, c, t, "commit"))
         event.listen(ProjectWorks, 'after_update', lambda m,
                      c, t: notify_on_change(m, c, t, "update"))
-        event.listen(ShiftReports, 'after_insert', lambda m,
-                     c, t: notify_on_change(m, c, t, "insert"))
+        event.listen(ShiftReports, 'after_commit', lambda m,
+                     c, t: notify_on_change(m, c, t, "commit"))
         event.listen(ShiftReports, 'after_update', lambda m,
                      c, t: notify_on_change(m, c, t, "update"))
         logger.info("[GLOBAL] Слушатели событий успешно настроены.")
