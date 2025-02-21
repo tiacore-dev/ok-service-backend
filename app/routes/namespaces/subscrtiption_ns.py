@@ -78,13 +78,17 @@ class Subscribe(Resource):
 
         # Преобразуем объект в JSON-строку перед сохранением
         subscription_info = json.dumps(data)
-
+        # Проверяем, существует ли подписка
+        # if db.exists(subscription_data=subscription_info):
+        #    return {"message": "Subscription already exists."}, 200
         # Проверяем, существует ли подписка
         if db.exists(user=current_user['user_id']):
             subscription = db.filter_one_by_dict(
                 user=current_user['user_id'])
-            logger.info(f"Информация о существующей подписке: {subscription}")
-            return {"message": "Subscription already exists."}, 200
+            # logger.info(f"Информация о существующей подписке: {subscription}")
+            db.update(
+                record_id=subscription['subscription_id'], subscription_data=subscription_info)
+            return {"message": "Subscription already exists.", "subscription_id": subscription['subscription_id']}, 200
 
         # Сохраняем подписку
         subscription = db.add(subscription_data=subscription_info,
