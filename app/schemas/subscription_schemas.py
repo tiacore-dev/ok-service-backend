@@ -8,7 +8,7 @@ class SubscriptionSchema(Schema):
     endpoint = fields.String(required=True, error_messages={
         "required": "Field 'endpoint' is required."
     })
-    keys = fields.String(required=True, error_messages={
+    keys = fields.Dict(required=True, error_messages={
         "required": "Field 'keys' is required."
     })
     # p256dh = fields.String(required=True, error_messages={
