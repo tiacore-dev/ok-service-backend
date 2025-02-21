@@ -194,7 +194,7 @@ def send_push_notification(subscription, message_data):
 
     try:
         subscription_info = {
-            "endpoint": subscription['endpoint'], "keys": subscription['keys']}
+            "endpoint": subscription['endpoint'], "keys": json.loads(subscription['keys'])}
         webpush(
             subscription_info=subscription_info,
             data=json.dumps(message_data),

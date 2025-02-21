@@ -115,7 +115,7 @@ class SendNotification(Resource):
             logger.warning(f"No subscription found for ID: {subscription_id}")
             return {"message": "Subscription not found."}, 404
         subscription_info = {
-            "endpoint": subscription['endpoint'], "keys": subscription['keys']}
+            "endpoint": subscription['endpoint'], "keys": json.loads(subscription['keys'])}
 
         try:
             message_data = {'header': 'Test Notification', 'text': message}
