@@ -181,6 +181,8 @@ class ProjectEdit(Resource):
             data = schema.load(request.json)
             logger.info("Валидация пройдена")
         except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
