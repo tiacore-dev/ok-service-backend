@@ -172,6 +172,8 @@ class ProjectEdit(Resource):
         current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit project: {project_id}",
                     extra={"login": current_user})
+        logger.debug(f"Received PATCH request: {request.json}",
+                     extra={"login": current_user})
 
         schema = ProjectEditSchema()
         try:
