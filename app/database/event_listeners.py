@@ -53,7 +53,7 @@ def notify_on_project_works_change(target, event_name):
 
             if user_id == str(target.created_by):
                 logger.info(
-                    f"[ProjectWorks] создан тем же пользователем user_id для {target.shift_report_id}. Уведомление не отправлено.")
+                    f"[ProjectWorks] создан тем же пользователем user_id для {target.project_work_id}. Уведомление не отправлено.")
                 return
 
             subscription = db.filter_one_by_dict(user=UUID(user_id))
