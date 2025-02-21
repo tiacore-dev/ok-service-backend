@@ -19,8 +19,10 @@ with open("vapid_private_key.pem", "rb") as f:
     private_key = load_pem_private_key(f.read(), password=None)
 
 VAPID_CLAIMS = {
-    "sub": "mailto:your_email@example.com"
+    "sub": "mailto:your-email@example.com",  # Замени на реальный email
+    "aud": "https://fcm.googleapis.com",  # 👈 Должно совпадать с `endpoint`
 }
+
 
 # ⚡ Диспетчер уведомлений
 NOTIFICATION_HANDLERS = {}
@@ -36,7 +38,7 @@ def notify_on_project_works_change(target, event_name):
 
     db = SubscriptionsManager()
     project_manager = ProjectWorksManager()
-    subscription = None  # ✅ ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ СРАЗУ
+    subscriptions = None  # ✅ ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ СРАЗУ
     message_data = None
     try:
         # Генерируем ссылку
@@ -58,7 +60,7 @@ def notify_on_project_works_change(target, event_name):
                     f"[ProjectWorks] создан тем же пользователем user_id для {target.project_work_id}. Уведомление не отправлено.")
                 return
 
-            subscription = db.filter_one_by_dict(user=UUID(user_id))
+            subscriptions = db.filter_by_dict(user=UUID(user_id))
             message_data = {
                 "header": "Добавлена новая проектная работа",
                 "text": f"Создана новая проектная работа с ID: {target.project_work_id}",
@@ -81,7 +83,7 @@ def notify_on_project_works_change(target, event_name):
                             f"[ProjectWorks] Не найден project_leader для {target.project_work_id}. Уведомление не отправлено.")
                         return
 
-                    subscription = db.filter_one_by_dict(user=UUID(user_id))
+                    subscriptions = db.filter_by_dict(user=UUID(user_id))
                     message_data = {
                         "header": "Проектная работа подписана",
                         "text": f"Проектная работа с ID: {target.project_work_id} была подписана",
@@ -94,7 +96,7 @@ def notify_on_project_works_change(target, event_name):
                     return
         else:
             return
-        send_push_notification(subscription, message_data)
+        send_push_notification(subscriptions, message_data)
 
     except Exception as ex:
         logger.error(
@@ -111,7 +113,7 @@ def notify_on_shift_reports_change(target, event_name):
 
     db = SubscriptionsManager()
     shift_manager = ShiftReportsManager()
-    subscription = None  # ✅ ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ СРАЗУ
+    subscriptions = None  # ✅ ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ СРАЗУ
     message_data = None
     try:
         link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
@@ -134,7 +136,7 @@ def notify_on_shift_reports_change(target, event_name):
                     f"[ShiftReports] создан тем же пользователем user_id для {target.shift_report_id}. Уведомление не отправлено.")
                 return
 
-            subscription = db.filter_one_by_dict(user=UUID(user_id))
+            subscriptions = db.filter_by_dict(user=UUID(user_id))
             message_data = {
                 "header": "Добавлен новый сменный отчёт",
                 "text": f"Создан новый сменный отчёт ID: {target.shift_report_id}",
@@ -156,7 +158,7 @@ def notify_on_shift_reports_change(target, event_name):
                             f"[ShiftReports] Не найден user_id для {target.shift_report_id}. Уведомление не отправлено.")
                         return
 
-                    subscription = db.filter_one_by_dict(user=UUID(user_id))
+                    subscriptions = db.filter_by_dict(user=UUID(user_id))
                     message_data = {
                         "header": "Сменный отчёт подписан",
                         "text": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
@@ -169,7 +171,7 @@ def notify_on_shift_reports_change(target, event_name):
         else:
             return
 
-        send_push_notification(subscription, message_data)
+        send_push_notification(subscriptions, message_data)
 
     except Exception as ex:
         logger.error(
@@ -191,25 +193,26 @@ def notify_on_change(_, __, target, event_name):
             f"[GLOBAL] Нет обработчика для таблицы {table_name}. Уведомления не отправлены.")
 
 
-def send_push_notification(subscription, message_data):
+def send_push_notification(subscriptions, message_data):
     """Отправка WebPush-уведомления"""
     logger.debug(f"[WebPush] Подготовка к отправке: {message_data}")
 
     try:
-        subscription_info = {
-            "endpoint": subscription['endpoint'], "keys": json.loads(subscription['keys'])}
-        webpush(
-            subscription_info=subscription_info,
-            data=json.dumps(message_data),
-            vapid_private_key=urlsafe_b64encode(
-                private_key.private_numbers().private_value.to_bytes(
-                    length=(private_key.key_size + 7) // 8,
-                    byteorder="big"
-                )
-            ).decode('utf-8'),
-            vapid_claims=VAPID_CLAIMS
-        )
-        logger.info("[WebPush] Уведомление успешно отправлено.")
+        for subscription in subscriptions:
+            subscription_info = {
+                "endpoint": subscription['endpoint'], "keys": json.loads(subscription['keys'])}
+            webpush(
+                subscription_info=subscription_info,
+                data=json.dumps(message_data),
+                vapid_private_key=urlsafe_b64encode(
+                    private_key.private_numbers().private_value.to_bytes(
+                        length=(private_key.key_size + 7) // 8,
+                        byteorder="big"
+                    )
+                ).decode('utf-8'),
+                vapid_claims=VAPID_CLAIMS
+            )
+            logger.info("[WebPush] Уведомление успешно отправлено.")
     except WebPushException as ex:
         logger.error(f"[WebPush] Ошибка WebPush: {str(ex)}", exc_info=True)
     except Exception as e:
