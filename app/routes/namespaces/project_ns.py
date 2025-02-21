@@ -191,9 +191,11 @@ class ProjectEdit(Resource):
 
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
-
+            logger.debug(f"Validated PATCH request: {data}",
+                         extra={"login": current_user})
             # Проверки по ролям
             project = db.get_by_id(record_id=project_id)
+            logger.info(f"Получили данные проекта по id: {project}")
             if project['project_leader'] != current_user['user_id'] and current_user['role'] == 'project-leader':
                 logger.warning("Trying to edit not user's project",
                                extra={"login": current_user})
