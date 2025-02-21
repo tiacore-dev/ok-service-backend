@@ -82,7 +82,7 @@ class Subscribe(Resource):
         # Проверяем, существует ли подписка
         if db.exists(user=current_user['user_id']):
             subscription = db.filter_one_by_dict(
-                subscription_data=subscription_info)
+                user=current_user['user_id'])
             logger.info(f"Информация о существующей подписке: {subscription}")
             return {"message": "Subscription already exists."}, 200
 
