@@ -25,8 +25,9 @@ class ProjectEditSchema(Schema):
                            validate=[validate_user_exists])
     project_leader = fields.String(
         required=False, allow_none=True, validate=[validate_user_exists])
-    night_shift_available = fields.Boolean(required=False)
-    extreme_conditions_available = fields.Boolean(required=False)
+    night_shift_available = fields.Boolean(required=False, allow_none=True)
+    extreme_conditions_available = fields.Boolean(
+        required=False, allow_none=True)
 
 
 class ProjectFilterSchema(Schema):
