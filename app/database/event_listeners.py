@@ -92,7 +92,7 @@ def notify_on_project_works_change(target, event_name):
                     return
         else:
             return
-        send_push_notification(subscription['subscription_data'], message_data)
+        send_push_notification(subscription, message_data)
 
     except Exception as ex:
         logger.error(
@@ -166,7 +166,7 @@ def notify_on_shift_reports_change(target, event_name):
                 return
 
         send_push_notification(
-            subscription['subscription_data'], message_data)
+            subscription, message_data)
 
     except Exception as ex:
         logger.error(
@@ -193,16 +193,10 @@ def send_push_notification(subscription, message_data):
     logger.debug(f"[WebPush] Подготовка к отправке: {message_data}")
 
     try:
-        subscription_info = json.loads(subscription)
-        subscription_info_corrected = {
-            "endpoint": subscription_info["endpoint"],
-            "keys": {
-                "p256dh": subscription_info["p256dh"],
-                "auth": subscription_info["auth"]
-            }
-        }
+        subscription_info = {
+            "endpoint": subscription['endpoint'], "keys": subscription['keys']}
         webpush(
-            subscription_info=subscription_info_corrected,
+            subscription_info=subscription_info,
             data=json.dumps(message_data),
             vapid_private_key=urlsafe_b64encode(
                 private_key.private_numbers().private_value.to_bytes(

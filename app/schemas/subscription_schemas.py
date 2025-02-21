@@ -8,9 +8,12 @@ class SubscriptionSchema(Schema):
     endpoint = fields.String(required=True, error_messages={
         "required": "Field 'endpoint' is required."
     })
-    p256dh = fields.String(required=True, error_messages={
-        "required": "Field 'p256dh' is required."
+    keys = fields.String(required=True, error_messages={
+        "required": "Field 'keys' is required."
     })
-    auth = fields.String(required=True, error_messages={
-        "required": "Field 'auth' is required."
-    })
+    # p256dh = fields.String(required=True, error_messages={
+    #    "required": "Field 'p256dh' is required."
+    # })
+    # auth = fields.String(required=True, error_messages={
+    #    "required": "Field 'auth' is required."
+    # })

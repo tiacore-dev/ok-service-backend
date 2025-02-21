@@ -77,21 +77,19 @@ class Subscribe(Resource):
             return {"error": err.messages}, 400
 
         # Преобразуем объект в JSON-строку перед сохранением
-        subscription_info = json.dumps(data)
+        endpoint = data['endpoint']
+        keys = data['keys']
         # Проверяем, существует ли подписка
-        # if db.exists(subscription_data=subscription_info):
-        #    return {"message": "Subscription already exists."}, 200
-        # Проверяем, существует ли подписка
-        if db.exists(user=current_user['user_id']):
+        if db.exists(endpoint=endpoint):
             subscription = db.filter_one_by_dict(
                 user=current_user['user_id'])
             # logger.info(f"Информация о существующей подписке: {subscription}")
             db.update(
-                record_id=subscription['subscription_id'], subscription_data=subscription_info)
+                record_id=subscription['subscription_id'], keys=keys)
             return {"message": "Subscription already exists.", "subscription_id": subscription['subscription_id']}, 200
 
         # Сохраняем подписку
-        subscription = db.add(subscription_data=subscription_info,
+        subscription = db.add(endpoint=endpoint, keys=keys,
                               user=current_user['user_id'])
 
         return {"message": "Subscription added.", "subscription_id": subscription['subscription_id']}, 201
@@ -116,19 +114,13 @@ class SendNotification(Resource):
         if not subscription:
             logger.warning(f"No subscription found for ID: {subscription_id}")
             return {"message": "Subscription not found."}, 404
-        subscription_info = json.loads(subscription['subscription_data'])
+        subscription_info = {
+            "endpoint": subscription['endpoint'], "keys": subscription['keys']}
 
         try:
-            subscription_info_corrected = {
-                "endpoint": subscription_info["endpoint"],
-                "keys": {
-                    "p256dh": subscription_info["p256dh"],
-                    "auth": subscription_info["auth"]
-                }
-            }
             message_data = {'header': 'Test Notification', 'text': message}
             webpush(
-                subscription_info=subscription_info_corrected,
+                subscription_info=subscription_info,
                 data=json.dumps(message_data),
                 vapid_private_key=urlsafe_b64encode(
                     private_key.private_numbers().private_value.to_bytes(
