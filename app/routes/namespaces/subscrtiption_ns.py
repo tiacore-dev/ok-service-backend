@@ -78,7 +78,7 @@ class Subscribe(Resource):
 
         # Преобразуем объект в JSON-строку перед сохранением
         endpoint = data['endpoint']
-        keys = data['keys']
+        keys = json.dumps(data['keys'])
         # Проверяем, существует ли подписка
         if db.exists(endpoint=endpoint):
             subscription = db.filter_one_by_dict(

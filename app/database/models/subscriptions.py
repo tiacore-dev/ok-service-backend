@@ -24,5 +24,8 @@ class Subscriptions(Base):
     def to_dict(self):
         return {
             "subscription_id": str(self.subscription_id),
-            "subscription_data": self.subscription_data
+            "user": str(self.user),
+            "endpoint": self.endpoint,
+            "keys": self.endpoint
+            # "subscription_data": self.subscription_data
         }
