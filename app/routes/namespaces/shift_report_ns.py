@@ -23,7 +23,6 @@ shift_report_ns = Namespace(
     'shift_reports', description='Shift reports management operations')
 
 
-
 # Initialize models
 shift_report_ns.models[shift_report_model.name] = shift_report_model
 shift_report_ns.models[shift_report_detail_model.name] = shift_report_detail_model
@@ -118,7 +117,7 @@ class ShiftReportSoftDelete(Resource):
                 logger.warning("Trying to soft delete not user's shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot soft delete not his shift report"}, 403
-            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
+            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] is True:
                 logger.warning("Trying to soft delete signed shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot soft delete signed shift report"}, 403
@@ -156,7 +155,7 @@ class ShiftReportHardDelete(Resource):
                 logger.warning("Trying to hard delete not user's shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot hard delete not his shift report"}, 403
-            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
+            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] is True:
                 logger.warning("Trying to hard delete signed shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot hard delete signed shift report"}, 403
@@ -204,7 +203,7 @@ class ShiftReportEdit(Resource):
                 logger.warning("Trying to edit not user's shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot edit not his shift report"}, 403
-            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] == True:
+            elif shift_report['user'] == current_user['user_id'] and shift_report['signed'] is True:
                 logger.warning("Trying to edit signed shift report",
                                extra={"login": current_user})
                 return {"msg": "User cannot edit signed shift report"}, 403

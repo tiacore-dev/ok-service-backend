@@ -83,9 +83,10 @@ class Subscribe(Resource):
         if db.exists(endpoint=endpoint):
             subscription = db.filter_one_by_dict(
                 user=current_user['user_id'])
-            # logger.info(f"Информация о существующей подписке: {subscription}")
-            db.update(
-                record_id=subscription['subscription_id'], keys=keys)
+            if subscription:
+                # logger.info(f"Информация о существующей подписке: {subscription}")
+                db.update(
+                    record_id=subscription['subscription_id'], keys=keys)
             return {"message": "Subscription already exists.", "subscription_id": subscription['subscription_id']}, 200
 
         # Сохраняем подписку

@@ -118,11 +118,11 @@ class ProjectWorkSoftDelete(Resource):
                 led_project_works = db.get_work_ids_by_project_leader(
                     current_user['user_id'])
                 if str(project_work_id) not in led_project_works:
-                    logger.warning(f"Trying to soft delete not user's project_work",
+                    logger.warning("Trying to soft delete not user's project_work",
                                    extra={"login": current_user})
                     return {"msg": "Forbidden"}, 403
-                elif str(project_work_id) in led_project_works and project_work['signed'] == True:
-                    logger.warning(f"Trying to soft delete signed shift report",
+                elif str(project_work_id) in led_project_works and project_work['signed'] is True:
+                    logger.warning("Trying to soft delete signed shift report",
                                    extra={"login": current_user})
                     return {"msg": "User cannot soft delete signed shift report"}, 403
 
@@ -156,11 +156,11 @@ class ProjectWorkHardDelete(Resource):
                 led_project_works = db.get_work_ids_by_project_leader(
                     current_user['user_id'])
                 if str(project_work_id) not in led_project_works:
-                    logger.warning(f"Trying to soft delete not user's project_work",
+                    logger.warning("Trying to soft delete not user's project_work",
                                    extra={"login": current_user})
                     return {"msg": "Forbidden"}, 403
-                elif str(project_work_id) in led_project_works and project_work['signed'] == True:
-                    logger.warning(f"Trying to soft delete signed shift report",
+                elif str(project_work_id) in led_project_works and project_work['signed'] is True:
+                    logger.warning("Trying to soft delete signed shift report",
                                    extra={"login": current_user})
                     return {"msg": "User cannot soft delete signed shift report"}, 403
 
@@ -207,11 +207,11 @@ class ProjectWorkEdit(Resource):
                 logger.debug(f"DEBUG: Проверяем работу {project_work_id} в списке работ лидера",
                              extra={"login": current_user})
                 if str(project_work_id) not in led_project_works:
-                    logger.warning(f"Trying to soft delete not user's project_work",
+                    logger.warning("Trying to soft delete not user's project_work",
                                    extra={"login": current_user})
                     return {"msg": "Forbidden"}, 403
-                elif str(project_work_id) in led_project_works and project_work['signed'] == True:
-                    logger.warning(f"Trying to soft delete signed shift report",
+                elif str(project_work_id) in led_project_works and project_work['signed'] is True:
+                    logger.warning("Trying to soft delete signed shift report",
                                    extra={"login": current_user})
                     return {"msg": "User cannot soft delete signed shift report"}, 403
 
