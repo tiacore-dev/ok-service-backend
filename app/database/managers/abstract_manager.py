@@ -283,7 +283,7 @@ class BaseDBManager(ABC):
                          "login": "database"})
             raise
 
-    def get_all_filtered(self, offset=0, limit=None, sort_by="created_at", sort_order='asc', **filters):
+    def get_all_filtered(self, offset=0, limit=None, sort_by="created_at", sort_order='desc', **filters):
         logger.debug("get_all_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
                      extra={"login": "database"})
 

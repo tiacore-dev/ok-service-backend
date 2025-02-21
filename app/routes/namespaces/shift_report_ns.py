@@ -239,7 +239,7 @@ class ShiftReportAll(Resource):
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')
-        sort_order = args.get('sort_order', 'asc')
+        sort_order = args.get('sort_order', 'desc')
         filters = {
             'user': args.get('user') if args.get('user') else None,
             'date': int(args.get('date')) if args.get('date') else None,

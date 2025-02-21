@@ -229,7 +229,7 @@ class ObjectAll(Resource):
         offset = data.get('offset', 0)
         limit = data.get('limit', None)
         sort_by = data.get('sort_by')
-        sort_order = data.get('sort_order', 'asc')
+        sort_order = data.get('sort_order', 'desc')
         filters = {
             'name': data.get('name'),
             'deleted': data.get('deleted'),

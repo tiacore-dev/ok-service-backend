@@ -209,7 +209,7 @@ class ProjectScheduleAll(Resource):
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')
-        sort_order = args.get('sort_order', 'asc')
+        sort_order = args.get('sort_order', 'desc')
         filters = {
             'project': args.get('project'),
             'work': args.get('work'),

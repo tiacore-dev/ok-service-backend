@@ -227,7 +227,7 @@ class ProjectAll(Resource):
         offset = args.get('offset', 0)
         limit = args.get('limit', 10)
         sort_by = args.get('sort_by')
-        sort_order = args.get('sort_order', 'asc')
+        sort_order = args.get('sort_order', 'desc')
         filters = {
             'name': args.get('name'),
             'deleted': args.get('deleted'),
