@@ -27,5 +27,4 @@ class Subscriptions(Base):
             "user": str(self.user),
             "endpoint": self.endpoint,
             "keys": self.keys
-            # "subscription_data": self.subscription_data
         }

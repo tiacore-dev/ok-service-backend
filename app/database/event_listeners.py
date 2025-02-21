@@ -36,6 +36,8 @@ def notify_on_project_works_change(target, event_name):
 
     db = SubscriptionsManager()
     project_manager = ProjectWorksManager()
+    subscription = None  # ✅ ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ СРАЗУ
+    message_data = None
     try:
         # Генерируем ссылку
         link = f"https://{ORIGIN}/projects/{target.project}"
@@ -88,7 +90,7 @@ def notify_on_project_works_change(target, event_name):
                 else:
 
                     logger.debug(
-                        f"[ProjectWorks] Поле signed не изменилось с False → True. Уведомление не отправляется.")
+                        "[ProjectWorks] Поле signed не изменилось с False → True. Уведомление не отправляется.")
                     return
         else:
             return
@@ -109,7 +111,8 @@ def notify_on_shift_reports_change(target, event_name):
 
     db = SubscriptionsManager()
     shift_manager = ShiftReportsManager()
-
+    subscription = None  # ✅ ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ СРАЗУ
+    message_data = None
     try:
         link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
 
@@ -161,19 +164,19 @@ def notify_on_shift_reports_change(target, event_name):
                     }
                 else:
                     logger.debug(
-                        f"[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
-            else:
-                return
+                        "[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
+                    return
+        else:
+            return
 
-        send_push_notification(
-            subscription, message_data)
+        send_push_notification(subscription, message_data)
 
     except Exception as ex:
         logger.error(
             f"[ShiftReports] Ошибка при отправке уведомления: {ex}", exc_info=True)
 
 
-def notify_on_change(mapper, connection, target, event_name):
+def notify_on_change(_, __, target, event_name):
     """Общий обработчик изменений"""
     table_name = target.__tablename__
     logger.info(
@@ -206,7 +209,7 @@ def send_push_notification(subscription, message_data):
             ).decode('utf-8'),
             vapid_claims=VAPID_CLAIMS
         )
-        logger.info(f"[WebPush] Уведомление успешно отправлено.")
+        logger.info("[WebPush] Уведомление успешно отправлено.")
     except WebPushException as ex:
         logger.error(f"[WebPush] Ошибка WebPush: {str(ex)}", exc_info=True)
     except Exception as e:
