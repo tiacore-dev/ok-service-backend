@@ -179,6 +179,7 @@ class ProjectEdit(Resource):
         try:
             # Валидация входных данных
             data = schema.load(request.json)
+            logger.info("Валидация пройдена")
         except ValidationError as err:
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
@@ -191,8 +192,8 @@ class ProjectEdit(Resource):
 
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
-            logger.debug(f"Validated PATCH request: {data}",
-                         extra={"login": current_user})
+            logger.info(f"Validated PATCH request: {data}",
+                        extra={"login": current_user})
             # Проверки по ролям
             project = db.get_by_id(record_id=project_id)
             logger.info(f"Получили данные проекта по id: {project}")
