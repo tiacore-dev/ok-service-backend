@@ -38,7 +38,7 @@ def notify_on_project_works_change(target, event_name):
     project_manager = ProjectWorksManager()
     try:
         # Генерируем ссылку
-        # link = f"https://{ORIGIN}/projects/{target.project}"
+        link = f"https://{ORIGIN}/projects/{target.project}"
 
         if event_name == 'insert':
             # ⚡ Обновляем target из БД, чтобы получить актуальные данные
@@ -60,7 +60,7 @@ def notify_on_project_works_change(target, event_name):
             message_data = {
                 "header": "Добавлена новая проектная работа",
                 "text": f"Создана новая проектная работа с ID: {target.project_work_id}",
-                # "url": link
+                "url": link
             }
 
         elif event_name == 'update':
@@ -83,7 +83,7 @@ def notify_on_project_works_change(target, event_name):
                     message_data = {
                         "header": "Проектная работа подписана",
                         "text": f"Проектная работа с ID: {target.project_work_id} была подписана",
-                        # "url": link
+                        "url": link
                     }
                 else:
 
@@ -111,7 +111,7 @@ def notify_on_shift_reports_change(target, event_name):
     shift_manager = ShiftReportsManager()
 
     try:
-        # link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
+        link = f"https://{ORIGIN}/shifts/{target.shift_report_id}"
 
         if event_name == 'insert':
 
@@ -135,7 +135,7 @@ def notify_on_shift_reports_change(target, event_name):
             message_data = {
                 "header": "Добавлен новый сменный отчёт",
                 "text": f"Создан новый сменный отчёт ID: {target.shift_report_id}",
-                # "url": link
+                "url": link
             }
 
         elif event_name == 'update':
@@ -157,7 +157,7 @@ def notify_on_shift_reports_change(target, event_name):
                     message_data = {
                         "header": "Сменный отчёт подписан",
                         "text": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
-                        # "url": link
+                        "url": link
                     }
                 else:
                     logger.debug(

@@ -14,7 +14,7 @@ def put_to_db(data, admin_id):
             category = category_manager.filter_one_by_dict(
                 name=work['work_category'])
         work_added = work_manager.add(
-            name=work['work'], created_by=admin_id, category=category['work_category_id'])
+            name=work['work'], created_by=admin_id, category=category['work_category_id'], measurement_unit='шт.')
         for i in range(1, 5):
             price = work.get(f'price_{i}')  # Берем цену
 
