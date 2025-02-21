@@ -64,7 +64,7 @@ def notify_on_project_works_change(target, event_name):
             message_data = {
                 "header": "Добавлена новая проектная работа",
                 "text": f"Создана новая проектная работа с ID: {target.project_work_id}",
-                "url": link
+                "link": link
             }
 
         elif event_name == 'update':
@@ -87,7 +87,7 @@ def notify_on_project_works_change(target, event_name):
                     message_data = {
                         "header": "Проектная работа подписана",
                         "text": f"Проектная работа с ID: {target.project_work_id} была подписана",
-                        "url": link
+                        "link": link
                     }
                 else:
 
@@ -140,7 +140,7 @@ def notify_on_shift_reports_change(target, event_name):
             message_data = {
                 "header": "Добавлен новый сменный отчёт",
                 "text": f"Создан новый сменный отчёт ID: {target.shift_report_id}",
-                "url": link
+                "link": link
             }
 
         elif event_name == 'update':
@@ -162,7 +162,7 @@ def notify_on_shift_reports_change(target, event_name):
                     message_data = {
                         "header": "Сменный отчёт подписан",
                         "text": f"Сменный отчёт ID: {target.shift_report_id} был подписан",
-                        "url": link
+                        "link": link
                     }
                 else:
                     logger.debug(
