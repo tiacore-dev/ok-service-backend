@@ -22,7 +22,7 @@ class ProjectEditSchema(Schema):
 
     name = fields.String(required=False, allow_none=True)
     object = fields.String(required=False, allow_none=True,
-                           validate=[validate_user_exists])
+                           validate=[validate_object_exists])
     project_leader = fields.String(
         required=False, allow_none=True, validate=[validate_user_exists])
     night_shift_available = fields.Boolean(required=False, allow_none=True)
