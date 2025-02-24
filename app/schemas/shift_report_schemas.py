@@ -78,7 +78,8 @@ class ShiftReportFilterSchema(Schema):
     sort_order = fields.String(required=False, validate=validate.OneOf(
         ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))
     user = fields.String(required=False)
-    date = fields.Int(required=False)
+    date_from = fields.Int(required=False)
+    date_to = fields.Int(required=False)
     project = fields.String(required=False)
     night_shift = fields.Boolean(required=False)
     extreme_conditions = fields.Boolean(required=False)

@@ -3,6 +3,7 @@ import logging
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
+from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
 from app.database.models import ShiftReports, ShiftReportDetails
 from app.database.managers.abstract_manager import BaseDBManager
@@ -111,6 +112,68 @@ class ShiftReportsManager(BaseDBManager):
             logger.error(f"Ошибка при получении project_leader: {e}", extra={
                          "login": "database"})
             raise
+
+    def get_shift_reports_filtered(self, offset=0, limit=None, sort_by="created_at", sort_order='desc', **filters):
+        """Фильтрация отчетов по сменам с поддержкой диапазона дат."""
+        logger.debug("get_shift_reports_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
+                     extra={"login": "database"})
+
+        with self.session_scope() as session:
+            query = session.query(self.model)
+
+            # Фильтрация по остальным полям
+            for key, value in filters.items():
+                if value is not None and hasattr(self.model, key):
+                    column = getattr(self.model, key)
+
+                    # Фильтрация по диапазону дат (если указаны обе границы)
+                    if key == "date_from" and filters.get("date_to"):
+                        query = query.filter(column.between(
+                            filters["date_from"], filters["date_to"]))
+                        logger.debug(f"Фильтруем по дате: {filters['date_from']} - {filters['date_to']}",
+                                     extra={"login": "database"})
+
+                    # Если указана только начальная дата (>=)
+                    elif key == "date_from":
+                        query = query.filter(column >= value)
+                        logger.debug(f"Фильтруем по дате от: {value}",
+                                     extra={"login": "database"})
+
+                    # Если указана только конечная дата (<=)
+                    elif key == "date_to":
+                        query = query.filter(column <= value)
+                        logger.debug(f"Фильтруем по дате до: {value}",
+                                     extra={"login": "database"})
+
+                    # Обычные точные фильтры
+                    else:
+                        query = query.filter(column == value)
+                        logger.debug(f"Применяем фильтр: {key} = {value}",
+                                     extra={"login": "database"})
+
+            # Применяем сортировку
+            if sort_by and hasattr(self.model, sort_by):
+                order = desc if sort_order == 'desc' else asc
+                query = query.order_by(order(getattr(self.model, sort_by)))
+                logger.debug(f"Применяем сортировку: {sort_by} {sort_order}",
+                             extra={"login": "database"})
+
+            # Применяем пагинацию
+            if offset:
+                query = query.offset(offset)
+                logger.debug(f"Применяем смещение: offset = {offset}",
+                             extra={"login": "database"})
+            if limit:
+                query = query.limit(limit)
+                logger.debug(f"Применяем лимит: limit = {limit}",
+                             extra={"login": "database"})
+
+            # Получаем записи
+            records = query.all()
+            logger.debug(f"Найдено записей: {len(records)}",
+                         extra={"login": "database"})
+
+            return [record.to_dict() for record in records]
 
 
 class ShiftReportsDetailsManager(BaseDBManager):

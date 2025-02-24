@@ -59,7 +59,9 @@ shift_report_filter_parser.add_argument('sort_order', type=str, required=False, 
 shift_report_filter_parser.add_argument(
     'user', type=str, help="Filter by user ID")
 shift_report_filter_parser.add_argument(
-    'date', type=int, help="Filter by date")
+    'date_from', type=int, help="Filter by date")
+shift_report_filter_parser.add_argument(
+    'date_to', type=int, help="Filter by date")
 shift_report_filter_parser.add_argument(
     'project', type=str, help="Filter by project ID")
 shift_report_filter_parser.add_argument(

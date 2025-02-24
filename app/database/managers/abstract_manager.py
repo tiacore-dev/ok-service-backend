@@ -192,9 +192,9 @@ class BaseDBManager(ABC):
         except IntegrityError as e:
             logger.error("Cannot delete record %s due to integrity constraint: %s",
                          record_id, e, extra={"login": "database"})
-            # Поднимаем исключение
             raise IntegrityError(
-                "Cannot delete record: dependent data exists.")
+                "Cannot delete record: dependent data exists.") from e
+
         except Exception as e:
             logger.error("Error deleting record with ID %s: %s",
                          record_id, e, extra={"login": "database"})

@@ -246,7 +246,8 @@ class ShiftReportAll(Resource):
         sort_order = args.get('sort_order', 'desc')
         filters = {
             'user': args.get('user') if args.get('user') else None,
-            'date': int(args.get('date')) if args.get('date') else None,
+            'date_from': int(args.get('date_from')) if args.get('date_from') else None,
+            'date_to': int(args.get('date_to')) if args.get('date_to') else None,
             'project': args.get('project') if args.get('project') else None,
             'created_by': args.get('created_by'),
             'created_at': args.get('created_at'),
@@ -261,7 +262,7 @@ class ShiftReportAll(Resource):
         try:
             from app.database.managers.shift_reports_managers import ShiftReportsManager
             db = ShiftReportsManager()
-            reports = db.get_all_filtered(
+            reports = db.get_shift_reports_filtered(
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
             logger.info(f"Successfully fetched {len(reports)} shift reports",
                         extra={"login": current_user})
