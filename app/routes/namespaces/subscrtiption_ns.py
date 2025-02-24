@@ -87,7 +87,8 @@ class Subscribe(Resource):
                 # logger.info(f"Информация о существующей подписке: {subscription}")
                 db.update(
                     record_id=subscription['subscription_id'], keys=keys)
-            return {"message": "Subscription already exists.", "subscription_id": subscription['subscription_id']}, 200
+                return {"message": "Subscription already exists.", "subscription_id": subscription['subscription_id']}, 200
+            return {"message": "Subscription already exists."}, 201
 
         # Сохраняем подписку
         subscription = db.add(endpoint=endpoint, keys=keys,
