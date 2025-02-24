@@ -123,12 +123,12 @@ class ProjectScheduleHardDelete(Resource):
             db = ProjectSchedulesManager()
 
             # Проверки по ролям
-            schedule = db.get_by_id(record_id=schedule_id)
+            # schedule = db.get_by_id(record_id=schedule_id)
             if current_user['role'] == 'project-leader':
                 led_schedules = db.get_schedule_ids_by_project_leader(
                     current_user['user_id'])
                 if str(schedule_id) not in led_schedules:
-                    logger.warning(f"Trying to soft delete not user's project schedule",
+                    logger.warning("Trying to soft delete not user's project schedule",
                                    extra={"login": current_user})
                     return {"msg": "Forbidden"}, 403
 
@@ -170,12 +170,12 @@ class ProjectScheduleEdit(Resource):
             db = ProjectSchedulesManager()
 
             # Проверки по ролям
-            schedule = db.get_by_id(record_id=schedule_id)
+            # schedule = db.get_by_id(record_id=schedule_id)
             if current_user['role'] == 'project-leader':
                 led_schedules = db.get_schedule_ids_by_project_leader(
                     current_user['user_id'])
                 if str(schedule_id) not in led_schedules:
-                    logger.warning(f"Trying to edit not user's project schedule",
+                    logger.warning("Trying to edit not user's project schedule",
                                    extra={"login": current_user})
                     return {"msg": "Forbidden"}, 403
 
@@ -209,7 +209,7 @@ class ProjectScheduleAll(Resource):
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')
-        sort_order = args.get('sort_order', 'asc')
+        sort_order = args.get('sort_order', 'desc')
         filters = {
             'project': args.get('project'),
             'work': args.get('work'),

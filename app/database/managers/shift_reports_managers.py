@@ -1,9 +1,14 @@
 from uuid import uuid4, UUID
+import logging
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
+from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from app.database.models import ShiftReports, ShiftReportDetails
 from app.database.managers.abstract_manager import BaseDBManager
+
+
+logger = logging.getLogger('ok_service')
 
 
 class ShiftReportsManager(BaseDBManager):
@@ -75,6 +80,37 @@ class ShiftReportsManager(BaseDBManager):
             except SQLAlchemyError as e:
                 session.rollback()
                 raise e  # Выбрасываем исключение выше, чтобы обработать в API
+
+    def get_project_leader(self, project):
+        """Получение руководителя проекта по project"""
+        try:
+            logger.debug(f"Получение project_leader для project: {project}", extra={
+                         "login": "database"})
+
+            with self.session_scope() as session:
+                shift_report = session.query(self.model).options(
+                    joinedload(self.model.projects)
+                ).filter(self.model.project == project).first()
+
+                if not shift_report:
+                    logger.warning(f"ShiftReport с project {project} не найден", extra={
+                                   "login": "database"})
+                    return None
+
+                project_leader = shift_report.projects.project_leader
+                if not project_leader:
+                    logger.warning(f"У проекта {project} нет руководителя", extra={
+                                   "login": "database"})
+                    return None
+
+                logger.info(f"Найден project_leader {project_leader} для project {project}", extra={
+                            "login": "database"})
+                return str(project_leader)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении project_leader: {e}", extra={
+                         "login": "database"})
+            raise
 
 
 class ShiftReportsDetailsManager(BaseDBManager):

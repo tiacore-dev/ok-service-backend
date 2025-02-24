@@ -21,34 +21,32 @@ class BaseDBManager(ABC):
 
     @contextmanager
     def session_scope(self):
-        """Контекстный менеджер для управления сессией с логированием времени выполнения."""
+        """Контекстный менеджер для управления сессией с логированием."""
         session = Session()
-        # start_time = time.time()
         try:
             logger.debug("Начало сессии", extra={"login": "database"})
             yield session
-            session.commit()
-            # logger.debug(f"""Изменённые объекты: {
-            #    session.dirty}""", extra={"login": "database"})
-            # logger.debug("Сессия успешно закоммичена",
-            #             extra={"login": "database"})
+            if session.is_active:
+                session.commit()
         except Exception as e:
-            session.rollback()
-            logger.error(f"Ошибка в сессии: {e}", extra={
-                "login": "database"})
+            if session.is_active:
+                session.rollback()
+            logger.error(f"Ошибка в сессии: {e}", extra={"login": "database"})
             raise
         finally:
-            session.close()
-            # elapsed_time = time.time() - start_time
-            # logger.debug(f"""Сессия закрыта. Время выполнения: {
-            #    elapsed_time:.4f} сек""", extra={"login": "database"})
+            if session.is_active:
+                session.close()
 
     def add(self, **kwargs):
         try:
             with self.session_scope() as session:
                 new_record = self.model(**kwargs)
                 session.add(new_record)
-                session.flush()  # Проверяем данные перед коммитом
+                try:
+                    session.flush()
+                except Exception:
+                    session.rollback()
+                    raise
                 return new_record.to_dict()
         except Exception as e:
             logger.error(f"""Ошибка при добавлении записи: {
@@ -285,7 +283,7 @@ class BaseDBManager(ABC):
                          "login": "database"})
             raise
 
-    def get_all_filtered(self, offset=0, limit=None, sort_by=None, sort_order='asc', **filters):
+    def get_all_filtered(self, offset=0, limit=None, sort_by="created_at", sort_order='desc', **filters):
         logger.debug("get_all_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
                      extra={"login": "database"})
 

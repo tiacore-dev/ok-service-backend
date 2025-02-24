@@ -11,6 +11,9 @@ type_mapping = {
     ma_fields.Float: fields.Float,
     ma_fields.Boolean: fields.Boolean,
     ma_fields.UUID: fields.String,  # UUID храним как строку
+    # Dict маппится в Raw (универсальный тип Flask-RESTx)
+    ma_fields.Dict: fields.Raw,
+
 }
 
 

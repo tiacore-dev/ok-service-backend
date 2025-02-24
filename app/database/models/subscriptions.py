@@ -12,7 +12,9 @@ class Subscriptions(Base):
                              default=uuid.uuid4, unique=True, nullable=False)
     user = Column(UUID, ForeignKey('users.user_id'), nullable=False)
     # JSON-строка данных о подписке
-    subscription_data = Column(Text, nullable=False)
+    # subscription_data = Column(Text, nullable=False)
+    endpoint = Column(Text, nullable=False)
+    keys = Column(Text, nullable=False)
 
     users = relationship("Users", back_populates="subscription")
 
@@ -22,5 +24,7 @@ class Subscriptions(Base):
     def to_dict(self):
         return {
             "subscription_id": str(self.subscription_id),
-            "subscription_data": self.subscription_data
+            "user": str(self.user),
+            "endpoint": self.endpoint,
+            "keys": self.keys
         }

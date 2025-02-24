@@ -186,7 +186,7 @@ class UserDeleteHard(Resource):
                          extra={"login": current_user.get('login')})
             user = db.get_by_id(record_id=user_id)
             if user['created_by'] == user['user_id']:
-                logger.warning(f"Попытка удлить админа",
+                logger.warning("Попытка удлить админа",
                                extra={"login": current_user.get('login')})
                 return {"msg": "You cannot delete admin"}, 403
             deleted = db.delete(record_id=user_id)
@@ -297,7 +297,7 @@ class UserAll(Resource):
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')
-        sort_order = args.get('sort_order', 'asc')
+        sort_order = args.get('sort_order', 'desc')
         filters = {
             'login': args.get('login'),
             'name': args.get('name'),

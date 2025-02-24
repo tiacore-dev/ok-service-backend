@@ -8,7 +8,8 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key, lo
 from flask import request
 from pywebpush import webpush, WebPushException
 from marshmallow import ValidationError
-from app.schemas.shift_report_schemas import ShiftReportCreateSchema
+from app.utils.helpers import generate_swagger_model
+from app.schemas.subscription_schemas import SubscriptionSchema
 
 subscription_ns = Namespace(
     'subscriptions', description='Subscription actions')
@@ -37,12 +38,15 @@ VAPID_CLAIMS = {
 }
 
 # Определяем модель, которая описывает входные данные
-subscription_create_model = subscription_ns.model('SubscriptionCreate', {
-    'subscription_info': fields.String(required=True, description='Subscription info in raw text')
-})
+subscription_create_model = generate_swagger_model(
+    SubscriptionSchema(), 'SubscriptionCreate'
+)
+
+subscription_ns.models[subscription_create_model.name] = subscription_create_model
 
 subscription_msg_model = subscription_ns.model('SubscriptionMessage', {
-    'msg': fields.String(description='Response message')
+    'msg': fields.String(description='Response message'),
+    "subscription_id": fields.String(description='ID of subscription')
 })
 
 notification_model = subscription_ns.model('Notification', {
@@ -58,25 +62,38 @@ class Subscribe(Resource):
     @subscription_ns.marshal_with(subscription_msg_model)
     def post(self):
         from app.database.managers.subscription_manager import SubscriptionsManager
+
         db = SubscriptionsManager()
         current_user = json.loads(get_jwt_identity())
-        # Получаем "сырые" данные из тела запроса
-        schema = ShiftReportCreateSchema()
+        logger.info(f"Полученные данные: {request.json}")
+
+        # Используем правильную схему
+        schema = SubscriptionSchema()
         try:
-            # Валидация входных данных
+            # Загружаем и валидируем данные
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Ошибка валидации данных: {err.messages}")
             return {"error": err.messages}, 400
-        subscription_info = data.get('transcription_info')
-        # Проверяем существование подписки
-        if db.exists(subscription_data=subscription_info):
-            return {"message": "Subscription already exists."}, 200
 
-        # Добавляем подписку
-        db.add(subscription_data=subscription_info,
-               user=current_user['user_id'])
-        return {"message": "Subscription added."}, 201
+        # Преобразуем объект в JSON-строку перед сохранением
+        endpoint = data['endpoint']
+        keys = json.dumps(data['keys'])
+        # Проверяем, существует ли подписка
+        if db.exists(endpoint=endpoint):
+            subscription = db.filter_one_by_dict(
+                user=current_user['user_id'])
+            if subscription:
+                # logger.info(f"Информация о существующей подписке: {subscription}")
+                db.update(
+                    record_id=subscription['subscription_id'], keys=keys)
+            return {"message": "Subscription already exists.", "subscription_id": subscription['subscription_id']}, 200
+
+        # Сохраняем подписку
+        subscription = db.add(endpoint=endpoint, keys=keys,
+                              user=current_user['user_id'])
+
+        return {"message": "Subscription added.", "subscription_id": subscription['subscription_id']}, 201
 
 
 @subscription_ns.route('/send_notification')
@@ -93,18 +110,19 @@ class SendNotification(Resource):
         if not subscription_id:
             logger.warning("No subscription_id provided.")
             return {"message": "No subscription ID provided."}, 400
-
+        subscription_id = UUID(subscription_id)
         subscription = db.get_by_id(subscription_id)
         if not subscription:
             logger.warning(f"No subscription found for ID: {subscription_id}")
             return {"message": "Subscription not found."}, 404
-        subscription_info = json.loads(subscription['subscription_data'])
+        subscription_info = {
+            "endpoint": subscription['endpoint'], "keys": json.loads(subscription['keys'])}
 
         try:
+            message_data = {'header': 'Test Notification', 'text': message}
             webpush(
                 subscription_info=subscription_info,
-                data=json.dumps(
-                    {"title": "Test Notification", "body": message}),
+                data=json.dumps(message_data),
                 vapid_private_key=urlsafe_b64encode(
                     private_key.private_numbers().private_value.to_bytes(
                         length=(private_key.key_size + 7) // 8,
@@ -121,9 +139,9 @@ class SendNotification(Resource):
             return {"error": "Failed to send notification."}, 500
 
 
-@ subscription_ns.route('/<string:subscription_id>/unsubscribe')
+@subscription_ns.route('/<string:subscription_id>/unsubscribe')
 class Unsubscribe(Resource):
-    @ jwt_required()
+    @jwt_required()
     @subscription_ns.marshal_with(subscription_msg_model)
     def delete(self, subscription_id):
         from app.database.managers.subscription_manager import SubscriptionsManager

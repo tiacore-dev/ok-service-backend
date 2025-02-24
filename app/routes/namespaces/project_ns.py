@@ -172,12 +172,17 @@ class ProjectEdit(Resource):
         current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to edit project: {project_id}",
                     extra={"login": current_user})
+        logger.debug(f"Received PATCH request: {request.json}",
+                     extra={"login": current_user})
 
         schema = ProjectEditSchema()
         try:
             # Валидация входных данных
             data = schema.load(request.json)
+            logger.info("Валидация пройдена")
         except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
@@ -189,9 +194,11 @@ class ProjectEdit(Resource):
 
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
-
+            logger.info(f"Validated PATCH request: {data}",
+                        extra={"login": current_user})
             # Проверки по ролям
             project = db.get_by_id(record_id=project_id)
+            logger.info(f"Получили данные проекта по id: {project}")
             if project['project_leader'] != current_user['user_id'] and current_user['role'] == 'project-leader':
                 logger.warning("Trying to edit not user's project",
                                extra={"login": current_user})
@@ -227,7 +234,7 @@ class ProjectAll(Resource):
         offset = args.get('offset', 0)
         limit = args.get('limit', 10)
         sort_by = args.get('sort_by')
-        sort_order = args.get('sort_order', 'asc')
+        sort_order = args.get('sort_order', 'desc')
         filters = {
             'name': args.get('name'),
             'deleted': args.get('deleted'),
