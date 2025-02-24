@@ -3,6 +3,8 @@ import logging
 import json
 from uuid import UUID
 from flask import request
+from flask import abort
+from sqlalchemy.exc import IntegrityError
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
@@ -109,6 +111,9 @@ class ShiftReportDetailsDelete(Resource):
             if not deleted:
                 return {"msg": "Shift report detail not found"}, 404
             return {"msg": f"Shift report detail {detail_id} deleted successfully", "shift_report_detail_id": detail_id}, 200
+        except IntegrityError:
+            abort(
+                409, description="Cannot delete shift report detail: dependent data exists.")
         except Exception as e:
             logger.error(f"Error deleting shift report detail: {e}",
                          extra={"login": current_user})

@@ -2,6 +2,8 @@ import logging
 import json
 from flask_restx import Namespace, Resource
 from flask import request
+from flask import abort
+from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
 from app.schemas.work_category_schemas import WorkCategoryCreateSchema, WorkCategoryFilterSchema, WorkCategoryEditSchema
@@ -133,6 +135,8 @@ class WorkCategoryDeleteHard(Resource):
             if not deleted:
                 return {"msg": "Work category not found"}, 404
             return {"msg": f"Work category {work_category_id} hard deleted successfully", "work_category_id": work_category_id}, 200
+        except IntegrityError:
+            abort(409, description="Cannot delete work category: dependent data exists.")
         except Exception as e:
             logger.error(f"Error hard deleting work category: {e}",
                          extra={"login": current_user})

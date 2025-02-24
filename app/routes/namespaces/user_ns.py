@@ -2,6 +2,8 @@ import json
 import logging
 from uuid import UUID
 from flask import request
+from flask import abort
+from sqlalchemy.exc import IntegrityError
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
@@ -197,6 +199,8 @@ class UserDeleteHard(Resource):
             logger.info(f"Пользователь user_id={user_id} удален окончательно",
                         extra={"login": current_user.get('login')})
             return {"msg": f"User {user_id} hard deleted successfully", "user_id": user_id}, 200
+        except IntegrityError:
+            abort(409, description="Cannot delete user: dependent data exists.")
         except Exception as e:
             logger.error(f"Ошибка при окончательном удалении пользователя user_id={user_id}: {e}",
                          extra={"login": current_user.get('login')})

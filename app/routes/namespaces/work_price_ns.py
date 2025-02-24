@@ -2,6 +2,8 @@ import logging
 import json
 from uuid import UUID
 from flask import request
+from flask import abort
+from sqlalchemy.exc import IntegrityError
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
@@ -144,6 +146,8 @@ class WorkPriceHardDelete(Resource):
             if not deleted:
                 return {"msg": "Work price not found"}, 404
             return {"msg": f"Work price {work_price_id} hard deleted successfully", "work_price_id": work_price_id}, 200
+        except IntegrityError:
+            abort(409, description="Cannot delete work price: dependent data exists.")
         except Exception as e:
             logger.error(f"Error hard deleting work price: {e}",
                          extra={"login": current_user})

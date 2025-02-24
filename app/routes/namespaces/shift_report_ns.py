@@ -3,6 +3,8 @@ import logging
 import json
 from uuid import UUID
 from flask import request
+from flask import abort
+from sqlalchemy.exc import IntegrityError
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
@@ -164,6 +166,8 @@ class ShiftReportHardDelete(Resource):
             if not deleted:
                 return {"msg": "Shift report not found"}, 404
             return {"msg": f"Shift report {report_id} hard deleted successfully", "shift_report_id": report_id}, 200
+        except IntegrityError:
+            abort(409, description="Cannot delete shift report: dependent data exists.")
         except Exception as e:
             logger.error(f"Error hard deleting shift report: {e}",
                          extra={"login": current_user})

@@ -2,6 +2,8 @@ import logging
 import json
 from uuid import UUID
 from flask import request
+from flask import abort
+from sqlalchemy.exc import IntegrityError
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
@@ -168,6 +170,8 @@ class ProjectWorkHardDelete(Resource):
             if not deleted:
                 return {"msg": "Project work not found"}, 404
             return {"msg": f"Project work {project_work_id} hard deleted successfully", "project_work_id": project_work_id}, 200
+        except IntegrityError:
+            abort(409, description="Cannot delete project work: dependent data exists.")
         except Exception as e:
             logger.error(f"Error hard deleting project work: {e}",
                          extra={"login": current_user})

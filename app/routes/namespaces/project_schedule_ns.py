@@ -3,6 +3,8 @@ import logging
 import json
 from uuid import UUID
 from flask import request
+from flask import abort
+from sqlalchemy.exc import IntegrityError
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
@@ -136,6 +138,9 @@ class ProjectScheduleHardDelete(Resource):
             if not deleted:
                 return {"msg": "Project schedule not found"}, 404
             return {"msg": f"Project schedule {schedule_id} hard deleted successfully", "project_schedule_id": schedule_id}, 200
+        except IntegrityError:
+            abort(
+                409, description="Cannot delete project schedule: dependent data exists.")
         except Exception as e:
             logger.error(f"Error hard deleting project schedule: {e}",
                          extra={"login": current_user})

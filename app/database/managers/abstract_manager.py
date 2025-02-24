@@ -4,6 +4,7 @@ from uuid import UUID
 from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from sqlalchemy import asc, desc
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import inspect
 from app.database.db_globals import Session
@@ -173,14 +174,12 @@ class BaseDBManager(ABC):
             raise
 
     def delete(self, record_id):
-        """Удаление записи по ID."""
+        """Удаление записи по ID с обработкой зависимости."""
         try:
             logger.info("Deleting record with ID: %s",
                         record_id, extra={"login": "database"})
             with self.session_scope() as session:
-                primary_key = inspect(self.model).primary_key[0].name
-                record = session.query(self.model).filter(
-                    getattr(self.model, primary_key) == record_id).first()
+                record = self.get_record_by_id(record_id)
                 if record:
                     session.delete(record)
                     logger.info("Record deleted successfully: %s",
@@ -190,6 +189,12 @@ class BaseDBManager(ABC):
                     logger.warning("Record not found for deletion: %s",
                                    record_id, extra={"login": "database"})
                     return None
+        except IntegrityError as e:
+            logger.error("Cannot delete record %s due to integrity constraint: %s",
+                         record_id, e, extra={"login": "database"})
+            # Поднимаем исключение
+            raise IntegrityError(
+                "Cannot delete record: dependent data exists.")
         except Exception as e:
             logger.error("Error deleting record with ID %s: %s",
                          record_id, e, extra={"login": "database"})
