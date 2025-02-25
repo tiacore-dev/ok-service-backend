@@ -245,7 +245,7 @@ class ShiftReportAll(Resource):
         sort_by = args.get('sort_by')
         sort_order = args.get('sort_order', 'desc')
         filters = {
-            'user': args.get('user') if args.get('user') else None,
+            'user': UUID(args.get('user')) if args.get('user') else None,
             'date_from': int(args.get('date_from')) if args.get('date_from') else None,
             'date_to': int(args.get('date_to')) if args.get('date_to') else None,
             'project': args.get('project') if args.get('project') else None,
@@ -254,7 +254,7 @@ class ShiftReportAll(Resource):
             'deleted': args.get('deleted', None)
         }
         if current_user['role'] == 'user':
-            filters['user'] = current_user['user_id']
+            filters['user'] = UUID(current_user['user_id'])
 
         logger.debug(f"Fetching shift reports with filters: {filters}, offset={offset}, limit={limit}",
                      extra={"login": current_user})
