@@ -2,17 +2,28 @@ import logging
 import json
 from uuid import UUID
 from base64 import urlsafe_b64encode
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from cryptography.hazmat.primitives.serialization import load_pem_public_key, load_pem_private_key, PublicFormat, Encoding
 from flask import request
 from pywebpush import webpush, WebPushException
 from marshmallow import ValidationError
-from app.utils.helpers import generate_swagger_model
-from app.schemas.subscription_schemas import SubscriptionSchema
+from app.schemas.subscription_schemas import SubscriptionSchema, SubscriptionGetSchema
+from app.routes.models.subscription_models import (
+    subscription_all_response, subscription_create_model,
+    subscription_model, subscription_msg_model,
+    subscription_filter_parser, notification_model
+)
+
 
 subscription_ns = Namespace(
     'subscriptions', description='Subscription actions')
+
+subscription_ns.models[subscription_create_model.name] = subscription_create_model
+subscription_ns.models[subscription_msg_model.name] = subscription_msg_model
+subscription_ns.models[subscription_all_response.name] = subscription_all_response
+subscription_ns.models[subscription_model.name] = subscription_model
+subscription_ns.models[notification_model.name] = notification_model
 
 logger = logging.getLogger('ok_service')
 
@@ -37,22 +48,8 @@ VAPID_CLAIMS = {
     "sub": "https://fcm.googleapis.com"
 }
 
-# Определяем модель, которая описывает входные данные
-subscription_create_model = generate_swagger_model(
-    SubscriptionSchema(), 'SubscriptionCreate'
-)
 
 subscription_ns.models[subscription_create_model.name] = subscription_create_model
-
-subscription_msg_model = subscription_ns.model('SubscriptionMessage', {
-    'msg': fields.String(description='Response message'),
-    "subscription_id": fields.String(description='ID of subscription')
-})
-
-notification_model = subscription_ns.model('Notification', {
-    "subscription_id": fields.String(required=True, description='Subscription ID'),
-    "message": fields.String(required=True, description='Message that you want to send in web-push')
-})
 
 
 @subscription_ns.route('/subscribe')
@@ -159,3 +156,47 @@ class Unsubscribe(Resource):
 
         logger.info(f"Subscription removed: {subscription_id}")
         return {"message": "Subscription removed successfully."}, 200
+
+
+@subscription_ns.route('/all')
+class GetAllSubscriptions(Resource):
+    @jwt_required()
+    @subscription_ns.expect(subscription_filter_parser)
+    @subscription_ns.marshal_with(subscription_all_response)
+    def get(self):
+        current_user = json.loads(get_jwt_identity())
+        logger.info("Request to fetch all shift reports",
+                    extra={"login": current_user})
+
+        # Валидация query-параметров через Marshmallow
+        schema = SubscriptionGetSchema()
+        try:
+            args = schema.load(request.args)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
+            return {"error": err.messages}, 400
+        offset = args.get('offset', 0)
+        limit = args.get('limit', None)
+        sort_by = args.get('sort_by')
+        sort_order = args.get('sort_order', 'desc')
+        filters = {
+            'user': args.get('user') if args.get('user') else None,
+            'endpoint': args.get('endpoint', None),
+            'keys': args.get('keys', None)
+        }
+        logger.debug(f"Fetching subscriptions with filters: {filters}, offset={offset}, limit={limit}",
+                     extra={"login": current_user})
+
+        try:
+            from app.database.managers.subscription_manager import SubscriptionsManager
+            db = SubscriptionsManager()
+            subscriptions = db.get_all_filtered(
+                offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
+            logger.info(f"Successfully fetched {len(subscriptions)} subscriptions",
+                        extra={"login": current_user})
+            return {"msg": "Subscriptions found successfully", "subscriptions": subscriptions}, 200
+        except Exception as e:
+            logger.error(f"Error fetching subscriptions: {e}",
+                         extra={"login": current_user})
+            return {"msg": f"Error fetching subscriptions: {e}"}, 500
