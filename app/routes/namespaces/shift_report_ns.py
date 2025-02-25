@@ -58,6 +58,8 @@ class ShiftReportAdd(Resource):
             if current_user['role'] == 'user':
                 data['user'] = current_user['user_id']
                 data['signed'] = False
+                data['night_shift'] = False
+                data['extreme_conditions'] = False
             new_report = db.add_shift_report_with_details(
                 # Returns a dictionary
                 data, created_by=current_user['user_id'])
