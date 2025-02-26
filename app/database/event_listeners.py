@@ -197,10 +197,12 @@ def update_conditions(shift_report, target):
 def update_details(target, _):
     from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
     details_manager = ShiftReportsDetailsManager()
-    logger.info(
-        '[ShiftReportDetails] Обнаружены изменения, обновляем стоимость.')
-    details_manager.recalculate_by_details(
-        target.shift_report_detail_id, target.work, target.quantity, target.shift_report)
+    detail = details_manager.get_by_id(target.shift_report_detail_id)
+    if target.summ == detail['summ']:
+        logger.info(
+            '[ShiftReportDetails] Обнаружены изменения, обновляем стоимость.')
+        details_manager.recalculate_by_details(
+            target.shift_report_detail_id, target.work, target.quantity, target.shift_report)
 
 
 def notify_on_change(_, __, target, event_name):
