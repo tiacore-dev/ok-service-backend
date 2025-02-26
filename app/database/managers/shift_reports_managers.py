@@ -5,7 +5,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
-from app.database.models import ShiftReports, ShiftReportDetails, WorkPrices
+from app.database.models import ShiftReports, ShiftReportDetails, WorkPrices, Users
 from app.database.managers.abstract_manager import BaseDBManager
 
 
@@ -249,9 +249,12 @@ class ShiftReportsDetailsManager(ShiftManager):
                          e}""", extra={"login": "database"})
             raise
 
-    def update_summ(self, work_id, extreme_conditions, night_shift, session):
+    def update_summ(self, work_id, quantity, extreme_conditions, night_shift, session, user_id):
+        user = session.query(Users).filter(
+            Users.user_id == user_id
+        ).first()
         work_price = session.query(WorkPrices).filter(
-            WorkPrices.work == work_id
+            WorkPrices.work == work_id, WorkPrices.category == user.category
         ).first()
 
         if not work_price:
@@ -270,14 +273,12 @@ class ShiftReportsDetailsManager(ShiftManager):
                 "Night shift")  # Отладка
             summ += price * Decimal("0.25")
 
-        return summ
+        return summ*Decimal(quantity)
 
-    def recalculate_shift_details(self, shift_report_id, extreme_conditions, night_shift):
+    def recalculate_by_conditions(self, shift_report_id, extreme_conditions, night_shift, user):
         """Пересчитывает сумму (summ) для всех записей в ShiftReportDetails, если изменились условия"""
         with self.session_scope() as session:
             try:
-                session.expire_all()  # Принудительно обновляем объекты перед запросом
-
                 logger.debug(
                     f"[DEBUG] Получение деталей смены для {shift_report_id}")
                 details = session.query(ShiftReportDetails).filter(
@@ -290,12 +291,38 @@ class ShiftReportsDetailsManager(ShiftManager):
 
                 for detail in details:
                     new_summ = self.update_summ(
-                        detail.work, extreme_conditions, night_shift, session) * Decimal(detail.quantity)
+                        detail.work, detail.quantity, extreme_conditions, night_shift, session, user)
                     detail.summ = new_summ  # Обновляем сумму
 
                 session.commit()  # Фиксируем изменения
                 logger.info(
                     f"Обновлены суммы для ShiftReport {shift_report_id}")
+            except Exception as e:
+                logger.error(f"""Ошибка при пересчете суммы: {
+                    e}""", extra={"login": "database"})
+                raise
+
+    def recalculate_by_details(self, shift_report_detail_id, work_id, quantity, shift_report_id):
+        with self.session_scope() as session:
+            try:
+                logger.debug(
+                    f"[DEBUG] Получение деталей смены для {shift_report_detail_id}")
+                detail = session.query(ShiftReportDetails).filter(
+                    ShiftReportDetails.shift_report_detail_id == shift_report_detail_id
+                ).first()
+
+                if not detail:
+                    return
+                shift_report = session.query(ShiftReports).filter(
+                    ShiftReports.shift_report_id == shift_report_id).first()
+                new_summ = self.update_summ(
+                    work_id, quantity, shift_report.extreme_conditions, shift_report.night_shift, session, shift_report.user)
+
+                detail.summ = new_summ  # Обновляем сумму
+                session.commit()  # Фиксируем изменения
+                logger.info(
+                    f"Обновлены суммы для ShiftReportDetail {shift_report_detail_id}")
+
             except Exception as e:
                 logger.error(f"""Ошибка при пересчете суммы: {
                     e}""", extra={"login": "database"})

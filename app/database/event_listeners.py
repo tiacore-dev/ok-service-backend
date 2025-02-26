@@ -190,8 +190,17 @@ def update_conditions(shift_report, target):
             '[ShiftReports] Обнаружены изменения в особых условиях, обновляем стоимость.')
         from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
         details_manager = ShiftReportsDetailsManager()
-        details_manager.recalculate_shift_details(
-            shift_report['shift_report_id'], target.extreme_conditions, target.night_shift)
+        details_manager.recalculate_by_conditions(
+            shift_report['shift_report_id'], target.extreme_conditions, target.night_shift, target.user)
+
+
+def update_details(target, _):
+    from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
+    details_manager = ShiftReportsDetailsManager()
+    logger.info(
+        '[ShiftReportDetails] Обнаружены изменения, обновляем стоимость.')
+    details_manager.recalculate_by_details(
+        target.shift_report_detail_id, target.work, target.quantity, target.shift_report)
 
 
 def notify_on_change(_, __, target, event_name):
@@ -238,11 +247,12 @@ def send_push_notification(subscriptions, message_data):
 # ⚡ Заполняем диспетчер
 NOTIFICATION_HANDLERS["project_works"] = notify_on_project_works_change
 NOTIFICATION_HANDLERS["shift_reports"] = notify_on_shift_reports_change
+NOTIFICATION_HANDLERS["shift_report_details"] = update_details
 
 
 def setup_listeners():
     """Настройка слушателей событий с задержкой перед вызовом notify_on_change()"""
-    from app.database.models import ProjectWorks, ShiftReports
+    from app.database.models import ProjectWorks, ShiftReports, ShiftReportDetails
 
     logger.info("[GLOBAL] Настройка слушателей событий")
     try:
@@ -254,6 +264,8 @@ def setup_listeners():
         event.listen(ShiftReports, 'after_insert', lambda m,
                      c, t: notify_on_change(m, c, t, "insert"))
         event.listen(ShiftReports, 'after_update', lambda m,
+                     c, t: notify_on_change(m, c, t, "update"))
+        event.listen(ShiftReportDetails, 'after_update', lambda m,
                      c, t: notify_on_change(m, c, t, "update"))
 
         logger.info("[GLOBAL] Слушатели событий успешно настроены.")
