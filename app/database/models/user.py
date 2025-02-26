@@ -1,5 +1,4 @@
 from uuid import uuid4
-import logging
 from datetime import datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
@@ -17,7 +16,7 @@ class Users(Base):
     password_hash = Column(String, nullable=False)
     name = Column(String, nullable=False)
     role = Column(String, ForeignKey('roles.role_id'), nullable=False)
-    category = Column(Integer, nullable=True)
+    category = Column(Integer, nullable=False, default=0)
     created_by = Column(UUID(as_uuid=True), ForeignKey(
         'users.user_id'), nullable=False)
     created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),

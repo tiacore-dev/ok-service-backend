@@ -43,12 +43,16 @@ class ShiftManager(BaseDBManager):
             ShiftReports.shift_report_id == shift_report_id
         ).first()
 
+        user = session.query(Users).filter(
+            Users.user_id == shift_report.user
+        ).first()
+
         if not shift_report:
             logger.warning(f"ShiftReport {shift_report_id} не найден")
             return Decimal(0)
 
         work_price = session.query(WorkPrices).filter(
-            WorkPrices.work == work_id
+            WorkPrices.work == work_id, WorkPrices.category == user.category
         ).first()
 
         if not work_price:

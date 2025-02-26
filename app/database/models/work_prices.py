@@ -12,7 +12,7 @@ class WorkPrices(Base):
     work_price_id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     work = Column(UUID, ForeignKey('works.work_id'))
-    category = Column(Integer, nullable=False)
+    category = Column(Integer, nullable=False, default=0)
     price = Column(Numeric(precision=10, scale=2), nullable=False)
     created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),
                         server_default=text("EXTRACT(EPOCH FROM NOW())"), nullable=False)
