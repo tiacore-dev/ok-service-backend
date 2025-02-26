@@ -149,6 +149,7 @@ def notify_on_shift_reports_change(target, event_name):
             shift_report = shift_manager.get_by_id(
                 target.shift_report_id)
             if shift_report:
+                update_conditions(shift_report, target)
                 previous_signed = shift_report['signed']  # Старое значение
                 current_signed = target.signed  # Новое значение
                 if previous_signed is False and current_signed is True:
@@ -168,7 +169,7 @@ def notify_on_shift_reports_change(target, event_name):
                     logger.debug(
                         "[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
                     return
-                update_conditions(shift_report, target)
+
         else:
             return
 
