@@ -188,6 +188,12 @@ class ShiftReportsManager(ShiftManager):
                         logger.debug(f"Фильтруем по дате до: {value}",
                                      extra={"login": "database"})
 
+                    # Фильтр по списку значений
+                    elif isinstance(value, list):
+                        query = query.filter(column.in_(value))
+                        logger.debug(f"Фильтруем по списку значений: {key} IN {value}",
+                                     extra={"login": "database"})
+
                     # Обычные точные фильтры
                     else:
                         query = query.filter(column == value)

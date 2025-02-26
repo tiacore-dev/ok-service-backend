@@ -256,6 +256,22 @@ class ShiftReportAll(Resource):
         if current_user['role'] == 'user':
             filters['user'] = UUID(current_user['user_id'])
 
+        if current_user['role'] == 'project-leader':
+            from app.database.managers.projects_managers import ProjectsManager
+            project_manager = ProjectsManager()
+            user_projects = project_manager.get_projects_by_leader(
+                UUID(current_user['user_id']))
+            project_ids = [p['project_id'] for p in user_projects]
+            if not filters['project']:
+
+                if not project_ids:
+                    return {"msg": "No shift reports found", "shift_reports": []}, 200
+                # Фильтруем только по проектам прораба
+                filters['project'] = project_ids
+            else:
+                if filters['project'] not in project_ids:
+                    return {"msg": "Forbidden"}, 403
+
         logger.debug(f"Fetching shift reports with filters: {filters}, offset={offset}, limit={limit}",
                      extra={"login": current_user})
 

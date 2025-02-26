@@ -208,10 +208,19 @@ def notify_on_change(_, __, target, event_name):
     table_name = target.__tablename__
     logger.info(
         f"[GLOBAL] Обработчик изменений вызван для таблицы {table_name}, event={event_name}")
+
+    logger.debug(
+        # Отладка
+        f"[GLOBAL] Доступные обработчики: {NOTIFICATION_HANDLERS.keys()}")
+
     # 🔥 Добавляем небольшую задержку перед обработкой, чтобы БД успела закоммитить изменения
     time.sleep(0.5)
     handler = NOTIFICATION_HANDLERS.get(table_name)
+
     if handler:
+        logger.debug(
+            # Отладка
+            f"[GLOBAL] Найден обработчик для {table_name}, вызываем {handler.__name__}")
         handler(target, event_name)
     else:
         logger.warning(

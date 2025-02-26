@@ -89,6 +89,29 @@ class ProjectsManager(BaseDBManager):
 
             return [record.to_dict() for record in records]
 
+    def get_projects_by_leader(self, user_id):
+        """Получает список проектов, где указанный пользователь является прорабом."""
+        try:
+            logger.debug(f"Fetching projects for project leader: {user_id}",
+                         extra={"login": "database"})
+
+            with self.session_scope() as session:
+                projects = session.query(Projects).filter(
+                    Projects.project_leader == user_id
+                ).all()
+
+                result = [project.to_dict() for project in projects]
+
+                logger.info(f"Found {len(result)} projects for project leader {user_id}",
+                            extra={"login": "database"})
+
+                return result
+
+        except Exception as e:
+            logger.error(f"Error fetching projects for leader {user_id}: {e}",
+                         extra={"login": "database"})
+            return []
+
 
 class ProjectSchedulesManager(BaseDBManager):
 
