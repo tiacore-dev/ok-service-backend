@@ -1,4 +1,5 @@
 from uuid import uuid4, UUID
+from decimal import Decimal
 import logging
 from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
@@ -11,7 +12,56 @@ from app.database.managers.abstract_manager import BaseDBManager
 logger = logging.getLogger('ok_service')
 
 
-class ShiftReportsManager(BaseDBManager):
+class ShiftManager(BaseDBManager):
+    def count_summ(self, work_id, shift_report_id, session=None):
+        """Подсчитывает сумму работы с учётом сменных условий"""
+        try:
+            if session is None:
+                with self.session_scope() as session:
+                    return self._count_summ_internal(work_id, shift_report_id, session)
+            else:
+                return self._count_summ_internal(work_id, shift_report_id, session)
+        except Exception as e:
+            logger.error(f"Ошибка при подсчете суммы: {e}", extra={
+                         "login": "database"})
+            raise
+
+    def _count_summ_internal(self, work_id, shift_report_id, session):
+        """Внутренний метод для подсчёта суммы, без открытия новой сессии"""
+        shift_report = session.query(ShiftReports).filter(
+            ShiftReports.shift_report_id == shift_report_id
+        ).first()
+
+        if not shift_report:
+            logger.warning(f"ShiftReport {shift_report_id} не найден")
+            return Decimal(0)
+
+        work_price = session.query(WorkPrices).filter(
+            WorkPrices.work == work_id
+        ).first()
+
+        if not work_price:
+            logger.warning(f"WorkPrices для work_id {work_id} не найден")
+            return Decimal(0)
+
+        summ = work_price.price or Decimal(0)  # Берём цену работы
+
+        logger.debug(
+            f"Тип work_price.price: {type(work_price.price)}")  # Отладка
+        logger.debug(
+            f"Тип Decimal('0.25'): {type(Decimal('0.25'))}")  # Отладка
+
+        if shift_report.extreme_conditions:
+            # Должно быть Decimal * Decimal
+            summ += work_price.price * Decimal("0.25")
+
+        if shift_report.night_shift:
+            summ += work_price.price * Decimal("0.25")
+
+        return summ
+
+
+class ShiftReportsManager(ShiftManager):
 
     @property
     def model(self):
@@ -61,7 +111,7 @@ class ShiftReportsManager(BaseDBManager):
                             work=UUID(detail['work']),
                             quantity=detail['quantity'],
                             summ=(self.count_summ(
-                                detail['work'], new_report.shift_report_id))*detail['quantity'],
+                                UUID(detail['work']), new_report.shift_report_id, session))*Decimal(detail['quantity']),
                             created_by=created_by
                         ) for detail in shift_report_details_data
                     ]
@@ -170,40 +220,23 @@ class ShiftReportsManager(BaseDBManager):
 
             return [record.to_dict() for record in records]
 
-    def count_summ(self, work_id, shift_report_id):
-        with self.session_scope() as session:
-            try:
-                shift_report = session.query(ShiftReports).filter(
-                    ShiftReports.shift_report_id == shift_report_id).first()
-                work_price = session.query(WorkPrices).filter(
-                    WorkPrices.work == work_id).first()
-                summ = work_price
-                if shift_report.extreme_conditions:
-                    summ += work_price*0.25
-                if shift_report.night_shift:
-                    summ += work_price*0.25
-                return summ
-            except Exception as e:
-                logger.error(f"""Ошибка при посдчете суммы: {
-                    e}""", extra={"login": "database"})
-                raise
 
-
-class ShiftReportsDetailsManager(BaseDBManager):
+class ShiftReportsDetailsManager(ShiftManager):
 
     @property
     def model(self):
         return ShiftReportDetails
 
-    def add_shift_report_deatails(self, created_by, data):
+    def add_shift_report_deatails(self, created_by, **data):
         try:
             with self.session_scope() as session:
-                summ = self.count_summ(data['work'], data['shift_report'])
+                summ = self.count_summ(
+                    UUID(data['work']), UUID(data['shift_report']), session)
                 new_record = ShiftReportDetails(
                     shift_report=data['shift_report'],
                     work=data['work'],
                     quantity=data['quantity'],
-                    summ=summ*data['quantity'],
+                    summ=summ*Decimal(data['quantity']),
                     created_by=created_by
                 )
                 session.add(new_record)
@@ -218,38 +251,20 @@ class ShiftReportsDetailsManager(BaseDBManager):
                          e}""", extra={"login": "database"})
             raise
 
-    def count_summ(self, work_id, shift_report_id):
-        with self.session_scope() as session:
-            try:
-                shift_report = session.query(ShiftReports).filter(
-                    ShiftReports.shift_report_id == shift_report_id).first()
-                work_price = session.query(WorkPrices).filter(
-                    WorkPrices.work == work_id).first()
-                summ = work_price
-                if shift_report.extreme_conditions:
-                    summ += work_price*0.25
-                if shift_report.night_shift:
-                    summ += work_price*0.25
-                return summ
-            except Exception as e:
-                logger.error(f"""Ошибка при посдчете суммы: {
-                    e}""", extra={"login": "database"})
-                raise
-
     def recalculate_shift_details(self, shift_report_id):
         """Пересчитывает сумму (summ) для всех записей в ShiftReportDetails, если изменились условия"""
         with self.session_scope() as session:
             try:
                 details = session.query(ShiftReportDetails).filter(
                     ShiftReportDetails.shift_report == shift_report_id
-                ).first()
+                ).all()
 
                 if not details:
                     return
 
                 for detail in details:
                     new_summ = self.count_summ(
-                        detail.work, shift_report_id) * detail.quantity
+                        detail.work, shift_report_id, session) * Decimal(detail.quantity)
                     detail.summ = new_summ  # Обновляем сумму
 
                 session.commit()  # Фиксируем изменения

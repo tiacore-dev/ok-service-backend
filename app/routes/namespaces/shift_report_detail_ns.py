@@ -55,7 +55,8 @@ class ShiftReportDetailsAdd(Resource):
 
             # Add shift report detail
             # Returns a dictionary
-            new_detail = db.add(created_by=current_user['user_id'], **data)
+            new_detail = db.add_shift_report_deatails(
+                created_by=current_user['user_id'], **data)
             logger.info(f"New shift report detail added: {new_detail['shift_report_detail_id']}",
                         extra={"login": current_user})
             return {"msg": "New shift report detail added successfully", "shift_report_detail_id": new_detail['shift_report_detail_id']}, 200

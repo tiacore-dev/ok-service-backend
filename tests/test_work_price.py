@@ -1,4 +1,3 @@
-from uuid import uuid4, UUID
 import pytest
 
 
@@ -6,25 +5,6 @@ import pytest
 def work_prices_manager(db_session):
     from app.database.managers.works_managers import WorkPricesManager
     return WorkPricesManager(session=db_session)
-
-
-@pytest.fixture
-def seed_work_price(db_session, seed_work, seed_user):
-    """
-    Добавляет тестовую цену работы в базу перед тестом.
-    """
-    from app.database.models import WorkPrices
-    work_price = WorkPrices(
-        work_price_id=uuid4(),
-        work=seed_work['work_id'],
-        category=1,
-        price=100.00,
-        created_by=seed_user['user_id'],
-        deleted=False
-    )
-    db_session.add(work_price)
-    db_session.commit()
-    return work_price.to_dict()
 
 
 def test_add_work_price(client, jwt_token, seed_work, db_session):

@@ -20,7 +20,7 @@ def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user
     return detail.to_dict()
 
 
-def test_add_shift_report_detail(client, jwt_token, seed_shift_report, seed_work):
+def test_add_shift_report_detail(client, jwt_token, seed_shift_report, seed_work, seed_work_price):
     data = {
         "shift_report": seed_shift_report['shift_report_id'],
         "work": seed_work['work_id'],

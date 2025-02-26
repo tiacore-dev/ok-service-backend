@@ -272,6 +272,25 @@ def seed_work(db_session, seed_work_category, seed_user):
 
 
 @pytest.fixture
+def seed_work_price(db_session, seed_work, seed_user):
+    """
+    Добавляет тестовую цену работы в базу перед тестом.
+    """
+    from app.database.models import WorkPrices
+    work_price = WorkPrices(
+        work_price_id=uuid4(),
+        work=seed_work['work_id'],
+        category=1,
+        price=100.00,
+        created_by=seed_user['user_id'],
+        deleted=False
+    )
+    db_session.add(work_price)
+    db_session.commit()
+    return work_price.to_dict()
+
+
+@pytest.fixture
 def seed_object(db_session, seed_user):
     """
     Добавляет тестовый объект в базу перед тестом.
