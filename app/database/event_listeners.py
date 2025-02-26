@@ -168,6 +168,7 @@ def notify_on_shift_reports_change(target, event_name):
                     logger.debug(
                         "[ShiftReports] Поле signed не изменилось с False → True. Уведомление не отправляется.")
                     return
+                update_conditions(shift_report, target)
         else:
             return
 
@@ -176,6 +177,18 @@ def notify_on_shift_reports_change(target, event_name):
     except Exception as ex:
         logger.error(
             f"[ShiftReports] Ошибка при отправке уведомления: {ex}", exc_info=True)
+
+
+def update_conditions(shift_report, target):
+    previous_extreme = shift_report['extreme_conditions']
+    previous_night = shift_report['night_shift']
+    current_extreme = target.extreme_conditions
+    current_night = target.night_shift
+    if previous_extreme != current_extreme or previous_night != current_night:
+        from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
+        details_manager = ShiftReportsDetailsManager()
+        details_manager.recalculate_shift_details(
+            shift_report['shift_report_id'])
 
 
 def notify_on_change(_, __, target, event_name):

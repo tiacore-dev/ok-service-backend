@@ -1,6 +1,5 @@
 from uuid import uuid4, UUID
 import logging
-from sqlalchemy.orm import aliased
 from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, desc
@@ -172,8 +171,8 @@ class ShiftReportsManager(BaseDBManager):
             return [record.to_dict() for record in records]
 
     def count_summ(self, work_id, shift_report_id):
-        try:
-            with self.session_scope() as session:
+        with self.session_scope() as session:
+            try:
                 shift_report = session.query(ShiftReports).filter(
                     ShiftReports.shift_report_id == shift_report_id).first()
                 work_price = session.query(WorkPrices).filter(
@@ -184,10 +183,10 @@ class ShiftReportsManager(BaseDBManager):
                 if shift_report.night_shift:
                     summ += work_price*0.25
                 return summ
-        except Exception as e:
-            logger.error(f"""Ошибка при посдчете семмы: {
-                         e}""", extra={"login": "database"})
-            raise
+            except Exception as e:
+                logger.error(f"""Ошибка при посдчете суммы: {
+                    e}""", extra={"login": "database"})
+                raise
 
 
 class ShiftReportsDetailsManager(BaseDBManager):
@@ -220,8 +219,8 @@ class ShiftReportsDetailsManager(BaseDBManager):
             raise
 
     def count_summ(self, work_id, shift_report_id):
-        try:
-            with self.session_scope() as session:
+        with self.session_scope() as session:
+            try:
                 shift_report = session.query(ShiftReports).filter(
                     ShiftReports.shift_report_id == shift_report_id).first()
                 work_price = session.query(WorkPrices).filter(
@@ -232,7 +231,31 @@ class ShiftReportsDetailsManager(BaseDBManager):
                 if shift_report.night_shift:
                     summ += work_price*0.25
                 return summ
-        except Exception as e:
-            logger.error(f"""Ошибка при посдчете семмы: {
-                         e}""", extra={"login": "database"})
-            raise
+            except Exception as e:
+                logger.error(f"""Ошибка при посдчете суммы: {
+                    e}""", extra={"login": "database"})
+                raise
+
+    def recalculate_shift_details(self, shift_report_id):
+        """Пересчитывает сумму (summ) для всех записей в ShiftReportDetails, если изменились условия"""
+        with self.session_scope() as session:
+            try:
+                details = session.query(ShiftReportDetails).filter(
+                    ShiftReportDetails.shift_report == shift_report_id
+                ).first()
+
+                if not details:
+                    return
+
+                for detail in details:
+                    new_summ = self.count_summ(
+                        detail.work, shift_report_id) * detail.quantity
+                    detail.summ = new_summ  # Обновляем сумму
+
+                session.commit()  # Фиксируем изменения
+                logger.info(
+                    f"Обновлены суммы для ShiftReport {shift_report_id}")
+            except Exception as e:
+                logger.error(f"""Ошибка при пересчете суммы: {
+                    e}""", extra={"login": "database"})
+                raise
