@@ -255,9 +255,14 @@ class ShiftReportsDetailsManager(ShiftManager):
         """Пересчитывает сумму (summ) для всех записей в ShiftReportDetails, если изменились условия"""
         with self.session_scope() as session:
             try:
+                session.expire_all()  # Принудительно обновляем объекты перед запросом
+
+                logger.debug(
+                    f"[DEBUG] Получение деталей смены для {shift_report_id}")
                 details = session.query(ShiftReportDetails).filter(
                     ShiftReportDetails.shift_report == shift_report_id
                 ).all()
+                logger.debug(f"[DEBUG] Найдено {len(details)} записей")
 
                 if not details:
                     return

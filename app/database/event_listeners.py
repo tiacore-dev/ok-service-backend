@@ -187,7 +187,7 @@ def update_conditions(shift_report, target):
     current_night = target.night_shift
     if previous_extreme != current_extreme or previous_night != current_night:
         logger.info(
-            f'[ShiftReports] Обнаружены изменения в особых условиях, обновляем стоимость.')
+            '[ShiftReports] Обнаружены изменения в особых условиях, обновляем стоимость.')
         from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
         details_manager = ShiftReportsDetailsManager()
         details_manager.recalculate_shift_details(
