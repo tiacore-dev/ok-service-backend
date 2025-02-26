@@ -146,7 +146,8 @@ class ShiftReportDetailsEdit(Resource):
 
             from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
             db = ShiftReportsDetailsManager()
-            updated = db.update(record_id=detail_id, **data)
+            updated = db.update_shift_report_details(
+                shift_report_detail_id=detail_id, **data)
             if not updated:
                 return {"msg": "Shift report detail not found"}, 404
             return {"msg": "Shift report detail updated successfully", "shift_report_detail_id": detail_id}, 200

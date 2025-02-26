@@ -323,6 +323,55 @@ class ShiftReportsDetailsManager(ShiftManager):
 
         return total_summ
 
+    def update_shift_report_details(self, shift_report_detail_id, **data):
+        """Обновление записи по ID, игнорируя None в аргументах."""
+        try:
+            with self.session_scope() as session:
+                logger.debug(
+                    f"[DEBUG] Обновление shift_report_detail {shift_report_detail_id} с данными: {data}")
+
+                detail = session.query(ShiftReportDetails).filter(
+                    ShiftReportDetails.shift_report_detail_id == shift_report_detail_id
+                ).first()
+
+                if not detail:
+                    logger.warning(
+                        f"[WARNING] Запись ShiftReportDetails с ID {shift_report_detail_id} не найдена!")
+                    return None
+
+                # Получаем shift_report
+                shift_report = session.query(ShiftReports).filter(
+                    ShiftReports.shift_report_id == detail.shift_report
+                ).first()
+
+                if not shift_report:
+                    logger.warning(
+                        f"[WARNING] ShiftReport с ID {detail.shift_report} не найден!")
+                    return None
+
+                # Обновляем данные
+                # Оставляем текущее значение, если work не передан
+                detail.work = data.get('work', detail.work)
+                detail.quantity = data.get('quantity', detail.quantity)
+
+                # Пересчёт суммы
+                detail.summ = self.update_summ(
+                    detail.work, detail.quantity,
+                    shift_report.extreme_conditions, shift_report.night_shift,
+                    session, shift_report.user
+                )
+
+                session.commit()
+                logger.info(
+                    f"[INFO] Обновлены данные для shift_report_detail {shift_report_detail_id}")
+
+                return detail
+
+        except Exception as e:
+            logger.error(f"[ERROR] Ошибка при обновлении записи {shift_report_detail_id}: {e}",
+                         extra={"login": "database"})
+            raise
+
     def recalculate_by_conditions(self, shift_report_id, extreme_conditions, night_shift, user):
         """Пересчитывает сумму (summ) для всех записей в ShiftReportDetails, если изменились условия"""
 
@@ -364,55 +413,5 @@ class ShiftReportsDetailsManager(ShiftManager):
 
             except Exception as e:
                 logger.error(f"[ERROR] Ошибка при пересчете суммы для ShiftReport {shift_report_id}: {e}",
-                             extra={"login": "database"})
-                raise
-
-    def recalculate_by_details(self, shift_report_detail_id, work_id, quantity, shift_report_id):
-        """Пересчитывает сумму для конкретного элемента отчёта"""
-
-        shift_report_detail_id = self._convert_to_uuid(shift_report_detail_id)
-        shift_report_id = self._convert_to_uuid(shift_report_id)
-        work_id = self._convert_to_uuid(work_id)
-
-        with self.session_scope() as session:
-            try:
-                logger.debug(f"[DEBUG] Начало пересчёта для detail_id={shift_report_detail_id}, "
-                             f"work_id={work_id}, quantity={quantity}, shift_report_id={shift_report_id}")
-
-                detail = session.query(ShiftReportDetails).filter(
-                    ShiftReportDetails.shift_report_detail_id == shift_report_detail_id
-                ).first()
-
-                if not detail:
-                    logger.warning(
-                        f"[WARNING] Detail с ID {shift_report_detail_id} не найден!")
-                    return
-
-                shift_report = session.query(ShiftReports).filter(
-                    ShiftReports.shift_report_id == shift_report_id
-                ).first()
-
-                if not shift_report:
-                    logger.warning(
-                        f"[WARNING] ShiftReport с ID {shift_report_id} не найден!")
-                    return
-
-                logger.debug(f"[DEBUG] Пересчёт суммы для detail_id={shift_report_detail_id}, "
-                             f"extreme_conditions={shift_report.extreme_conditions}, night_shift={shift_report.night_shift}")
-
-                new_summ = self.update_summ(
-                    work_id, quantity, shift_report.extreme_conditions, shift_report.night_shift, session, shift_report.user
-                )
-
-                logger.debug(
-                    f"[DEBUG] Новая сумма: {new_summ} (было {detail.summ})")
-                detail.summ = new_summ  # Обновляем сумму
-
-                session.commit()  # Фиксируем изменения
-                logger.info(
-                    f"[INFO] Обновлена сумма для ShiftReportDetail {shift_report_detail_id}")
-
-            except Exception as e:
-                logger.error(f"[ERROR] Ошибка при пересчёте суммы для Detail {shift_report_detail_id}: {e}",
                              extra={"login": "database"})
                 raise
