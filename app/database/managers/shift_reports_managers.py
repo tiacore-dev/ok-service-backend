@@ -47,8 +47,8 @@ class ShiftReportsManager(BaseDBManager):
             "project": UUID(data['project']),
             "signed": data.get("signed", False),  # По умолчанию False
             "created_by": created_by,
-            "extreme_conditions": data['extreme_conditions'],
-            "night_shift": data['night_shift']
+            "extreme_conditions": data.get('extreme_conditions', False),
+            "night_shift": data.get('night_shift', False)
         }
 
         shift_report_details_data = data.get(
