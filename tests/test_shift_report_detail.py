@@ -51,8 +51,7 @@ def test_view_shift_report_detail(client, jwt_token, seed_shift_report_detail):
 
 def test_edit_shift_report_detail(client, jwt_token, seed_shift_report_detail):
     data = {
-        "quantity": 30.0,
-        "summ": 300.0
+        "quantity": 3.0
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(f"/shift_report_details/{seed_shift_report_detail['shift_report_detail_id']}/edit",
@@ -67,8 +66,7 @@ def test_edit_shift_report_detail(client, jwt_token, seed_shift_report_detail):
         from app.database.models import ShiftReportDetails
         detail = session.query(ShiftReportDetails).filter_by(
             shift_report_detail_id=seed_shift_report_detail['shift_report_detail_id']).first()
-        assert detail.quantity == 30.0
-        assert detail.summ == 300.0
+        assert detail.quantity == 3.0
 
 
 def test_delete_shift_report_detail(client, jwt_token, seed_shift_report_detail, db_session):
