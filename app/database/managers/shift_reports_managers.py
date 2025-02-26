@@ -52,11 +52,10 @@ class ShiftManager(BaseDBManager):
             f"Тип Decimal('0.25'): {type(Decimal('0.25'))}")  # Отладка
 
         if shift_report.extreme_conditions:
-            # Должно быть Decimal * Decimal
-            summ += work_price.price * Decimal("0.25")
+            summ *= Decimal("1.25")  # Увеличиваем на 25%
 
         if shift_report.night_shift:
-            summ += work_price.price * Decimal("0.25")
+            summ *= Decimal("1.25")  # Увеличиваем ещё на 25%
 
         return summ
 
