@@ -56,6 +56,6 @@ class ShiftReports(Base):
             "created_by": str(self.created_by),
             "created_at": self.created_at,
             "night_shift": self.night_shift,
-            "extreme_confitions": self.extreme_conditions,
+            "extreme_conditions": self.extreme_conditions,
             "number": self.number
         }

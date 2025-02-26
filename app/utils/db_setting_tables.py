@@ -24,7 +24,7 @@ def set_roles():
 
     ids = ['user', 'admin', 'manager', 'project-leader']
     names = ['Пользователь', "Администратор",
-             "Менеджер", "Руководитель проекта"]
+             "Менеджер", "Прораб"]
 
     for i in range(0, 4):
         if not db.exists(role_id=ids[i]):
