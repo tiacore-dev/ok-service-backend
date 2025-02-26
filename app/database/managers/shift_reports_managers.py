@@ -43,19 +43,18 @@ class ShiftManager(BaseDBManager):
         if not work_price:
             logger.warning(f"WorkPrices для work_id {work_id} не найден")
             return Decimal(0)
-
-        summ = work_price.price or Decimal(0)  # Берём цену работы
+        price = work_price.price
+        summ = price or Decimal(0)  # Берём цену работы
 
         if shift_report.extreme_conditions:
             logger.debug(
-                f"Тип Decimal('0.25'): {type(Decimal('0.25'))}")  # Отладка
-            # Должно быть Decimal * Decimal
-            summ += work_price.price * Decimal("0.25")
+                "Extreme conditions")  # Отладкаx
+            summ = summ + (price * Decimal("0.25"))
 
         if shift_report.night_shift:
             logger.debug(
-                f"Тип Decimal('0.25'): {type(Decimal('0.25'))}")  # Отладка
-            summ += work_price.price * Decimal("0.25")
+                "Night shift")  # Отладка
+            summ = summ + (price * Decimal("0.25"))
 
         return summ
 
