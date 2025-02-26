@@ -49,12 +49,12 @@ class ShiftManager(BaseDBManager):
         if shift_report.extreme_conditions:
             logger.debug(
                 "Extreme conditions")  # Отладкаx
-            summ = summ + (price * Decimal("0.25"))
+            summ += price * Decimal("0.25")
 
         if shift_report.night_shift:
             logger.debug(
                 "Night shift")  # Отладка
-            summ = summ + (price * Decimal("0.25"))
+            summ += price * Decimal("0.25")
 
         return summ
 
@@ -249,7 +249,30 @@ class ShiftReportsDetailsManager(ShiftManager):
                          e}""", extra={"login": "database"})
             raise
 
-    def recalculate_shift_details(self, shift_report_id):
+    def update_summ(self, work_id, extreme_conditions, night_shift, session):
+        work_price = session.query(WorkPrices).filter(
+            WorkPrices.work == work_id
+        ).first()
+
+        if not work_price:
+            logger.warning(f"WorkPrices для work_id {work_id} не найден")
+            return Decimal(0)
+        price = work_price.price
+        summ = price or Decimal(0)  # Берём цену работы
+
+        if extreme_conditions:
+            logger.debug(
+                "Extreme conditions")  # Отладкаx
+            summ += price * Decimal("0.25")
+
+        if night_shift:
+            logger.debug(
+                "Night shift")  # Отладка
+            summ += price * Decimal("0.25")
+
+        return summ
+
+    def recalculate_shift_details(self, shift_report_id, extreme_conditions, night_shift):
         """Пересчитывает сумму (summ) для всех записей в ShiftReportDetails, если изменились условия"""
         with self.session_scope() as session:
             try:
@@ -266,8 +289,8 @@ class ShiftReportsDetailsManager(ShiftManager):
                     return
 
                 for detail in details:
-                    new_summ = self.count_summ(
-                        detail.work, shift_report_id, session) * Decimal(detail.quantity)
+                    new_summ = self.update_summ(
+                        detail.work, extreme_conditions, night_shift, session) * Decimal(detail.quantity)
                     detail.summ = new_summ  # Обновляем сумму
 
                 session.commit()  # Фиксируем изменения

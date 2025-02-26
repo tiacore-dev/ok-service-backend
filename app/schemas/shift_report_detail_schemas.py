@@ -12,8 +12,7 @@ class ShiftReportDetailsCreateSchema(Schema):
                          "required": "Field 'work' is required."}, validate=[validate_work_exists])
     quantity = fields.Float(required=True, error_messages={
                             "required": "Field 'quantity' is required."})
-    summ = fields.Float(required=True, error_messages={
-                        "required": "Field 'summ' is required."})
+    # summ = fields.Float(required=False)
 
 
 class ShiftReportDetailsEditSchema(Schema):
@@ -25,7 +24,7 @@ class ShiftReportDetailsEditSchema(Schema):
     work = fields.String(required=False, allow_none=True,
                          validate=[validate_work_exists])
     quantity = fields.Float(required=False, allow_none=True)
-    summ = fields.Float(required=False, allow_none=True)
+    # summ = fields.Float(required=False, allow_none=True)
 
 
 class ShiftReportDetailsFilterSchema(Schema):

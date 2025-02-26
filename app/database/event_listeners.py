@@ -191,7 +191,7 @@ def update_conditions(shift_report, target):
         from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
         details_manager = ShiftReportsDetailsManager()
         details_manager.recalculate_shift_details(
-            shift_report['shift_report_id'])
+            shift_report['shift_report_id'], target.extreme_conditions, target.night_shift)
 
 
 def notify_on_change(_, __, target, event_name):
