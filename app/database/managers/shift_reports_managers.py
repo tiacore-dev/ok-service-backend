@@ -5,7 +5,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
-from app.database.models import ShiftReports, ShiftReportDetails
+from app.database.models import ShiftReports, ShiftReportDetails, WorkPrices
 from app.database.managers.abstract_manager import BaseDBManager
 
 
@@ -68,7 +68,8 @@ class ShiftReportsManager(BaseDBManager):
                             shift_report=new_report.shift_report_id,
                             work=UUID(detail['work']),
                             quantity=detail['quantity'],
-                            summ=detail['summ'],
+                            summ=(self.count_summ(
+                                detail['work'], new_report.shift_report_id))*detail['quantity'],
                             created_by=created_by
                         ) for detail in shift_report_details_data
                     ]
@@ -177,9 +178,68 @@ class ShiftReportsManager(BaseDBManager):
 
             return [record.to_dict() for record in records]
 
+    def count_summ(self, work_id, shift_report_id):
+        try:
+            with self.session_scope() as session:
+                shift_report = session.query(ShiftReports).filter(
+                    ShiftReports.shift_report_id == shift_report_id).first()
+                work_price = session.query(WorkPrices).filter(
+                    WorkPrices.work == work_id).first()
+                summ = work_price
+                if shift_report.extreme_conditions:
+                    summ += work_price*0.25
+                if shift_report.night_shift:
+                    summ += work_price*0.25
+                return summ
+        except Exception as e:
+            logger.error(f"""Ошибка при посдчете семмы: {
+                         e}""", extra={"login": "database"})
+            raise
+
 
 class ShiftReportsDetailsManager(BaseDBManager):
 
     @property
     def model(self):
         return ShiftReportDetails
+
+    def add_shift_report_deatails(self, created_by, data):
+        try:
+            with self.session_scope() as session:
+                summ = self.count_summ(data['work'], data['shift_report'])
+                new_record = ShiftReportDetails(
+                    shift_report=data['shift_report'],
+                    work=data['work'],
+                    quantity=data['quantity'],
+                    summ=summ*data['quantity'],
+                    created_by=created_by
+                )
+                session.add(new_record)
+                try:
+                    session.flush()
+                except Exception:
+                    session.rollback()
+                    raise
+                return new_record.to_dict()
+        except Exception as e:
+            logger.error(f"""Ошибка при добавлении записи: {
+                         e}""", extra={"login": "database"})
+            raise
+
+    def count_summ(self, work_id, shift_report_id):
+        try:
+            with self.session_scope() as session:
+                shift_report = session.query(ShiftReports).filter(
+                    ShiftReports.shift_report_id == shift_report_id).first()
+                work_price = session.query(WorkPrices).filter(
+                    WorkPrices.work == work_id).first()
+                summ = work_price
+                if shift_report.extreme_conditions:
+                    summ += work_price*0.25
+                if shift_report.night_shift:
+                    summ += work_price*0.25
+                return summ
+        except Exception as e:
+            logger.error(f"""Ошибка при посдчете семмы: {
+                         e}""", extra={"login": "database"})
+            raise
