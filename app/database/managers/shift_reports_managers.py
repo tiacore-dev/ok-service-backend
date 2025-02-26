@@ -29,7 +29,7 @@ class ShiftManager(BaseDBManager):
     def _count_summ_internal(self, work_id, shift_report_id, session):
         """Внутренний метод для подсчёта суммы, без открытия новой сессии"""
         shift_report = session.query(ShiftReports).filter(
-            ShiftReports.shift_report_id == shift_report_id
+            ShiftReports.shift_report_id == UUID(shift_report_id)
         ).first()
 
         if not shift_report:
@@ -37,7 +37,7 @@ class ShiftManager(BaseDBManager):
             return Decimal(0)
 
         work_price = session.query(WorkPrices).filter(
-            WorkPrices.work == work_id
+            WorkPrices.work == UUID(work_id)
         ).first()
 
         if not work_price:
@@ -257,10 +257,11 @@ class ShiftReportsDetailsManager(ShiftManager):
 
     def update_summ(self, work_id, quantity, extreme_conditions, night_shift, session, user_id):
         user = session.query(Users).filter(
-            Users.user_id == user_id
+            Users.user_id == UUID(user_id)
         ).first()
         work_price = session.query(WorkPrices).filter(
-            WorkPrices.work == work_id, WorkPrices.category == user.category
+            WorkPrices.work == UUID(
+                work_id), WorkPrices.category == user.category
         ).first()
 
         if not work_price:
@@ -288,7 +289,7 @@ class ShiftReportsDetailsManager(ShiftManager):
                 logger.debug(
                     f"[DEBUG] Получение деталей смены для {shift_report_id}")
                 details = session.query(ShiftReportDetails).filter(
-                    ShiftReportDetails.shift_report == shift_report_id
+                    ShiftReportDetails.shift_report == UUID(shift_report_id)
                 ).all()
                 logger.debug(f"[DEBUG] Найдено {len(details)} записей")
 
@@ -320,7 +321,7 @@ class ShiftReportsDetailsManager(ShiftManager):
                 if not detail:
                     return
                 shift_report = session.query(ShiftReports).filter(
-                    ShiftReports.shift_report_id == shift_report_id).first()
+                    ShiftReports.shift_report_id == UUID(shift_report_id)).first()
                 new_summ = self.update_summ(
                     work_id, quantity, shift_report.extreme_conditions, shift_report.night_shift, session, shift_report.user)
 
