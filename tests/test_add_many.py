@@ -1,4 +1,4 @@
-def test_add_project_work(client, jwt_token_leader, db_session, seed_work, seed_project_own):
+def test_add_many_project_works(client, jwt_token_leader, db_session, seed_work, seed_project_own):
     """
     Тест на добавление нескольких ProjectWork через API.
     """
@@ -39,3 +39,23 @@ def test_add_project_work(client, jwt_token_leader, db_session, seed_work, seed_
         assert project_work.quantity == work_data["quantity"]
         assert project_work.summ == work_data["summ"]
         assert project_work.signed == work_data["signed"]
+
+
+def test_add_many_shift_report_details(client, jwt_token, seed_shift_report, seed_work, seed_work_price):
+    data = [{
+        "shift_report": seed_shift_report['shift_report_id'],
+        "work": seed_work['work_id'],
+        "quantity": 20.0,
+    },
+        {
+        "shift_report": seed_shift_report['shift_report_id'],
+        "work": seed_work['work_id'],
+        "quantity": 30.0,
+    }
+    ]
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    response = client.post("/shift_report_details/add/many",
+                           json=data, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json["msg"] == "Shift report details added successfully"

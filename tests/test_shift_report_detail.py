@@ -24,8 +24,7 @@ def test_add_shift_report_detail(client, jwt_token, seed_shift_report, seed_work
     data = {
         "shift_report": seed_shift_report['shift_report_id'],
         "work": seed_work['work_id'],
-        "quantity": 20.0,
-        "summ": 200.0
+        "quantity": 20.0
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/shift_report_details/add",

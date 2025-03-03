@@ -15,7 +15,8 @@ from app.routes.models.shift_report_detail_models import (
     shift_report_details_response,
     shift_report_details_all_response,
     shift_report_details_model,
-    shift_report_details_filter_parser
+    shift_report_details_filter_parser,
+    shift_report_details_many_msg_model
 
 )
 
@@ -30,6 +31,48 @@ shift_report_details_ns.models[shift_report_details_msg_model.name] = shift_repo
 shift_report_details_ns.models[shift_report_details_response.name] = shift_report_details_response
 shift_report_details_ns.models[shift_report_details_all_response.name] = shift_report_details_all_response
 shift_report_details_ns.models[shift_report_details_model.name] = shift_report_details_model
+shift_report_details_ns.models[shift_report_details_many_msg_model.name] = shift_report_details_many_msg_model
+
+
+@shift_report_details_ns.route('/add/many')
+class ShiftReportDetailsAddBulk(Resource):
+    @jwt_required()
+    @shift_report_details_ns.expect([shift_report_details_create_model])
+    @shift_report_details_ns.marshal_with(shift_report_details_many_msg_model)
+    def post(self):
+        current_user = json.loads(get_jwt_identity())
+        logger.info("Request to add multiple shift report details",
+                    extra={"login": current_user})
+
+        schema = ShiftReportDetailsCreateSchema(
+            many=True)  # Используем валидацию списка
+        try:
+            # Валидация входных данных
+            data_list = schema.load(request.json)
+        except ValidationError as err:
+            return {"error": err.messages}, 400
+
+        try:
+            from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
+            db = ShiftReportsDetailsManager()
+
+            shift_report_detail_ids = []
+
+            for data in data_list:
+                new_detail = db.add_shift_report_deatails(
+                    created_by=current_user['user_id'], **data)
+                shift_report_detail_ids.append(
+                    new_detail['shift_report_detail_id'])
+
+            logger.info(f"Added multiple shift report details: {shift_report_detail_ids}",
+                        extra={"login": current_user})
+
+            return {"msg": "Shift report details added successfully", "shift_report_detail_ids": shift_report_detail_ids}, 200
+
+        except Exception as e:
+            logger.error(f"Error adding shift report details: {e}",
+                         extra={"login": current_user})
+            return {"msg": f"Error adding shift report details: {e}"}, 500
 
 
 @shift_report_details_ns.route('/add')

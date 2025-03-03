@@ -23,6 +23,12 @@ shift_report_details_msg_model = Model('ShiftReportDetailsMessage', {
     "shift_report_detail_id": fields.String(description="ID of shift report detail")
 })
 
+shift_report_details_many_msg_model = Model('ShiftReportDetailsMessage', {
+    "msg": fields.String(required=True, description="Response message"),
+    "shift_report_detail_ids": fields.List(fields.String, description="List of project work IDs")
+})
+
+
 shift_report_details_response = Model('ShiftReportDetailsResponse', {
     "msg": fields.String(required=True, description="Response message"),
     "shift_report_detail": fields.Nested(shift_report_details_model, required=True)
