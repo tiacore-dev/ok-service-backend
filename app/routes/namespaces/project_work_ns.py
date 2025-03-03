@@ -14,7 +14,8 @@ from app.routes.models.project_work_models import (
     project_work_response,
     project_work_all_response,
     project_work_filter_parser,
-    project_work_model
+    project_work_model,
+    project_work_msg_many_model
 )
 from app.decorators import user_forbidden
 
@@ -29,6 +30,69 @@ project_work_ns.models[project_work_msg_model.name] = project_work_msg_model
 project_work_ns.models[project_work_response.name] = project_work_response
 project_work_ns.models[project_work_all_response.name] = project_work_all_response
 project_work_ns.models[project_work_model.name] = project_work_model
+project_work_ns.models[project_work_msg_many_model.name] = project_work_msg_many_model
+
+
+@project_work_ns.route('/add/many')
+class ProjectWorkAddBulk(Resource):
+    @jwt_required()
+    @user_forbidden
+    @project_work_ns.expect([project_work_create_model])
+    @project_work_ns.marshal_with(project_work_msg_many_model)
+    def post(self):
+        current_user = json.loads(get_jwt_identity())
+        logger.info("Request to add multiple project works",
+                    extra={"login": current_user})
+
+        schema = ProjectWorkCreateSchema(
+            many=True)  # Используем валидацию списка
+        try:
+            # Валидация входных данных
+            data_list = schema.load(request.json)
+        except ValidationError as err:
+            return {"error": err.messages}, 400
+
+        try:
+            from app.database.managers.projects_managers import ProjectWorksManager, ProjectsManager
+            db = ProjectWorksManager()
+            db_p = ProjectsManager()
+
+            project_work_ids = []
+
+            if current_user['role'] == 'project-leader':
+                led_projects = db_p.get_all_filtered(
+                    project_leader=current_user['user_id']
+                )
+                led_project_ids = {p['project_id'] for p in led_projects}
+
+                for data in data_list:
+                    if str(data['project']) not in led_project_ids:
+                        logger.warning("Trying to add work for a non-owned project",
+                                       extra={"login": current_user})
+                        return {"msg": "You cannot add works for projects you do not own"}, 403
+
+                    data['signed'] = False
+                    new_project_work = db.add(
+                        created_by=current_user['user_id'], **data)
+                    project_work_ids.append(
+                        new_project_work['project_work_id'])
+
+            else:
+                for data in data_list:
+                    new_project_work = db.add(
+                        created_by=current_user['user_id'], **data)
+                    project_work_ids.append(
+                        new_project_work['project_work_id'])
+
+            logger.info(f"Added multiple project works: {project_work_ids}",
+                        extra={"login": current_user})
+
+            return {"msg": "Project works added successfully", "project_work_ids": project_work_ids}, 200
+
+        except Exception as e:
+            logger.error(f"Error adding project works: {e}",
+                         extra={"login": current_user})
+            return {"msg": f"Error adding project works: {e}"}, 500
 
 
 @project_work_ns.route('/add')
