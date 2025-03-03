@@ -28,8 +28,7 @@ class ProjectWorks(Base):
         "Users", back_populates="created_project_works")
 
     def __repr__(self):
-        return (f"<ProjectWorks(project_work_id={self.project_work_id}, work={self.work}, "
-                f"project={self.project}, quantity={self.quantity}, summ={self.summ}, signed={self.signed})>")
+        return f"<ProjectWorks(project_work_id={self.project_work_id})>"
 
     def to_dict(self):
 

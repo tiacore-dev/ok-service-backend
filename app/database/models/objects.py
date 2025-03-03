@@ -35,7 +35,7 @@ class Objects(Base):
     def __repr__(self):
         return (f"<Objects(object_id={self.object_id}, name={self.name}, "
                 f"address={self.address}, description={self.description}, "
-                f"status={self.status}, manager={self.manager}, deleted={self.deleted})>")
+                f"status={self.status}, deleted={self.deleted})>")
 
     def to_dict(self):
         return {

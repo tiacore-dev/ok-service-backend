@@ -26,8 +26,8 @@ class ProjectSchedules(Base):
     projects = relationship("Projects", back_populates="project_schedule")
 
     def __repr__(self):
-        return (f"<ProjectSchedules(project_schedule_id={self.project_schedule_id}, project={self.project}"
-                f"work={self.work}, quantity={self.quantity}, date={self.date})>")
+        return (f"<ProjectSchedules(project_schedule_id={self.project_schedule_id},"
+                f" quantity={self.quantity}, date={self.date})>")
 
     def to_dict(self):
         return {

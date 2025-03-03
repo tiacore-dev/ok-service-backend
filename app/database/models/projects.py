@@ -38,7 +38,7 @@ class Projects(Base):
 
     def __repr__(self):
         return (f"<Projects(project_id={self.project_id}, name={self.name}, "
-                f"object={self.object}, project_leader={self.project_leader}, deleted={self.deleted})>")
+                f" deleted={self.deleted})>")
 
     def to_dict(self):
         return {
