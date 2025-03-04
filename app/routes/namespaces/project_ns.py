@@ -264,3 +264,29 @@ class ProjectAll(Resource):
             logger.error(f"Error fetching projects: {e}",
                          extra={"login": current_user})
             return {"msg": f"Error fetching projects: {e}"}, 500
+
+
+@project_ns.route('/<string:project_id>/get-stat')
+class ProjectStats(Resource):
+    @jwt_required()
+    # @project_ns.marshal_with(project_all_response)
+    def get(self, project_id):
+        current_user = json.loads(get_jwt_identity())
+        logger.info(f"Request to view stats of project: {project_id}",
+                    extra={"login": current_user})
+        try:
+            # Конвертируем строку в UUID
+            project_id = UUID(project_id)
+        except ValueError as exc:
+            raise ValueError("Invalid UUID format") from exc
+        from app.database.managers.projects_managers import ProjectsManager
+        db = ProjectsManager()
+        try:
+            stats = db.get_project_stats(project_id)
+            if not stats:
+                return {"msg": "Stats not found"}, 404
+            return {"msg": "Project stats fetched successfully", "stats": stats}, 200
+        except Exception as e:
+            logger.error(f"Error getting stats for project: {e}",
+                         extra={"login": current_user})
+            return {"msg": f"Error getting stats for project: {e}"}, 500

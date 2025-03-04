@@ -1,9 +1,10 @@
 import logging
 import uuid
+from decimal import Decimal
 from uuid import UUID
 from sqlalchemy.orm import joinedload
 from sqlalchemy import and_, asc, desc
-from app.database.models import Projects, ProjectSchedules, ProjectWorks, Objects
+from app.database.models import Projects, ProjectSchedules, ProjectWorks, Objects, ShiftReportDetails, ShiftReports
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
 
@@ -111,6 +112,39 @@ class ProjectsManager(BaseDBManager):
             logger.error(f"Error fetching projects for leader {user_id}: {e}",
                          extra={"login": "database"})
             return []
+
+    def get_project_stats(self, project_id):
+        try:
+            logger.debug(f"Fetching project for project id: {project_id}",
+                         extra={"login": "database"})
+
+            with self.session_scope() as session:
+                # project = session.query(Projects).filter(
+                #     Projects.project_id == project_id).first()
+                project_works = session.query(ProjectWorks).filter(
+                    ProjectWorks.project == project_id
+                ).all()
+                result = {
+                    work.work: {"project_work_quantity": Decimal(
+                        0), "shift_report_details_quantity": Decimal(0)}
+                    for work in project_works
+                }
+                for work in project_works:
+                    work[work.work]["project_work_quantity"] += work.quantity
+                reports = session.query(ShiftReports).filter(
+                    ShiftReports.project == project_id, ShiftReports.signed is True
+                ).all()
+                for report in reports:
+                    details = session.queryS(ShiftReportDetails).filter(
+                        ShiftReportDetails.shift_report == report.shift_report_id
+                    ).all()
+                    for detail in details:
+                        result[detail.work]["shift_report_details_quantity"] += detail.quantity
+                return result
+        except Exception as e:
+            logger.error(f"Error fetching projects for leader {project_id}: {e}",
+                         extra={"login": "database"})
+            return {}
 
 
 class ProjectSchedulesManager(BaseDBManager):
