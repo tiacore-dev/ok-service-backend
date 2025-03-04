@@ -183,65 +183,41 @@ class ShiftReportsManager(ShiftManager):
                 if value is not None and hasattr(self.model, key):
                     column = getattr(self.model, key)
 
-                    # Фильтрация по диапазону дат (если указаны обе границы)
                     if key == "date_from" and filters.get("date_to"):
                         query = query.filter(column.between(
                             filters["date_from"], filters["date_to"]))
                         logger.debug(f"Фильтруем по дате: {filters['date_from']} - {filters['date_to']}",
                                      extra={"login": "database"})
-
-                    # Если указана только начальная дата (>=)
                     elif key == "date_from":
                         query = query.filter(column >= value)
-                        logger.debug(f"Фильтруем по дате от: {value}",
-                                     extra={"login": "database"})
-
-                    # Если указана только конечная дата (<=)
                     elif key == "date_to":
                         query = query.filter(column <= value)
-                        logger.debug(f"Фильтруем по дате до: {value}",
-                                     extra={"login": "database"})
-
-                    # Фильтр по списку значений
                     elif isinstance(value, list):
                         query = query.filter(column.in_(value))
-                        logger.debug(f"Фильтруем по списку значений: {key} IN {value}",
-                                     extra={"login": "database"})
-
-                    # Обычные точные фильтры
                     else:
                         query = query.filter(column == value)
-                        logger.debug(f"Применяем фильтр: {key} = {value}",
-                                     extra={"login": "database"})
 
-            # Получаем общее количество записей ДО применения пагинации
-            total_count = query.count()
-            logger.debug(f"Общее количество записей: {total_count}",
-                         extra={"login": "database"})
+            # Создаем подзапрос для получения количества записей
+            total_count = session.query(query.subquery()).count()
+            logger.debug(f"Общее количество записей: {total_count}", extra={
+                         "login": "database"})
 
             # Применяем сортировку
             if sort_by and hasattr(self.model, sort_by):
                 order = desc if sort_order == 'desc' else asc
                 query = query.order_by(order(getattr(self.model, sort_by)))
-                logger.debug(f"Применяем сортировку: {sort_by} {sort_order}",
-                             extra={"login": "database"})
 
             # Применяем пагинацию
             if offset:
                 query = query.offset(offset)
-                logger.debug(f"Применяем смещение: offset = {offset}",
-                             extra={"login": "database"})
             if limit:
                 query = query.limit(limit)
-                logger.debug(f"Применяем лимит: limit = {limit}",
-                             extra={"login": "database"})
 
-            # Получаем записи с учетом пагинации
+            # Получаем записи
             records = query.all()
-            logger.debug(f"Найдено записей (после пагинации): {len(records)}",
-                         extra={"login": "database"})
-            result = [record.to_dict() for record in records]
-            return total_count, result
+            logger.debug(f"Найдено записей (после пагинации): {len(records)}", extra={
+                         "login": "database"})
+            return total_count, [record.to_dict() for record in records]
 
 
 class ShiftReportsDetailsManager(ShiftManager):
