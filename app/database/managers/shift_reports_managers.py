@@ -214,6 +214,11 @@ class ShiftReportsManager(ShiftManager):
                         logger.debug(f"Применяем фильтр: {key} = {value}",
                                      extra={"login": "database"})
 
+            # Получаем общее количество записей ДО применения пагинации
+            total_count = query.count()
+            logger.debug(f"Общее количество записей: {total_count}",
+                         extra={"login": "database"})
+
             # Применяем сортировку
             if sort_by and hasattr(self.model, sort_by):
                 order = desc if sort_order == 'desc' else asc
@@ -231,12 +236,12 @@ class ShiftReportsManager(ShiftManager):
                 logger.debug(f"Применяем лимит: limit = {limit}",
                              extra={"login": "database"})
 
-            # Получаем записи
+            # Получаем записи с учетом пагинации
             records = query.all()
-            logger.debug(f"Найдено записей: {len(records)}",
+            logger.debug(f"Найдено записей (после пагинации): {len(records)}",
                          extra={"login": "database"})
-
-            return [record.to_dict() for record in records]
+            result = [record.to_dict() for record in records]
+            return total_count, result
 
 
 class ShiftReportsDetailsManager(ShiftManager):

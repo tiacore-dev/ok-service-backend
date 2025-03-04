@@ -44,7 +44,8 @@ shift_report_response = Model('ShiftReportResponse', {
 
 shift_report_all_response = Model('ShiftReportAllResponse', {
     "msg": fields.String(required=True, description="Response message"),
-    "shift_reports": fields.List(fields.Nested(shift_report_model), description="List of shift reports")
+    "shift_reports": fields.List(fields.Nested(shift_report_model), description="List of shift reports"),
+    "total": fields.Integer(description="Total count of shift reports")
 })
 
 shift_report_filter_parser = reqparse.RequestParser()

@@ -25,7 +25,7 @@ class BaseDBManager(ABC):
         """Контекстный менеджер для управления сессией с логированием."""
         session = Session()
         try:
-            logger.debug("Начало сессии", extra={"login": "database"})
+            # logger.debug("Начало сессии", extra={"login": "database"})
             yield session
             if session.is_active:
                 session.commit()
