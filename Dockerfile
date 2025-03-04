@@ -9,11 +9,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     iputils-ping \
     ca-certificates \
+    build-essential \
+    python3-dev \
     libpq-dev \
     gcc \
     && update-ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
 
 
 # Копируем файл зависимостей в рабочую директорию
