@@ -115,13 +115,17 @@ class ProjectsManager(BaseDBManager):
 
     def get_project_stats(self, project_id):
         try:
-            logger.debug(f"Fetching project for project id: {project_id}",
-                         extra={"login": "database"})
+            logger.debug(f"Fetching project for project id: {project_id}", extra={
+                         "login": "database"})
 
             with self.session_scope() as session:
+                # Запрос работ, связанных с проектом
                 project_works = session.query(ProjectWorks).filter(
                     ProjectWorks.project == project_id
                 ).all()
+
+                logger.debug(
+                    f"Fetched {len(project_works)} project works for project {project_id}")
 
                 result = {
                     str(work.work): {
@@ -131,36 +135,62 @@ class ProjectsManager(BaseDBManager):
                     for work in project_works
                 }
 
+                # Логируем собранные данные
+                logger.debug(f"Initial result after project works:\n{result}")
+
                 project_works = [work.to_dict() for work in project_works]
                 for work in project_works:
                     work_id = str(work['work'])
                     if isinstance(work['quantity'], Decimal):
                         work['quantity'] = float(work['quantity'])
+
+                    # Перед добавлением в `result`, логируем текущие значения
+                    logger.debug(
+                        f"Adding work quantity: work_id={work_id}, quantity={work['quantity']}")
+
                     result[work_id]["project_work_quantity"] += work['quantity']
 
+                # Логируем обновленный результат после первого прохода
+                logger.debug(f"Result after summing project works:\n{result}")
+
+                # Запрос подписанных отчетов
                 reports = session.query(ShiftReports).filter(
                     ShiftReports.project == project_id, ShiftReports.signed.is_(
                         True)
                 ).all()
 
+                logger.debug(
+                    f"Fetched {len(reports)} signed reports for project {project_id}")
+
                 reports = [report.to_dict() for report in reports]
                 for report in reports:
+                    shift_report_id = UUID(report['shift_report_id'])
                     details = session.query(ShiftReportDetails).filter(
-                        ShiftReportDetails.shift_report == UUID(
-                            report['shift_report_id'])
+                        ShiftReportDetails.shift_report == shift_report_id
                     ).all()
-                    details = [detail.to_dict() for detail in details]
 
+                    logger.debug(
+                        f"Fetched {len(details)} shift report details for report {shift_report_id}")
+
+                    details = [detail.to_dict() for detail in details]
                     for detail in details:
                         detail_work_id = str(detail['work'])
                         if isinstance(detail['quantity'], Decimal):
                             detail['quantity'] = float(detail['quantity'])
+
+                        # Перед добавлением в `result`, логируем текущие значения
+                        logger.debug(
+                            f"Adding shift report details: work_id={detail_work_id}, quantity={detail['quantity']}")
+
                         result[detail_work_id]["shift_report_details_quantity"] += detail['quantity']
+
+                # Логируем финальный результат перед возвратом
+                logger.debug(f"Final project stats:\n{result}")
 
                 return result
         except Exception as e:
-            logger.error(f"Error fetching projects for leader {project_id}: {e}",
-                         extra={"login": "database"})
+            logger.error(f"Error fetching projects for leader {project_id}: {e}", extra={
+                         "login": "database"})
             return {}
 
 
