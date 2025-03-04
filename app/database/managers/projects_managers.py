@@ -143,7 +143,7 @@ class ProjectsManager(BaseDBManager):
                         True)
                 ).all()
 
-                report = [report.to_dict() for report in reports]
+                reports = [report.to_dict() for report in reports]
                 for report in reports:
                     details = session.query(ShiftReportDetails).filter(
                         ShiftReportDetails.shift_report == UUID(
