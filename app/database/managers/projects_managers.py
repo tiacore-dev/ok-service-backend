@@ -125,21 +125,26 @@ class ProjectsManager(BaseDBManager):
                     ProjectWorks.project == project_id
                 ).all()
                 result = {
-                    work.work: {"project_work_quantity": Decimal(
-                        0), "shift_report_details_quantity": Decimal(0)}
+                    str(work.work): {"project_work_quantity": 0, "shift_report_details_quantity": 0}
                     for work in project_works
                 }
+                project_works = [work.to_dict() for work in project_works]
                 for work in project_works:
-                    work[work.work]["project_work_quantity"] += work.quantity
+                    result[work['work']
+                           ]["project_work_quantity"] += work['quantity']
                 reports = session.query(ShiftReports).filter(
                     ShiftReports.project == project_id, ShiftReports.signed is True
                 ).all()
+                report = [report.to_dict() for report in reports]
                 for report in reports:
                     details = session.queryS(ShiftReportDetails).filter(
-                        ShiftReportDetails.shift_report == report.shift_report_id
+                        ShiftReportDetails.shift_report == UUID(
+                            report['shift_report_id'])
                     ).all()
+                    details = [detail.to_dict() for detail in details]
                     for detail in details:
-                        result[detail.work]["shift_report_details_quantity"] += detail.quantity
+                        result[detail['work']
+                               ]["shift_report_details_quantity"] += detail['quantity']
                 return result
         except Exception as e:
             logger.error(f"Error fetching projects for leader {project_id}: {e}",
