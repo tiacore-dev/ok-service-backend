@@ -5,7 +5,7 @@ from multiprocessing import cpu_count
 load_dotenv()
 
 # Убедитесь, что порт задан с безопасным значением по умолчанию
-port = os.getenv('FLASK_PORT', '8000')
+port = 8000
 
 # Количество CPU
 cpu_cores = cpu_count()
