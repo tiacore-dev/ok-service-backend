@@ -222,10 +222,16 @@ def send_push_notification(subscriptions, message_data):
     """Отправка WebPush-уведомления"""
     logger.debug(f"[WebPush] Подготовка к отправке: {message_data}")
 
-    try:
-        for subscription in subscriptions:
-            subscription_info = {
-                "endpoint": subscription['endpoint'], "keys": json.loads(subscription['keys'])}
+    from app.database.managers.subscription_manager import SubscriptionsManager
+    db = SubscriptionsManager()
+
+    for subscription in subscriptions:
+        subscription_info = {
+            "endpoint": subscription['endpoint'],
+            "keys": json.loads(subscription['keys'])
+        }
+
+        try:
             webpush(
                 subscription_info=subscription_info,
                 data=json.dumps(message_data),
@@ -238,10 +244,24 @@ def send_push_notification(subscriptions, message_data):
                 vapid_claims=VAPID_CLAIMS
             )
             logger.info("[WebPush] Уведомление успешно отправлено.")
-    except WebPushException as ex:
-        logger.error(f"[WebPush] Ошибка WebPush: {str(ex)}", exc_info=True)
-    except Exception as e:
-        logger.error(f"[WebPush] Неизвестная ошибка: {e}", exc_info=True)
+
+        except WebPushException as ex:
+            error_str = str(ex)
+            if "410 Gone" in error_str or "unsubscribed" in error_str or "expired" in error_str:
+                logger.info(
+                    f"[WebPush] Подписка недействительна, будет удалена: {subscription['endpoint']}")
+                try:
+
+                    db.delete(record_id=subscription['subscriptions_id'])
+                except Exception as cleanup_err:
+                    logger.warning(f"[WebPush] Не удалось удалить подписку: {cleanup_err}", extra={
+                                   "login": "database"})
+            else:
+                logger.error(
+                    f"[WebPush] Ошибка WebPush: {error_str}", exc_info=True)
+
+        except Exception as e:
+            logger.error(f"[WebPush] Неизвестная ошибка: {e}", exc_info=True)
 
 
 # ⚡ Заполняем диспетчер
