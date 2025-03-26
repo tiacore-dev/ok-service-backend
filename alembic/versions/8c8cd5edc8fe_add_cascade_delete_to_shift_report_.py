@@ -19,13 +19,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade():
-    # Удаляем старый внешний ключ shift_report_details → shift_reports
-    op.drop_constraint(
-        'shift_report_details_shift_report_fkey',
-        'shift_report_details',
-        type_='foreignkey'
-    )
-    # Создаём новый внешний ключ с ON DELETE CASCADE
+    # Безопасный дроп, только если constraint существует
+    op.execute("""
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'shift_report_details_shift_report_fkey'
+        ) THEN
+            ALTER TABLE shift_report_details
+            DROP CONSTRAINT shift_report_details_shift_report_fkey;
+        END IF;
+    END$$;
+    """)
+
+    # Добавляем constraint с ON DELETE CASCADE
     op.create_foreign_key(
         'shift_report_details_shift_report_fkey',
         'shift_report_details',
@@ -37,13 +46,22 @@ def upgrade():
 
 
 def downgrade():
-    # Удаляем внешний ключ с каскадом
-    op.drop_constraint(
-        'shift_report_details_shift_report_fkey',
-        'shift_report_details',
-        type_='foreignkey'
-    )
-    # Восстанавливаем внешний ключ без каскада
+    # Удаляем FK, если он есть
+    op.execute("""
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'shift_report_details_shift_report_fkey'
+        ) THEN
+            ALTER TABLE shift_report_details
+            DROP CONSTRAINT shift_report_details_shift_report_fkey;
+        END IF;
+    END$$;
+    """)
+
+    # Восстанавливаем без каскада
     op.create_foreign_key(
         'shift_report_details_shift_report_fkey',
         'shift_report_details',
