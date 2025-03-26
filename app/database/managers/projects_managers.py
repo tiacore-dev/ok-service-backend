@@ -155,7 +155,11 @@ class ProjectsManager(BaseDBManager):
                         detail_work_id = str(detail['work'])
                         if isinstance(detail['quantity'], Decimal):
                             detail['quantity'] = float(detail['quantity'])
-                        result[detail_work_id]["shift_report_details_quantity"] += detail['quantity']
+                        if detail_work_id in result:
+                            result[detail_work_id]["shift_report_details_quantity"] += detail['quantity']
+                        else:
+                            logger.warning(f"Work ID {detail_work_id} not found in result", extra={
+                                           "login": "database"})
 
                 return result
         except Exception as e:

@@ -32,7 +32,10 @@ class ShiftReports(Base):
 
     projects = relationship("Projects", back_populates="shift_report")
     shift_report_details = relationship(
-        "ShiftReportDetails", back_populates="shift_reports")
+        "ShiftReportDetails",
+        back_populates="shift_reports",
+        cascade="all, delete"
+    )
 
     shift_report_creator = relationship(
         "Users", back_populates="created_shift_reports", foreign_keys=[created_by])

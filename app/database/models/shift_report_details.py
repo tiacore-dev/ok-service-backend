@@ -12,7 +12,7 @@ class ShiftReportDetails(Base):
     shift_report_detail_id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     shift_report = Column(UUID, ForeignKey(
-        'shift_reports.shift_report_id'), nullable=False)
+        'shift_reports.shift_report_id', ondelete='CASCADE'), nullable=False)
     work = Column(UUID, ForeignKey('works.work_id'), nullable=False)
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
     summ = Column(Numeric(precision=10, scale=2), nullable=False)
