@@ -4,6 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_restx import Api
 from prometheus_flask_exporter import PrometheusMetrics
+from prometheus_client import REGISTRY
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_marshmallow import Marshmallow
 from config import DevelopmentConfig, TestingConfig
@@ -34,6 +35,10 @@ def create_app(config_name="development"):
     app = Flask(__name__)
     # Выбираем конфигурацию
     if config_name == "development":
+        metrics = PrometheusMetrics(app)
+    # необязательно, но можно указать кастомные метрики
+        if "app_info" not in REGISTRY._names_to_collectors:
+            metrics.info('app_info', 'Описание приложения', version='1.0.3')
         app.config.from_object(DevelopmentConfig)
     elif config_name == "testing":
         app.config.from_object(TestingConfig)
@@ -112,7 +117,4 @@ def create_app(config_name="development"):
     # Настройка CORS
     CORS(app, resources={r"/*": {"origins": '*'}})
 
-    metrics = PrometheusMetrics(app)
-    # необязательно, но можно указать кастомные метрики
-    metrics.info('app_info', 'Описание приложения', version='1.0.3')
     return app
