@@ -67,5 +67,5 @@ volumes:
 
 networks:
   ok_network:
-    #external: true
-    driver: bridge
+    external: true
+
