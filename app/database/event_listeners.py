@@ -253,7 +253,10 @@ def send_push_notification(subscriptions, message_data):
                 try:
                     sub = db.filter_one_by_dict(
                         endpoint=subscription['endpoint'])
-                    db.delete(record_id=sub['subscription_id'])
+                    if sub:
+                        sub_id = sub['subscription_id']
+                        db.delete(record_id=sub_id)
+                        logger.info(f"[WebPush] Подписка удалена: {sub_id}")
                 except Exception as cleanup_err:
                     logger.warning(f"[WebPush] Не удалось удалить подписку: {cleanup_err}", extra={
                                    "login": "database"})

@@ -182,8 +182,8 @@ class BaseDBManager(ABC):
                 record = self.get_record_by_id(record_id)
                 if record:
                     session.delete(record)
-                    logger.info("Record deleted successfully: %s",
-                                record, extra={"login": "database"})
+                    logger.info("Record deleted successfully",
+                                extra={"login": "database"})
                     return record
                 else:
                     logger.warning("Record not found for deletion: %s",
