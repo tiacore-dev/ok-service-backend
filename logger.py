@@ -1,6 +1,8 @@
 import logging
 import os
+from prometheus_client import Counter
 
+error_counter = Counter('flask_errors_total', 'Total number of errors')
 # Настройка логгера
 
 
@@ -23,5 +25,15 @@ def setup_logger():
         file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
         file_handler.setFormatter(log_formatter)
         logger.addHandler(file_handler)
+
+    def error_counter_handler(record):
+        if record.levelno >= logging.ERROR:
+            error_counter.inc()
+
+    class PrometheusHandler(logging.Handler):
+        def emit(self, record):
+            error_counter_handler(record)
+
+    logger.addHandler(PrometheusHandler())
 
     return logger
