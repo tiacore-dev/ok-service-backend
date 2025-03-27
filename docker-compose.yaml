@@ -18,9 +18,11 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
     environment:
-      - GF_SERVER_ROOT_URL=${MY_DOMEN}/grafana/
+      - GF_SERVER_ROOT_URL=https://${MY_DOMEN}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
-
+      - GF_SERVER_PROTOCOL=http
+      - GF_SERVER_DOMAIN=${MY_DOMEN}
+      - GF_SERVER_ENFORCE_DOMAIN=false
 
   alembic:
     build: .
