@@ -18,7 +18,7 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
     environment:
-      - GF_SERVER_ROOT_URL=${MY_DOMEN}/grafana
+      - GF_SERVER_ROOT_URL=${MY_DOMEN}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
 
 
