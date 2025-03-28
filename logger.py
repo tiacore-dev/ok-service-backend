@@ -11,6 +11,25 @@ error_counter_by_user = Counter(
 )
 
 
+class LokiFormatter(logging.Formatter):
+    def format(self, record):
+        # Попробуем извлечь информацию о пользователе
+        user_info = getattr(record, "login", {})
+        if isinstance(user_info, dict):
+            user_id = user_info.get("user_id", "unknown")
+            login = user_info.get("login", "unknown")
+            role = user_info.get("role", "unknown")
+        elif isinstance(user_info, str):
+            user_id = "system"
+            login = user_info
+            role = "system"
+        else:
+            user_id = login = role = "unknown"
+
+        base_msg = super().format(record)
+        return f"{base_msg} [user_id={user_id} login={login} role={role}]"
+
+
 class PrometheusHandler(logging.Handler):
     def emit(self, record):
         print("[PrometheusHandler] record.levelno =", record.levelno)
@@ -44,7 +63,7 @@ def setup_logger(name: str = "ok_service", log_file: str = "ok_service.log") -> 
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
+    formatter = LokiFormatter("%(asctime)s %(levelname)s: %(message)s")
 
     if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
         console_handler = logging.StreamHandler()
