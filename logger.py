@@ -13,6 +13,7 @@ error_counter_by_user = Counter(
 
 class PrometheusHandler(logging.Handler):
     def emit(self, record):
+        print("[PrometheusHandler] record.levelno =", record.levelno)
         if record.levelno >= logging.ERROR:
             error_counter.inc()
 

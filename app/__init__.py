@@ -60,6 +60,12 @@ def create_app(config_name="development"):
     logger = setup_logger()
     logger.info("База данных успешно инициализирована.",
                 extra={'login': 'init'})
+    current_user = {
+        "user_id": "1",
+        "login": "admin",
+        "role": "root"
+    }
+    logger.error("Simulated error", extra={"login": current_user})
 
     # Запуск фоновой задачи при старте приложения
     with app.app_context():
