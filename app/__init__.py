@@ -5,6 +5,12 @@ from flask_cors import CORS
 from flask_restx import Api
 from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_client import REGISTRY
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_marshmallow import Marshmallow
 from config import DevelopmentConfig, TestingConfig
@@ -40,6 +46,21 @@ def create_app(config_name="development"):
         if "app_info" not in REGISTRY._names_to_collectors:
             metrics.info('app_info', 'Описание приложения', version='1.0.3')
         app.config.from_object(DevelopmentConfig)
+        # Настройка
+        trace.set_tracer_provider(
+            TracerProvider(
+                resource=Resource.create({"service.name": "ok_service"})
+            )
+        )
+
+        jaeger_exporter = JaegerExporter(
+            agent_host_name="jaeger",  # имя контейнера!
+            agent_port=6831,
+        )
+
+        span_processor = BatchSpanProcessor(jaeger_exporter)
+        trace.get_tracer_provider().add_span_processor(span_processor)
+        FlaskInstrumentor().instrument_app(app)
     elif config_name == "testing":
         app.config.from_object(TestingConfig)
     else:
@@ -65,6 +86,7 @@ def create_app(config_name="development"):
         "login": "admin",
         "role": "root"
     }
+    # НЕ ЗАБУДЬ УДАЛИТЬ!!!
     logger.error("Simulated error", extra={"login": current_user})
 
     # Запуск фоновой задачи при старте приложения

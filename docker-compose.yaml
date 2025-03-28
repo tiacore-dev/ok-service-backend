@@ -66,6 +66,15 @@ services:
     networks:
       - ok_network
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"  # UI
+      - "6831:6831/udp" # UDP порт для агентов (например, OpenTelemetry)
+    networks:
+      - ok_network
+
+
 
   alembic:
     build: .
