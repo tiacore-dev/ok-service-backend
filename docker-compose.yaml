@@ -52,6 +52,7 @@ services:
     command: -config.file=/etc/loki/config.yml
     volumes:
       - ./monitoring/loki-config.yml:/etc/loki/config.yml
+      - ./monitoring/loki-data:/loki  # добавь эту строку!
     networks:
       - ok_network
 
