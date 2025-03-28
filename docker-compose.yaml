@@ -27,6 +27,26 @@ services:
       - ok_network
 
 
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+    networks:
+      - ok_network
+
+
+
+
   alembic:
     build: .
     command: bash -c "alembic upgrade head && echo 'Migrations completed successfully' || exit 1"    
