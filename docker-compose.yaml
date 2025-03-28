@@ -45,6 +45,25 @@ services:
       - ok_network
 
 
+  loki:
+    image: grafana/loki:2.9.3
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/config.yml
+    networks:
+      - ok_network
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    volumes:
+      - /var/log:/var/log         # смотрим системные логи
+      - ./logs:/app/logs          # тут твои логи приложения (ты же пишешь в log_file?)
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - ok_network
 
 
   alembic:

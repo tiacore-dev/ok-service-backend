@@ -18,6 +18,7 @@ error_counter_by_user = Counter(
 
 class PrometheusHandler(logging.Handler):
     def emit(self, record):
+        print("EMIT ERROR", record)  # временно
         if record.levelno >= logging.ERROR:
             self._count_general_error()
             self._count_user_error(record)
@@ -63,7 +64,9 @@ def setup_logger(name: str = "ok_service", log_file: str = "ok_service.log") -> 
         logger.addHandler(console_handler)
 
         # Файл
-        log_path = os.path.join(os.getcwd(), log_file)
+        log_path = os.path.join(os.getcwd(), "logs", log_file)
+        os.makedirs(os.path.join(os.getcwd(), "logs"), exist_ok=True)
+
         file_handler = logging.FileHandler(log_path, encoding='utf-8')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
