@@ -59,7 +59,7 @@ def create_app(config_name="development"):
     set_db_globals(engine, Session, Base)
     logger = setup_logger()
     logger.info("База данных успешно инициализирована.",
-                extra={'user_id': 'init'})
+                extra={'login': 'init'})
 
     # Запуск фоновой задачи при старте приложения
     with app.app_context():
@@ -85,20 +85,20 @@ def create_app(config_name="development"):
     try:
         JWTManager(app)
         logger.info(f"JWT инициализирован. {app.config['JWT_EXPIRES']}",
-                    extra={'user_id': 'init'})
+                    extra={'login': 'init'})
     except Exception as e:
         logger.error(f"Ошибка при инициализации JWT: {e}",
-                     extra={'user_id': 'init'})
+                     extra={'login': 'init'})
         raise
 
     # Регистрация маршрутов
     try:
         register_routes(app)
         logger.info("Маршруты успешно зарегистрированы.",
-                    extra={'user_id': 'init'})
+                    extra={'login': 'init'})
     except Exception as e:
         logger.error(f"Ошибка при регистрации маршрутов: {e}",
-                     extra={'user_id': 'init'})
+                     extra={'login': 'init'})
         raise
 
     # Инициализация Marshmallow

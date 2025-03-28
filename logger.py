@@ -2,13 +2,8 @@ import logging
 import os
 from prometheus_client import Counter
 
-# Общий счётчик ошибок
-error_counter = Counter(
-    'flask_errors_total',
-    'Total number of errors'
-)
+error_counter = Counter('flask_errors_total', 'Total number of errors')
 
-# Счётчик ошибок по пользователям
 error_counter_by_user = Counter(
     'flask_errors_total_by_user',
     'Total number of errors per user',
@@ -18,60 +13,53 @@ error_counter_by_user = Counter(
 
 class PrometheusHandler(logging.Handler):
     def emit(self, record):
-        print("EMIT ERROR", record)  # временно
         if record.levelno >= logging.ERROR:
-            self._count_general_error()
-            self._count_user_error(record)
+            error_counter.inc()
 
-    def _count_general_error(self):
-        error_counter.inc()
-
-    def _count_user_error(self, record):
-        try:
             login_data = getattr(record, "login", {})
 
-            if isinstance(login_data, dict):
-                user_id = str(login_data.get("user_id", "unknown"))
-                login = login_data.get("login", "unknown")
-                role = login_data.get("role", "unknown")
-            elif isinstance(login_data, str):
-                # Для простого случая: логин — строка, типа "database"
-                user_id = "system"
-                login = login_data
-                role = "system"
-            else:
-                user_id = login = role = "unknown"
+            try:
+                if isinstance(login_data, dict):
+                    user_id = str(login_data.get("user_id", "unknown"))
+                    login = login_data.get("login", "unknown")
+                    role = login_data.get("role", "unknown")
+                elif isinstance(login_data, str):
+                    user_id = "system"
+                    login = login_data
+                    role = "system"
+                else:
+                    user_id = login = role = "unknown"
 
-            error_counter_by_user.labels(
-                user_id=user_id,
-                login=login,
-                role=role
-            ).inc()
-        except Exception as e:
-            print(f"Failed to record Prometheus metric: {e}")
+                error_counter_by_user.labels(
+                    user_id=user_id,
+                    login=login,
+                    role=role
+                ).inc()
+            except Exception as e:
+                print(f"[PrometheusHandler] Error recording metric: {e}")
 
 
 def setup_logger(name: str = "ok_service", log_file: str = "ok_service.log") -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
-    if not logger.handlers:
-        formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
+    formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
 
-        # Консоль
+    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
 
-        # Файл
-        log_path = os.path.join(os.getcwd(), "logs", log_file)
-        os.makedirs(os.path.join(os.getcwd(), "logs"), exist_ok=True)
+    log_dir = os.path.join(os.getcwd(), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, log_file)
 
+    if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
         file_handler = logging.FileHandler(log_path, encoding='utf-8')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
-        # Prometheus
+    if not any(isinstance(h, PrometheusHandler) for h in logger.handlers):
         logger.addHandler(PrometheusHandler())
 
     return logger
