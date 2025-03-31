@@ -20,10 +20,10 @@ login_ns.models[response_auth.name] = response_auth
 login_ns.models[hello_model.name] = hello_model
 
 
-# @login_ns.route('/health')
-# class HealthCheck(Resource):
-#     def get(self):
-#         return {"msg": "Hello, world!"}, 200
+@login_ns.route('/health')
+class HealthCheck(Resource):
+    def get(self):
+        return {"msg": "Hello, world!"}, 200
 
 
 @login_ns.route('/login')
