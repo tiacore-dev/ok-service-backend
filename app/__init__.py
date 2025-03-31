@@ -1,6 +1,6 @@
-from uuid import UUID
 from flask_jwt_extended import JWTManager
 from flask import Flask
+from flask import request
 from flask_cors import CORS
 from flask_restx import Api
 from prometheus_flask_exporter import PrometheusMetrics
@@ -81,13 +81,6 @@ def create_app(config_name="development"):
     logger = setup_logger()
     logger.info("База данных успешно инициализирована.",
                 extra={'login': 'init'})
-    current_user = {
-        "user_id": "1",
-        "login": "admin",
-        "role": "root"
-    }
-    # НЕ ЗАБУДЬ УДАЛИТЬ!!!
-    logger.error("Simulated error", extra={"login": current_user})
 
     # Запуск фоновой задачи при старте приложения
     with app.app_context():
@@ -96,16 +89,9 @@ def create_app(config_name="development"):
     # Инициализация ролей и админа
 
     set_roles()
-    # admin_id = set_admin()
+
     set_object_status()
-    # from app.database.managers.works_managers import WorksManager
-    # db = WorksManager()
-    # if db.get_all() == []:
-    #    put_works_in_db(admin_id)
-    # from app.database.managers.user_manager import UserManager
-    # db = UserManager()
-    # if len(db.get_all()) == 1:
-    #    put_users_in_db(admin_id)
+
     if config_name != "testing":
         setup_listeners()
 
@@ -144,5 +130,16 @@ def create_app(config_name="development"):
 
     # Настройка CORS
     CORS(app, resources={r"/*": {"origins": '*'}})
+
+    @app.errorhandler(404)
+    def handle_404(e):
+        logger.warning(f"404 Not Found: {request.path}", extra={
+            "login": {
+                "user_id": "anonymous",
+                "login": request.remote_addr,
+                "role": "unknown"
+            }
+        })
+        return {"msg": "Not Found"}, 404
 
     return app
