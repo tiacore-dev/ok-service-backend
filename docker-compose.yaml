@@ -1,103 +1,5 @@
 services:
 
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    networks:
-      - ok_network
-
-  grafana:
-    image: grafana/grafana
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana-storage:/var/lib/grafana
-
-  alertmanager:
-    image: prom/alertmanager
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./monitoring:/etc/alertmanager
-
-    networks:
-      - ok_network
-
-
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    restart: unless-stopped
-    ports:
-      - "9100:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-    networks:
-      - ok_network
-
-
-  loki:
-    image: grafana/loki:2.9.3
-    container_name: loki
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./monitoring/loki-config.yml:/etc/loki/config.yml
-      - ./monitoring/loki-data:/loki
-    networks:
-      - ok_network
-
-  promtail:
-    image: grafana/promtail:2.9.3
-    container_name: promtail
-    volumes:
-      - ./logs:/app/logs            
-      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - ok_network
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports:
-      - "16686:16686"  # UI
-      - "6831:6831/udp" # UDP порт для агентов (например, OpenTelemetry)
-    networks:
-      - ok_network
-
-
-
-  alembic:
-    build: .
-    command: bash -c "alembic upgrade head && echo 'Migrations completed successfully' || exit 1"    
-    volumes:
-      - .:/app
-    networks:
-      - ok_network
-
-  test:
-    build: .
-    command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
-    depends_on:
-      - alembic
-    networks:
-      - ok_network
-    volumes:
-      - .:/app
-      - ./tests:/app/tests
-    environment:
-      - PYTHONPATH=/app
-
-
   web:
     tty: true
     stdin_open: true
@@ -110,19 +12,13 @@ services:
     environment:
       - HTTP_PROXY=
       - HTTPS_PROXY=
-    depends_on:
-      - alembic
-      - test
     volumes:
       - .:/app
+      - ./logs:/app/logs  # ✅ сохраняем логи на хосте
     command: gunicorn -c gunicorn.conf.py run:app
     networks:
       - ok_network
 
-volumes:
-  grafana-storage:
-
 networks:
   ok_network:
     external: true
-

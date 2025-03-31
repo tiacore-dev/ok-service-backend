@@ -1,5 +1,6 @@
 import logging
 import os
+from opentelemetry.trace import get_current_span, Span
 from prometheus_client import Counter
 
 error_counter = Counter('flask_errors_total', 'Total number of errors')
@@ -13,7 +14,14 @@ error_counter_by_user = Counter(
 
 class LokiFormatter(logging.Formatter):
     def format(self, record):
-        # Попробуем извлечь информацию о пользователе
+        # Получим текущий span, если есть
+        span: Span = get_current_span()
+        trace_id = "unknown"
+
+        if span and span.get_span_context().trace_id:
+            trace_id = format(span.get_span_context().trace_id, '032x')
+
+        # Пользовательская информация
         user_info = getattr(record, "login", {})
         if isinstance(user_info, dict):
             user_id = user_info.get("user_id", "unknown")
@@ -27,7 +35,7 @@ class LokiFormatter(logging.Formatter):
             user_id = login = role = "unknown"
 
         base_msg = super().format(record)
-        return f"{base_msg} [user_id={user_id} login={login} role={role}]"
+        return f"{base_msg} [trace_id={trace_id} user_id={user_id} login={login} role={role}]"
 
 
 class PrometheusHandler(logging.Handler):
