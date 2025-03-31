@@ -268,7 +268,8 @@ class ShiftReportDetailsAll(Resource):
 @shift_report_details_ns.route('/all-by-reports')
 class ShiftReportDetailsByReports(Resource):
     @jwt_required()
-    @shift_report_details_ns.expect(shift_report_details_by_report_ids)
+    @shift_report_details_ns.expect(shift_report_details_by_report_ids, validate=True)
+    @shift_report_details_ns.doc(consumes=["application/json"])
     @shift_report_details_ns.marshal_with(shift_report_details_all_response)
     def post(self):
         current_user = get_jwt_identity()
