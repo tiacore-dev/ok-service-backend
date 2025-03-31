@@ -80,30 +80,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ github.ref_name == 'master' && secrets.SSH_PRIVATE_KEY_MASTER || github.ref_name == 'dev' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY_STAGE }}
+
+
       - name: Set env vars per branch
         run: |
           if [[ "${{ github.ref_name }}" == "master" ]]; then
             echo "DEPLOY_PATH=apps/ok-service-backend" >> $GITHUB_ENV
             echo "SERVER_IP=${{ secrets.SERVER_IP_MASTER }}" >> $GITHUB_ENV
             echo "SSH_USER=${{ secrets.SSH_USER_MASTER }}" >> $GITHUB_ENV
-            echo "SSH_KEY=${{ secrets.SSH_PRIVATE_KEY_MASTER }}" >> $GITHUB_ENV
           elif [[ "${{ github.ref_name }}" == "dev" ]]; then
             echo "DEPLOY_PATH=apps/ok-service-backend-dev" >> $GITHUB_ENV
             echo "SERVER_IP=${{ secrets.SERVER_IP_DEV }}" >> $GITHUB_ENV
             echo "SSH_USER=${{ secrets.SSH_USER_DEV }}" >> $GITHUB_ENV
-            echo "SSH_KEY=${{ secrets.SSH_PRIVATE_KEY_DEV }}" >> $GITHUB_ENV
-          elif [[ "${{ github.ref_name }}" == "stage" ]]; then
+          else
             echo "DEPLOY_PATH=apps/ok-service-backend-stage" >> $GITHUB_ENV
             echo "SERVER_IP=${{ secrets.SERVER_IP_STAGE }}" >> $GITHUB_ENV
             echo "SSH_USER=${{ secrets.SSH_USER_STAGE }}" >> $GITHUB_ENV
-            echo "SSH_KEY=${{ secrets.SSH_PRIVATE_KEY_STAGE }}" >> $GITHUB_ENV
           fi
           echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ env.SSH_KEY }}
+
 
       - name: Run Migrations & Pull Image
         run: |
