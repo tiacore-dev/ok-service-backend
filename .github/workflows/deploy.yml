@@ -40,10 +40,16 @@ jobs:
       - name: Build Docker Image
         run: docker build -t $IMAGE_NAME:${{ github.sha }} .
 
-      - name: Create fake VAPID keys
+      - name: Generate fake VAPID keys
         run: |
-          echo "${{ secrets.FAKE_VAPID_PUBLIC }}" > vapid_public_key.pem
-          echo "${{ secrets.FAKE_VAPID_PRIVATE }}" > vapid_private_key.pem
+          openssl ecparam -genkey -name prime256v1 -noout -out vapid_private_key.pem
+          openssl ec -in vapid_private_key.pem -pubout -out vapid_public_key.pem
+
+      - name: Create test .env
+        run: |
+          echo "JWT_SECRET_KEY=testing_key" > .env.test
+          echo "SECRET_KEY=another_test_key" >> .env.test
+
 
       - name: Run Tests inside Docker
         run: |
@@ -59,6 +65,10 @@ jobs:
 
       - name: Clean up VAPID keys
         run: rm -f vapid_*.pem
+        
+      - name: Clean up .env.test
+        run: rm -f .env.test
+
 
 
   deploy:
