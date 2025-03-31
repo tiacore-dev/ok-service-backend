@@ -82,8 +82,6 @@ def create_app(config_name="development"):
                 extra={'login': 'init'})
 
     # Запуск фоновой задачи при старте приложения
-    with app.app_context():
-        start_background_task()
 
     # Инициализация ролей и админа
 
@@ -93,6 +91,8 @@ def create_app(config_name="development"):
 
     if config_name != "testing":
         setup_listeners()
+        with app.app_context():
+            start_background_task()
 
     # Инициализация JWT
     try:

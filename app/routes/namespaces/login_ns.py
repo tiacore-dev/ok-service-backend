@@ -6,7 +6,7 @@ from marshmallow import ValidationError
 from flask_jwt_extended import create_access_token, create_refresh_token
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from app.routes.models.login_models import login_model
-from app.routes.models.login_models import refresh_model, response_auth
+from app.routes.models.login_models import refresh_model, response_auth, hello_model
 from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
 
 logger = logging.getLogger('ok_service')
@@ -17,6 +17,13 @@ login_ns = Namespace('auth', description='Authentication related operations')
 login_ns.models[login_model.name] = login_model
 login_ns.models[refresh_model.name] = refresh_model
 login_ns.models[response_auth.name] = response_auth
+login_ns.models[hello_model.name] = hello_model
+
+
+@login_ns.route('/health')
+class HealthCheck(Resource):
+    def get(self):
+        return {"msg": "Hello, world!"}, 200
 
 
 @login_ns.route('/login')

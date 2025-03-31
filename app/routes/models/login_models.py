@@ -10,6 +10,11 @@ login_model = generate_swagger_model(
 refresh_model = generate_swagger_model(
     RefreshTokenSchema(), "RefreshToken")
 
+hello_model = Model('HelloMessage', {
+    "msg": fields.String(required=True, description="Response message")
+})
+
+
 # Определение модели ответа сервера
 response_auth = Model('Tokens', {
     'access_token': fields.String(description='Access token for user'),
