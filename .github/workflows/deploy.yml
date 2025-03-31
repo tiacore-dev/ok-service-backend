@@ -40,15 +40,26 @@ jobs:
       - name: Build Docker Image
         run: docker build -t $IMAGE_NAME:${{ github.sha }} .
 
+      - name: Create fake VAPID keys
+        run: |
+          echo "${{ secrets.FAKE_VAPID_PUBLIC }}" > vapid_public_key.pem
+          echo "${{ secrets.FAKE_VAPID_PRIVATE }}" > vapid_private_key.pem
+
       - name: Run Tests inside Docker
         run: |
           docker run --rm \
-            -e TEST_DATABASE_URL=postgres://test:test@localhost:5432/test_db \
+            --env-file .env.test \
+            -v ${{ github.workspace }}/vapid_private_key.pem:/app/vapid_private_key.pem \
+            -v ${{ github.workspace }}/vapid_public_key.pem:/app/vapid_public_key.pem \
             $IMAGE_NAME:${{ github.sha }} \
             pytest --maxfail=3 --disable-warnings
 
       - name: Push Image
         run: docker push $IMAGE_NAME:${{ github.sha }}
+
+      - name: Clean up VAPID keys
+        run: rm -f vapid_*.pem
+
 
   deploy:
     runs-on: ubuntu-latest
