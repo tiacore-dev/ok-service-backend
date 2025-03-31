@@ -105,22 +105,17 @@ jobs:
 
 
 
-      - name: Run Migrations & Pull Image
+      - name: Run Migrations & Pull Code
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
             cd $DEPLOY_PATH &&
-            docker pull $IMAGE_NAME:$DEPLOY_TAG &&
-            docker run --rm \
-              --network ok_network \
-              -v \$(pwd):/app \
-              $IMAGE_NAME:$DEPLOY_TAG \
-              bash -c 'alembic upgrade head || echo \"No migrations run\"'
+            git pull origin ${GITHUB_REF##*/} &&
+            docker compose run --rm web alembic upgrade head || echo 'No migrations run'
           "
 
-      - name: Deploy Updated Containers
+      - name: Build & Deploy Containers
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
             cd $DEPLOY_PATH &&
-            IMAGE_NAME=$IMAGE_NAME TAG=$DEPLOY_TAG docker compose up -d --remove-orphans web
+            docker compose up -d --build --remove-orphans web
           "
-

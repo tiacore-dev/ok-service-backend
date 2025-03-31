@@ -1,7 +1,7 @@
 services:
 
   web:
-    image: "${IMAGE_NAME}:${TAG}"  # <--- вот оно, магия!
+    build: .
     tty: true
     stdin_open: true
     ports:
