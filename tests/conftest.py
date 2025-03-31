@@ -359,6 +359,26 @@ def seed_shift_report(db_session, seed_user, seed_project):
 
 
 @pytest.fixture
+def seed_shift_reports(db_session, seed_user, seed_project):
+    reports = []
+    from app.database.models import ShiftReports
+    for i in range(2):
+        report = ShiftReports(
+            shift_report_id=uuid4(),
+            user=UUID(seed_user['user_id']),
+            date=20240101,
+            project=UUID(seed_project['project_id']),
+            created_by=UUID(seed_user['user_id']),
+            signed=False,
+            deleted=False
+        )
+        db_session.add(report)
+        reports.append(report)
+    db_session.commit()
+    return [{"shift_report_id": str(r.shift_report_id)} for r in reports]
+
+
+@pytest.fixture
 def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user):
     from app.database.models import ShiftReportDetails
     detail = ShiftReportDetails(

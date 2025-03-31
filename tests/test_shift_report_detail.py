@@ -101,3 +101,26 @@ def test_get_all_shift_report_details_with_filters(client, jwt_token, seed_shift
     assert len(details) > 0
     assert any(detail["shift_report_detail_id"] ==
                seed_shift_report_detail['shift_report_detail_id'] for detail in details)
+
+
+def test_post_all_shift_report_details_by_ids(client, jwt_token, seed_shift_reports, seed_shift_report, seed_shift_report_detail):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    shift_report_ids = [r["shift_report_id"] for r in seed_shift_reports]
+    shift_report_ids.append(seed_shift_report['shift_report_id'])
+    response = client.post(
+        "/shift_report_details/all-by-reports",
+        json={"shift_report_ids": shift_report_ids},
+        headers=headers
+    )
+
+    assert response.status_code == 200
+    data = response.json
+
+    assert "shift_report_details" in data
+    assert data["msg"] == "Shift report details found successfully"
+
+    details = data["shift_report_details"]
+    assert isinstance(details, list)
+    assert len(details) >= 1
+    assert any(detail["shift_report"]
+               in shift_report_ids for detail in details)

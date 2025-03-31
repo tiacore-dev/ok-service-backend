@@ -25,7 +25,11 @@ shift_report_details_msg_model = Model('ShiftReportDetailsMessage', {
 
 shift_report_details_many_msg_model = Model('ShiftReportDetailsMessage', {
     "msg": fields.String(required=True, description="Response message"),
-    "shift_report_detail_ids": fields.List(fields.String, description="List of project work IDs")
+    "shift_report_detail_ids": fields.List(fields.String, description="List of shift report details")
+})
+
+shift_report_details_by_report_ids = Model('ShiftReportDetailsByIds', {
+    "shift_report_ids": fields.List(fields.String, description="List of shift reports to fetch details")
 })
 
 

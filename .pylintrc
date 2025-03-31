@@ -13,7 +13,8 @@ disable=logging-format-interpolation,
         import-outside-toplevel,
         broad-exception-caught,
         invalid-name,
-        protected-access
+        protected-access,
+        redefined-outer-name
 
 [FORMAT]
 # Настройки форматирования кода

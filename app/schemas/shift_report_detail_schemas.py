@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields, validate, validates
 from app.schemas.validators import validate_work_exists, validate_shift_report_exists
 
 
@@ -25,6 +25,22 @@ class ShiftReportDetailsEditSchema(Schema):
                          validate=[validate_work_exists])
     quantity = fields.Float(required=False, allow_none=True)
     # summ = fields.Float(required=False, allow_none=True)
+
+
+class ShiftReportDetailsByReportsSchema(Schema):
+    class Meta:
+        unknown = "exclude"
+
+    shift_report_ids = fields.List(
+        fields.UUID(),
+        required=False,
+        allow_none=True
+    )
+
+    @validates("shift_report_ids")
+    def validate_shift_report_ids_exist(self, value):
+        for uuid_val in value:
+            validate_shift_report_exists(str(uuid_val))
 
 
 class ShiftReportDetailsFilterSchema(Schema):

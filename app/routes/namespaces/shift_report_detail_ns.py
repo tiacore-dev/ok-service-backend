@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_restx import Namespace, Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-from app.schemas.shift_report_detail_schemas import ShiftReportDetailsCreateSchema, ShiftReportDetailsFilterSchema, ShiftReportDetailsEditSchema
+from app.schemas.shift_report_detail_schemas import ShiftReportDetailsCreateSchema, ShiftReportDetailsFilterSchema, ShiftReportDetailsEditSchema, ShiftReportDetailsByReportsSchema
 from app.routes.models.shift_report_detail_models import (
     shift_report_details_create_model,
     shift_report_details_msg_model,
@@ -16,7 +16,8 @@ from app.routes.models.shift_report_detail_models import (
     shift_report_details_all_response,
     shift_report_details_model,
     shift_report_details_filter_parser,
-    shift_report_details_many_msg_model
+    shift_report_details_many_msg_model,
+    shift_report_details_by_report_ids
 
 )
 
@@ -32,6 +33,7 @@ shift_report_details_ns.models[shift_report_details_response.name] = shift_repor
 shift_report_details_ns.models[shift_report_details_all_response.name] = shift_report_details_all_response
 shift_report_details_ns.models[shift_report_details_model.name] = shift_report_details_model
 shift_report_details_ns.models[shift_report_details_many_msg_model.name] = shift_report_details_many_msg_model
+shift_report_details_ns.models[shift_report_details_by_report_ids.name] = shift_report_details_by_report_ids
 
 
 @shift_report_details_ns.route('/add/many')
@@ -254,6 +256,47 @@ class ShiftReportDetailsAll(Resource):
             db = ShiftReportsDetailsManager()
             details = db.get_all_filtered(
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
+            logger.info(f"Successfully fetched {len(details)} shift report details",
+                        extra={"login": current_user})
+            return {"msg": "Shift report details found successfully", "shift_report_details": details}, 200
+        except Exception as e:
+            logger.error(f"Error fetching shift report details: {e}",
+                         extra={"login": current_user})
+            return {"msg": f"Error fetching shift report details: {e}"}, 500
+
+
+@shift_report_details_ns.route('/all-by-reports')
+class ShiftReportDetailsByReports(Resource):
+    @jwt_required()
+    @shift_report_details_ns.expect(shift_report_details_by_report_ids)
+    @shift_report_details_ns.marshal_with(shift_report_details_all_response)
+    def post(self):
+        current_user = get_jwt_identity()
+        logger.info("Request to fetch shift report details by shift report ids",
+                    extra={"login": current_user})
+
+        # Валидация query-параметров через Marshmallow
+        schema = ShiftReportDetailsByReportsSchema()
+        try:
+            data_list = schema.load(request.json)  # Валидируем query-параметры
+        except ValidationError as err:
+            logger.warning("Validation failed for shift report ids",
+                           extra={"login": current_user, "errors": err.messages})
+            return {"error": err.messages}, 400
+
+        report_ids = data_list.get("shift_report_ids") or []
+        details = []
+        try:
+            from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
+            db = ShiftReportsDetailsManager()
+            for report_id in report_ids:
+                detail = db.filter_one_by_dict(shift_report=report_id)
+                if detail:
+                    details.append(detail)
+                else:
+                    logger.warning(f"No detail found for shift_report_id: {report_id}", extra={
+                                   "login": current_user})
+
             logger.info(f"Successfully fetched {len(details)} shift report details",
                         extra={"login": current_user})
             return {"msg": "Shift report details found successfully", "shift_report_details": details}, 200
