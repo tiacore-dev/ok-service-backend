@@ -1,9 +1,9 @@
 services:
 
   web:
+    image: "${IMAGE_NAME}:${TAG}"  # <--- вот оно, магия!
     tty: true
     stdin_open: true
-    build: .
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -13,8 +13,7 @@ services:
       - HTTP_PROXY=
       - HTTPS_PROXY=
     volumes:
-      - .:/app
-      - ./logs:/app/logs  # ✅ сохраняем логи на хосте
+      - ./logs:/app/logs
     command: gunicorn -c gunicorn.conf.py run:app
     networks:
       - ok_network
