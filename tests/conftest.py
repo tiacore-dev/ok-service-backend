@@ -32,11 +32,11 @@ def setup_database():
 
     GLOBAL_BASE = Base  # Сохраняем Base в глобальной переменной
 
-    yield  # Фикстура активна на протяжении всех тестов
-
-    # Удаляем таблицы после завершения тестов
-    Base.metadata.drop_all(engine)
-    Session.remove()
+    try:
+        yield
+    finally:
+        Base.metadata.drop_all(engine)
+        Session.remove()
 
 
 @pytest.fixture(autouse=True)
@@ -52,6 +52,13 @@ def clean_db(db_session):
     db_session.commit()
 
 
+@pytest.fixture(autouse=True)
+def cleanup_scoped_session():
+    yield
+    from app.database.db_globals import Session
+    Session.remove()
+
+
 @pytest.fixture
 def db_session():
     """
@@ -62,6 +69,7 @@ def db_session():
     yield session
     session.rollback()
     session.close()
+    Session.remove()
 
 
 @pytest.fixture
