@@ -49,7 +49,7 @@ jobs:
         run: |
           echo "JWT_SECRET_KEY=testing_key" > .env.test
           echo "SECRET_KEY=another_test_key" >> .env.test
-          echo "TEST_DATABASE_URL=postgresql://test:test@host.docker.internal:5432/test_db" >> .env.test
+          echo "TEST_DATABASE_URL=postgresql://test:test@172.17.0.1:5432/test_db" >> .env.test
 
 
       - name: Run Tests inside Docker
