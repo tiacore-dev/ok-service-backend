@@ -28,21 +28,21 @@ class RoleAll(Resource):
     @jwt_required()
     @role_ns.expect(role_filter_parser)
     @role_ns.marshal_with(role_all_response)
-    @role_ns.response(500, "Internal Server Error")
     def get(self):
         current_user = json.loads(get_jwt_identity())
-        logger.info(
-            "Request to fetch all roles.",
-            extra={"login": current_user.get('login')}
-        )
-        # Валидация query-параметров через Marshmallow
+        logger.info("Request to fetch all roles.",
+                    extra={"login": current_user})
+
         schema = RoleFilterSchema()
         try:
-            args = schema.load(request.args)  # Валидируем query-параметры
+            args = schema.load(request.args)
+            logger.debug(f"Validated filters: {args}", extra={
+                         "login": current_user})
         except ValidationError as err:
             logger.error(f"Validation error: {err.messages}", extra={
                          "login": current_user})
             return {"error": err.messages}, 400
+
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')
@@ -50,31 +50,22 @@ class RoleAll(Resource):
         filters = {
             'role_id': args.get('role_id'),
             'name': args.get('name'),
-
         }
 
         logger.debug(
-            f"Filter parameters: offset={offset}, limit={limit}, sort_by={
-                sort_by}, sort_order={sort_order}, filters={filters}",
-            extra={"login": current_user.get('login')}
+            f"Fetching roles with filters: {filters}, offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}",
+            extra={"login": current_user}
         )
 
         try:
             from app.database.managers.roles_managers import RolesManager
             db = RolesManager()
-            logger.debug("Fetching roles from the database...", extra={
-                         "login": current_user.get('login')})
             roles = db.get_all_filtered(
                 offset, limit, sort_by, sort_order, **filters)
-            logger.info(
-                f"Successfully fetched roles: count={
-                    len(roles)}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.info(f"Successfully fetched {len(roles)} roles", extra={
+                        "login": current_user})
             return {"roles": roles, "msg": "Roles found successfully"}, 200
         except Exception as e:
-            logger.error(
-                f"Error fetching roles: {e}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.error(f"Error fetching roles: {e}", extra={
+                         "login": current_user})
             return {'msg': f"Error during getting roles: {e}"}, 500

@@ -31,7 +31,7 @@ class AuthLogin(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error during login: {err.messages}")
             return {"error": err.messages}, 400
         login = data.get("login", None)
         password = str(data.get("password", None))
@@ -45,7 +45,8 @@ class AuthLogin(Resource):
 
         user = db.filter_one_by_dict(login=login)
         if not user:
-            logger.error("User not found", extra={"login": login})
+            logger.warning("User record unexpectedly missing after successful password check", extra={
+                           "login": login})
             return {"msg": "User not found"}, 404
         identity = json.dumps({
             "user_id": user['user_id'],
@@ -70,7 +71,7 @@ class AuthRefresh(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error during refresh: {err.messages}")
             return {"error": err.messages}, 400
         refresh_token = data.get('refresh_token', None)
         logger.debug("Refresh token request received",

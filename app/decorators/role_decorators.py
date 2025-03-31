@@ -14,7 +14,7 @@ def admin_required(func):
         current_user = json.loads(get_jwt_identity())
         if current_user.get("role") != "admin":
             logger.warning("Несанкционированный доступ: требуется администратор.",
-                           extra={"login": current_user.get("login")})
+                           extra={"login": current_user})
             return {"msg": "Forbidden"}, 403
         return func(*args, **kwargs)
     return wrapper
@@ -27,7 +27,7 @@ def user_forbidden(func):
         current_user = json.loads(get_jwt_identity())
         if current_user.get("role") == "user":
             logger.warning("Несанкционированный доступ: недостаточно прав.",
-                           extra={"login": current_user.get("login")})
+                           extra={"login": current_user})
             return {"msg": "Forbidden"}, 403
         return func(*args, **kwargs)
     return wrapper

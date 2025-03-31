@@ -189,7 +189,8 @@ class ShiftReportEdit(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            logger.error(f"Validation error: {err.messages}")
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:

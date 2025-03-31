@@ -44,24 +44,21 @@ class ProjectAdd(Resource):
 
         schema = ProjectCreateSchema()
         try:
-            # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
             if current_user['role'] == 'project-leader':
                 data['project_leader'] = current_user['user_id']
-            # Возвращается словарь
             new_project = db.add(created_by=current_user['user_id'], **data)
-            logger.info(f"New project added: {new_project['project_id']}",
-                        extra={"login": current_user})
+            logger.info(f"New project added: {new_project['project_id']}", extra={
+                        "login": current_user})
             return {"msg": "New project added successfully", "project_id": new_project['project_id']}, 200
         except Exception as e:
-            logger.error(f"Error adding project: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error adding project: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error adding project: {e}"}, 500
 
 
@@ -71,24 +68,21 @@ class ProjectView(Resource):
     @project_ns.marshal_with(project_response)
     def get(self, project_id):
         current_user = get_jwt_identity()
-        logger.info(f"Request to view project: {project_id}",
-                    extra={"login": current_user})
+        logger.info(f"Request to view project: {project_id}", extra={
+                    "login": current_user})
         try:
-            try:
-                # Конвертируем строку в UUID
-                project_id = UUID(project_id)
-            except ValueError as exc:
-                raise ValueError("Invalid UUID format") from exc
-
+            project_id = UUID(project_id)
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
             project = db.get_by_id(project_id)
             if not project:
+                logger.warning(f"Project {project_id} not found", extra={
+                               "login": current_user})
                 return {"msg": "Project not found"}, 404
             return {"msg": "Project found successfully", "project": project}, 200
         except Exception as e:
-            logger.error(f"Error viewing project: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error viewing project: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error viewing project: {e}"}, 500
 
 
@@ -99,32 +93,28 @@ class ProjectSoftDelete(Resource):
     @project_ns.marshal_with(project_msg_model)
     def patch(self, project_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(f"Request to soft delete project: {project_id}",
-                    extra={"login": current_user})
+        logger.info(f"Request to soft delete project: {project_id}", extra={
+                    "login": current_user})
         try:
-            try:
-                # Конвертируем строку в UUID
-                project_id = UUID(project_id)
-            except ValueError as exc:
-                raise ValueError("Invalid UUID format") from exc
-
+            project_id = UUID(project_id)
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
 
-            # Проверки по ролям
             project = db.get_by_id(record_id=project_id)
             if project['project_leader'] != current_user['user_id'] and current_user['role'] == 'project-leader':
-                logger.warning("Trying to soft delete not user's project",
-                               extra={"login": current_user})
+                logger.warning("Trying to soft delete not user's project", extra={
+                               "login": current_user})
                 return {"msg": "User cannot hard delete not his shift report"}, 403
 
             updated = db.update(record_id=project_id, deleted=True)
             if not updated:
+                logger.warning(f"Project {project_id} not found for soft delete", extra={
+                               "login": current_user})
                 return {"msg": "Project not found"}, 404
             return {"msg": f"Project {project_id} soft deleted successfully", "project_id": project_id}, 200
         except Exception as e:
-            logger.error(f"Error soft deleting project: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error soft deleting project: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error soft deleting project: {e}"}, 500
 
 
@@ -135,34 +125,33 @@ class ProjectHardDelete(Resource):
     @project_ns.marshal_with(project_msg_model)
     def delete(self, project_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(f"Request to hard delete project: {project_id}",
-                    extra={"login": current_user})
+        logger.info(f"Request to hard delete project: {project_id}", extra={
+                    "login": current_user})
         try:
-            try:
-                # Конвертируем строку в UUID
-                project_id = UUID(project_id)
-            except ValueError as exc:
-                raise ValueError("Invalid UUID format") from exc
-
+            project_id = UUID(project_id)
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
 
-            # Проверки по ролям
             project = db.get_by_id(record_id=project_id)
             if project['project_leader'] != current_user['user_id'] and current_user['role'] == 'project-leader':
-                logger.warning("Trying to hard delete not user's project",
-                               extra={"login": current_user})
+                logger.warning("Trying to hard delete not user's project", extra={
+                               "login": current_user})
                 return {"msg": "User cannot hard delete not his shift report"}, 403
 
             deleted = db.delete(record_id=project_id)
             if not deleted:
+                logger.warning(f"Project {project_id} not found for hard delete", extra={
+                               "login": current_user})
                 return {"msg": "Project not found"}, 404
+
             return {"msg": f"Project {project_id} hard deleted successfully", "project_id": project_id}, 200
         except IntegrityError:
+            logger.warning(f"Conflict: dependent data exists for project {project_id}", extra={
+                           "login": current_user})
             abort(409, description="Cannot delete project: dependent data exists.")
         except Exception as e:
-            logger.error(f"Error hard deleting project: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error hard deleting project: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error hard deleting project: {e}"}, 500
 
 
@@ -174,35 +163,25 @@ class ProjectEdit(Resource):
     @project_ns.marshal_with(project_msg_model)
     def patch(self, project_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(f"Request to edit project: {project_id}",
-                    extra={"login": current_user})
-        logger.debug(f"Received PATCH request: {request.json}",
-                     extra={"login": current_user})
+        logger.info(f"Request to edit project: {project_id}", extra={
+                    "login": current_user})
+        logger.debug(f"Received PATCH request: {request.json}", extra={
+                     "login": current_user})
 
         schema = ProjectEditSchema()
         try:
-            # Валидация входных данных
             data = schema.load(request.json)
-            logger.info("Валидация пройдена")
+            logger.info("Validation successful", extra={"login": current_user})
         except ValidationError as err:
             logger.error(f"Validation error: {err.messages}", extra={
                          "login": current_user})
-            # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
-            try:
-                # Конвертируем строку в UUID
-                project_id = UUID(project_id)
-            except ValueError as exc:
-                raise ValueError("Invalid UUID format") from exc
-
+            project_id = UUID(project_id)
             from app.database.managers.projects_managers import ProjectsManager
             db = ProjectsManager()
-            logger.info(f"Validated PATCH request: {data}",
-                        extra={"login": current_user})
-            # Проверки по ролям
+
             project = db.get_by_id(record_id=project_id)
-            logger.info(f"Получили данные проекта по id: {project}")
             if project['project_leader'] != current_user['user_id'] and current_user['role'] == 'project-leader':
                 logger.warning("Trying to edit not user's project",
                                extra={"login": current_user})
@@ -210,11 +189,14 @@ class ProjectEdit(Resource):
 
             updated = db.update(record_id=project_id, **data)
             if not updated:
+                logger.warning(f"Project {project_id} not found for edit", extra={
+                               "login": current_user})
                 return {"msg": "Project not found"}, 404
+
             return {"msg": "Project edited successfully", "project_id": project_id}, 200
         except Exception as e:
-            logger.error(f"Error editing project: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error editing project: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error editing project: {e}"}, 500
 
 
@@ -227,14 +209,15 @@ class ProjectAll(Resource):
         current_user = json.loads(get_jwt_identity())
         logger.info("Request to fetch all projects",
                     extra={"login": current_user})
-        # Валидация query-параметров через Marshmallow
+
         schema = ProjectFilterSchema()
         try:
-            args = schema.load(request.args)  # Валидируем query-параметры
+            args = schema.load(request.args)
         except ValidationError as err:
             logger.error(f"Validation error: {err.messages}", extra={
                          "login": current_user})
             return {"error": err.messages}, 400
+
         offset = args.get('offset', 0)
         limit = args.get('limit', 10)
         sort_by = args.get('sort_by')
@@ -257,25 +240,23 @@ class ProjectAll(Resource):
             projects = db.get_all_filtered_with_status(
                 user=current_user,
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
-            logger.info(f"Successfully fetched {len(projects)} projects",
-                        extra={"login": current_user})
+            logger.info(f"Successfully fetched {len(projects)} projects", extra={
+                        "login": current_user})
             return {"msg": "Projects found successfully", "projects": projects}, 200
         except Exception as e:
-            logger.error(f"Error fetching projects: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error fetching projects: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error fetching projects: {e}"}, 500
 
 
 @project_ns.route('/<string:project_id>/get-stat')
 class ProjectStats(Resource):
     @jwt_required()
-    # @project_ns.marshal_with(project_all_response)
     def get(self, project_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(f"Request to view stats of project: {project_id}",
-                    extra={"login": current_user})
+        logger.info(f"Request to view stats of project: {project_id}", extra={
+                    "login": current_user})
         try:
-            # Конвертируем строку в UUID
             project_id = UUID(project_id)
         except ValueError as exc:
             raise ValueError("Invalid UUID format") from exc
@@ -284,9 +265,11 @@ class ProjectStats(Resource):
         try:
             stats = db.get_project_stats(project_id)
             if not stats:
+                logger.warning(f"Stats not found for project {project_id}", extra={
+                               "login": current_user})
                 return {"msg": "Stats not found"}, 404
             return {"msg": "Project stats fetched successfully", "stats": stats}, 200
         except Exception as e:
-            logger.error(f"Error getting stats for project: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error getting stats for project: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error getting stats for project: {e}"}, 500

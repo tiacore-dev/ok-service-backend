@@ -48,6 +48,9 @@ class UserAdd(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
+            logger.error(f"Ошибка валидации при добавлении пользователя: {err.messages}", extra={
+                         "login": current_user.get('login')})
+
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         login = data.get('login')
@@ -97,6 +100,8 @@ class UserView(Resource):
             try:
                 user_id = UUID(user_id)
             except ValueError:
+                logger.warning(f"Неверный формат user_id: {user_id}", extra={
+                               "login": current_user.get('login')})
                 return {"msg": "Invalid user ID format"}, 400
             from app.database.managers.user_manager import UserManager
             db = UserManager()
@@ -139,6 +144,8 @@ class UserDeleteSoft(Resource):
             try:
                 user_id = UUID(user_id)
             except ValueError:
+                logger.warning(f"Неверный формат user_id при мягком удалении: {user_id}", extra={
+                               "login": current_user.get('login')})
                 return {"msg": "Invalid user ID format"}, 400
             from app.database.managers.user_manager import UserManager
             db = UserManager()
@@ -181,6 +188,8 @@ class UserDeleteHard(Resource):
             try:
                 user_id = UUID(user_id)
             except ValueError:
+                logger.warning(f"Неверный формат user_id при hard удалении: {user_id}", extra={
+                               "login": current_user.get('login')})
                 return {"msg": "Invalid user ID format"}, 400
             from app.database.managers.user_manager import UserManager
             db = UserManager()
@@ -229,7 +238,8 @@ class UserEdit(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Ошибка валидации при редактировании пользователя: {err.messages}", extra={
+                         "login": current_user.get('login')})
             return {"error": err.messages}, 400
         login = data.get("login")
         password = data.get("password")
@@ -252,6 +262,8 @@ class UserEdit(Resource):
             try:
                 user_id = UUID(user_id)
             except ValueError:
+                logger.warning(f"Неверный формат user_id при редактировании: {user_id}", extra={
+                               "login": current_user.get('login')})
                 return {"msg": "Invalid user ID format"}, 400
             from app.database.managers.user_manager import UserManager
             db = UserManager()
@@ -295,8 +307,8 @@ class UserAll(Resource):
         try:
             args = schema.load(request.args)  # Валидируем query-параметры
         except ValidationError as err:
-            logger.error(f"Validation error: {err.messages}", extra={
-                         "login": current_user})
+            logger.error(f"Ошибка валидации фильтров при получении пользователей: {err.messages}", extra={
+                         "login": current_user.get('login')})
             return {"error": err.messages}, 400
         offset = args.get('offset', 0)
         limit = args.get('limit', None)

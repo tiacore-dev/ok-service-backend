@@ -44,12 +44,14 @@ class ProjectWorkAddBulk(Resource):
         logger.info("Request to add multiple project works",
                     extra={"login": current_user})
 
-        schema = ProjectWorkCreateSchema(
-            many=True)  # Используем валидацию списка
+        schema = ProjectWorkCreateSchema(many=True)
         try:
-            # Валидация входных данных
             data_list = schema.load(request.json)
+            logger.info(f"Validated data for bulk add: {data_list}", extra={
+                        "login": current_user})
         except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
 
         try:
@@ -61,22 +63,19 @@ class ProjectWorkAddBulk(Resource):
 
             if current_user['role'] == 'project-leader':
                 led_projects = db_p.get_all_filtered(
-                    project_leader=current_user['user_id']
-                )
+                    project_leader=current_user['user_id'])
                 led_project_ids = {p['project_id'] for p in led_projects}
 
                 for data in data_list:
                     if str(data['project']) not in led_project_ids:
-                        logger.warning("Trying to add work for a non-owned project",
-                                       extra={"login": current_user})
+                        logger.warning(
+                            "Trying to add work for a non-owned project", extra={"login": current_user})
                         return {"msg": "You cannot add works for projects you do not own"}, 403
-
                     data['signed'] = False
                     new_project_work = db.add(
                         created_by=current_user['user_id'], **data)
                     project_work_ids.append(
                         new_project_work['project_work_id'])
-
             else:
                 for data in data_list:
                     new_project_work = db.add(
@@ -84,14 +83,13 @@ class ProjectWorkAddBulk(Resource):
                     project_work_ids.append(
                         new_project_work['project_work_id'])
 
-            logger.info(f"Added multiple project works: {project_work_ids}",
-                        extra={"login": current_user})
-
+            logger.info(f"Added multiple project works: {project_work_ids}", extra={
+                        "login": current_user})
             return {"msg": "Project works added successfully", "project_work_ids": project_work_ids}, 200
 
         except Exception as e:
-            logger.error(f"Error adding project works: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error adding project works: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error adding project works: {e}"}, 500
 
 
@@ -108,35 +106,38 @@ class ProjectWorkAdd(Resource):
 
         schema = ProjectWorkCreateSchema()
         try:
-            # Валидация входных данных
             data = schema.load(request.json)
+            logger.info(f"Validated data: {data}", extra={
+                        "login": current_user})
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
+
         try:
             from app.database.managers.projects_managers import ProjectWorksManager, ProjectsManager
             db = ProjectWorksManager()
             db_p = ProjectsManager()
+
             if current_user['role'] == 'project-leader':
                 data['signed'] = False
                 led_projects = db_p.get_all_filtered(
                     project_leader=current_user['user_id'])
-                led_project_ids = {p['project_id']
-                                   # Собираем ID проектов
-                                   for p in led_projects}
+                led_project_ids = {p['project_id'] for p in led_projects}
                 if str(data['project']) not in led_project_ids:
-                    logger.warning("Trying to add now own project work", extra={
+                    logger.warning("Trying to add not own project work", extra={
                                    "login": current_user})
                     return {"msg": "You cannot add not your projects"}, 403
 
             new_project_work = db.add(
                 created_by=current_user['user_id'], **data)
-            logger.info(f"New project work added: {new_project_work['project_work_id']}",
-                        extra={"login": current_user})
-            return {"msg": "New project work added successfully", "project_work_id": new_project_work['project_work_id']}, 200
+            logger.info(f"New project work added: {new_project_work['project_work_id']}", extra={
+                        "login": current_user})
+            return {"msg": "Project work added successfully", "project_work_id": new_project_work['project_work_id']}, 200
+
         except Exception as e:
-            logger.error(f"Error adding project work: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error adding project work: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error adding project work: {e}"}, 500
 
 
@@ -145,9 +146,9 @@ class ProjectWorkView(Resource):
     @jwt_required()
     @project_work_ns.marshal_with(project_work_response)
     def get(self, project_work_id):
-        current_user = get_jwt_identity()
-        logger.info(f"Request to view project work: {project_work_id}",
-                    extra={"login": current_user})
+        current_user = json.loads(get_jwt_identity())
+        logger.info(f"Request to view project work: {project_work_id}", extra={
+                    "login": current_user})
 
         try:
             project_work_id = UUID(project_work_id)
@@ -155,11 +156,13 @@ class ProjectWorkView(Resource):
             db = ProjectWorksManager()
             project_work = db.get_by_id(project_work_id)
             if not project_work:
+                logger.warning(f"Project work {project_work_id} not found", extra={
+                               "login": current_user})
                 return {"msg": "Project work not found"}, 404
             return {"msg": "Project work found successfully", "project_work": project_work}, 200
         except Exception as e:
-            logger.error(f"Error viewing project work: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error viewing project work: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error viewing project work: {e}"}, 500
 
 
@@ -170,35 +173,42 @@ class ProjectWorkSoftDelete(Resource):
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(f"Request to soft delete project work: {project_work_id}",
-                    extra={"login": current_user})
+        logger.info(f"Request to soft delete project work: {project_work_id}", extra={
+                    "login": current_user})
 
         try:
             project_work_id = UUID(project_work_id)
             from app.database.managers.projects_managers import ProjectWorksManager
             db = ProjectWorksManager()
 
-            # Проверки по ролям
             project_work = db.get_by_id(record_id=project_work_id)
+            if not project_work:
+                logger.warning(f"Project work {project_work_id} not found", extra={
+                               "login": current_user})
+                return {"msg": "Project work not found"}, 404
+
             if current_user['role'] == 'project-leader':
                 led_project_works = db.get_work_ids_by_project_leader(
                     current_user['user_id'])
                 if str(project_work_id) not in led_project_works:
-                    logger.warning("Trying to soft delete not user's project_work",
-                                   extra={"login": current_user})
+                    logger.warning("Trying to soft delete not user's project work", extra={
+                                   "login": current_user})
                     return {"msg": "Forbidden"}, 403
-                elif str(project_work_id) in led_project_works and project_work['signed'] is True:
-                    logger.warning("Trying to soft delete signed shift report",
-                                   extra={"login": current_user})
+                if project_work['signed'] is True:
+                    logger.warning("Trying to soft delete signed shift report", extra={
+                                   "login": current_user})
                     return {"msg": "User cannot soft delete signed shift report"}, 403
 
             updated = db.update(record_id=project_work_id, signed=False)
             if not updated:
+                logger.warning(f"Soft delete failed: Project work {project_work_id} not updated", extra={
+                               "login": current_user})
                 return {"msg": "Project work not found"}, 404
+
             return {"msg": f"Project work {project_work_id} soft deleted successfully", "project_work_id": project_work_id}, 200
         except Exception as e:
-            logger.error(f"Error soft deleting project work: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error soft deleting project work: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error soft deleting project work: {e}"}, 500
 
 
@@ -209,8 +219,8 @@ class ProjectWorkHardDelete(Resource):
     @project_work_ns.marshal_with(project_work_msg_model)
     def delete(self, project_work_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(f"Request to hard delete project work: {project_work_id}",
-                    extra={"login": current_user})
+        logger.info(f"Request to hard delete project work: {project_work_id}", extra={
+                    "login": current_user})
 
         try:
             project_work_id = UUID(project_work_id)
@@ -218,27 +228,37 @@ class ProjectWorkHardDelete(Resource):
             db = ProjectWorksManager()
 
             project_work = db.get_by_id(record_id=project_work_id)
+            if not project_work:
+                logger.warning(f"Project work {project_work_id} not found", extra={
+                               "login": current_user})
+                return {"msg": "Project work not found"}, 404
+
             if current_user['role'] == 'project-leader':
                 led_project_works = db.get_work_ids_by_project_leader(
                     current_user['user_id'])
                 if str(project_work_id) not in led_project_works:
-                    logger.warning("Trying to soft delete not user's project_work",
-                                   extra={"login": current_user})
+                    logger.warning("Trying to hard delete not user's project work", extra={
+                                   "login": current_user})
                     return {"msg": "Forbidden"}, 403
-                elif str(project_work_id) in led_project_works and project_work['signed'] is True:
-                    logger.warning("Trying to soft delete signed shift report",
-                                   extra={"login": current_user})
-                    return {"msg": "User cannot soft delete signed shift report"}, 403
+                if project_work['signed'] is True:
+                    logger.warning("Trying to hard delete signed shift report", extra={
+                                   "login": current_user})
+                    return {"msg": "User cannot hard delete signed shift report"}, 403
 
             deleted = db.delete(record_id=project_work_id)
             if not deleted:
+                logger.warning(f"Hard delete failed: Project work {project_work_id} not found", extra={
+                               "login": current_user})
                 return {"msg": "Project work not found"}, 404
+
             return {"msg": f"Project work {project_work_id} hard deleted successfully", "project_work_id": project_work_id}, 200
         except IntegrityError:
+            logger.warning(f"Conflict: Cannot hard delete project work {project_work_id} due to dependencies", extra={
+                           "login": current_user})
             abort(409, description="Cannot delete project work: dependent data exists.")
         except Exception as e:
-            logger.error(f"Error hard deleting project work: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error hard deleting project work: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error hard deleting project work: {e}"}, 500
 
 
@@ -250,46 +270,51 @@ class ProjectWorkEdit(Resource):
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
         current_user = json.loads(get_jwt_identity())
-        logger.info(f"Request to edit project work: {project_work_id}",
-                    extra={"login": current_user})
+        logger.info(f"Request to edit project work: {project_work_id}", extra={
+                    "login": current_user})
 
         schema = ProjectWorkEditSchema()
         try:
-            # Валидация входных данных
             data = schema.load(request.json)
+            logger.info(f"Validated data: {data}", extra={
+                        "login": current_user})
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
+
         try:
             project_work_id = UUID(project_work_id)
             from app.database.managers.projects_managers import ProjectWorksManager
             db = ProjectWorksManager()
-
             project_work = db.get_by_id(record_id=project_work_id)
+            if not project_work:
+                logger.warning(f"Project work {project_work_id} not found", extra={
+                               "login": current_user})
+                return {"msg": "Project work not found"}, 404
+
             if current_user['role'] == 'project-leader':
                 led_project_works = db.get_work_ids_by_project_leader(
                     current_user['user_id'])
-                logger.debug(f"DEBUG: Project leader {current_user['user_id']} управляет работами: {led_project_works}",
-                             extra={"login": current_user})
-
-                logger.debug(f"DEBUG: Проверяем работу {project_work_id} в списке работ лидера",
-                             extra={"login": current_user})
                 if str(project_work_id) not in led_project_works:
-                    logger.warning("Trying to soft delete not user's project_work",
-                                   extra={"login": current_user})
+                    logger.warning("Trying to edit not user's project work", extra={
+                                   "login": current_user})
                     return {"msg": "Forbidden"}, 403
-                elif str(project_work_id) in led_project_works and project_work['signed'] is True:
-                    logger.warning("Trying to soft delete signed shift report",
-                                   extra={"login": current_user})
-                    return {"msg": "User cannot soft delete signed shift report"}, 403
+                if project_work['signed'] is True:
+                    logger.warning("Trying to edit signed shift report", extra={
+                                   "login": current_user})
+                    return {"msg": "User cannot edit signed shift report"}, 403
 
             updated = db.update(record_id=project_work_id, **data)
             if not updated:
+                logger.warning(f"Edit failed: Project work {project_work_id} not found", extra={
+                               "login": current_user})
                 return {"msg": "Project work not found"}, 404
+
             return {"msg": "Project work edited successfully", "project_work_id": project_work_id}, 200
         except Exception as e:
-            logger.error(f"Error editing project work: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error editing project work: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error editing project work: {e}"}, 500
 
 
@@ -299,18 +324,18 @@ class ProjectWorkAll(Resource):
     @project_work_ns.expect(project_work_filter_parser)
     @project_work_ns.marshal_with(project_work_all_response)
     def get(self):
-        current_user = get_jwt_identity()
+        current_user = json.loads(get_jwt_identity())
         logger.info("Request to fetch all project works",
                     extra={"login": current_user})
 
-        # Валидация query-параметров через Marshmallow
         schema = ProjectWorkFilterSchema()
         try:
-            args = schema.load(request.args)  # Валидируем query-параметры
+            args = schema.load(request.args)
         except ValidationError as err:
             logger.error(f"Validation error: {err.messages}", extra={
                          "login": current_user})
             return {"error": err.messages}, 400
+
         offset = args.get('offset', 0)
         limit = args.get('limit', None)
         sort_by = args.get('sort_by')
@@ -335,10 +360,10 @@ class ProjectWorkAll(Resource):
             db = ProjectWorksManager()
             project_works = db.get_all_filtered(
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
-            logger.info(f"Successfully fetched {len(project_works)} project works",
-                        extra={"login": current_user})
+            logger.info(f"Successfully fetched {len(project_works)} project works", extra={
+                        "login": current_user})
             return {"msg": "Project works found successfully", "project_works": project_works}, 200
         except Exception as e:
-            logger.error(f"Error fetching project works: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error fetching project works: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error fetching project works: {e}"}, 500

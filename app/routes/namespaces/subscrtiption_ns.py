@@ -62,7 +62,8 @@ class Subscribe(Resource):
 
         db = SubscriptionsManager()
         current_user = json.loads(get_jwt_identity())
-        logger.info(f"Полученные данные: {request.json}")
+        logger.info(f"Полученные данные: {request.json}", extra={
+                    "login": current_user})
 
         # Используем правильную схему
         schema = SubscriptionSchema()
@@ -70,7 +71,8 @@ class Subscribe(Resource):
             # Загружаем и валидируем данные
             data = schema.load(request.json)
         except ValidationError as err:
-            logger.error(f"Ошибка валидации данных: {err.messages}")
+            logger.error(f"Ошибка валидации данных: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
 
         # Преобразуем объект в JSON-строку перед сохранением
@@ -100,18 +102,21 @@ class SendNotification(Resource):
     @subscription_ns.expect(notification_model)
     @subscription_ns.marshal_with(subscription_msg_model)
     def post(self):
+        current_user = json.loads(get_jwt_identity())
         from app.database.managers.subscription_manager import SubscriptionsManager
         db = SubscriptionsManager()
         message = request.json.get('message', 'Test notification')
         subscription_id = request.json.get('subscription_id')
 
         if not subscription_id:
-            logger.warning("No subscription_id provided.")
+            logger.warning("No subscription_id provided.", extra={
+                "login": current_user})
             return {"message": "No subscription ID provided."}, 400
         subscription_id = UUID(subscription_id)
         subscription = db.get_by_id(subscription_id)
         if not subscription:
-            logger.warning(f"No subscription found for ID: {subscription_id}")
+            logger.warning(f"No subscription found for ID: {subscription_id}", extra={
+                "login": current_user})
             return {"message": "Subscription not found."}, 404
         subscription_info = {
             "endpoint": subscription['endpoint'], "keys": json.loads(subscription['keys'])}
@@ -130,10 +135,12 @@ class SendNotification(Resource):
                 vapid_claims=VAPID_CLAIMS
             )
             logger.info(f"""Notification sent to subscription ID: {
-                subscription_id}""")
+                subscription_id}""", extra={
+                "login": current_user})
             return {"message": "Notification sent successfully."}, 200
         except WebPushException as ex:
-            logger.error(f"Failed to send notification: {str(ex)}")
+            logger.error(f"Failed to send notification: {str(ex)}", extra={
+                         "login": current_user})
             return {"error": "Failed to send notification."}, 500
 
 
@@ -142,19 +149,28 @@ class Unsubscribe(Resource):
     @jwt_required()
     @subscription_ns.marshal_with(subscription_msg_model)
     def delete(self, subscription_id):
+        current_user = json.loads(get_jwt_identity())
         from app.database.managers.subscription_manager import SubscriptionsManager
         db = SubscriptionsManager()
 
         if not subscription_id:
-            logger.warning("Unsubscribe request missing 'subscription_id'")
+            logger.warning("Unsubscribe request missing 'subscription_id'", extra={
+                "login": current_user})
             return {"error": "Missing 'subscription_id' in request data"}, 400
-        subscription_id = UUID(subscription_id)
+        try:
+            subscription_id = UUID(subscription_id)
+        except ValueError as exc:
+            logger.warning(f"Invalid UUID format in unsubscribe request: {exc}", extra={
+                           "login": current_user})
+            return {"msg": "Invalid subscription ID format."}, 400
+
         # Удаляем подписку
         if not db.delete(subscription_id):
             logger.info(f"No subscription found for ID: {subscription_id}")
             return {"message": "Subscription not found."}, 404
 
-        logger.info(f"Subscription removed: {subscription_id}")
+        logger.info(f"Subscription removed: {subscription_id}", extra={
+            "login": current_user})
         return {"message": "Subscription removed successfully."}, 200
 
 

@@ -40,8 +40,7 @@ class ObjectAdd(Resource):
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user['role'] != 'admin':
             logger.warning("Несанкционированный запрос на добавление нового объекта.",
-                           extra={"login": current_user.get('login')}
-                           )
+                           extra={"login": current_user})
             return {"msg": "Forbidden"}, 403
         logger.info("Request to add new object", extra={"login": current_user})
         from app.database.managers.objects_managers import ObjectStatusesManager
@@ -49,27 +48,24 @@ class ObjectAdd(Resource):
         data = request.json
         object_status_id = data.get("status")
         if not db_s.exists_by_id(record_id=object_status_id):
+            logger.warning(f"Invalid object status ID: {object_status_id}", extra={
+                           "login": current_user})
             return {"msg": "Invalid object status"}, 400
         schema = ObjectCreateSchema()
         try:
-            # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()
-
-            # Добавление объекта
-            # Возвращается словарь
             new_object = db.add(created_by=current_user['user_id'], **data)
             logger.info(f"New object added: {new_object['object_id']}",
                         extra={"login": current_user})
             return {"msg": "New object added successfully", "object_id": new_object['object_id']}, 200
         except Exception as e:
-            logger.error(f"Error adding object: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error adding object: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error adding object: {e}"}, 500
 
 
@@ -83,21 +79,25 @@ class ObjectView(Resource):
                     extra={"login": current_user})
         try:
             try:
-                # Конвертируем строку в UUID
                 object_id = UUID(object_id)
             except ValueError as exc:
                 raise ValueError("Invalid UUID format") from exc
+
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()
             obj = db.get_by_id(object_id)
             if not obj:
+                logger.warning(f"Object {object_id} not found", extra={
+                               "login": current_user})
                 return {"msg": "Object not found"}, 404
             if current_user['role'] == 'user' and obj['status'] != 'active':
+                logger.warning(f"Access denied for user to object {object_id} with status '{obj['status']}'",
+                               extra={"login": current_user})
                 return {"msg": "Forbidden"}, 403
             return {"msg": "Object found successfully", "object": obj}, 200
         except Exception as e:
-            logger.error(f"Error viewing object: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error viewing object: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error viewing object: {e}"}, 500
 
 
@@ -110,27 +110,27 @@ class ObjectSoftDelete(Resource):
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user['role'] != 'admin':
             logger.warning("Несанкционированный запрос на мягкое удаление объекта.",
-                           extra={"login": current_user.get('login')}
-                           )
+                           extra={"login": current_user})
             return {"msg": "Forbidden"}, 403
         logger.info(f"Request to soft delete object: {object_id}",
                     extra={"login": current_user})
         try:
-            # Пример обработки UUID, полученного как строка
             try:
-                # Конвертируем строку в UUID
                 object_id = UUID(object_id)
             except ValueError as exc:
                 raise ValueError("Invalid UUID format") from exc
+
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()
             updated = db.update(record_id=object_id, deleted=True)
             if not updated:
+                logger.warning(f"Object {object_id} not found for soft delete", extra={
+                               "login": current_user})
                 return {"msg": "Object not found"}, 404
             return {"msg": f"Object {object_id} soft deleted successfully", "object_id": object_id}, 200
         except Exception as e:
-            logger.error(f"Error soft deleting object: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error soft deleting object: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error soft deleting object: {e}"}, 500
 
 
@@ -143,28 +143,31 @@ class ObjectHardDelete(Resource):
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user['role'] != 'admin':
             logger.warning("Несанкционированный запрос на удаление (hard) объекта.",
-                           extra={"login": current_user.get('login')}
-                           )
+                           extra={"login": current_user})
             return {"msg": "Forbidden"}, 403
         logger.info(f"Request to hard delete object: {object_id}",
                     extra={"login": current_user})
         try:
             try:
-                # Конвертируем строку в UUID
                 object_id = UUID(object_id)
             except ValueError as exc:
                 raise ValueError("Invalid UUID format") from exc
+
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()
             deleted = db.delete(record_id=object_id)
             if not deleted:
+                logger.warning(f"Object {object_id} not found for hard delete", extra={
+                               "login": current_user})
                 return {"msg": "Object not found"}, 404
             return {"msg": f"Object {object_id} hard deleted successfully", "object_id": object_id}, 200
         except IntegrityError:
+            logger.warning(f"Cannot hard delete object {object_id}: dependent data exists",
+                           extra={"login": current_user})
             abort(409, description="Cannot delete object: dependent data exists.")
         except Exception as e:
-            logger.error(f"Error hard deleting object: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error hard deleting object: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error hard deleting object: {e}"}, 500
 
 
@@ -178,58 +181,56 @@ class ObjectEdit(Resource):
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user['role'] != 'admin':
             logger.warning("Несанкционированный запрос на изменение объекта.",
-                           extra={"login": current_user.get('login')}
-                           )
+                           extra={"login": current_user})
             return {"msg": "Forbidden"}, 403
-        logger.info(f"Request to edit object: {object_id}",
-                    extra={"login": current_user})
+        logger.info(f"Request to edit object: {object_id}", extra={
+                    "login": current_user})
 
         schema = ObjectEditSchema()
         try:
-            # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
-            logger.error(f"Validation error: {err.messages}")
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
         try:
             try:
-                # Конвертируем строку в UUID
                 object_id = UUID(object_id)
             except ValueError as exc:
                 raise ValueError("Invalid UUID format") from exc
+
             from app.database.managers.objects_managers import ObjectsManager
             db = ObjectsManager()
             updated = db.update(record_id=object_id, **data)
             if not updated:
+                logger.warning(f"Object {object_id} not found for editing", extra={
+                               "login": current_user})
                 return {"msg": "Object not found"}, 404
             return {"msg": "Object edited successfully", "object_id": object_id}, 200
         except Exception as e:
-            logger.error(f"Error editing object: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error editing object: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error editing object: {e}"}, 500
 
 
 @object_ns.route('/all')
 class ObjectAll(Resource):
     @jwt_required()
-    @object_ns.expect(object_filter_parser)  # Используем для Swagger
+    @object_ns.expect(object_filter_parser)
     @object_ns.marshal_with(object_all_response)
     def get(self):
         current_user = json.loads(get_jwt_identity())
         logger.info("Request to fetch all objects",
                     extra={"login": current_user})
 
-        # Валидация query-параметров через Marshmallow
         schema = ObjectFilterSchema()
         try:
-            data = schema.load(request.args)  # Валидируем query-параметры
+            data = schema.load(request.args)
         except ValidationError as err:
             logger.error(f"Validation error: {err.messages}", extra={
                          "login": current_user})
             return {"error": err.messages}, 400
 
-        # Извлекаем отвалидированные данные
         offset = data.get('offset', 0)
         limit = data.get('limit', None)
         sort_by = data.get('sort_by')
@@ -257,6 +258,6 @@ class ObjectAll(Resource):
                         extra={"login": current_user})
             return {"msg": "Objects found successfully", "objects": objects}, 200
         except Exception as e:
-            logger.error(f"Error fetching objects: {e}",
-                         extra={"login": current_user})
+            logger.error(f"Error fetching objects: {e}", extra={
+                         "login": current_user})
             return {"msg": f"Error fetching objects: {e}"}, 500

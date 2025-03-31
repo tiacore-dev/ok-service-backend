@@ -30,17 +30,16 @@ class ObjectStatusAll(Resource):
     @object_status_ns.response(500, "Internal Server Error")
     def get(self):
         current_user = json.loads(get_jwt_identity())
-        logger.info(
-            "Request to fetch all object statuses.",
-            extra={"login": current_user.get('login')}
-        )
+        logger.info("Request to fetch all object statuses.",
+                    extra={"login": current_user})
+
         # Валидация query-параметров через Marshmallow
         schema = ObjectStatusFilterSchema()
         try:
-            args = schema.load(request.args)  # Валидируем query-параметры
+            args = schema.load(request.args)
         except ValidationError as err:
-            logger.error(f"Validation error: {err.messages}", extra={
-                         "login": current_user})
+            logger.error(f"Validation error: {err.messages}",
+                         extra={"login": current_user})
             return {"error": err.messages}, 400
 
         offset = args.get('offset', 0)
@@ -53,27 +52,24 @@ class ObjectStatusAll(Resource):
         }
 
         logger.debug(
-            f"Filter parameters: offset={offset}, limit={limit}, sort_by={
-                sort_by}, sort_order={sort_order}, filters={filters}",
-            extra={"login": current_user.get('login')}
+            f"Filter parameters: offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}, filters={filters}",
+            extra={"login": current_user}
         )
 
         try:
             from app.database.managers.objects_managers import ObjectStatusesManager
             db = ObjectStatusesManager()
             logger.debug("Fetching object statuses from the database...", extra={
-                         "login": current_user.get('login')})
+                         "login": current_user})
+
             object_statuses = db.get_all_filtered(
                 offset, limit, sort_by, sort_order, **filters)
-            logger.info(
-                f"Successfully fetched object statuses: count={
-                    len(object_statuses)}",
-                extra={"login": current_user.get('login')}
-            )
+
+            logger.info(f"Successfully fetched object statuses: count={len(object_statuses)}",
+                        extra={"login": current_user})
+
             return {"object_statuses": object_statuses, "msg": "Object statuses found successfully"}, 200
         except Exception as e:
-            logger.error(
-                f"Error fetching object statuses: {e}",
-                extra={"login": current_user.get('login')}
-            )
+            logger.error(f"Error fetching object statuses: {e}",
+                         extra={"login": current_user})
             return {'msg': f"Error during getting object statuses: {e}"}, 500

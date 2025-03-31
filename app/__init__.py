@@ -18,9 +18,8 @@ from logger import setup_logger
 from app.routes import register_namespaces, register_routes
 from app.database import init_db, set_db_globals, setup_listeners
 from app.database.vacuum import start_background_task
-from app.utils.db_setting_tables import set_admin, set_roles, set_object_status
-from app.utils.db_works import put_works_in_db
-from app.utils.db_users import put_users_in_db
+from app.utils.db_setting_tables import set_roles, set_object_status
+from app.error_handlers import setup_error_handlers
 
 
 authorizations = {
@@ -128,18 +127,9 @@ def create_app(config_name="development"):
     # Регистрация маршрутов
     register_namespaces(api)
 
+    setup_error_handlers(app)
+
     # Настройка CORS
     CORS(app, resources={r"/*": {"origins": '*'}})
-
-    @app.errorhandler(404)
-    def handle_404(e):
-        logger.warning(f"404 Not Found: {request.path}", extra={
-            "login": {
-                "user_id": "anonymous",
-                "login": request.remote_addr,
-                "role": "unknown"
-            }
-        })
-        return {"msg": "Not Found"}, 404
 
     return app

@@ -49,7 +49,8 @@ class WorkAdd(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error while adding work: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
         try:
             from app.database.managers.works_managers import WorksManager
@@ -85,6 +86,8 @@ class WorkView(Resource):
             db = WorksManager()
             work = db.get_by_id(work_id)
             if not work:
+                logger.warning(f"Work not found: {work_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work not found"}, 404
             return {"msg": "Work found successfully", "work": work}, 200
         except Exception as e:
@@ -113,6 +116,8 @@ class WorkSoftDelete(Resource):
             db = WorksManager()
             updated = db.update(record_id=work_id, deleted=True)
             if not updated:
+                logger.warning(f"Work not found for soft delete: {work_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work not found"}, 404
             return {"msg": f"Work {work_id} soft deleted successfully", "work_id": work_id}, 200
         except Exception as e:
@@ -141,9 +146,13 @@ class WorkHardDelete(Resource):
             db = WorksManager()
             deleted = db.delete(record_id=work_id)
             if not deleted:
+                logger.warning(f"Work not found for hard delete: {work_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work not found"}, 404
             return {"msg": f"Work {work_id} hard deleted successfully", "work_id": work_id}, 200
         except IntegrityError:
+            logger.warning(f"Cannot delete work due to dependencies: {work_id}", extra={
+                           "login": current_user})
             abort(409, description="Cannot delete work: dependent data exists.")
         except Exception as e:
             logger.error(f"Error hard deleting work: {e}",
@@ -167,7 +176,8 @@ class WorkEdit(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error while editing work: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
         try:
             try:
@@ -180,6 +190,8 @@ class WorkEdit(Resource):
             db = WorksManager()
             updated = db.update(record_id=work_id, **data)
             if not updated:
+                logger.warning(f"Work not found for edit: {work_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work not found"}, 404
             return {"msg": "Work edited successfully", "work_id": work_id}, 200
         except Exception as e:
@@ -203,7 +215,7 @@ class WorkAll(Resource):
         try:
             args = schema.load(request.args)  # Валидируем query-параметры
         except ValidationError as err:
-            logger.error(f"Validation error: {err.messages}", extra={
+            logger.error(f"Validation error while filtering works: {err.messages}", extra={
                          "login": current_user})
             return {"error": err.messages}, 400
         offset = args.get('offset', 0)

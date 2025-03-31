@@ -52,7 +52,8 @@ class WorkPriceAdd(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error while adding work price: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
         try:
             from app.database.managers.works_managers import WorkPricesManager
@@ -88,6 +89,8 @@ class WorkPriceView(Resource):
             db = WorkPricesManager()
             work_price = db.get_by_id(work_price_id)
             if not work_price:
+                logger.warning(f"Work price not found: {work_price_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work price not found"}, 404
             return {"msg": "Work price found successfully", "work_price": work_price}, 200
         except Exception as e:
@@ -116,6 +119,8 @@ class WorkPriceSoftDelete(Resource):
             db = WorkPricesManager()
             updated = db.update(record_id=work_price_id, deleted=True)
             if not updated:
+                logger.warning(f"Work price not found for soft delete: {work_price_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work price not found"}, 404
             return {"msg": f"Work price {work_price_id} soft deleted successfully", "work_price_id": work_price_id}, 200
         except Exception as e:
@@ -144,9 +149,13 @@ class WorkPriceHardDelete(Resource):
             db = WorkPricesManager()
             deleted = db.delete(record_id=work_price_id)
             if not deleted:
+                logger.warning(f"Work price not found for hard delete: {work_price_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work price not found"}, 404
             return {"msg": f"Work price {work_price_id} hard deleted successfully", "work_price_id": work_price_id}, 200
         except IntegrityError:
+            logger.warning(f"Cannot hard delete work price {work_price_id} due to related data", extra={
+                           "login": current_user})
             abort(409, description="Cannot delete work price: dependent data exists.")
         except Exception as e:
             logger.error(f"Error hard deleting work price: {e}",
@@ -170,7 +179,8 @@ class WorkPriceEdit(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error while editing work price: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
         try:
             try:
@@ -183,6 +193,8 @@ class WorkPriceEdit(Resource):
             db = WorkPricesManager()
             updated = db.update(record_id=work_price_id, **data)
             if not updated:
+                logger.warning(f"Work price not found for edit: {work_price_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work price not found"}, 404
             return {"msg": "Work price edited successfully", "work_price_id": work_price_id}, 200
         except Exception as e:
@@ -206,7 +218,7 @@ class WorkPriceAll(Resource):
         try:
             args = schema.load(request.args)  # Валидируем query-параметры
         except ValidationError as err:
-            logger.error(f"Validation error: {err.messages}", extra={
+            logger.error(f"Validation error while filtering work prices: {err.messages}", extra={
                          "login": current_user})
             return {"error": err.messages}, 400
         offset = args.get('offset', 0)

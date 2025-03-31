@@ -47,9 +47,10 @@ class ShiftReportDetailsAddBulk(Resource):
         schema = ShiftReportDetailsCreateSchema(
             many=True)  # Используем валидацию списка
         try:
-            # Валидация входных данных
             data_list = schema.load(request.json)
         except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
 
         try:
@@ -91,6 +92,8 @@ class ShiftReportDetailsAdd(Resource):
             data = schema.load(request.json)
         except ValidationError as err:
             # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
         try:
             from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
@@ -127,6 +130,8 @@ class ShiftReportDetailsView(Resource):
             db = ShiftReportsDetailsManager()
             detail = db.get_by_id(detail_id)
             if not detail:
+                logger.warning("Shift report detail not found",
+                               extra={"login": current_user})
                 return {"msg": "Shift report detail not found"}, 404
             return {"msg": "Shift report detail found successfully", "shift_report_detail": detail}, 200
         except Exception as e:
@@ -153,9 +158,13 @@ class ShiftReportDetailsDelete(Resource):
             db = ShiftReportsDetailsManager()
             deleted = db.delete(record_id=detail_id)
             if not deleted:
+                logger.warning("Shift report detail not found",
+                               extra={"login": current_user})
                 return {"msg": "Shift report detail not found"}, 404
             return {"msg": f"Shift report detail {detail_id} deleted successfully", "shift_report_detail_id": detail_id}, 200
         except IntegrityError:
+            logger.warning("Cannot delete shift report detail: dependent data exists", extra={
+                           "login": current_user})
             abort(
                 409, description="Cannot delete shift report detail: dependent data exists.")
         except Exception as e:
@@ -179,6 +188,8 @@ class ShiftReportDetailsEdit(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
+            logger.error(f"Validation error: {err.messages}", extra={
+                         "login": current_user})
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
         try:
@@ -192,6 +203,8 @@ class ShiftReportDetailsEdit(Resource):
             updated = db.update_shift_report_details(
                 shift_report_detail_id=detail_id, **data)
             if not updated:
+                logger.warning("Shift report detail not found",
+                               extra={"login": current_user})
                 return {"msg": "Shift report detail not found"}, 404
             return {"msg": "Shift report detail updated successfully", "shift_report_detail_id": detail_id}, 200
         except Exception as e:

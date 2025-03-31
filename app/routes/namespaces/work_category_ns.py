@@ -45,13 +45,14 @@ class WorkCategoryAdd(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error while adding work category: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
         name = data.get("name")
 
         if not name:
-            logger.warning("Missing required parameter: name",
-                           extra={"login": current_user})
+            logger.warning("Missing required field 'name' in add request.", extra={
+                           "login": current_user})
             return {"msg": "Bad request, invalid data."}, 400
 
         try:
@@ -85,6 +86,8 @@ class WorkCategoryView(Resource):
         try:
             work_category = db.get_by_id(work_category_id)
             if not work_category:
+                logger.warning(f"Work category not found: {work_category_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work category not found"}, 404
             return {"msg": "Work category found successfully", "work_category": work_category}, 200
         except Exception as e:
@@ -109,6 +112,9 @@ class WorkCategoryDeleteSoft(Resource):
         try:
             updated = db.update(record_id=work_category_id, deleted=True)
             if not updated:
+                logger.warning(f"Work category not found for soft delete: {work_category_id}", extra={
+                               "login": current_user})
+
                 return {"msg": "Work category not found"}, 404
             return {"msg": f"Work category {work_category_id} soft deleted successfully", "work_category_id": work_category_id}, 200
         except Exception as e:
@@ -133,9 +139,13 @@ class WorkCategoryDeleteHard(Resource):
         try:
             deleted = db.delete(record_id=work_category_id)
             if not deleted:
+                logger.warning(f"Work category not found for hard delete: {work_category_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work category not found"}, 404
             return {"msg": f"Work category {work_category_id} hard deleted successfully", "work_category_id": work_category_id}, 200
         except IntegrityError:
+            logger.warning(f"Cannot delete work category due to existing dependencies: {work_category_id}", extra={
+                           "login": current_user})
             abort(409, description="Cannot delete work category: dependent data exists.")
         except Exception as e:
             logger.error(f"Error hard deleting work category: {e}",
@@ -158,13 +168,14 @@ class WorkCategoryEdit(Resource):
             # Валидация входных данных
             data = schema.load(request.json)
         except ValidationError as err:
-            # Возвращаем 400 с описанием ошибки
+            logger.error(f"Validation error while editing work category: {err.messages}", extra={
+                         "login": current_user})
             return {"error": err.messages}, 400
         name = data.get("name")
 
         if not name:
-            logger.warning("Missing required parameter: name",
-                           extra={"login": current_user})
+            logger.warning("Missing required field 'name' in edit request.", extra={
+                           "login": current_user})
             return {"msg": "Bad request, invalid data."}, 400
 
         from app.database.managers.works_managers import WorkCategoriesManager
@@ -173,6 +184,8 @@ class WorkCategoryEdit(Resource):
         try:
             updated = db.update(record_id=work_category_id, name=name)
             if not updated:
+                logger.warning(f"Work category not found for edit: {work_category_id}", extra={
+                               "login": current_user})
                 return {"msg": "Work category not found"}, 404
             return {"msg": "Work category edited successfully", "work_category_id": work_category_id}, 200
         except Exception as e:
@@ -196,7 +209,7 @@ class WorkCategoryAll(Resource):
         try:
             args = schema.load(request.args)  # Валидируем query-параметры
         except ValidationError as err:
-            logger.error(f"Validation error: {err.messages}", extra={
+            logger.error(f"Validation error while filtering work categories: {err.messages}", extra={
                          "login": current_user})
             return {"error": err.messages}, 400
         offset = args.get('offset', 0)
@@ -215,6 +228,8 @@ class WorkCategoryAll(Resource):
         try:
             work_categories = db.get_all_filtered(
                 offset=offset, limit=limit, sort_by=sort_by, sort_order=sort_order, **filters)
+            logger.info(f"Successfully fetched {len(work_categories)} work categories", extra={
+                        "login": current_user})
             return {"msg": "Work categories found successfully", "work_categories": work_categories}, 200
         except Exception as e:
             logger.error(f"Error fetching work categories: {e}",
