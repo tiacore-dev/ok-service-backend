@@ -4,9 +4,6 @@ services:
     image: "${IMAGE_NAME}:${TAG}"  # <--- вот оно, магия!
     tty: true
     stdin_open: true
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     ports:
       - "${FLASK_PORT}:8000"
     environment:

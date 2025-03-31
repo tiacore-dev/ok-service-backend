@@ -121,5 +121,6 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
             cd $DEPLOY_PATH &&
-            TAG=$DEPLOY_TAG docker compose up -d --build --remove-orphans web
+            IMAGE_NAME=$IMAGE_NAME TAG=$DEPLOY_TAG docker compose up -d --remove-orphans web
           "
+
