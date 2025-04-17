@@ -39,6 +39,19 @@ project_all_response = Model('ProjectAllResponse', {
     "projects": fields.List(fields.Nested(project_model), description="List of projects")
 })
 
+project_stats_model = Model('ProjectStats', {
+    "project_work_quantity": fields.Float(required=True),
+    "shift_report_details_quantity": fields.Float(required=True),
+    "project_work_name": fields.String(required=False),
+})
+
+
+project_stats_response = Model('ProjectStatsResponse', {
+    "msg": fields.String(required=True, description="Response message"),
+    "stats": fields.Raw(required=True, description="Dict of work_id -> stat")
+})
+
+
 # Парсер для фильтрации и пагинации
 project_filter_parser = reqparse.RequestParser()
 project_filter_parser.add_argument(

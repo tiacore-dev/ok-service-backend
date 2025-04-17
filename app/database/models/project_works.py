@@ -2,7 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 from sqlalchemy.sql import text
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, UUID, ForeignKey, Boolean, Numeric, BigInteger
+from sqlalchemy import Column, UUID, ForeignKey, Boolean, Numeric, BigInteger, String
 from app.database.db_setup import Base
 
 
@@ -11,6 +11,7 @@ class ProjectWorks(Base):
 
     project_work_id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
+    project_work_name = Column(String, nullable=True)
     work = Column(UUID, ForeignKey('works.work_id'), nullable=False)
     project = Column(UUID, ForeignKey('projects.project_id'), nullable=False)
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
@@ -27,6 +28,9 @@ class ProjectWorks(Base):
     project_work_creator = relationship(
         "Users", back_populates="created_project_works")
 
+    shift_report_details = relationship(
+        "ShiftReportDetails", back_populates="project_works")
+
     def __repr__(self):
         return f"<ProjectWorks(project_work_id={self.project_work_id})>"
 
@@ -34,6 +38,7 @@ class ProjectWorks(Base):
 
         return {
             "project_work_id": str(self.project_work_id),
+            "project_work_name": self.project_works.project_work_name if self.project_works else None,
             "work": str(self.work),
             "project": str(self.project),
             "quantity": self.quantity,

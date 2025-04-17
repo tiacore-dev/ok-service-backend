@@ -350,6 +350,7 @@ class ProjectWorkAll(Resource):
             'max_summ': args.get('max_summ'),
             'created_by': args.get('created_by'),
             'created_at': args.get('created_at'),
+            'project_work_name': args.get('project_work_name')
         }
 
         logger.debug(f"Fetching project works with filters: {filters}, offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}",

@@ -82,6 +82,26 @@ def validate_project_exists(project_id_str):
     return project_id_str
 
 
+def validate_project_work_exists(project_work_id_str):
+    """ Проверяет, существует ли запись в projectModel по project_id (UUID). """
+    if not project_work_id_str:
+        return None
+
+    try:
+        project_work_id = UUID(project_work_id_str)
+    except ValueError as exc:
+        raise ValidationError("Invalid UUID format") from exc
+
+    from app.database.managers.projects_managers import ProjectWorksManager
+    db = ProjectWorksManager()
+    project_work = db.get_record_by_id(project_work_id)
+    if not project_work:
+        raise ValidationError(
+            f"Project Work with id={project_work_id} does not exist")
+
+    return project_work_id_str
+
+
 def validate_object_status_exists(object_status_id):
     """ Проверяет, существует ли запись в object_statusModel по object_status_id. """
     if not object_status_id:

@@ -126,7 +126,8 @@ class ProjectsManager(BaseDBManager):
                 result = {
                     str(work.work): {
                         "project_work_quantity": 0,
-                        "shift_report_details_quantity": 0
+                        "shift_report_details_quantity": 0,
+                        "project_work_name": work.project_work_name
                     }
                     for work in project_works
                 }
@@ -139,8 +140,8 @@ class ProjectsManager(BaseDBManager):
                     result[work_id]["project_work_quantity"] += work['quantity']
 
                 reports = session.query(ShiftReports).filter(
-                    ShiftReports.project == project_id, ShiftReports.signed.is_(
-                        True)
+                    ShiftReports.project == project_id,
+                    ShiftReports.signed.is_(True)
                 ).all()
 
                 reports = [report.to_dict() for report in reports]
@@ -159,7 +160,7 @@ class ProjectsManager(BaseDBManager):
                             result[detail_work_id]["shift_report_details_quantity"] += detail['quantity']
                         else:
                             logger.warning(f"Work ID {detail_work_id} not found in result", extra={
-                                           "login": "database"})
+                                "login": "database"})
 
                 return result
         except Exception as e:

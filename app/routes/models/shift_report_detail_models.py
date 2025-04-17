@@ -11,6 +11,7 @@ shift_report_details_create_model = generate_swagger_model(
 shift_report_details_model = Model('ShiftReportDetails', {
     "shift_report_detail_id": fields.String(required=True, description="ID of the shift report detail"),
     "shift_report": fields.String(required=True, description="Shift report details"),
+    "project_work": fields.String(required=False, description="Project work"),
     "work": fields.String(required=True, description="Work details"),
     "quantity": fields.Float(required=True, description="Quantity of work"),
     "created_at": fields.Integer(required=True, description="Date shift report detail was created at"),
@@ -54,6 +55,8 @@ shift_report_details_filter_parser.add_argument('sort_order', type=str, required
     'asc', 'desc'], help='Sort order')
 shift_report_details_filter_parser.add_argument(
     'shift_report', type=str, help="Filter by shift report ID")
+shift_report_details_filter_parser.add_argument(
+    'project_work', type=str, help="Filter by project work id")
 shift_report_details_filter_parser.add_argument(
     'work', type=str, help="Filter by work ID")
 shift_report_details_filter_parser.add_argument(
