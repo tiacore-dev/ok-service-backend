@@ -38,7 +38,7 @@ class ProjectWorks(Base):
 
         return {
             "project_work_id": str(self.project_work_id),
-            "project_work_name": self.project_works.project_work_name if self.project_works else None,
+            "project_work_name": self.project_work_name if self.project_work_name else None,
             "work": str(self.work),
             "project": str(self.project),
             "quantity": self.quantity,

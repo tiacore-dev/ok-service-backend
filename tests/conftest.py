@@ -379,10 +379,11 @@ def seed_shift_reports(db_session, seed_user, seed_project):
 
 
 @pytest.fixture
-def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user):
+def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user, seed_project_work_own):
     from app.database.models import ShiftReportDetails
     detail = ShiftReportDetails(
         shift_report_detail_id=uuid4(),
+        project_work=UUID(seed_project_work_own['project_work_id']),
         shift_report=UUID(seed_shift_report['shift_report_id']),
         work=UUID(seed_work['work_id']),
         quantity=10.5,
@@ -472,6 +473,7 @@ def seed_project_work_own(db_session, seed_project_own, seed_work):
     project_work_id = uuid4()
     project_work = ProjectWorks(
         project_work_id=project_work_id,
+        project_work_name="Test project work",
         work=UUID(seed_work['work_id']),
         project=UUID(seed_project_own["project_id"]),
         summ=0,
@@ -491,6 +493,7 @@ def seed_project_work_other(db_session, seed_project_other, seed_work):
     project_work_id = uuid4()
     project_work = ProjectWorks(
         project_work_id=project_work_id,
+        project_work_name="Test project work",
         work=UUID(seed_work['work_id']),
         project=UUID(seed_project_other["project_id"]),
         summ=0,

@@ -8,6 +8,7 @@ def test_add_project_work(client, jwt_token_leader, db_session, seed_work, seed_
 
     data = {
         "project": seed_project_own['project_id'],
+        "project_work_name": "Test project_work",
         "work": seed_work["work_id"],
         "quantity": 200.0,
         "summ": 10000.0,
@@ -47,6 +48,7 @@ def test_view_project_work(client, jwt_token_leader, seed_project_work_own, seed
     assert project_work_data["quantity"] == seed_project_work_own["quantity"]
     assert project_work_data["summ"] == seed_project_work_own["summ"]
     assert project_work_data["signed"] == seed_project_work_own["signed"]
+    assert project_work_data["project_work_name"] == seed_project_work_own["project_work_name"]
 
     assert project_work_data["work"] == seed_work["work_id"]
 
