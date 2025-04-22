@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger('ok_service')
 
 
-def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift_report_detail, seed_work_price):
+def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift_report_detail, seed_work_price, seed_project_work_own):
     """
     Test adding a new shift report via API.
     """
@@ -17,7 +17,8 @@ def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift
         "details": [{
             "work": seed_shift_report_detail['work'],
             "summ": seed_shift_report_detail['summ'],
-            "quantity": seed_shift_report_detail['quantity']
+            "quantity": seed_shift_report_detail['quantity'],
+            "project_work": seed_project_work_own['project_work_id']
         }]
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}

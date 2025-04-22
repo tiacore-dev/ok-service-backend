@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, validate, validates, ValidationError
-from app.schemas.validators import validate_user_exists, validate_project_exists, validate_work_exists
+from app.schemas.validators import validate_user_exists, validate_project_exists, validate_work_exists, validate_project_work_exists
 
 
 class ShiftReportDetailSchema(Schema):
@@ -15,6 +15,10 @@ class ShiftReportDetailSchema(Schema):
     summ = fields.Float(required=True, error_messages={
         "required": "Field 'summ' is required."
     })
+
+    project_work = fields.String(required=True, error_messages={
+        "required": "Field 'project_work' is required."
+    }, validate=[validate_project_work_exists])
 
 
 class ShiftReportCreateSchema(Schema):

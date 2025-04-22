@@ -340,6 +340,8 @@ class ShiftReportsDetailsManager(ShiftManager):
                 # Оставляем текущее значение, если work не передан
                 detail.work = data.get('work', detail.work)
                 detail.quantity = data.get('quantity', detail.quantity)
+                detail.project_work = data.get(
+                    'project_work', detail.project_work)
 
                 # Пересчёт суммы
                 detail.summ = self.update_summ(
