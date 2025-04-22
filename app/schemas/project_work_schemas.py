@@ -7,6 +7,8 @@ class ProjectWorkCreateSchema(Schema):
         unknown = "exclude"  # Исключать лишние поля
     project = fields.String(required=True, error_messages={
         "required": "Field 'project' is required."}, validate=[validate_project_exists])
+    project_work_name = fields.String(required=True, error_messages={
+        "required": "Field 'project_work_name' is requiered"})
     work = fields.String(required=True, error_messages={
                          "required": "Field 'work' is required."}, validate=[validate_work_exists])
     quantity = fields.Float(required=True, error_messages={
@@ -21,6 +23,7 @@ class ProjectWorkEditSchema(Schema):
         unknown = "exclude"  # Исключать лишние поля
     project = fields.String(required=False, allow_none=True, validate=[
                             validate_project_exists])
+    project_work_name = fields.String(required=False, allow_none=True)
     work = fields.String(required=False, allow_none=True,
                          validate=[validate_work_exists])
     quantity = fields.Float(required=False, allow_none=True)
@@ -42,6 +45,7 @@ class ProjectWorkFilterSchema(Schema):
     signed = fields.Boolean(required=False)
     work = fields.String(required=False)
     project = fields.String(required=False)
+    project_work_name = fields.String(required=False)
     min_quantity = fields.Float(required=False)
     max_quantity = fields.Float(required=False)
     min_summ = fields.Float(required=False)

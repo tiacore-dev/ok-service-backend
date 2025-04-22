@@ -124,7 +124,8 @@ class ShiftReportsManager(ShiftManager):
                             quantity=detail['quantity'],
                             summ=(self.count_summ(
                                 UUID(detail['work']), new_report.shift_report_id, session))*Decimal(detail['quantity']),
-                            created_by=created_by
+                            created_by=created_by,
+                            project_work=UUID(detail['project_work'])
                         ) for detail in shift_report_details_data
                     ]
 
@@ -236,7 +237,8 @@ class ShiftReportsDetailsManager(ShiftManager):
                     work=data['work'],
                     quantity=data['quantity'],
                     summ=summ*Decimal(data['quantity']),
-                    created_by=created_by
+                    created_by=created_by,
+                    project_work=data['project_work']
                 )
                 session.add(new_record)
                 try:
@@ -338,6 +340,8 @@ class ShiftReportsDetailsManager(ShiftManager):
                 # Оставляем текущее значение, если work не передан
                 detail.work = data.get('work', detail.work)
                 detail.quantity = data.get('quantity', detail.quantity)
+                detail.project_work = data.get(
+                    'project_work', detail.project_work)
 
                 # Пересчёт суммы
                 detail.summ = self.update_summ(

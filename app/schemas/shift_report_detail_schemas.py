@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, validate, validates
-from app.schemas.validators import validate_work_exists, validate_shift_report_exists
+from app.schemas.validators import validate_work_exists, validate_shift_report_exists, validate_project_work_exists
 
 
 class ShiftReportDetailsCreateSchema(Schema):
@@ -8,6 +8,8 @@ class ShiftReportDetailsCreateSchema(Schema):
 
     shift_report = fields.String(required=True, error_messages={
                                  "required": "Field 'shift_report' is required."}, validate=[validate_shift_report_exists])
+    project_work = fields.String(required=True, error_messages={
+        "required": "Field 'project_work' is required."}, validate=[validate_project_work_exists])
     work = fields.String(required=True, error_messages={
                          "required": "Field 'work' is required."}, validate=[validate_work_exists])
     quantity = fields.Float(required=True, error_messages={
@@ -21,6 +23,7 @@ class ShiftReportDetailsEditSchema(Schema):
 
     shift_report = fields.String(required=False, allow_none=True, validate=[
                                  validate_shift_report_exists])
+    project_work = fields.String(required=False, allow_none=True)
     work = fields.String(required=False, allow_none=True,
                          validate=[validate_work_exists])
     quantity = fields.Float(required=False, allow_none=True)
@@ -55,6 +58,7 @@ class ShiftReportDetailsFilterSchema(Schema):
     sort_order = fields.String(required=False, validate=validate.OneOf(
         ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))
     shift_report = fields.String(required=False)
+    project_work = fields.String(requiered=False)
     work = fields.String(required=False)
     min_quantity = fields.Float(required=False)
     max_quantity = fields.Float(required=False)

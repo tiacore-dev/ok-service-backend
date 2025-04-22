@@ -14,7 +14,9 @@ from app.routes.models.project_models import (
     project_response,
     project_all_response,
     project_filter_parser,
-    project_model
+    project_model,
+    project_stats_model,
+    project_stats_response
 )
 from app.decorators import user_forbidden
 
@@ -29,6 +31,8 @@ project_ns.models[project_msg_model.name] = project_msg_model
 project_ns.models[project_response.name] = project_response
 project_ns.models[project_all_response.name] = project_all_response
 project_ns.models[project_model.name] = project_model
+project_ns.models[project_stats_model.name] = project_stats_model
+project_ns.models[project_stats_response.name] = project_stats_response
 
 
 @project_ns.route('/add')
@@ -252,6 +256,7 @@ class ProjectAll(Resource):
 @project_ns.route('/<string:project_id>/get-stat')
 class ProjectStats(Resource):
     @jwt_required()
+    @project_ns.marshal_with(project_stats_response)
     def get(self, project_id):
         current_user = json.loads(get_jwt_identity())
         logger.info(f"Request to view stats of project: {project_id}", extra={

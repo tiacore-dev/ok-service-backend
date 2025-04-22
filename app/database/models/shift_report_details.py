@@ -13,6 +13,8 @@ class ShiftReportDetails(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     shift_report = Column(UUID, ForeignKey(
         'shift_reports.shift_report_id', ondelete='CASCADE'), nullable=False)
+    project_work = Column(UUID, ForeignKey(
+        'project_works.project_work_id'), nullable=True)
     work = Column(UUID, ForeignKey('works.work_id'), nullable=False)
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
     summ = Column(Numeric(precision=10, scale=2), nullable=False)
@@ -28,6 +30,9 @@ class ShiftReportDetails(Base):
     shift_report_details_creator = relationship(
         "Users", back_populates="created_shift_report_details")
 
+    project_works = relationship(
+        "ProjectWorks", back_populates="shift_report_details")
+
     def __repr__(self):
         return (f"<ShiftReportDetails(shift_report_detail_id={self.shift_report_detail_id}, "
                 f"shift_report={self.shift_report},  "
@@ -36,6 +41,8 @@ class ShiftReportDetails(Base):
     def to_dict(self):
         return {
             "shift_report_detail_id": str(self.shift_report_detail_id),
+            "project_work": str(self.project_work) if self.project_work else None,
+            "project_work_name": self.project_works.project_work_name if self.project_works else None,
             "shift_report": str(self.shift_report),
             "work": str(self.work),
             "quantity": self.quantity,

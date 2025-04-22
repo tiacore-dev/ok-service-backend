@@ -240,6 +240,7 @@ class ShiftReportDetailsAll(Resource):
         filters = {
             'shift_report': args.get('shift_report'),
             'work': args.get('work'),
+            'project_work': args.get('project_work'),
             'min_quantity': args.get('min_quantity'),
             'max_quantity': args.get('max_quantity'),
             'min_summ': args.get('min_summ'),

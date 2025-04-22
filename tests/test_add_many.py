@@ -7,6 +7,7 @@ def test_add_many_project_works(client, jwt_token_leader, db_session, seed_work,
     data = [
         {
             "project": seed_project_own['project_id'],
+            "project_work_name": "Test name 1",
             "work": seed_work["work_id"],
             "quantity": 200.0,
             "summ": 10000.0,
@@ -14,6 +15,7 @@ def test_add_many_project_works(client, jwt_token_leader, db_session, seed_work,
         },
         {
             "project": seed_project_own['project_id'],
+            "project_work_name": "Test name 2",
             "work": seed_work["work_id"],
             "quantity": 100.0,
             "summ": 100.0,
@@ -41,18 +43,19 @@ def test_add_many_project_works(client, jwt_token_leader, db_session, seed_work,
         assert project_work.signed == work_data["signed"]
 
 
-def test_add_many_shift_report_details(client, jwt_token, seed_shift_report, seed_work, seed_work_price):
+def test_add_many_shift_report_details(client, jwt_token, seed_shift_report, seed_work, seed_work_price, seed_project_work_own):
     data = [{
         "shift_report": seed_shift_report['shift_report_id'],
+        "project_work": seed_project_work_own['project_work_id'],
         "work": seed_work['work_id'],
         "quantity": 20.0,
     },
         {
         "shift_report": seed_shift_report['shift_report_id'],
+        "project_work": seed_project_work_own['project_work_id'],
         "work": seed_work['work_id'],
         "quantity": 30.0,
-    }
-    ]
+    }]
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/shift_report_details/add/many",
                            json=data, headers=headers)

@@ -5,10 +5,11 @@ import pytest
 
 
 @pytest.fixture
-def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user):
+def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user, seed_project_work_own):
     from app.database.models import ShiftReportDetails
     detail = ShiftReportDetails(
         shift_report_detail_id=uuid4(),
+        project_work=UUID(seed_project_work_own['project_work_id']),
         shift_report=UUID(seed_shift_report['shift_report_id']),
         work=UUID(seed_work['work_id']),
         created_by=seed_user['user_id'],
@@ -20,9 +21,10 @@ def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user
     return detail.to_dict()
 
 
-def test_add_shift_report_detail(client, jwt_token, seed_shift_report, seed_work, seed_work_price):
+def test_add_shift_report_detail(client, jwt_token, seed_shift_report, seed_work, seed_work_price, seed_project_work_own):
     data = {
         "shift_report": seed_shift_report['shift_report_id'],
+        "project_work": seed_project_work_own['project_work_id'],
         "work": seed_work['work_id'],
         "quantity": 20.0
     }

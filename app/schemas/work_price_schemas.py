@@ -23,6 +23,7 @@ class WorkPriceEditSchema(Schema):
     category = fields.Int(required=False, allow_none=True,
                           validate=validate.OneOf([0, 1, 2, 3, 4]))
     price = fields.Float(required=False, allow_none=True)
+    deleted = fields.Boolean(required=False, allow_none=True)
 
 
 class WorkPriceFilterSchema(Schema):

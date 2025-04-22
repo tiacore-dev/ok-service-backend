@@ -23,7 +23,7 @@ class WorkEditSchema(Schema):
             validate_work_category_exists])
     measurement_unit = fields.String(
         required=False, allow_none=True)
-    deleted = fields.Boolean(requiered=False, allow_none=True)
+    deleted = fields.Boolean(required=False, allow_none=True)
 
 
 class WorkFilterSchema(Schema):

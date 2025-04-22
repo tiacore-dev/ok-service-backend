@@ -28,6 +28,7 @@ class ProjectEditSchema(Schema):
     night_shift_available = fields.Boolean(required=False, allow_none=True)
     extreme_conditions_available = fields.Boolean(
         required=False, allow_none=True)
+    deleted = fields.Boolean(required=False, allow_none=True)
 
 
 class ProjectFilterSchema(Schema):
