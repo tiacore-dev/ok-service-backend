@@ -14,6 +14,7 @@ class WorkCategoryEditSchema(Schema):
         unknown = "exclude"  # Исключать лишние поля
 
     name = fields.String(required=False, allow_none=True)
+    deleted = fields.Boolean(required=False, allow_none=True)
 
 
 class WorkCategoryFilterSchema(Schema):

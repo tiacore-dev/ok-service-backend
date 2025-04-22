@@ -28,7 +28,8 @@ class UserEditSchema(Schema):
     role = fields.String(required=False, allow_none=True,
                          validate=[validate_role_exists])
     category = fields.Int(required=False, allow_none=True, validate=validate.OneOf(
-        [0, 1, 2, 3, 4]))  # Опциональное поле
+        [0, 1, 2, 3, 4]))
+    deleted = fields.Boolean(required=False, allow_none=True)
 
 
 class UserFilterSchema(Schema):

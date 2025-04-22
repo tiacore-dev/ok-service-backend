@@ -9,8 +9,8 @@ class WorkCreateSchema(Schema):
     name = fields.String(required=True, error_messages={
                          "required": "Field 'name' is required."})
     category = fields.String(required=False, validate=[
-                             validate_work_category_exists])  # Опциональное поле
-    measurement_unit = fields.String(required=False)  # Опциональное поле
+                             validate_work_category_exists])
+    measurement_unit = fields.String(required=False)
 
 
 class WorkEditSchema(Schema):
@@ -20,9 +20,10 @@ class WorkEditSchema(Schema):
     name = fields.String(required=False, allow_none=True)
     category = fields.String(
         required=False, allow_none=True, validate=[
-            validate_work_category_exists])  # Опциональное поле
+            validate_work_category_exists])
     measurement_unit = fields.String(
-        required=False, allow_none=True)  # Опциональное поле
+        required=False, allow_none=True)
+    deleted = fields.Boolean(required=False, allow_none=True)
 
 
 class WorkFilterSchema(Schema):

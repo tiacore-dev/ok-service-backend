@@ -1,6 +1,8 @@
+import time
 from flask_jwt_extended import JWTManager
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from flask import Flask
-from flask import request
+from flask import request, g
 from flask_cors import CORS
 from flask_restx import Api
 from prometheus_flask_exporter import PrometheusMetrics
@@ -128,6 +130,38 @@ def create_app(config_name="development"):
     register_namespaces(api)
 
     setup_error_handlers(app)
+
+    @app.before_request
+    def inject_user_info():
+        try:
+            verify_jwt_in_request(optional=True)
+            g.user_info = get_jwt_identity() or "anonymous"
+        except Exception:
+            g.user_info = "anonymous"
+
+    @app.before_request
+    def start_timer():
+        g.start_time = time.time()
+
+    @app.after_request
+    def log_request(response):
+        try:
+            duration = time.time() - g.get("start_time", time.time())
+            method = request.method
+            path = request.path
+            status = response.status_code
+            user_agent = request.headers.get("User-Agent", "unknown")
+
+            # если хочешь добавлять user_id и т.п.
+            user_info = getattr(g, "user_info", "anonymous")
+
+            logger.info(
+                f"{method} {path} {status} {round(duration * 1000)}ms {user_agent}",
+                extra={"login": user_info}
+            )
+        except Exception as e:
+            logger.error(f"Error while logging request: {e}")
+        return response
 
     # Настройка CORS
     CORS(app, resources={r"/*": {"origins": '*'}})

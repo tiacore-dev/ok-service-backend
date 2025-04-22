@@ -64,6 +64,7 @@ class ShiftReportEditSchema(Schema):
         required=False, allow_none=True)
     night_shift = fields.Boolean(required=False, allow_none=True)
     extreme_conditions = fields.Boolean(required=False, allow_none=True)
+    deleted = fields.Boolean(required=False, allow_none=True)
 
 
 class ShiftReportFilterSchema(Schema):
