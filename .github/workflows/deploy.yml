@@ -110,12 +110,14 @@ jobs:
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
             cd $DEPLOY_PATH &&
             git pull origin ${GITHUB_REF##*/} &&
-            docker compose run --rm web alembic upgrade head || echo 'No migrations run'
+            docker compose -f docker-compose.app.yaml run --rm web alembic upgrade head || echo 'No migrations run'
           "
 
       - name: Build & Deploy Containers
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
-            cd $DEPLOY_PATH &&
-            docker compose up -d --build --remove-orphans web
+            cd $DEPLOY_PATH && \
+            docker compose -f docker-compose.app.yaml up -d --build --remove-orphans web && \
+            docker image prune -f
           "
+
