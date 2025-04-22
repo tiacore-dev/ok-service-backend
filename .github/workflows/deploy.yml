@@ -103,23 +103,24 @@ jobs:
           fi
           echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-
-
-      - name: Run Migrations & Pull Code
+      - name: Start containers (DB + web in background)
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
             cd $DEPLOY_PATH &&
-            git pull origin ${GITHUB_REF##*/} &&
-            docker compose -f docker-compose.app.yaml run --rm web alembic upgrade head || echo 'No migrations run'
-          "
-
-      - name: Build & Deploy Containers
-        run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
-            cd $DEPLOY_PATH && \
-            docker compose -f docker-compose.app.yaml up -d --build --remove-orphans web && \
+            git pull origin ${GITHUB_REF##*/} && \
+            docker compose -f docker-compose.app.yaml up -d --build --remove-orphans web db && \
             docker image prune -f
           "
+
+      - name: Run Alembic migrations
+        run: |
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
+            cd $DEPLOY_PATH &&
+            docker compose -f docker-compose.app.yaml exec web alembic upgrade head
+          "
+
+
+
 
   notify:
     name: 📬 Telegram Notify
