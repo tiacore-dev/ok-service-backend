@@ -108,7 +108,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
             cd $DEPLOY_PATH &&
             git pull origin ${GITHUB_REF##*/} && \
-            docker compose -f docker-compose.app.yaml up -d --build --remove-orphans web db && \
+            docker compose -f docker-compose.app.yaml up -d --build --remove-orphans web && \
             docker image prune -f
           "
 
