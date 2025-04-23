@@ -1,7 +1,7 @@
 services:
 
   web:
-    build: .
+    image: ${DOCKERHUB_USERNAME}/ok-service-backend:${TAG}
     tty: true
     stdin_open: true
     ports:
@@ -11,6 +11,7 @@ services:
       - HTTPS_PROXY=
     volumes:
       - ./logs:/app/logs
+      - .env:/app/.env 
     command: gunicorn -c gunicorn.conf.py run:app
     networks:
       - ok_network

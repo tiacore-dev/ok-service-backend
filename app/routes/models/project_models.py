@@ -48,7 +48,7 @@ project_stats_model = Model('ProjectStats', {
 
 project_stats_response = Model('ProjectStatsResponse', {
     "msg": fields.String(required=True, description="Response message"),
-    "stats": fields.Raw(required=True, description="Dict of work_id -> stat")
+    "stats": fields.Raw(required=True, description="Dict of work_id or project_work_id -> stat")
 })
 
 

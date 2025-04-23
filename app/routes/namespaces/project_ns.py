@@ -278,3 +278,34 @@ class ProjectStats(Resource):
             logger.error(f"Error getting stats for project: {e}", extra={
                          "login": current_user})
             return {"msg": f"Error getting stats for project: {e}"}, 500
+
+
+@project_ns.route('/<string:project_id>/get-stat-by-project-work')
+class ProjectStatsByProjectWork(Resource):
+    @jwt_required()
+    @project_ns.marshal_with(project_stats_response)
+    def get(self, project_id):
+        current_user = json.loads(get_jwt_identity())
+        logger.info(f"Request to get project stats BY PROJECT WORK for project: {project_id}", extra={
+            "login": current_user})
+        try:
+            project_id = UUID(project_id)
+        except ValueError as exc:
+            raise ValueError("Invalid UUID format") from exc
+
+        from app.database.managers.projects_managers import ProjectsManager
+        db = ProjectsManager()
+
+        try:
+            stats = db.get_project_stats_by_project_work(project_id)
+            if not stats:
+                logger.warning(f"No stats BY PROJECT WORK found for project {project_id}", extra={
+                    "login": current_user})
+                return {"msg": "Stats not found", "stats": {}}, 200
+            logger.info(f"Stats BY PROJECT WORK successfully fetched for project {project_id}", extra={
+                "login": current_user})
+            return {"msg": "Project stats fetched successfully", "stats": stats}, 200
+        except Exception as e:
+            logger.error(f"Error getting stats BY PROJECT WORK for project {project_id}: {e}", extra={
+                "login": current_user})
+            return {"msg": f"Error getting stats for project: {e}"}, 500
