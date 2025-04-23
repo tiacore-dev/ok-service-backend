@@ -137,19 +137,26 @@ jobs:
 
       - name: Run Alembic migrations (isolated)
         run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP << 'EOF'
+          TAG=${{ github.sha }}
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
             cd $DEPLOY_PATH
-            TAG=$(grep ^TAG .env | cut -d '=' -f2)
+
+            echo "🛠 Текущая директория: \$(pwd)"
+            echo "📄 Содержимое .env:"
+            cat .env || echo ".env не найден"
+
             docker run --rm \
-              -v $(pwd):/app \
-              -v $(pwd)/.env:/app/.env \
+              -v \$(pwd):/app \
+              -v \$(pwd)/.env:/app/.env \
               -e PYTHONPATH=/app \
               --network host \
-              ${{ secrets.DOCKERHUB_USERNAME }}/ok-service-backend:$TAG alembic upgrade head
+              ${{ secrets.DOCKERHUB_USERNAME }}/ok-service-backend:$TAG \
+              alembic upgrade head
           EOF
 
-      - name: Restart backend container (no orphan removal)
+
+      - name: Restart backend container
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP << 'EOF'
             set -e
