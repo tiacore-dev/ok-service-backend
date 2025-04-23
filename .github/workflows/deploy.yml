@@ -135,25 +135,14 @@ jobs:
 
 
 
-      - name: Run Alembic migrations (isolated)
+      - name: Run Alembic migrations (via exec)
         run: |
-          TAG=${{ github.sha }}
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
             cd $DEPLOY_PATH
-
-            echo "🛠 Текущая директория: \$(pwd)"
-            echo "📄 Содержимое .env:"
-            cat .env || echo ".env не найден"
-
-            docker run --rm \
-              -v \$(pwd):/app \
-              -v \$(pwd)/.env:/app/.env \
-              -e PYTHONPATH=/app \
-              --network host \
-              ${{ secrets.DOCKERHUB_USERNAME }}/ok-service-backend:$TAG \
-              alembic upgrade head
+            docker compose -f docker-compose.app.yaml exec web alembic upgrade head
           EOF
+
 
 
       - name: Restart backend container
