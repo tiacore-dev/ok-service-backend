@@ -272,7 +272,7 @@ class ProjectStats(Resource):
             if not stats:
                 logger.warning(f"Stats not found for project {project_id}", extra={
                                "login": current_user})
-                return {"msg": "Stats not found"}, 404
+                return {"msg": "Stats not found", "stats": {}}, 200
             return {"msg": "Project stats fetched successfully", "stats": stats}, 200
         except Exception as e:
             logger.error(f"Error getting stats for project: {e}", extra={
