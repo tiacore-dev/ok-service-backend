@@ -1,10 +1,8 @@
-# Используем официальный образ Python в качестве базового
-FROM python:3.12-slim
-
-# Указываем рабочую директорию внутри контейнера
+# ===== BASE =====
+FROM python:3.12-slim AS base
 WORKDIR /app
 
-# Устанавливаем зависимости системы (включая curl и ping)
+# Системные зависимости
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     iputils-ping \
@@ -17,18 +15,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-
-
-# Копируем файл зависимостей в рабочую директорию
 COPY requirements.txt .
-
-# Устанавливаем Python-зависимости
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Устанавливаем Gunicorn
 RUN pip install gunicorn
 
-
-# Копируем весь код приложения в рабочую директорию
+# ===== TESTING =====
+FROM base AS test
 COPY . .
+CMD ["pytest", "--maxfail=3", "--disable-warnings"]
 
+# ===== FINAL =====
+FROM base AS prod
+COPY . .
+CMD ["gunicorn", "app.main:app", "--bind", "0.0.0.0:8000"]
