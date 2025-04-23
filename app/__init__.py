@@ -146,13 +146,16 @@ def create_app(config_name="development"):
     @app.after_request
     def log_request(response):
         try:
+            path = request.path
+
+            # Не логируем /metrics
+            if path == "/metrics":
+                return response
+
             duration = time.time() - g.get("start_time", time.time())
             method = request.method
-            path = request.path
             status = response.status_code
             user_agent = request.headers.get("User-Agent", "unknown")
-
-            # если хочешь добавлять user_id и т.п.
             user_info = getattr(g, "user_info", "anonymous")
 
             logger.info(

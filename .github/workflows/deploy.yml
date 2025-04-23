@@ -72,52 +72,74 @@ jobs:
 
 
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-test-push
+deploy:
+  runs-on: ubuntu-latest
+  needs: build-test-push
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ github.ref_name == 'master' && secrets.SSH_PRIVATE_KEY_MASTER || github.ref_name == 'dev' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY_STAGE }}
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ github.ref_name == 'master' && secrets.SSH_PRIVATE_KEY_MASTER || github.ref_name == 'dev' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY_STAGE }}
 
+    - name: Set env vars per branch
+      run: |
+        if [[ "${{ github.ref_name }}" == "master" ]]; then
+          echo "DEPLOY_PATH=apps/ok-service-backend" >> $GITHUB_ENV
+          echo "SERVER_IP=${{ secrets.SERVER_IP_MASTER }}" >> $GITHUB_ENV
+          echo "SSH_USER=${{ secrets.SSH_USER_MASTER }}" >> $GITHUB_ENV
+        elif [[ "${{ github.ref_name }}" == "dev" ]]; then
+          echo "DEPLOY_PATH=apps/ok-service-backend-dev" >> $GITHUB_ENV
+          echo "SERVER_IP=${{ secrets.SERVER_IP_DEV }}" >> $GITHUB_ENV
+          echo "SSH_USER=${{ secrets.SSH_USER_DEV }}" >> $GITHUB_ENV
+        else
+          echo "DEPLOY_PATH=apps/ok-service-backend-stage" >> $GITHUB_ENV
+          echo "SERVER_IP=${{ secrets.SERVER_IP_STAGE }}" >> $GITHUB_ENV
+          echo "SSH_USER=${{ secrets.SSH_USER_STAGE }}" >> $GITHUB_ENV
+        fi
+        echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-      - name: Set env vars per branch
-        run: |
-          if [[ "${{ github.ref_name }}" == "master" ]]; then
-            echo "DEPLOY_PATH=apps/ok-service-backend" >> $GITHUB_ENV
-            echo "SERVER_IP=${{ secrets.SERVER_IP_MASTER }}" >> $GITHUB_ENV
-            echo "SSH_USER=${{ secrets.SSH_USER_MASTER }}" >> $GITHUB_ENV
-          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
-            echo "DEPLOY_PATH=apps/ok-service-backend-dev" >> $GITHUB_ENV
-            echo "SERVER_IP=${{ secrets.SERVER_IP_DEV }}" >> $GITHUB_ENV
-            echo "SSH_USER=${{ secrets.SSH_USER_DEV }}" >> $GITHUB_ENV
-          else
-            echo "DEPLOY_PATH=apps/ok-service-backend-stage" >> $GITHUB_ENV
-            echo "SERVER_IP=${{ secrets.SERVER_IP_STAGE }}" >> $GITHUB_ENV
-            echo "SSH_USER=${{ secrets.SSH_USER_STAGE }}" >> $GITHUB_ENV
-          fi
-          echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
+    - name: Deploy to server (pull + update env)
+      run: |
+        ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP << 'EOF'
+          set -e
+          cd $DEPLOY_PATH
+          git pull origin ${GITHUB_REF##*/}
+          
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Start containers (DB + web in background)
-        run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
-            cd $DEPLOY_PATH &&
-            git pull origin ${GITHUB_REF##*/} && \
-            docker compose -f docker-compose.app.yaml up -d --build --remove-orphans web && \
-            docker image prune -f
-          "
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/ok-service-backend:${{ github.sha }}
 
-      - name: Run Alembic migrations
-        run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
-            cd $DEPLOY_PATH &&
-            docker compose -f docker-compose.app.yaml exec web alembic upgrade head
-          "
+          if [ ! -f .env ]; then touch .env; fi
+          grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=${{ github.sha }}/" .env || echo "TAG=${{ github.sha }}" >> .env
+        EOF
+
+    - name: Run Alembic migrations (isolated)
+      run: |
+        ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP << 'EOF'
+          set -e
+          cd $DEPLOY_PATH
+          TAG=$(grep ^TAG .env | cut -d '=' -f2)
+          docker run --rm \
+            -v $(pwd):/app \
+            -v $(pwd)/.env:/app/.env \
+            -e PYTHONPATH=/app \
+            --network host \
+            ${{ secrets.DOCKERHUB_USERNAME }}/ok-service-backend:$TAG alembic upgrade head
+        EOF
+
+    - name: Restart backend container (no orphan removal)
+      run: |
+        ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP << 'EOF'
+          set -e
+          cd $DEPLOY_PATH
+          docker compose -f docker-compose.app.yaml up -d --force-recreate web
+          docker image prune -f > /dev/null
+          EOF
+
 
 
 
