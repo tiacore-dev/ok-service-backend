@@ -118,9 +118,11 @@ jobs:
 
       - name: Deploy to server (pull + update env)
         run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP << 'EOF'
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
             cd $DEPLOY_PATH
+            echo "Ветка: ${GITHUB_REF##*/}"
+
             git pull origin ${GITHUB_REF##*/}
             
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
@@ -130,6 +132,8 @@ jobs:
             if [ ! -f .env ]; then touch .env; fi
             grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=${{ github.sha }}/" .env || echo "TAG=${{ github.sha }}" >> .env
           EOF
+
+
 
       - name: Run Alembic migrations (isolated)
         run: |
