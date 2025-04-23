@@ -32,7 +32,12 @@ class Projects(Base):
         "Users", back_populates="created_projects", foreign_keys=[created_by])
 
     shift_report = relationship("ShiftReports", back_populates="projects")
-    project_work = relationship("ProjectWorks", back_populates="projects")
+    project_work = relationship(
+        "ProjectWorks",
+        back_populates="projects",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
     project_schedule = relationship(
         "ProjectSchedules", back_populates="projects")
 
