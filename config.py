@@ -16,8 +16,6 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY')
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=365)
-    # JWT_EXPIRES = 60
-    # JWT_REFRESH_TOKEN_EXPIRES = 300
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     API_KEY = os.getenv('API_KEY')
     ORIGIN = os.getenv('ORIGIN')

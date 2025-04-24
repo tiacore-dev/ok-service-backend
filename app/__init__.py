@@ -99,7 +99,7 @@ def create_app(config_name="development"):
     # Инициализация JWT
     try:
         JWTManager(app)
-        logger.info(f"JWT инициализирован. {app.config['JWT_EXPIRES']}",
+        logger.info(f"JWT инициализирован. {app.config['JWT_ACCESS_TOKEN_EXPIRES']}",
                     extra={'login': 'init'})
     except Exception as e:
         logger.error(f"Ошибка при инициализации JWT: {e}",
