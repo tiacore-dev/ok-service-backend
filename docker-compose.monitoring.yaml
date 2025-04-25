@@ -21,10 +21,13 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./monitoring:/etc/alertmanager
-
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     networks:
       - ok_network
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - CHAT_ID=${CHAT_ID}
+
 
 
   node-exporter:
