@@ -7,5 +7,5 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Инстанс {{ $labels.instance }} недоступен"
+          summary: "❌ Инстанс {{ $labels.instance }} недоступен"
           description: "Экспортер {{ $labels.job }} не отвечает более 1 минуты"
