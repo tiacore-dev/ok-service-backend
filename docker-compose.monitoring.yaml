@@ -4,6 +4,7 @@ services:
     image: prom/prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring:/etc/prometheus:ro
     ports:
       - "9090:9090"
     networks:
@@ -21,10 +22,10 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./monitoring:/etc/alertmanager
-
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     networks:
       - ok_network
+
 
 
   node-exporter:

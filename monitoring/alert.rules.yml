@@ -7,5 +7,16 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Инстанс {{ $labels.instance }} недоступен"
+          summary: "❌ Инстанс {{ $labels.instance }} недоступен"
           description: "Экспортер {{ $labels.job }} не отвечает более 1 минуты"
+
+  - name: http_errors
+    rules:
+      - alert: FlaskApp5xxErrors
+        expr: increase(flask_errors_total[1m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "⚠️ Flask-приложение возвращает 5xx ошибки"
+          description: "Обнаружены ошибки 5xx в течение последней минуты"

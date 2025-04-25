@@ -37,8 +37,10 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME:${{ github.sha }} .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
 
       - name: Generate fake VAPID keys
         run: |
@@ -51,18 +53,30 @@ jobs:
           echo "SECRET_KEY=another_test_key" >> .env.test
           echo "TEST_DATABASE_URL=postgresql://test:test@172.17.0.1:5432/test_db" >> .env.test
 
-
-      - name: Run Tests inside Docker
+      - name: Build test image & run tests
         run: |
-          docker run --rm \
+          docker buildx build \
+            --target test \
+            --cache-from=type=registry,ref=${{ env.IMAGE_NAME }}:buildcache \
+            --cache-to=type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max \
+            --load \
+            -t ok-service-backend-test .
+
+          docker run \
+            --rm \
             --env-file .env.test \
-            -v ${{ github.workspace }}/vapid_private_key.pem:/app/vapid_private_key.pem \
-            -v ${{ github.workspace }}/vapid_public_key.pem:/app/vapid_public_key.pem \
-            $IMAGE_NAME:${{ github.sha }} \
+            ok-service-backend-test \
             pytest --maxfail=3 --disable-warnings
 
-      - name: Push Image
-        run: docker push $IMAGE_NAME:${{ github.sha }}
+      - name: Build and Push prod image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          target: prod
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
 
       - name: Clean up VAPID keys
         run: rm -f vapid_*.pem
@@ -85,7 +99,6 @@ jobs:
         with:
           ssh-private-key: ${{ github.ref_name == 'master' && secrets.SSH_PRIVATE_KEY_MASTER || github.ref_name == 'dev' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY_STAGE }}
 
-
       - name: Set env vars per branch
         run: |
           if [[ "${{ github.ref_name }}" == "master" ]]; then
@@ -103,21 +116,42 @@ jobs:
           fi
           echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-      - name: Start containers (DB + web in background)
+      - name: Deploy to server (pull + update env)
         run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
-            cd $DEPLOY_PATH &&
-            git pull origin ${GITHUB_REF##*/} && \
-            docker compose -f docker-compose.app.yaml up -d --build --remove-orphans web && \
-            docker image prune -f
-          "
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
+            set -e
+            cd $DEPLOY_PATH
+            echo "Ветка: ${GITHUB_REF##*/}"
 
-      - name: Run Alembic migrations
+            git pull origin ${GITHUB_REF##*/}
+            
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/ok-service-backend:${{ github.sha }}
+
+            if [ ! -f .env ]; then touch .env; fi
+            grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=${{ github.sha }}/" .env || echo "TAG=${{ github.sha }}" >> .env
+          EOF
+
+
+      - name: Run Alembic migrations (via exec)
         run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP "
-            cd $DEPLOY_PATH &&
-            docker compose -f docker-compose.app.yaml exec web alembic upgrade head
-          "
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
+            set -e
+            cd $DEPLOY_PATH
+            docker compose -f docker-compose.app.yaml exec -T web alembic upgrade head
+          EOF
+
+
+      - name: Restart backend container
+        run: |
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
+            set -e
+            cd $DEPLOY_PATH
+            docker compose -f docker-compose.app.yaml up -d --force-recreate web
+            docker image prune -f > /dev/null
+          EOF
+
 
 
 

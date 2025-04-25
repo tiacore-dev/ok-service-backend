@@ -1,0 +1,10 @@
+groups:
+  - name: test-alert
+    rules:
+      - alert: TestAlert
+        expr: vector(1)
+        for: 1m
+        labels:
+          severity: test
+        annotations:
+          summary: "🔔 Тестовое уведомление из Prometheus"

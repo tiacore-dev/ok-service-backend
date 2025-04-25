@@ -67,15 +67,23 @@ class PrometheusHandler(logging.Handler):
                 print(f"[PrometheusHandler] Error recording metric: {e}")
 
 
+class SkipMetricsFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = str(record.getMessage())
+        return "/metrics" not in msg
+
+
 def setup_logger(name: str = "ok_service", log_file: str = "ok_service.log") -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
     formatter = LokiFormatter("%(asctime)s %(levelname)s: %(message)s")
+    skip_metrics_filter = SkipMetricsFilter()
 
     if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
+        console_handler.addFilter(skip_metrics_filter)
         logger.addHandler(console_handler)
 
     log_dir = os.path.join(os.getcwd(), "logs")
@@ -85,9 +93,12 @@ def setup_logger(name: str = "ok_service", log_file: str = "ok_service.log") -> 
     if not any(isinstance(h, logging.FileHandler) for h in logger.handlers):
         file_handler = logging.FileHandler(log_path, encoding='utf-8')
         file_handler.setFormatter(formatter)
+        file_handler.addFilter(skip_metrics_filter)
         logger.addHandler(file_handler)
 
     if not any(isinstance(h, PrometheusHandler) for h in logger.handlers):
-        logger.addHandler(PrometheusHandler())
+        prometheus_handler = PrometheusHandler()
+        prometheus_handler.addFilter(skip_metrics_filter)
+        logger.addHandler(prometheus_handler)
 
     return logger

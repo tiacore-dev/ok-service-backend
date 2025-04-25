@@ -168,6 +168,61 @@ class ProjectsManager(BaseDBManager):
                          extra={"login": "database"})
             return {}
 
+    def get_project_stats_by_project_work(self, project_id):
+        try:
+            logger.debug(f"Fetching project stats BY PROJECT WORK for project id: {project_id}",
+                         extra={"login": "database"})
+
+            with self.session_scope() as session:
+                project_works = session.query(ProjectWorks).filter(
+                    ProjectWorks.project == project_id
+                ).all()
+
+                result = {
+                    str(work.project_work_id): {
+                        "project_work_quantity": 0,
+                        "shift_report_details_quantity": 0,
+                        "project_work_name": work.project_work_name
+                    }
+                    for work in project_works
+                }
+
+                project_works = [work.to_dict() for work in project_works]
+                for work in project_works:
+                    work_id = str(work['project_work_id'])
+                    if isinstance(work['quantity'], Decimal):
+                        work['quantity'] = float(work['quantity'])
+                    result[work_id]["project_work_quantity"] += work['quantity']
+
+                reports = session.query(ShiftReports).filter(
+                    ShiftReports.project == project_id,
+                    ShiftReports.signed.is_(True)
+                ).all()
+
+                reports = [report.to_dict() for report in reports]
+                for report in reports:
+                    details = session.query(ShiftReportDetails).filter(
+                        ShiftReportDetails.shift_report == UUID(
+                            report['shift_report_id'])
+                    ).all()
+                    details = [detail.to_dict() for detail in details]
+
+                    for detail in details:
+                        detail_project_work_id = str(detail['project_work'])
+                        if isinstance(detail['quantity'], Decimal):
+                            detail['quantity'] = float(detail['quantity'])
+                        if detail_project_work_id in result:
+                            result[detail_project_work_id]["shift_report_details_quantity"] += detail['quantity']
+                        else:
+                            logger.warning(f"Work ID {detail_project_work_id} not found in result", extra={
+                                "login": "database"})
+
+                return result
+        except Exception as e:
+            logger.error(f"Error fetching project stats by project_work for project {project_id}: {e}",
+                         extra={"login": "database"})
+            return {}
+
 
 class ProjectSchedulesManager(BaseDBManager):
 
