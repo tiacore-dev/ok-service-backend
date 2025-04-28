@@ -16,4 +16,3 @@ alerting:
 
 rule_files:
   - alert.rules.yml
-  - telegram-test.rules.yml
