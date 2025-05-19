@@ -43,7 +43,7 @@ def create_app(config_name="development"):
     # Выбираем конфигурацию
     if config_name == "development":
         metrics = PrometheusMetrics(app)
-    # необязательно, но можно указать кастомные метрики
+        # необязательно, но можно указать кастомные метрики
         if "app_info" not in REGISTRY._names_to_collectors:
             metrics.info('app_info', 'Описание приложения', version='1.0.3')
         app.config.from_object(DevelopmentConfig)
@@ -64,6 +64,8 @@ def create_app(config_name="development"):
         FlaskInstrumentor().instrument_app(app)
     elif config_name == "testing":
         app.config.from_object(TestingConfig)
+    elif config_name == "local_development":
+        app.config.from_object(DevelopmentConfig)
     else:
         raise ValueError(f"Неизвестное имя конфигурации: {config_name}")
 

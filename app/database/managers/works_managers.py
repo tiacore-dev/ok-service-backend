@@ -19,8 +19,10 @@ class WorksManager(BaseDBManager):
                      extra={"login": "database"})
 
         with self.session_scope() as session:
-            query = session.query(self.model).options(joinedload(
-                self.model.work_category))  # 🔥 Добавляем загрузку категории
+            query = session.query(self.model).options(
+                joinedload(self.model.work_category),  # 🔥 Категория
+                joinedload(self.model.work_price)      # 🔥 Прайсы
+            )
 
             # Применяем фильтры
             for key, value in filters.items():

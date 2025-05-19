@@ -43,5 +43,6 @@ class Works(Base):
             "measurement_unit": self.measurement_unit,
             "created_by": str(self.created_by),
             "created_at": self.created_at,
-            "deleted": self.deleted
+            "deleted": self.deleted,
+            "work_prices": [price.to_dict() for price in self.work_price]
         }

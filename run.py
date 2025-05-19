@@ -1,3 +1,4 @@
+import os
 from dotenv import load_dotenv
 from app import create_app
 
@@ -8,7 +9,8 @@ load_dotenv()
 port = 8000
 
 # Создаем приложение
-app = create_app(config_name="development")
+config_name = os.getenv('CONFIG_NAME', "development")
+app = create_app(config_name)
 
 
 # Запуск через Gunicorn будет автоматически управлять процессом запуска
