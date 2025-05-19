@@ -179,21 +179,28 @@ class ShiftReportsManager(ShiftManager):
         with self.session_scope() as session:
             query = session.query(self.model)
 
-            # Фильтрация по остальным полям
+            # Фильтрация по диапазону дат — отдельно
+            if filters.get("date_from") and filters.get("date_to") and hasattr(self.model, "date"):
+                column = getattr(self.model, "date")
+                query = query.filter(column.between(
+                    filters["date_from"], filters["date_to"]))
+                logger.debug(
+                    f"Фильтруем по дате: {filters['date_from']} - {filters['date_to']}", extra={"login": "database"})
+            elif filters.get("date_from") and hasattr(self.model, "date"):
+                column = getattr(self.model, "date")
+                query = query.filter(column >= filters["date_from"])
+            elif filters.get("date_to") and hasattr(self.model, "date"):
+                column = getattr(self.model, "date")
+                query = query.filter(column <= filters["date_to"])
+
+            # Остальные фильтры
             for key, value in filters.items():
+                if key in ["date_from", "date_to"]:
+                    continue  # уже обработаны выше
+
                 if value is not None and hasattr(self.model, key):
                     column = getattr(self.model, key)
-
-                    if key == "date_from" and filters.get("date_to"):
-                        query = query.filter(column.between(
-                            filters["date_from"], filters["date_to"]))
-                        logger.debug(f"Фильтруем по дате: {filters['date_from']} - {filters['date_to']}",
-                                     extra={"login": "database"})
-                    elif key == "date_from":
-                        query = query.filter(column >= value)
-                    elif key == "date_to":
-                        query = query.filter(column <= value)
-                    elif isinstance(value, list):
+                    if isinstance(value, list):
                         query = query.filter(column.in_(value))
                     else:
                         query = query.filter(column == value)
