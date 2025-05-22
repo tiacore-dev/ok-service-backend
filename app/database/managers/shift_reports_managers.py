@@ -3,9 +3,10 @@ from decimal import Decimal
 import logging
 from sqlalchemy.sql import func
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import aliased
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
-from app.database.models import ShiftReports, ShiftReportDetails, WorkPrices, Users
+from app.database.models import ShiftReports, ShiftReportDetails, WorkPrices, Users, Projects
 from app.database.managers.abstract_manager import BaseDBManager
 
 
@@ -172,56 +173,62 @@ class ShiftReportsManager(ShiftManager):
             raise
 
     def get_shift_reports_filtered(self, offset=0, limit=None, sort_by="created_at", sort_order='desc', **filters):
-        """Фильтрация отчетов по сменам с поддержкой диапазона дат."""
+        """Фильтрация отчетов по сменам с поддержкой диапазона дат и сортировки по user/project.name."""
         logger.debug("get_shift_reports_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
                      extra={"login": "database"})
 
         with self.session_scope() as session:
             query = session.query(self.model)
 
-            # Фильтрация по диапазону дат — отдельно
+            # Aliases для join
+            user_alias = aliased(Users)
+            project_alias = aliased(Projects)
+
+            # Фильтрация по дате
             if filters.get("date_from") and filters.get("date_to") and hasattr(self.model, "date"):
                 column = getattr(self.model, "date")
                 query = query.filter(column.between(
                     filters["date_from"], filters["date_to"]))
-                logger.debug(
-                    f"Фильтруем по дате: {filters['date_from']} - {filters['date_to']}", extra={"login": "database"})
+                logger.debug(f"Фильтруем по дате: {filters['date_from']} - {filters['date_to']}",
+                             extra={"login": "database"})
             elif filters.get("date_from") and hasattr(self.model, "date"):
-                column = getattr(self.model, "date")
-                query = query.filter(column >= filters["date_from"])
+                query = query.filter(
+                    getattr(self.model, "date") >= filters["date_from"])
             elif filters.get("date_to") and hasattr(self.model, "date"):
-                column = getattr(self.model, "date")
-                query = query.filter(column <= filters["date_to"])
+                query = query.filter(
+                    getattr(self.model, "date") <= filters["date_to"])
 
             # Остальные фильтры
             for key, value in filters.items():
                 if key in ["date_from", "date_to"]:
-                    continue  # уже обработаны выше
-
+                    continue
                 if value is not None and hasattr(self.model, key):
                     column = getattr(self.model, key)
-                    if isinstance(value, list):
-                        query = query.filter(column.in_(value))
-                    else:
-                        query = query.filter(column == value)
+                    query = query.filter(column.in_(value) if isinstance(
+                        value, list) else column == value)
 
-            # Создаем подзапрос для получения количества записей
+            order = desc if sort_order == 'desc' else asc
+            if sort_by:
+                if sort_by == "user":
+                    query = query.join(user_alias, self.model.users)
+                    query = query.order_by(order(user_alias.name))
+                elif sort_by == "project":
+                    query = query.join(project_alias, self.model.projects)
+                    query = query.order_by(order(project_alias.name))
+                elif hasattr(self.model, sort_by):
+                    query = query.order_by(order(getattr(self.model, sort_by)))
+
+            # Получение общего количества
             total_count = session.query(query.subquery()).count()
             logger.debug(f"Общее количество записей: {total_count}", extra={
                          "login": "database"})
 
-            # Применяем сортировку
-            if sort_by and hasattr(self.model, sort_by):
-                order = desc if sort_order == 'desc' else asc
-                query = query.order_by(order(getattr(self.model, sort_by)))
-
-            # Применяем пагинацию
+            # Пагинация
             if offset:
                 query = query.offset(offset)
             if limit:
                 query = query.limit(limit)
 
-            # Получаем записи
             records = query.all()
             logger.debug(f"Найдено записей (после пагинации): {len(records)}", extra={
                          "login": "database"})
