@@ -1,60 +1,91 @@
-from flask_restx import reqparse
-from flask_restx import fields, Model
+from flask_restx import Model, fields, reqparse
+
 from app.schemas.user_schemas import UserCreateSchema
 from app.utils.helpers import generate_swagger_model
 
 # Модель для создания проекта
-user_create_model = generate_swagger_model(
-    UserCreateSchema(), "UserCreate")
+user_create_model = generate_swagger_model(UserCreateSchema(), "UserCreate")
 
 
-user_model = Model('User', {
-    "user_id": fields.String(required=True, description='ID пользователя'),
-    'login': fields.String(required=True, description='Логин пользователя.'),
-    "name": fields.String(required=True, description='Имя пользователя.'),
-    "role": fields.String(required=True, description='Роль пользователя.'),
-    "category": fields.Integer(required=False, description='Категория.'),
-    "created_at": fields.Integer(required=True, description="Date user was created at"),
-    "created_by": fields.String(required=True, description="Creator of user"),
-    "deleted": fields.Boolean(required=True, description='Удален ли пользователь.')
-})
+user_model = Model(
+    "User",
+    {
+        "user_id": fields.String(required=True, description="ID пользователя"),
+        "login": fields.String(required=True, description="Логин пользователя."),
+        "name": fields.String(required=True, description="Имя пользователя."),
+        "role": fields.String(required=True, description="Роль пользователя."),
+        "category": fields.Integer(required=False, description="Категория."),
+        "created_at": fields.Integer(
+            required=True, description="Date user was created at"
+        ),
+        "created_by": fields.String(required=True, description="Creator of user"),
+        "deleted": fields.Boolean(required=True, description="Удален ли пользователь."),
+    },
+)
 
 
 # Модель для ответа
-user_all_response = Model('UserResponse', {
-    'msg': fields.String(description='Сообщение'),
-    'users': fields.List(fields.Nested(user_model), description='Список пользователей'),
-})
+user_all_response = Model(
+    "UserResponse",
+    {
+        "msg": fields.String(description="Сообщение"),
+        "users": fields.List(
+            fields.Nested(user_model), description="Список пользователей"
+        ),
+    },
+)
 
 # Определение модели для обновления токена
-user_msg_model = Model('RefreshToken', {
-    'msg': fields.String(required=True, description='Сообщение.'),
-    "user_id": fields.String(description="ID of user")
-})
+user_msg_model = Model(
+    "RefreshToken",
+    {
+        "msg": fields.String(required=True, description="Сообщение."),
+        "user_id": fields.String(description="ID of user"),
+    },
+)
 
-user_response = Model('Tokens', {
-    'msg': fields.String(required=True, description='Сообщение.'),
-    'user': fields.Nested(user_model, required=True, description='Данные о пользователе.')
-})
+user_response = Model(
+    "Tokens",
+    {
+        "msg": fields.String(required=True, description="Сообщение."),
+        "user": fields.Nested(
+            user_model, required=True, description="Данные о пользователе."
+        ),
+    },
+)
 
 
 # Создаем парсер для входных параметров
 user_filter_parser = reqparse.RequestParser()
 user_filter_parser.add_argument(
-    'offset', type=int, required=False, default=0, help='Смещение для пагинации')
+    "offset", type=int, required=False, default=0, help="Смещение для пагинации"
+)
 user_filter_parser.add_argument(
-    'limit', type=int, required=False, default=10, help='Лимит записей')
+    "limit", type=int, required=False, default=10, help="Лимит записей"
+)
 user_filter_parser.add_argument(
-    'sort_by', type=str, required=False, help='Поле для сортировки')
-user_filter_parser.add_argument('sort_order', type=str, required=False, choices=[
-                                'asc', 'desc'], help='Порядок сортировки')
+    "sort_by", type=str, required=False, help="Поле для сортировки"
+)
 user_filter_parser.add_argument(
-    'login', type=str, required=False, help='Фильтр по логину')
+    "sort_order",
+    type=str,
+    required=False,
+    choices=["asc", "desc"],
+    help="Порядок сортировки",
+)
 user_filter_parser.add_argument(
-    'name', type=str, required=False, help='Фильтр по имени')
+    "login", type=str, required=False, help="Фильтр по логину"
+)
 user_filter_parser.add_argument(
-    'role', type=str, required=False, help='Фильтр по роли')
+    "name", type=str, required=False, help="Фильтр по имени"
+)
+user_filter_parser.add_argument("role", type=str, required=False, help="Фильтр по роли")
 user_filter_parser.add_argument(
-    'category', type=int, required=False, help='Фильтр по категории')
+    "category", type=int, required=False, help="Фильтр по категории"
+)
 user_filter_parser.add_argument(
-    'deleted', type=lambda x: x.lower() in ['true', '1'],  required=False, help='Фильтр по удаленному статусу')
+    "deleted",
+    type=lambda x: x.lower() in ["true", "1"],
+    required=False,
+    help="Фильтр по удаленному статусу",
+)
