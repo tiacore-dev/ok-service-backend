@@ -17,6 +17,20 @@ services:
     networks:
       - ok_network
 
+  template-service:
+    image: ${DOCKERHUB_USERNAME}/template-service:latest
+    container_name: template-service
+    tty: true
+    stdin_open: true
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./logs:/app/logs  
+      - .env:/app/.env 
+    networks:
+      - ok_network
+
 networks:
   ok_network:
     external: true
