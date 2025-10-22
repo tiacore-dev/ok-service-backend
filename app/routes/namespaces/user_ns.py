@@ -66,16 +66,17 @@ class UserAdd(Resource):
         name = data.get("name")  # type: ignore
         role = data.get("role")  # type: ignore
         category = data.get("category")  # type: ignore
+        city = data.get("city")  # type: ignore
 
         # Логируем входные данные
         logger.debug(
             f"Параметры добавления пользователя: login={login}, password={
                 '*' if password else None
-            }, name={name}, role={role}, category={category}",
+            }, name={name}, role={role}, category={category}, city={city}",
             extra={"login": current_user.get("login")},
         )
 
-        if not (login and password and name and role):
+        if not (login and password and name and role and city):
             logger.warning(
                 "Отсутствуют обязательные параметры для добавления пользователя",
                 extra={"login": current_user.get("login")},
@@ -94,6 +95,7 @@ class UserAdd(Resource):
                 password=password,
                 role=role,
                 category=category,
+                city=city,
                 name=name,
                 created_by=current_user["user_id"],
             )
@@ -327,17 +329,18 @@ class UserEdit(Resource):
         name = data.get("name")  # type: ignore
         role = data.get("role")  # type: ignore
         category = data.get("category")  # type: ignore
+        city = data.get("city")  # type: ignore
 
         # Логируем входные данные для редактирования
         logger.debug(
             f"Параметры редактирования: login={login}, password={
                 '*' if password else None
-            }, name={name}, role={role}, category={category}",
+            }, name={name}, role={role}, category={category}, city={city}",
             extra={"login": current_user.get("login")},
         )
 
         # Можно добавить базовую валидацию, если необходимо
-        if not (login and name and role):
+        if not (login and name and role and city):
             logger.warning(
                 f"Отсутствуют обязательные параметры для редактирования пользователя user_id={
                     user_id
@@ -364,7 +367,12 @@ class UserEdit(Resource):
                 extra={"login": current_user.get("login")},
             )
             updated = db.update(
-                record_id=user_id, login=login, role=role, category=category, name=name
+                record_id=user_id,
+                login=login,
+                role=role,
+                category=category,
+                name=name,
+                city_id=city,
             )
             if not updated:
                 logger.warning(
@@ -431,6 +439,7 @@ class UserAll(Resource):
             "deleted": args.get("deleted"),  # type: ignore
             "created_by": args.get("created_by"),  # type: ignore
             "created_at": args.get("created_at"),  # type: ignore
+            "city_id": args.get("city"),  # type: ignore
         }
 
         # Логируем параметры фильтрации

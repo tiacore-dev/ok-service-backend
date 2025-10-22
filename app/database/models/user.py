@@ -29,6 +29,16 @@ class Users(Base):
     name = Column(String, nullable=False)
     role = Column(String, ForeignKey("roles.role_id"), nullable=False)
     category = Column(Integer, nullable=False, default=0)
+    city_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "cities.city_id",
+            name="users_city_id_fkey",
+            use_alter=True,
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
     created_at = Column(
         BigInteger,
@@ -89,6 +99,22 @@ class Users(Base):
         "WorkPrices", back_populates="work_price_creator"
     )
     created_works = relationship("Works", back_populates="work_creator")
+    created_cities = relationship(
+        "Cities", back_populates="creator", foreign_keys="[Cities.created_by]"
+    )
+    city = relationship("Cities", back_populates="users", foreign_keys=[city_id])
+    leaves = relationship(
+        "Leaves", back_populates="user", foreign_keys="[Leaves.user_id]"
+    )
+    responsible_leaves = relationship(
+        "Leaves", back_populates="responsible", foreign_keys="[Leaves.responsible_id]"
+    )
+    created_leaves = relationship(
+        "Leaves", back_populates="created_by_user", foreign_keys="[Leaves.created_by]"
+    )
+    updated_leaves = relationship(
+        "Leaves", back_populates="updated_by_user", foreign_keys="[Leaves.updated_by]"
+    )
 
     # Самореференсная связь
     creator = relationship("Users", remote_side=[user_id], backref="created_users")
@@ -112,6 +138,7 @@ class Users(Base):
             "name": self.name,
             "role": self.role,
             "category": self.category if self.category else None,  # type: ignore
+            "city": str(self.city_id) if self.city_id else None,  # type: ignore
             "created_by": str(self.created_by),
             "created_at": self.created_at,
             "deleted": self.deleted,

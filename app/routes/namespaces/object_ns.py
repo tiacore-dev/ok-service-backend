@@ -69,7 +69,12 @@ class ObjectAdd(Resource):
             from app.database.managers.objects_managers import ObjectsManager
 
             db = ObjectsManager()
-            new_object = db.add(created_by=current_user["user_id"], **data)  # type: ignore
+            city_id = data.pop("city")  # type: ignore
+            new_object = db.add(  # type: ignore
+                created_by=current_user["user_id"],
+                city_id=city_id,
+                **data,  # type: ignore
+            )
             logger.info(
                 f"New object added: {new_object['object_id']}",
                 extra={"login": current_user},
@@ -239,6 +244,10 @@ class ObjectEdit(Resource):
                 f"Validation error: {err.messages}", extra={"login": current_user}
             )
             return {"error": err.messages}, 400
+        if "city" in data:  # type: ignore
+            city_value = data.pop("city")  # type: ignore
+            if city_value is not None:
+                data["city_id"] = city_value  # type: ignore
         try:
             try:
                 object_id = UUID(object_id)
@@ -290,6 +299,7 @@ class ObjectAll(Resource):
             "status": data.get("status"),  # type: ignore
             "created_by": data.get("created_by"),  # type: ignore
             "created_at": data.get("created_at"),  # type: ignore
+            "city_id": data.get("city"),  # type: ignore
         }
         if current_user["role"] == "user":
             filters["status"] = "active"

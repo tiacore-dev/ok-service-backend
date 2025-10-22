@@ -6,7 +6,14 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import aliased
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
-from app.database.models import ShiftReports, ShiftReportDetails, WorkPrices, Users, Projects
+from app.database.models import (
+    Leaves,
+    ShiftReports,
+    ShiftReportDetails,
+    WorkPrices,
+    Users,
+    Projects,
+)
 from app.database.managers.abstract_manager import BaseDBManager
 
 
@@ -111,6 +118,19 @@ class ShiftReportsManager(ShiftManager):
 
         with self.session_scope() as session:
             try:
+                leave_conflict = (
+                    session.query(Leaves)
+                    .filter(
+                        Leaves.user_id == shift_report_data["user"],
+                        Leaves.deleted.is_(False),
+                        Leaves.start_date <= shift_report_data["date"],
+                        Leaves.end_date >= shift_report_data["date"],
+                    )
+                    .first()
+                )
+                if leave_conflict:
+                    raise ValueError("User has a leave during the requested date")
+
                 # 1. Создаем `shift_report`
                 new_report = ShiftReports(**shift_report_data)
                 session.add(new_report)
@@ -140,6 +160,9 @@ class ShiftReportsManager(ShiftManager):
             except SQLAlchemyError as e:
                 session.rollback()
                 raise e  # Выбрасываем исключение выше, чтобы обработать в API
+            except ValueError:
+                session.rollback()
+                raise
 
     def get_project_leader(self, project):
         """Получение руководителя проекта по project"""

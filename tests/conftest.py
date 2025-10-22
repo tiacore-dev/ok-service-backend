@@ -20,6 +20,26 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 GLOBAL_BASE = None
 
 
+def create_city_for_user(db_session, user, name=None):
+    """
+    Helper to create a city for a given user and assign it.
+    """
+    from app.database.models import Cities
+
+    city = Cities(
+        city_id=uuid4(),
+        name=name or f"City-{uuid4().hex[:8]}",
+        created_by=user.user_id,
+        deleted=False,
+    )
+    db_session.add(city)
+    db_session.flush()
+    user.city_id = city.city_id
+    db_session.commit()
+    db_session.refresh(user)
+    return city.to_dict()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
     """
@@ -36,6 +56,22 @@ def setup_database():
     try:
         yield
     finally:
+        try:
+            with engine.connect() as conn:
+                conn.exec_driver_sql(
+                    "ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_city_id"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_city_id_fkey"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE cities DROP CONSTRAINT IF EXISTS fk_cities_created_by"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE cities DROP CONSTRAINT IF EXISTS cities_created_by_fkey"
+                )
+        except Exception:  # pragma: no cover - cleanup best effort
+            pass
         Base.metadata.drop_all(engine)
         Session.remove()  # type: ignore
 
@@ -132,6 +168,9 @@ def jwt_token(test_app, db_session):
             db_session.add(user)
             db_session.commit()
 
+        if not user.city_id:  # type: ignore
+            create_city_for_user(db_session, user, name="AdminCity")
+
         # Генерация токена на основе реального пользователя
         token_data = {
             "login": user.login,
@@ -205,10 +244,12 @@ def seed_user(db_session):
         role="user",
         created_by=user_id,
         deleted=False,
+        city_id=None,
     )
     user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
+    create_city_for_user(db_session, user)
     return user.to_dict()
 
 
@@ -227,10 +268,12 @@ def seed_leader(db_session):
         role="project-leader",
         created_by=user_id,
         deleted=False,
+        city_id=None,
     )
     user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
+    create_city_for_user(db_session, user)
     return user.to_dict()
 
 
@@ -249,11 +292,53 @@ def seed_admin(db_session):
         role="admin",
         created_by=user_id,
         deleted=False,
+        city_id=None,
     )
     user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
+    create_city_for_user(db_session, user)
     return user.to_dict()
+
+
+@pytest.fixture
+def seed_leave(db_session, seed_user, seed_leader):
+    """Создает тестовый лист отсутствия."""
+    from app.database.models import Leaves
+    from app.database.models.leaves import AbsenceReason
+
+    leave = Leaves(
+        leave_id=uuid4(),
+        user_id=UUID(seed_user["user_id"]),
+        responsible_id=UUID(seed_leader["user_id"]),
+        start_date=20240101,
+        end_date=20240105,
+        reason=AbsenceReason.VACATION,
+        comment="Fixture leave",
+        created_by=UUID(seed_leader["user_id"]),
+        deleted=False,
+    )
+    db_session.add(leave)
+    db_session.commit()
+    return leave.to_dict()
+
+
+@pytest.fixture
+def seed_city(db_session, seed_admin):
+    """
+    Создаёт тестовый город.
+    """
+    from app.database.models import Cities
+
+    city = Cities(
+        city_id=uuid4(),
+        name=f"FixtureCity-{uuid4().hex[:6]}",
+        created_by=UUID(seed_admin["user_id"]),
+        deleted=False,
+    )
+    db_session.add(city)
+    db_session.commit()
+    return city.to_dict()
 
 
 @pytest.fixture
@@ -322,6 +407,7 @@ def seed_object(db_session, seed_user):
         description="Test description",
         status="active",
         created_by=seed_user["user_id"],
+        city_id=UUID(seed_user["city"]),
         deleted=False,
     )
     db_session.add(obj)

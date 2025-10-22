@@ -148,3 +148,17 @@ def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report
     assert shift_reports[0]["project"] == seed_project['project_id']
     assert shift_reports[0]["date"] == seed_shift_report['date']
     assert shift_reports[0]["signed"] == seed_shift_report['signed']
+
+
+def test_edit_shift_report_conflict_with_leave(client, jwt_token, seed_shift_report, seed_leave):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    data = {"date": seed_leave["start_date"]}
+
+    response = client.patch(
+        f"/shift_reports/{seed_shift_report['shift_report_id']}/edit",
+        json=data,
+        headers=headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json["msg"] == "Shift date intersects with existing leave"

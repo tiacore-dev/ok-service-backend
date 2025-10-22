@@ -16,6 +16,13 @@ EXACT_MATCH_FIELDS = {"status", "role", "category"}
 
 
 class BaseDBManager(ABC):
+
+    def __init__(self, session=None):
+        """
+        session: optional SQLAlchemy session to reuse (primarily for tests).
+        When provided we will not manage commit/close lifecycle.
+        """
+        self._external_session = session
     @property
     @abstractmethod
     def model(self):
@@ -24,6 +31,10 @@ class BaseDBManager(ABC):
     @contextmanager
     def session_scope(self):
         """Контекстный менеджер для управления сессией с логированием."""
+        if self._external_session is not None:
+            yield self._external_session
+            return
+
         session = Session()
         try:
             # logger.debug("Начало сессии", extra={"login": "database"})

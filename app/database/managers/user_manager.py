@@ -1,5 +1,5 @@
 import logging
-from uuid import uuid4
+from uuid import UUID, uuid4
 from app.database.models import Users
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
@@ -13,18 +13,21 @@ class UserManager(BaseDBManager):
     def model(self):
         return Users
 
-    def add_user(self, login, password, name, role, created_by, category=None):
+    def add_user(self, login, password, name, role, created_by, category=None, city=None):
         password = str(password)  # Принудительная конвертация
         print(f"FINAL PASSWORD BEFORE HASHING: {password}")
         logger.debug(f"Тип пароля при добавлении в бд: {type(password)}")
 
         with self.session_scope() as session:
+            city_uuid = UUID(str(city)) if city else None
+            created_by_uuid = UUID(str(created_by))
             new_user = self.model(
                 login=login,
                 name=name,
                 role=role,
                 category=category if category else None,
-                created_by=str(created_by),
+                created_by=created_by_uuid,
+                city_id=city_uuid,
                 deleted=False
             )
             new_user.set_password(str(password))  # Здесь хешируется
@@ -50,6 +53,7 @@ class UserManager(BaseDBManager):
                 name='admin',
                 role='admin',
                 category=category if category else None,
+                city_id=None,
                 created_by=user_id,
                 deleted=False
             )

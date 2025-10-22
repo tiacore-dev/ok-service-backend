@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from flask_jwt_extended import decode_token
+from tests.conftest import create_city_for_user
 
 
 @pytest.fixture
@@ -27,10 +28,12 @@ def seed_admin(db_session):
         role="admin",
         created_by=user_id,
         deleted=False,
+        city_id=None,
     )
     user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
+    create_city_for_user(db_session, user, name="AdminCityTest")
     return user.to_dict()
 
 
@@ -53,12 +56,14 @@ def seed_user(db_session, test_app, jwt_token):
         login="test_user",
         name="Test User",
         role="admin",
-        created_by=token_user_id,
+        created_by=UUID(token_user_id),
         deleted=False,
+        city_id=None,
     )
     user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
+    create_city_for_user(db_session, user)
     return user.to_dict()
 
 
@@ -74,6 +79,9 @@ def test_add_user(client, jwt_token, db_session, test_app):
         # `sub` содержит JSON-строку
         token_identity = json.loads(decoded_token["sub"])
         token_user_id = token_identity["user_id"]  # Достаем `user_id`
+    admin_user = db_session.query(Users).filter_by(login="test_admin").first()
+    assert admin_user is not None
+    city_id = str(admin_user.city_id)
     # Данные для создания пользователя
     data = {
         "login": "test_user",
@@ -81,6 +89,7 @@ def test_add_user(client, jwt_token, db_session, test_app):
         "name": "Test User",
         "role": "admin",
         "category": 1,
+        "city": city_id,
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/users/add", json=data, headers=headers)
@@ -95,6 +104,7 @@ def test_add_user(client, jwt_token, db_session, test_app):
     assert user.name == "Test User"
     assert user.role == "admin"
     assert user.category == 1
+    assert str(user.city_id) == city_id
 
 
 def test_view_user(client, jwt_token, seed_user):
@@ -113,6 +123,7 @@ def test_view_user(client, jwt_token, seed_user):
     assert user_data["name"] == seed_user["name"]
     assert user_data["login"] == seed_user["login"]
     assert user_data["role"] == "admin"
+    assert user_data["city"] == seed_user["city"]
 
 
 def test_soft_delete_user(client, jwt_token, seed_user):
@@ -198,6 +209,7 @@ def test_edit_user(client, jwt_token, seed_user):
         "name": "Updated User",
         "role": "admin",
         "category": 2,
+        "city": seed_user["city"],
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(

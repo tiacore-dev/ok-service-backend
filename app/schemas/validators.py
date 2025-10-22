@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from marshmallow import ValidationError
 
 
@@ -15,6 +16,7 @@ def validate_user_exists(user_id_str):
         raise ValidationError("Invalid UUID format") from exc
 
     from app.database.managers.user_manager import UserManager
+
     db = UserManager()
     user = db.get_record_by_id(user_id)
     if not user:
@@ -36,6 +38,7 @@ def validate_object_exists(object_id_str):
         raise ValidationError("Invalid UUID format") from exc
 
     from app.database.managers.objects_managers import ObjectsManager
+
     db = ObjectsManager()
     obj = db.get_record_by_id(object_id)
     if not obj:
@@ -45,7 +48,7 @@ def validate_object_exists(object_id_str):
 
 
 def validate_work_exists(work_id_str):
-    """ Проверяет, существует ли запись в WorkModel по work_id (UUID). """
+    """Проверяет, существует ли запись в WorkModel по work_id (UUID)."""
     if not work_id_str:
         return None
 
@@ -55,6 +58,7 @@ def validate_work_exists(work_id_str):
         raise ValidationError("Invalid UUID format") from exc
 
     from app.database.managers.works_managers import WorksManager
+
     db = WorksManager()
     work = db.get_record_by_id(work_id)
     if not work:
@@ -64,7 +68,7 @@ def validate_work_exists(work_id_str):
 
 
 def validate_project_exists(project_id_str):
-    """ Проверяет, существует ли запись в projectModel по project_id (UUID). """
+    """Проверяет, существует ли запись в projectModel по project_id (UUID)."""
     if not project_id_str:
         return None
 
@@ -74,6 +78,7 @@ def validate_project_exists(project_id_str):
         raise ValidationError("Invalid UUID format") from exc
 
     from app.database.managers.projects_managers import ProjectsManager
+
     db = ProjectsManager()
     project = db.get_record_by_id(project_id)
     if not project:
@@ -83,7 +88,7 @@ def validate_project_exists(project_id_str):
 
 
 def validate_project_work_exists(project_work_id_str):
-    """ Проверяет, существует ли запись в projectModel по project_id (UUID). """
+    """Проверяет, существует ли запись в projectModel по project_id (UUID)."""
     if not project_work_id_str:
         return None
 
@@ -93,36 +98,39 @@ def validate_project_work_exists(project_work_id_str):
         raise ValidationError("Invalid UUID format") from exc
 
     from app.database.managers.projects_managers import ProjectWorksManager
+
     db = ProjectWorksManager()
     project_work = db.get_record_by_id(project_work_id)
     if not project_work:
-        raise ValidationError(
-            f"Project Work with id={project_work_id} does not exist")
+        raise ValidationError(f"Project Work with id={project_work_id} does not exist")
 
     return project_work_id_str
 
 
 def validate_object_status_exists(object_status_id):
-    """ Проверяет, существует ли запись в object_statusModel по object_status_id. """
+    """Проверяет, существует ли запись в object_statusModel по object_status_id."""
     if not object_status_id:
         return None
 
     from app.database.managers.objects_managers import ObjectStatusesManager
+
     db = ObjectStatusesManager()
     object_status = db.get_record_by_id(object_status_id)
     if not object_status:
         raise ValidationError(
-            f"Object status with id={object_status_id} does not exist")
+            f"Object status with id={object_status_id} does not exist"
+        )
 
     return object_status_id
 
 
 def validate_role_exists(role_id):
-    """ Проверяет, существует ли запись в roleModel по role_id. """
+    """Проверяет, существует ли запись в roleModel по role_id."""
     if not role_id:
         return None
 
     from app.database.managers.roles_managers import RolesManager
+
     db = RolesManager()
     role = db.get_record_by_id(role_id)
     if not role:
@@ -131,8 +139,28 @@ def validate_role_exists(role_id):
     return role_id
 
 
+def validate_city_exists(city_id_str):
+    """Проверяет, существует ли запись в cities по city_id (UUID)."""
+    if not city_id_str:
+        return None
+
+    try:
+        city_id = UUID(city_id_str)
+    except ValueError as exc:
+        raise ValidationError("Invalid UUID format") from exc
+
+    from app.database.managers.cities_manager import CitiesManager
+
+    db = CitiesManager()
+    city = db.get_record_by_id(city_id)
+    if not city:
+        raise ValidationError(f"City with id={city_id} does not exist")
+
+    return city_id_str
+
+
 def validate_shift_report_exists(shift_report_id_str):
-    """ Проверяет, существует ли запись в shift_reportModel по shift_report_id (UUID). """
+    """Проверяет, существует ли запись в shift_reportModel по shift_report_id (UUID)."""
     if not shift_report_id_str:
         return None
 
@@ -142,17 +170,17 @@ def validate_shift_report_exists(shift_report_id_str):
         raise ValidationError("Invalid UUID format") from exc
 
     from app.database.managers.shift_reports_managers import ShiftReportsManager
+
     db = ShiftReportsManager()
     shift_report = db.get_record_by_id(shift_report_id)
     if not shift_report:
-        raise ValidationError(
-            f"Shift report with id={shift_report_id} does not exist")
+        raise ValidationError(f"Shift report with id={shift_report_id} does not exist")
 
     return shift_report_id_str
 
 
 def validate_work_category_exists(work_category_id_str):
-    """ Проверяет, существует ли запись в work_categoryModel по work_category_id (UUID). """
+    """Проверяет, существует ли запись в work_categoryModel по work_category_id (UUID)."""
     if not work_category_id_str:
         return None
 
@@ -162,10 +190,32 @@ def validate_work_category_exists(work_category_id_str):
         raise ValidationError("Invalid UUID format") from exc
 
     from app.database.managers.works_managers import WorkCategoriesManager
+
     db = WorkCategoriesManager()
     work_category = db.get_record_by_id(work_category_id)
     if not work_category:
         raise ValidationError(
-            f"Work category with id={work_category_id} does not exist")
+            f"Work category with id={work_category_id} does not exist"
+        )
 
     return work_category_id_str
+
+
+def validate_leave_exists(leave_id_str):
+    """Проверяет, существует ли запись в Leaves по leave_id (UUID)."""
+    if not leave_id_str:
+        return None
+
+    try:
+        leave_id = UUID(leave_id_str)
+    except ValueError as exc:
+        raise ValidationError("Invalid UUID format") from exc
+
+    from app.database.managers.leaves_manager import LeavesManager
+
+    db = LeavesManager()
+    leave = db.get_record_by_id(leave_id)
+    if not leave:
+        raise ValidationError(f"Leave with id={leave_id} does not exist")
+
+    return leave_id_str

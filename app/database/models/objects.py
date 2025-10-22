@@ -17,6 +17,11 @@ class Objects(Base):
     name = Column(String, nullable=False)
     address = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    city_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("cities.city_id", ondelete="SET NULL"),
+        nullable=True,
+    )
     status = Column(
         String, ForeignKey("object_statuses.object_status_id"), nullable=True
     )
@@ -32,6 +37,7 @@ class Objects(Base):
     # Определяем отношение к объекту ObjectStatuses
     object_status = relationship("ObjectStatuses", back_populates="object")
     project = relationship("Projects", back_populates="objects")
+    city = relationship("Cities", back_populates="objects")
 
     object_manager = relationship(
         "Users", back_populates="managed_objects", foreign_keys=[manager]
@@ -53,6 +59,7 @@ class Objects(Base):
             "name": self.name,
             "address": self.address if self.address else None,  # type: ignore
             "description": self.description if self.description else None,  # type: ignore
+            "city": str(self.city_id) if self.city_id else None,  # type: ignore
             "status": self.status,
             "manager": str(self.manager),
             "created_at": self.created_at,

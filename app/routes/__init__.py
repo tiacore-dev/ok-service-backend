@@ -5,6 +5,8 @@ from .account_route import account_bp
 
 # from .push_route import push_bp
 from .namespaces.login_ns import login_ns
+from .namespaces.city_ns import city_ns
+from .namespaces.leave_ns import leave_ns
 from .namespaces.object_ns import object_ns
 from .namespaces.object_status_ns import object_status_ns
 from .namespaces.project_ns import project_ns
@@ -29,6 +31,8 @@ def register_routes(app: Flask):
 def register_namespaces(api: Api):
     api.add_namespace(login_ns)
     api.add_namespace(user_ns)
+    api.add_namespace(city_ns)
+    api.add_namespace(leave_ns)
     api.add_namespace(object_status_ns)
     api.add_namespace(work_category_ns)
     api.add_namespace(object_ns)

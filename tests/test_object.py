@@ -30,6 +30,7 @@ def test_add_object(client, jwt_token, db_session, seed_user, test_app):
         "description": "New description",
         "manager": seed_user["user_id"],
         "status": "active",
+        "city": seed_user["city"],
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/objects/add", json=data, headers=headers)
@@ -47,6 +48,7 @@ def test_add_object(client, jwt_token, db_session, seed_user, test_app):
     assert obj.address == "456 Test Ln"
     assert obj.description == "New description"
     assert obj.status == "active"
+    assert str(obj.city_id) == seed_user["city"]
 
 
 def test_view_object(client, jwt_token, seed_object):
@@ -66,6 +68,7 @@ def test_view_object(client, jwt_token, seed_object):
     assert object_data["object_id"] == str(seed_object["object_id"])
     assert object_data["name"] == seed_object["name"]
     assert object_data["address"] == seed_object["address"]
+    assert object_data["city"] == seed_object["city"]
 
     # Проверяем вложенность status
     assert object_data["status"] == "active"
@@ -158,6 +161,7 @@ def test_edit_object(client, jwt_token, seed_object):
         assert obj.name == "Updated Object"
         assert obj.address == "789 Updated St"
         assert obj.description == "Updated description"
+        assert str(obj.city_id) == seed_object["city"]
 
 
 def test_get_all_objects(client, jwt_token, seed_object):
@@ -181,3 +185,4 @@ def test_get_all_objects(client, jwt_token, seed_object):
 
     # Проверяем вложенность status
     assert object_data["status"] == "active"
+    assert object_data["city"] == seed_object["city"]

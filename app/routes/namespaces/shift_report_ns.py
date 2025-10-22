@@ -77,6 +77,11 @@ class ShiftReportAdd(Resource):
                 "msg": "New shift report added successfully",
                 "shift_report_id": new_report["shift_report_id"],
             }, 200
+        except ValueError as err:
+            logger.warning(
+                f"Shift report creation blocked: {err}", extra={"login": current_user}
+            )
+            return {"msg": str(err)}, 409
         except Exception as e:
             logger.error(
                 f"Error adding shift report: {e}", extra={"login": current_user}
@@ -278,6 +283,25 @@ class ShiftReportEdit(Resource):
                     "Trying to edit signed shift report", extra={"login": current_user}
                 )
                 return {"msg": "User cannot edit signed shift report"}, 403
+
+            target_user = data.get("user") or shift_report["user"]  # type: ignore
+            target_date = (
+                data.get("date")  # type: ignore
+                if data.get("date") is not None  # type: ignore
+                else shift_report["date"]  # type: ignore
+            )
+
+            from app.database.managers.leaves_manager import LeavesManager
+
+            leaves_manager = LeavesManager()
+            if leaves_manager.has_overlapping_leave(
+                target_user, target_date, target_date
+            ):
+                logger.warning(
+                    "Shift edit intersects with existing leave",
+                    extra={"login": current_user},
+                )
+                return {"msg": "Shift date intersects with existing leave"}, 409
 
             updated = db.update(record_id=report_id, **data)  # type: ignore
             if not updated:

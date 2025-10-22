@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, validate
-from app.schemas.validators import validate_role_exists
+
+from app.schemas.validators import validate_city_exists, validate_role_exists
 
 
 class UserCreateSchema(Schema):
@@ -16,6 +17,11 @@ class UserCreateSchema(Schema):
                          "required": "Field 'role' is required."}, validate=[validate_role_exists])
     category = fields.Int(required=False, validate=validate.OneOf(
         [0, 1, 2, 3, 4]))  # Опциональное поле
+    city = fields.String(
+        required=True,
+        validate=[validate_city_exists],
+        error_messages={"required": "Field 'city' is required."},
+    )
 
 
 class UserEditSchema(Schema):
@@ -30,6 +36,9 @@ class UserEditSchema(Schema):
     category = fields.Int(required=False, allow_none=True, validate=validate.OneOf(
         [0, 1, 2, 3, 4]))
     deleted = fields.Boolean(required=False, allow_none=True)
+    city = fields.String(
+        required=False, allow_none=True, validate=[validate_city_exists]
+    )
 
 
 class UserFilterSchema(Schema):
@@ -48,3 +57,4 @@ class UserFilterSchema(Schema):
     role = fields.String(required=False)
     category = fields.Int(required=False)
     deleted = fields.Boolean(required=False)
+    city = fields.String(required=False)

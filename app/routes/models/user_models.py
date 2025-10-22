@@ -15,6 +15,7 @@ user_model = Model(
         "name": fields.String(required=True, description="Имя пользователя."),
         "role": fields.String(required=True, description="Роль пользователя."),
         "category": fields.Integer(required=False, description="Категория."),
+        "city": fields.String(required=False, description="Город пользователя."),
         "created_at": fields.Integer(
             required=True, description="Date user was created at"
         ),
@@ -82,6 +83,9 @@ user_filter_parser.add_argument(
 user_filter_parser.add_argument("role", type=str, required=False, help="Фильтр по роли")
 user_filter_parser.add_argument(
     "category", type=int, required=False, help="Фильтр по категории"
+)
+user_filter_parser.add_argument(
+    "city", type=str, required=False, help="Фильтр по городу"
 )
 user_filter_parser.add_argument(
     "deleted",
