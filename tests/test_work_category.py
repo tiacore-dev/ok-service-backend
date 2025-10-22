@@ -1,11 +1,11 @@
-from uuid import uuid4
 import pytest
 
 
 @pytest.fixture
 def works_categories_manager(db_session):
     from app.database.managers.works_managers import WorkCategoriesManager
-    return WorkCategoriesManager(session=db_session)
+
+    return WorkCategoriesManager(session=db_session)  # type: ignore
 
 
 def test_add_work_category(client, jwt_token, db_session):
@@ -22,10 +22,11 @@ def test_add_work_category(client, jwt_token, db_session):
     assert response.json["msg"] == "New work category added successfully"
 
     # Проверяем, что категория добавлена в базу данных
-    category = db_session.query(WorkCategories).filter_by(
-        name="New Work Category").first()
+    category = (
+        db_session.query(WorkCategories).filter_by(name="New Work Category").first()
+    )
     assert category is not None
-    assert str(category.work_category_id) == response.json['work_category_id']
+    assert str(category.work_category_id) == response.json["work_category_id"]
     assert category.name == "New Work Category"
 
 
@@ -35,7 +36,9 @@ def test_view_work_category(client, jwt_token, seed_work_category):
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.get(
-        f"/work_categories/{str(seed_work_category['work_category_id'])}/view", headers=headers)
+        f"/work_categories/{str(seed_work_category['work_category_id'])}/view",
+        headers=headers,
+    )
 
     assert response.status_code == 200
     assert response.json["msg"] == "Work category found successfully"
@@ -43,7 +46,8 @@ def test_view_work_category(client, jwt_token, seed_work_category):
     # Проверяем данные категории из ответа
     category_data = response.json["work_category"]
     assert category_data["work_category_id"] == str(
-        seed_work_category["work_category_id"])
+        seed_work_category["work_category_id"]
+    )
     assert category_data["name"] == seed_work_category["name"]
 
 
@@ -55,15 +59,24 @@ def test_soft_delete_work_category(client, jwt_token, seed_work_category, db_ses
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/work_categories/{str(seed_work_category['work_category_id'])}/delete/soft", headers=headers)
+        f"/work_categories/{str(seed_work_category['work_category_id'])}/delete/soft",
+        headers=headers,
+    )
 
     assert response.status_code == 200
-    assert response.json["msg"] == f"Work category {
-        seed_work_category['work_category_id']} soft deleted successfully"
+    assert (
+        response.json["msg"]
+        == f"Work category {
+            seed_work_category['work_category_id']
+        } soft deleted successfully"
+    )
 
     # Проверяем, что категория помечена как удаленная в базе данных
-    category = db_session.query(WorkCategories).filter_by(
-        work_category_id=seed_work_category["work_category_id"]).first()
+    category = (
+        db_session.query(WorkCategories)
+        .filter_by(work_category_id=seed_work_category["work_category_id"])
+        .first()
+    )
     assert category is not None
     assert category.deleted is True
 
@@ -76,15 +89,24 @@ def test_hard_delete_work_category(client, jwt_token, seed_work_category, db_ses
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(
-        f"/work_categories/{str(seed_work_category['work_category_id'])}/delete/hard", headers=headers)
+        f"/work_categories/{str(seed_work_category['work_category_id'])}/delete/hard",
+        headers=headers,
+    )
 
     assert response.status_code == 200
-    assert response.json["msg"] == f"Work category {
-        seed_work_category['work_category_id']} hard deleted successfully"
+    assert (
+        response.json["msg"]
+        == f"Work category {
+            seed_work_category['work_category_id']
+        } hard deleted successfully"
+    )
 
     # Проверяем, что категория удалена из базы данных
-    category = db_session.query(WorkCategories).filter_by(
-        work_category_id=seed_work_category["work_category_id"]).first()
+    category = (
+        db_session.query(WorkCategories)
+        .filter_by(work_category_id=seed_work_category["work_category_id"])
+        .first()
+    )
     assert category is None
 
 
@@ -97,14 +119,20 @@ def test_edit_work_category(client, jwt_token, seed_work_category, db_session):
     data = {"name": "Updated Work Category"}
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/work_categories/{str(seed_work_category['work_category_id'])}/edit", json=data, headers=headers)
+        f"/work_categories/{str(seed_work_category['work_category_id'])}/edit",
+        json=data,
+        headers=headers,
+    )
 
     assert response.status_code == 200
     assert response.json["msg"] == "Work category edited successfully"
 
     # Проверяем, что данные категории обновлены в базе данных
-    category = db_session.query(WorkCategories).filter_by(
-        work_category_id=seed_work_category["work_category_id"]).first()
+    category = (
+        db_session.query(WorkCategories)
+        .filter_by(work_category_id=seed_work_category["work_category_id"])
+        .first()
+    )
     assert category is not None
     assert category.name == "Updated Work Category"
 
@@ -123,7 +151,13 @@ def test_get_all_work_categories(client, jwt_token, seed_work_category):
     assert len(categories) > 0
 
     # Проверяем, что созданная категория присутствует в списке
-    category_data = next((c for c in categories if c["work_category_id"] == str(
-        seed_work_category["work_category_id"])), None)
+    category_data = next(
+        (
+            c
+            for c in categories
+            if c["work_category_id"] == str(seed_work_category["work_category_id"])
+        ),
+        None,
+    )
     assert category_data is not None
     assert category_data["name"] == seed_work_category["name"]

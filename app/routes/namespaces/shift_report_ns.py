@@ -52,7 +52,7 @@ class ShiftReportAdd(Resource):
         schema = ShiftReportCreateSchema()
         try:
             # Валидация входных данных
-            data = schema.load(request.json)
+            data = schema.load(request.json)  # type: ignore
         except ValidationError as err:
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
@@ -62,8 +62,8 @@ class ShiftReportAdd(Resource):
             db = ShiftReportsManager()
 
             if current_user["role"] == "user":
-                data["user"] = current_user["user_id"]
-                data["signed"] = False
+                data["user"] = current_user["user_id"]  # type: ignore
+                data["signed"] = False  # type: ignore
             new_report = db.add_shift_report_with_details(
                 # Returns a dictionary
                 data,
@@ -139,7 +139,7 @@ class ShiftReportSoftDelete(Resource):
             # Проверки по ролям
             shift_report = db.get_by_id(record_id=report_id)
             if (
-                shift_report["user"] != current_user["user_id"]
+                shift_report["user"] != current_user["user_id"]  # type: ignore
                 and current_user["role"] == "user"
             ):
                 logger.warning(
@@ -148,8 +148,8 @@ class ShiftReportSoftDelete(Resource):
                 )
                 return {"msg": "User cannot soft delete not his shift report"}, 403
             elif (
-                shift_report["user"] == current_user["user_id"]
-                and shift_report["signed"] is True
+                shift_report["user"] == current_user["user_id"]  # type: ignore
+                and shift_report["signed"] is True  # type: ignore
             ):
                 logger.warning(
                     "Trying to soft delete signed shift report",
@@ -194,7 +194,7 @@ class ShiftReportHardDelete(Resource):
             # Проверки по ролям
             shift_report = db.get_by_id(record_id=report_id)
             if (
-                shift_report["user"] != current_user["user_id"]
+                shift_report["user"] != current_user["user_id"]  # type: ignore
                 and current_user["role"] == "user"
             ):
                 logger.warning(
@@ -203,8 +203,8 @@ class ShiftReportHardDelete(Resource):
                 )
                 return {"msg": "User cannot hard delete not his shift report"}, 403
             elif (
-                shift_report["user"] == current_user["user_id"]
-                and shift_report["signed"] is True
+                shift_report["user"] == current_user["user_id"]  # type: ignore
+                and shift_report["signed"] is True  # type: ignore
             ):
                 logger.warning(
                     "Trying to hard delete signed shift report",
@@ -242,7 +242,7 @@ class ShiftReportEdit(Resource):
         schema = ShiftReportEditSchema()
         try:
             # Валидация входных данных
-            data = schema.load(request.json)
+            data = schema.load(request.json)  # type: ignore
         except ValidationError as err:
             logger.error(
                 f"Validation error: {err.messages}", extra={"login": current_user}
@@ -262,7 +262,7 @@ class ShiftReportEdit(Resource):
             # Проверки по ролям
             shift_report = db.get_by_id(record_id=report_id)
             if (
-                shift_report["user"] != current_user["user_id"]
+                shift_report["user"] != current_user["user_id"]  # type: ignore
                 and current_user["role"] == "user"
             ):
                 logger.warning(
@@ -271,15 +271,15 @@ class ShiftReportEdit(Resource):
                 )
                 return {"msg": "User cannot edit not his shift report"}, 403
             elif (
-                shift_report["user"] == current_user["user_id"]
-                and shift_report["signed"] is True
+                shift_report["user"] == current_user["user_id"]  # type: ignore
+                and shift_report["signed"] is True  # type: ignore
             ):
                 logger.warning(
                     "Trying to edit signed shift report", extra={"login": current_user}
                 )
                 return {"msg": "User cannot edit signed shift report"}, 403
 
-            updated = db.update(record_id=report_id, **data)
+            updated = db.update(record_id=report_id, **data)  # type: ignore
             if not updated:
                 return {"msg": "Shift report not found"}, 404
             return {
@@ -311,18 +311,18 @@ class ShiftReportAll(Resource):
                 f"Validation error: {err.messages}", extra={"login": current_user}
             )
             return {"error": err.messages}, 400
-        offset = args.get("offset", 0)
-        limit = args.get("limit", None)
-        sort_by = args.get("sort_by")
-        sort_order = args.get("sort_order", "desc")
+        offset = args.get("offset", 0)  # type: ignore
+        limit = args.get("limit", None)  # type: ignore
+        sort_by = args.get("sort_by")  # type: ignore
+        sort_order = args.get("sort_order", "desc")  # type: ignore
         filters = {
-            "user": UUID(args.get("user")) if args.get("user") else None,
-            "date_from": int(args.get("date_from")) if args.get("date_from") else None,
-            "date_to": int(args.get("date_to")) if args.get("date_to") else None,
-            "project": args.get("project") if args.get("project") else None,
-            "created_by": args.get("created_by"),
-            "created_at": args.get("created_at"),
-            "deleted": args.get("deleted", None),
+            "user": UUID(args.get("user")) if args.get("user") else None,  # type: ignore
+            "date_from": int(args.get("date_from")) if args.get("date_from") else None,  # type: ignore
+            "date_to": int(args.get("date_to")) if args.get("date_to") else None,  # type: ignore
+            "project": args.get("project") if args.get("project") else None,  # type: ignore
+            "created_by": args.get("created_by"),  # type: ignore
+            "created_at": args.get("created_at"),  # type: ignore
+            "deleted": args.get("deleted", None),  # type: ignore
         }
         if current_user["role"] == "user":
             filters["user"] = UUID(current_user["user_id"])
@@ -345,7 +345,9 @@ class ShiftReportAll(Resource):
                     return {"msg": "Forbidden"}, 403
 
         logger.debug(
-            f"Fetching shift reports with filters: {filters}, offset={offset}, limit={limit}",
+            f"Fetching shift reports with filters: {filters}, offset={offset}, limit={
+                limit
+            }",
             extra={"login": current_user},
         )
 
@@ -356,7 +358,7 @@ class ShiftReportAll(Resource):
             total_count, reports = db.get_shift_reports_filtered(
                 offset=offset,
                 limit=limit,
-                sort_by=sort_by,
+                sort_by=sort_by,  # type: ignore
                 sort_order=sort_order,
                 **filters,
             )

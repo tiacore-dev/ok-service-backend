@@ -1,5 +1,6 @@
-from flask_restx import fields, Model
-from marshmallow import Schema, fields as ma_fields
+from flask_restx import Model, fields
+from marshmallow import Schema
+from marshmallow import fields as ma_fields
 
 # 🔹 Глобальный реестр моделей, чтобы не дублировать
 registered_models = {}
@@ -13,7 +14,6 @@ type_mapping = {
     ma_fields.UUID: fields.String,  # UUID храним как строку
     # Dict маппится в Raw (универсальный тип Flask-RESTx)
     ma_fields.Dict: fields.Raw,
-
 }
 
 
@@ -32,8 +32,7 @@ def map_field(field_obj):
             nested_schema = nested_schema()
 
         # 🔥 Исправлено: Используем ЕДИНОЕ имя модели
-        nested_model_name = nested_schema.__class__.__name__.replace(
-            "Schema", "")
+        nested_model_name = nested_schema.__class__.__name__.replace("Schema", "")
 
         # ✅ Если модель уже зарегистрирована, возвращаем ее!
         if nested_model_name in registered_models:
@@ -42,7 +41,7 @@ def map_field(field_obj):
             return fields.Nested(registered_models[nested_model_name])
 
         # ❗️ Если модели нет, создаем новую
-        nested_model = generate_swagger_model(nested_schema, nested_model_name)
+        nested_model = generate_swagger_model(nested_schema, nested_model_name)  # type: ignore
         return fields.Nested(nested_model)
 
     return type_mapping.get(field_type, fields.String)()

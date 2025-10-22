@@ -57,7 +57,7 @@ def create_app(config_name="development"):
         )
 
         span_processor = BatchSpanProcessor(jaeger_exporter)
-        trace.get_tracer_provider().add_span_processor(span_processor)
+        trace.get_tracer_provider().add_span_processor(span_processor)  # type: ignore
         FlaskInstrumentor().instrument_app(app)
     elif config_name == "testing":
         app.config.from_object(TestingConfig)

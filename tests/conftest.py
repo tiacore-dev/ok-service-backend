@@ -1,12 +1,13 @@
 import json
 import os
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
+
 import pytest
 from dotenv import load_dotenv
 from flask_jwt_extended import create_access_token
-from app import create_app
-from app.database import set_db_globals, init_db
 
+from app import create_app
+from app.database import init_db, set_db_globals
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -36,7 +37,7 @@ def setup_database():
         yield
     finally:
         Base.metadata.drop_all(engine)
-        Session.remove()
+        Session.remove()  # type: ignore
 
 
 @pytest.fixture(autouse=True)
@@ -47,7 +48,9 @@ def clean_db(db_session):
     global GLOBAL_BASE  # pylint: disable=global-variable-not-assigned
     yield
     db_session.rollback()  # Отменяем все изменения, сделанные в тесте
-    for table in reversed(GLOBAL_BASE.metadata.sorted_tables):  # Используем GLOBAL_BASE
+    for table in reversed(
+        GLOBAL_BASE.metadata.sorted_tables  # type: ignore
+    ):  # Используем GLOBAL_BASE
         db_session.execute(table.delete())
     db_session.commit()
 
@@ -56,6 +59,7 @@ def clean_db(db_session):
 def cleanup_scoped_session():
     yield
     from app.database.db_globals import Session
+
     Session.remove()
 
 
@@ -65,6 +69,7 @@ def db_session():
     Возвращает новую сессию базы данных для каждого теста.
     """
     from app.database.db_globals import Session
+
     session = Session()
     yield session
     session.rollback()
@@ -78,15 +83,15 @@ def test_app(db_session):
     Создаёт экземпляр Flask-приложения для тестирования с подключением к тестовой базе.
     """
     app = create_app(config_name="testing")
-    app.config.update({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": TEST_DATABASE_URL,
-    })
+    app.config.update(
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": TEST_DATABASE_URL,
+        }
+    )
 
     # Передаем тестовую сессию в приложение
-    app.dependency_overrides = {
-        "db_session": lambda: db_session
-    }
+    app.dependency_overrides = {"db_session": lambda: db_session}  # type: ignore
     return app
 
 
@@ -105,6 +110,7 @@ def jwt_token(test_app, db_session):
     Если пользователя нет, создаёт нового.
     """
     from app.database.models import Users
+
     with test_app.app_context():
         # Поиск существующего пользователя
         user = db_session.query(Users).filter_by(login="test_admin").first()
@@ -119,7 +125,7 @@ def jwt_token(test_app, db_session):
                 role="admin",
                 created_by=user_id,
                 password_hash="testpassword",  # Можно заменить на захешированный пароль
-                deleted=False
+                deleted=False,
             )
             # Убедитесь, что метод `set_password` доступен
             user.set_password("testpassword")
@@ -130,7 +136,7 @@ def jwt_token(test_app, db_session):
         token_data = {
             "login": user.login,
             "role": user.role,
-            "user_id": str(user.user_id)
+            "user_id": str(user.user_id),
         }
 
         return create_access_token(identity=json.dumps(token_data))
@@ -144,9 +150,9 @@ def jwt_token_admin(test_app, seed_admin):
     with test_app.app_context():
         # Генерация токена на основе реального пользователя
         token_data = {
-            "login": seed_admin['login'],
-            "role": seed_admin['role'],
-            "user_id": seed_admin['user_id']
+            "login": seed_admin["login"],
+            "role": seed_admin["role"],
+            "user_id": seed_admin["user_id"],
         }
 
         return create_access_token(identity=json.dumps(token_data))
@@ -160,9 +166,9 @@ def jwt_token_user(test_app, seed_user):
     with test_app.app_context():
         # Генерация токена на основе реального пользователя
         token_data = {
-            "login": seed_user['login'],
-            "role": seed_user['role'],
-            "user_id": seed_user['user_id']
+            "login": seed_user["login"],
+            "role": seed_user["role"],
+            "user_id": seed_user["user_id"],
         }
 
         return create_access_token(identity=json.dumps(token_data))
@@ -176,9 +182,9 @@ def jwt_token_leader(test_app, seed_leader):
     with test_app.app_context():
         # Генерация токена на основе реального пользователя
         token_data = {
-            "login": seed_leader['login'],
-            "role": seed_leader['role'],
-            "user_id": seed_leader['user_id']
+            "login": seed_leader["login"],
+            "role": seed_leader["role"],
+            "user_id": seed_leader["user_id"],
         }
 
         return create_access_token(identity=json.dumps(token_data))
@@ -190,6 +196,7 @@ def seed_user(db_session):
     Добавляет тестового пользователя в базу перед тестом.
     """
     from app.database.models import Users
+
     user_id = uuid4()
     user = Users(
         user_id=user_id,
@@ -197,9 +204,9 @@ def seed_user(db_session):
         name="Test User",
         role="user",
         created_by=user_id,
-        deleted=False
+        deleted=False,
     )
-    user.set_password('qweasdzcx')
+    user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
     return user.to_dict()
@@ -211,6 +218,7 @@ def seed_leader(db_session):
     Добавляет тестового пользователя в базу перед тестом.
     """
     from app.database.models import Users
+
     user_id = uuid4()
     user = Users(
         user_id=user_id,
@@ -218,9 +226,9 @@ def seed_leader(db_session):
         name="Test Leader",
         role="project-leader",
         created_by=user_id,
-        deleted=False
+        deleted=False,
     )
-    user.set_password('qweasdzcx')
+    user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
     return user.to_dict()
@@ -232,6 +240,7 @@ def seed_admin(db_session):
     Добавляет тестового пользователя в базу перед тестом.
     """
     from app.database.models import Users
+
     user_id = uuid4()
     user = Users(
         user_id=user_id,
@@ -239,9 +248,9 @@ def seed_admin(db_session):
         name="Test Admin",
         role="admin",
         created_by=user_id,
-        deleted=False
+        deleted=False,
     )
-    user.set_password('qweasdzcx')
+    user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
     return user.to_dict()
@@ -253,10 +262,9 @@ def seed_work_category(db_session, seed_user):
     Добавляет тестовую категорию работы в базу перед тестом и возвращает словарь.
     """
     from app.database.models import WorkCategories
+
     category = WorkCategories(
-        work_category_id=uuid4(),
-        created_by=seed_user['user_id'],
-        name="Test Category"
+        work_category_id=uuid4(), created_by=seed_user["user_id"], name="Test Category"
     )
     db_session.add(category)
     db_session.commit()
@@ -266,13 +274,14 @@ def seed_work_category(db_session, seed_user):
 @pytest.fixture
 def seed_work(db_session, seed_work_category, seed_user):
     from app.database.models import Works
+
     work = Works(
         work_id=uuid4(),
         name="Test Work",
-        category=UUID(seed_work_category['work_category_id']),
+        category=UUID(seed_work_category["work_category_id"]),
         measurement_unit="units",
-        created_by=seed_user['user_id'],
-        deleted=False
+        created_by=seed_user["user_id"],
+        deleted=False,
     )
     db_session.add(work)
     db_session.commit()
@@ -285,13 +294,14 @@ def seed_work_price(db_session, seed_work, seed_user):
     Добавляет тестовую цену работы в базу перед тестом.
     """
     from app.database.models import WorkPrices
+
     work_price = WorkPrices(
         work_price_id=uuid4(),
-        work=seed_work['work_id'],
+        work=seed_work["work_id"],
         category=1,
         price=100.00,
-        created_by=seed_user['user_id'],
-        deleted=False
+        created_by=seed_user["user_id"],
+        deleted=False,
     )
     db_session.add(work_price)
     db_session.commit()
@@ -304,14 +314,15 @@ def seed_object(db_session, seed_user):
     Добавляет тестовый объект в базу перед тестом.
     """
     from app.database.models import Objects
+
     obj = Objects(
         object_id=uuid4(),
         name="Test Object",
         address="123 Test St",
         description="Test description",
         status="active",
-        created_by=seed_user['user_id'],
-        deleted=False
+        created_by=seed_user["user_id"],
+        deleted=False,
     )
     db_session.add(obj)
     db_session.commit()
@@ -325,13 +336,14 @@ def seed_project(db_session, seed_user, seed_object):
     Add a test project to the database.
     """
     from app.database.models import Projects
+
     project = Projects(
         project_id=uuid4(),
         name="Test Project",
-        object=UUID(seed_object['object_id']),
-        project_leader=UUID(seed_user['user_id']),
-        created_by=seed_user['user_id'],
-        deleted=False
+        object=UUID(seed_object["object_id"]),
+        project_leader=UUID(seed_user["user_id"]),
+        created_by=seed_user["user_id"],
+        deleted=False,
     )
     db_session.add(project)
     db_session.commit()
@@ -344,14 +356,15 @@ def seed_shift_report(db_session, seed_user, seed_project):
     Add a test shift report to the database.
     """
     from app.database.models import ShiftReports
+
     report = ShiftReports(
         shift_report_id=uuid4(),
-        user=UUID(seed_user['user_id']),
+        user=UUID(seed_user["user_id"]),
         date=20240101,
-        project=UUID(seed_project['project_id']),
-        created_by=UUID(seed_user['user_id']),
+        project=UUID(seed_project["project_id"]),
+        created_by=UUID(seed_user["user_id"]),
         signed=False,
-        deleted=False
+        deleted=False,
     )
     db_session.add(report)
     db_session.commit()
@@ -362,15 +375,16 @@ def seed_shift_report(db_session, seed_user, seed_project):
 def seed_shift_reports(db_session, seed_user, seed_project):
     reports = []
     from app.database.models import ShiftReports
+
     for i in range(2):
         report = ShiftReports(
             shift_report_id=uuid4(),
-            user=UUID(seed_user['user_id']),
+            user=UUID(seed_user["user_id"]),
             date=20240101,
-            project=UUID(seed_project['project_id']),
-            created_by=UUID(seed_user['user_id']),
+            project=UUID(seed_project["project_id"]),
+            created_by=UUID(seed_user["user_id"]),
             signed=False,
-            deleted=False
+            deleted=False,
         )
         db_session.add(report)
         reports.append(report)
@@ -379,16 +393,19 @@ def seed_shift_reports(db_session, seed_user, seed_project):
 
 
 @pytest.fixture
-def seed_shift_report_detail(db_session, seed_shift_report, seed_work, seed_user, seed_project_work_own):
+def seed_shift_report_detail(
+    db_session, seed_shift_report, seed_work, seed_user, seed_project_work_own
+):
     from app.database.models import ShiftReportDetails
+
     detail = ShiftReportDetails(
         shift_report_detail_id=uuid4(),
-        project_work=UUID(seed_project_work_own['project_work_id']),
-        shift_report=UUID(seed_shift_report['shift_report_id']),
-        work=UUID(seed_work['work_id']),
+        project_work=UUID(seed_project_work_own["project_work_id"]),
+        shift_report=UUID(seed_shift_report["shift_report_id"]),
+        work=UUID(seed_work["work_id"]),
         quantity=10.5,
-        created_by=seed_user['user_id'],
-        summ=105.0
+        created_by=seed_user["user_id"],
+        summ=105.0,
     )
     db_session.add(detail)
     db_session.commit()
@@ -401,6 +418,7 @@ def seed_other_leader(db_session):
     Добавляет второго тестового пользователя, который будет лидером другого проекта.
     """
     from app.database.models import Users
+
     user_id = uuid4()
     user = Users(
         user_id=user_id,
@@ -408,9 +426,9 @@ def seed_other_leader(db_session):
         name="Test Other Leader",
         role="project-leader",
         created_by=user_id,
-        deleted=False
+        deleted=False,
     )
-    user.set_password('qweasdzcx')
+    user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
     return user.to_dict()
@@ -423,9 +441,9 @@ def jwt_token_other_leader(test_app, seed_other_leader):
     """
     with test_app.app_context():
         token_data = {
-            "login": seed_other_leader['login'],
-            "role": seed_other_leader['role'],
-            "user_id": seed_other_leader['user_id']
+            "login": seed_other_leader["login"],
+            "role": seed_other_leader["role"],
+            "user_id": seed_other_leader["user_id"],
         }
         return create_access_token(identity=json.dumps(token_data))
 
@@ -434,14 +452,15 @@ def jwt_token_other_leader(test_app, seed_other_leader):
 def seed_project_own(db_session, seed_leader, seed_object):
     """Создаёт проект, которым владеет seed_leader."""
     from app.database.models import Projects
+
     project_id = uuid4()
     project = Projects(
         project_id=project_id,
         name="Test Project Own",
-        object=UUID(seed_object['object_id']),
+        object=UUID(seed_object["object_id"]),
         project_leader=UUID(seed_leader["user_id"]),
         created_by=UUID(seed_leader["user_id"]),
-        deleted=False
+        deleted=False,
     )
     db_session.add(project)
     db_session.commit()
@@ -452,14 +471,15 @@ def seed_project_own(db_session, seed_leader, seed_object):
 def seed_project_other(db_session, seed_other_leader, seed_object):
     """Создаёт проект, которым владеет seed_other_leader."""
     from app.database.models import Projects
+
     project_id = uuid4()
     project = Projects(
         project_id=project_id,
         name="Test Project Other",
-        object=UUID(seed_object['object_id']),
+        object=UUID(seed_object["object_id"]),
         project_leader=UUID(seed_other_leader["user_id"]),
         created_by=UUID(seed_other_leader["user_id"]),
-        deleted=False
+        deleted=False,
     )
     db_session.add(project)
     db_session.commit()
@@ -470,16 +490,17 @@ def seed_project_other(db_session, seed_other_leader, seed_object):
 def seed_project_work_own(db_session, seed_project_own, seed_work):
     """Создаёт работу внутри своего проекта."""
     from app.database.models import ProjectWorks
+
     project_work_id = uuid4()
     project_work = ProjectWorks(
         project_work_id=project_work_id,
         project_work_name="Test project work",
-        work=UUID(seed_work['work_id']),
+        work=UUID(seed_work["work_id"]),
         project=UUID(seed_project_own["project_id"]),
         summ=0,
         quantity=0,
         created_by=UUID(seed_project_own["created_by"]),
-        signed=False
+        signed=False,
     )
     db_session.add(project_work)
     db_session.commit()
@@ -490,16 +511,17 @@ def seed_project_work_own(db_session, seed_project_own, seed_work):
 def seed_project_work_other(db_session, seed_project_other, seed_work):
     """Создаёт работу внутри чужого проекта."""
     from app.database.models import ProjectWorks
+
     project_work_id = uuid4()
     project_work = ProjectWorks(
         project_work_id=project_work_id,
         project_work_name="Test project work",
-        work=UUID(seed_work['work_id']),
+        work=UUID(seed_work["work_id"]),
         project=UUID(seed_project_other["project_id"]),
         summ=0,
         quantity=0,
         created_by=UUID(seed_project_other["created_by"]),
-        signed=False
+        signed=False,
     )
     db_session.add(project_work)
     db_session.commit()
@@ -510,14 +532,15 @@ def seed_project_work_other(db_session, seed_project_other, seed_work):
 def seed_project_schedule_own(db_session, seed_project_own, seed_work):
     """Создаёт расписание внутри своего проекта."""
     from app.database.models import ProjectSchedules
+
     schedule_id = uuid4()
     schedule = ProjectSchedules(
         project_schedule_id=schedule_id,
-        work=UUID(seed_work['work_id']),
+        work=UUID(seed_work["work_id"]),
         project=UUID(seed_project_own["project_id"]),
         quantity=10,
         date=20240101,
-        created_by=UUID(seed_project_own["created_by"])
+        created_by=UUID(seed_project_own["created_by"]),
     )
     db_session.add(schedule)
     db_session.commit()
@@ -528,14 +551,15 @@ def seed_project_schedule_own(db_session, seed_project_own, seed_work):
 def seed_project_schedule_other(db_session, seed_project_other, seed_work):
     """Создаёт расписание внутри чужого проекта."""
     from app.database.models import ProjectSchedules
+
     schedule_id = uuid4()
     schedule = ProjectSchedules(
         project_schedule_id=schedule_id,
-        work=UUID(seed_work['work_id']),
+        work=UUID(seed_work["work_id"]),
         project=UUID(seed_project_other["project_id"]),
         quantity=10,
         date=20240101,
-        created_by=UUID(seed_project_other["created_by"])
+        created_by=UUID(seed_project_other["created_by"]),
     )
     db_session.add(schedule)
     db_session.commit()

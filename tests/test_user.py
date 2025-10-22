@@ -1,13 +1,15 @@
-from uuid import uuid4, UUID
 import json
-from flask_jwt_extended import decode_token
+from uuid import UUID, uuid4
+
 import pytest
+from flask_jwt_extended import decode_token
 
 
 @pytest.fixture
 def user_manager(db_session):
     from app.database.managers.user_manager import UserManager
-    return UserManager(session=db_session)
+
+    return UserManager(session=db_session)  # type: ignore
 
 
 @pytest.fixture
@@ -16,6 +18,7 @@ def seed_admin(db_session):
     Добавляет тестового админа в базу перед тестом.
     """
     from app.database.models import Users
+
     user_id = uuid4()
     user = Users(
         user_id=user_id,
@@ -23,9 +26,9 @@ def seed_admin(db_session):
         name="admin",
         role="admin",
         created_by=user_id,
-        deleted=False
+        deleted=False,
     )
-    user.set_password('qweasdzcx')
+    user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
     return user.to_dict()
@@ -51,9 +54,9 @@ def seed_user(db_session, test_app, jwt_token):
         name="Test User",
         role="admin",
         created_by=token_user_id,
-        deleted=False
+        deleted=False,
     )
-    user.set_password('qweasdzcx')
+    user.set_password("qweasdzcx")
     db_session.add(user)
     db_session.commit()
     return user.to_dict()
@@ -64,6 +67,7 @@ def test_add_user(client, jwt_token, db_session, test_app):
     Тест на добавление нового пользователя через API.
     """
     from app.database.models import Users
+
     with test_app.app_context():  # Оборачиваем в контекст приложения
         # Декодируем `jwt_token` и извлекаем `user_id`
         decoded_token = decode_token(jwt_token)
@@ -76,7 +80,7 @@ def test_add_user(client, jwt_token, db_session, test_app):
         "password": "securepassword",
         "name": "Test User",
         "role": "admin",
-        "category": 1
+        "category": 1,
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/users/add", json=data, headers=headers)
@@ -98,8 +102,7 @@ def test_view_user(client, jwt_token, seed_user):
     Тест на просмотр данных пользователя через API.
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    response = client.get(
-        f"/users/{str(seed_user['user_id'])}/view", headers=headers)
+    response = client.get(f"/users/{str(seed_user['user_id'])}/view", headers=headers)
 
     assert response.status_code == 200
     assert "user" in response.json
@@ -109,7 +112,7 @@ def test_view_user(client, jwt_token, seed_user):
     assert user_data["user_id"] == str(seed_user["user_id"])
     assert user_data["name"] == seed_user["name"]
     assert user_data["login"] == seed_user["login"]
-    assert user_data["role"] == 'admin'
+    assert user_data["role"] == "admin"
 
 
 def test_soft_delete_user(client, jwt_token, seed_user):
@@ -119,18 +122,25 @@ def test_soft_delete_user(client, jwt_token, seed_user):
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
-        f"/users/{str(seed_user['user_id'])}/delete/soft", headers=headers)
+        f"/users/{str(seed_user['user_id'])}/delete/soft", headers=headers
+    )
 
     assert response.status_code == 200
-    assert response.json["msg"] == f"""User {
-        str(seed_user['user_id'])} soft deleted successfully"""
+    assert (
+        response.json["msg"]
+        == f"""User {str(seed_user["user_id"])} soft deleted successfully"""
+    )
 
     # Проверяем, что пользователь помечен как удаленный
     from app.database.managers.user_manager import UserManager
+
     user_manager = UserManager()
     with user_manager.session_scope() as session:
-        user = session.query(user_manager.model).filter_by(
-            user_id=UUID(seed_user['user_id'])).first()
+        user = (
+            session.query(user_manager.model)
+            .filter_by(user_id=UUID(seed_user["user_id"]))
+            .first()
+        )
         assert user.deleted is True
 
 
@@ -142,15 +152,17 @@ def test_hard_delete_user(client, jwt_token, seed_user, db_session):
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(
-        f"/users/{str(seed_user['user_id'])}/delete/hard", headers=headers)
+        f"/users/{str(seed_user['user_id'])}/delete/hard", headers=headers
+    )
 
     assert response.status_code == 200
-    assert response.json["msg"] == f"""User {
-        str(seed_user['user_id'])} hard deleted successfully"""
+    assert (
+        response.json["msg"]
+        == f"""User {str(seed_user["user_id"])} hard deleted successfully"""
+    )
 
     # Проверяем, что пользователь удален из базы
-    user = db_session.query(Users).filter_by(
-        user_id=UUID(seed_user['user_id'])).first()
+    user = db_session.query(Users).filter_by(user_id=UUID(seed_user["user_id"])).first()
     assert user is None
 
 
@@ -162,14 +174,16 @@ def test_hard_delete_admin(client, jwt_token, seed_admin, db_session):
 
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.delete(
-        f"/users/{str(seed_admin['user_id'])}/delete/hard", headers=headers)
+        f"/users/{str(seed_admin['user_id'])}/delete/hard", headers=headers
+    )
 
     assert response.status_code == 403
     assert response.json["msg"] == "You cannot delete admin"
 
     # Проверяем, что пользователь удален из базы
-    user = db_session.query(Users).filter_by(
-        user_id=UUID(seed_admin['user_id'])).first()
+    user = (
+        db_session.query(Users).filter_by(user_id=UUID(seed_admin["user_id"])).first()
+    )
     assert user is not None
 
 
@@ -183,7 +197,7 @@ def test_edit_user(client, jwt_token, seed_user):
         "password": "newpassword",
         "name": "Updated User",
         "role": "admin",
-        "category": 2
+        "category": 2,
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
@@ -196,10 +210,14 @@ def test_edit_user(client, jwt_token, seed_user):
 
     # Повторно извлекаем объект пользователя из базы через UserManager
     from app.database.managers.user_manager import UserManager
+
     user_manager = UserManager()
     with user_manager.session_scope() as session:
-        user = session.query(user_manager.model).filter_by(
-            user_id=UUID(seed_user['user_id'])).first()
+        user = (
+            session.query(user_manager.model)
+            .filter_by(user_id=UUID(seed_user["user_id"]))
+            .first()
+        )
 
         # Проверяем обновленные данные
         assert user is not None
@@ -224,6 +242,7 @@ def test_get_all_users(client, jwt_token, seed_user):
     # Проверяем, что тестовый пользователь присутствует в списке
     users = response.json["users"]
     user_data = next(
-        (u for u in users if u["user_id"] == str(seed_user["user_id"])), None)
+        (u for u in users if u["user_id"] == str(seed_user["user_id"])), None
+    )
     assert user_data is not None
-    assert user_data["role"] == 'admin'
+    assert user_data["role"] == "admin"

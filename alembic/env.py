@@ -1,11 +1,11 @@
-from logging.config import fileConfig
-from dotenv import load_dotenv
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from app.database.db_setup import Base
 import os
+from logging.config import fileConfig
+
+from dotenv import load_dotenv
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from app.database.db_setup import Base
 
 load_dotenv()
 
@@ -18,8 +18,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-database_url = os.getenv('DATABASE_URL')
-config.set_main_option('sqlalchemy.url', database_url)
+database_url = os.getenv("DATABASE_URL")
+config.set_main_option("sqlalchemy.url", database_url)  # type: ignore
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
@@ -70,9 +70,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=Base.metadata
-        )
+        context.configure(connection=connection, target_metadata=Base.metadata)
 
         with context.begin_transaction():
             context.run_migrations()

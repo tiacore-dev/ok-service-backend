@@ -39,7 +39,7 @@ class templateAdd(Resource):
         schema = TemplateGenerateSchema()
         try:
             # Валидация входных данных
-            data = schema.load(request.json)
+            data = schema.load(request.json)  # type: ignore
         except ValidationError as err:
             logger.error(
                 f"Ошибка валидации при добавлении пользователя: {err.messages}",
@@ -47,7 +47,7 @@ class templateAdd(Resource):
             )
             return {"msg": "Некорректные данные", "errors": err.messages}, 400
         template_url = current_app.config.get("TEMPLATE_SERVICE_URL")
-        response = requests.post(url=template_url, json=data)
+        response = requests.post(url=template_url, json=data)  # type: ignore
         if not response.ok:
             logger.error(
                 f"Ошибка от TEMPLATE_SERVICE: {response.status_code} - {response.text}"
