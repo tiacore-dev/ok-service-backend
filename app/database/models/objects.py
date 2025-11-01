@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import UUID, BigInteger, Boolean, Column, ForeignKey, String
+from sqlalchemy import UUID, BigInteger, Boolean, Column, ForeignKey, String, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
@@ -26,6 +26,8 @@ class Objects(Base):
         String, ForeignKey("object_statuses.object_status_id"), nullable=True
     )
     manager = Column(UUID, ForeignKey("users.user_id"), nullable=True)
+    lng = Column(Float, nullable=True)
+    ltd = Column(Float, nullable=True)
     created_at = Column(
         BigInteger,
         default=lambda: int(datetime.utcnow().timestamp()),
@@ -62,6 +64,8 @@ class Objects(Base):
             "city": str(self.city_id) if self.city_id else None,  # type: ignore
             "status": self.status,
             "manager": str(self.manager),
+            "lng": self.lng,
+            "ltd": self.ltd,
             "created_at": self.created_at,
             "created_by": str(self.created_by),
             "deleted": self.deleted,

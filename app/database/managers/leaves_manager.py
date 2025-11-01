@@ -30,8 +30,8 @@ class LeavesManager(BaseDBManager):
             .filter(
                 ShiftReports.user == user_uuid,
                 ShiftReports.deleted.is_(False),
-                ShiftReports.date >= start_date,
-                ShiftReports.date <= end_date,
+                ShiftReports.date_start <= end_date,
+                ShiftReports.date_end >= start_date,
             )
             .first()
         )

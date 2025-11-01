@@ -64,6 +64,9 @@ class ShiftReportAdd(Resource):
             if current_user["role"] == "user":
                 data["user"] = current_user["user_id"]  # type: ignore
                 data["signed"] = False  # type: ignore
+            if "date" in data and data["date"] is not None:  # type: ignore
+                data.setdefault("date_start", data["date"])  # type: ignore
+                data.setdefault("date_end", data["date"])  # type: ignore
             new_report = db.add_shift_report_with_details(
                 # Returns a dictionary
                 data,
@@ -254,6 +257,9 @@ class ShiftReportEdit(Resource):
             )
             # Возвращаем 400 с описанием ошибки
             return {"error": err.messages}, 400
+        if "date" in data and data["date"] is not None:  # type: ignore
+            data.setdefault("date_start", data["date"])  # type: ignore
+            data.setdefault("date_end", data["date"])  # type: ignore
         try:
             try:
                 report_id = UUID(report_id)
@@ -285,17 +291,22 @@ class ShiftReportEdit(Resource):
                 return {"msg": "User cannot edit signed shift report"}, 403
 
             target_user = data.get("user") or shift_report["user"]  # type: ignore
-            target_date = (
-                data.get("date")  # type: ignore
-                if data.get("date") is not None  # type: ignore
-                else shift_report["date"]  # type: ignore
+            target_date_start = (
+                data.get("date_start")  # type: ignore
+                if data.get("date_start") is not None  # type: ignore
+                else shift_report["date_start"]  # type: ignore
+            )
+            target_date_end = (
+                data.get("date_end")  # type: ignore
+                if data.get("date_end") is not None  # type: ignore
+                else shift_report["date_end"]  # type: ignore
             )
 
             from app.database.managers.leaves_manager import LeavesManager
 
             leaves_manager = LeavesManager()
             if leaves_manager.has_overlapping_leave(
-                target_user, target_date, target_date
+                target_user, target_date_start, target_date_end
             ):
                 logger.warning(
                     "Shift edit intersects with existing leave",

@@ -300,6 +300,8 @@ class ObjectAll(Resource):
             "created_by": data.get("created_by"),  # type: ignore
             "created_at": data.get("created_at"),  # type: ignore
             "city_id": data.get("city"),  # type: ignore
+            "lng": data.get("lng"),  # type: ignore
+            "ltd": data.get("ltd"),  # type: ignore
         }
         if current_user["role"] == "user":
             filters["status"] = "active"

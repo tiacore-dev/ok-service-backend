@@ -408,6 +408,8 @@ def seed_object(db_session, seed_user):
         status="active",
         created_by=seed_user["user_id"],
         city_id=UUID(seed_user["city"]),
+        lng=37.6173,
+        ltd=55.7558,
         deleted=False,
     )
     db_session.add(obj)
@@ -447,6 +449,8 @@ def seed_shift_report(db_session, seed_user, seed_project):
         shift_report_id=uuid4(),
         user=UUID(seed_user["user_id"]),
         date=20240101,
+        date_start=20240101,
+        date_end=20240101,
         project=UUID(seed_project["project_id"]),
         created_by=UUID(seed_user["user_id"]),
         signed=False,
@@ -467,6 +471,8 @@ def seed_shift_reports(db_session, seed_user, seed_project):
             shift_report_id=uuid4(),
             user=UUID(seed_user["user_id"]),
             date=20240101,
+            date_start=20240101,
+            date_end=20240101,
             project=UUID(seed_project["project_id"]),
             created_by=UUID(seed_user["user_id"]),
             signed=False,

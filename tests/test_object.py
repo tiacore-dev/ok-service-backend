@@ -31,6 +31,8 @@ def test_add_object(client, jwt_token, db_session, seed_user, test_app):
         "manager": seed_user["user_id"],
         "status": "active",
         "city": seed_user["city"],
+        "lng": 40.7128,
+        "ltd": 74.0060,
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/objects/add", json=data, headers=headers)
@@ -49,6 +51,8 @@ def test_add_object(client, jwt_token, db_session, seed_user, test_app):
     assert obj.description == "New description"
     assert obj.status == "active"
     assert str(obj.city_id) == seed_user["city"]
+    assert obj.lng == pytest.approx(40.7128)
+    assert obj.ltd == pytest.approx(74.0060)
 
 
 def test_view_object(client, jwt_token, seed_object):
@@ -69,6 +73,8 @@ def test_view_object(client, jwt_token, seed_object):
     assert object_data["name"] == seed_object["name"]
     assert object_data["address"] == seed_object["address"]
     assert object_data["city"] == seed_object["city"]
+    assert object_data["lng"] == seed_object["lng"]
+    assert object_data["ltd"] == seed_object["ltd"]
 
     # Проверяем вложенность status
     assert object_data["status"] == "active"
@@ -137,6 +143,8 @@ def test_edit_object(client, jwt_token, seed_object):
         "address": "789 Updated St",
         "description": "Updated description",
         "status": None,  # Допустим, хотим убрать статус
+        "lng": 34.0522,
+        "ltd": 118.2437,
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
@@ -162,6 +170,8 @@ def test_edit_object(client, jwt_token, seed_object):
         assert obj.address == "789 Updated St"
         assert obj.description == "Updated description"
         assert str(obj.city_id) == seed_object["city"]
+        assert obj.lng == pytest.approx(34.0522)
+        assert obj.ltd == pytest.approx(118.2437)
 
 
 def test_get_all_objects(client, jwt_token, seed_object):
@@ -186,3 +196,5 @@ def test_get_all_objects(client, jwt_token, seed_object):
     # Проверяем вложенность status
     assert object_data["status"] == "active"
     assert object_data["city"] == seed_object["city"]
+    assert object_data["lng"] == seed_object["lng"]
+    assert object_data["ltd"] == seed_object["ltd"]

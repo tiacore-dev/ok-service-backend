@@ -18,6 +18,8 @@ object_model = Model(
         "city": fields.String(required=False, description="City of the object"),
         "status": fields.String(required=False, description="Status of the object"),
         "manager": fields.String(required=True, description="Manager of the object"),
+        "lng": fields.Float(required=False, description="Longitude of the object"),
+        "ltd": fields.Float(required=False, description="Latitude of the object"),
         "created_at": fields.String(
             required=True, description="Time object was created at"
         ),
@@ -86,4 +88,10 @@ object_filter_parser.add_argument(
 )
 object_filter_parser.add_argument(
     "city", type=str, required=False, help="Filter by city"
+)
+object_filter_parser.add_argument(
+    "lng", type=float, required=False, help="Filter by longitude"
+)
+object_filter_parser.add_argument(
+    "ltd", type=float, required=False, help="Filter by latitude"
 )

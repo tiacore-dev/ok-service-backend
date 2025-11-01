@@ -12,6 +12,8 @@ def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift
     data = {
         "user": seed_user['user_id'],
         "date": 20240102,
+        "date_start": 20240102,
+        "date_end": 20240102,
         "project": seed_project['project_id'],
         "signed": True,
         "details": [{
@@ -36,6 +38,8 @@ def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift
         assert str(report.user) == seed_user['user_id']
         assert str(report.project) == seed_project['project_id']
         assert report.signed is True
+        assert report.date_start == 20240102
+        assert report.date_end == 20240102
 
 
 def test_view_shift_report(client, jwt_token, seed_shift_report, seed_user, seed_project):
@@ -52,6 +56,8 @@ def test_view_shift_report(client, jwt_token, seed_shift_report, seed_user, seed
     assert response.json["shift_report"]["user"] == seed_user['user_id']
     assert response.json["shift_report"]["project"] == seed_project['project_id']
     assert response.json["shift_report"]["date"] == seed_shift_report['date']
+    assert response.json["shift_report"]["date_start"] == seed_shift_report['date_start']
+    assert response.json["shift_report"]["date_end"] == seed_shift_report['date_end']
     assert response.json["shift_report"]["signed"] == seed_shift_report['signed']
 
 
@@ -118,6 +124,8 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
             shift_report_id=UUID(seed_shift_report['shift_report_id'])).first()
         assert report is not None
         assert report.date == 20240103
+        assert report.date_start == 20240103
+        assert report.date_end == 20240103
         assert report.signed is True
 
 
@@ -128,7 +136,8 @@ def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report
     headers = {"Authorization": f"Bearer {jwt_token}"}
     params = {
         "user": seed_user['user_id'],
-        "date": seed_shift_report['date'],
+        "date_start_from": seed_shift_report['date_start'],
+        "date_start_to": seed_shift_report['date_start'],
         "project": seed_project['project_id'],
         "deleted": False
     }
@@ -147,12 +156,18 @@ def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report
     assert shift_reports[0]["user"] == seed_user['user_id']
     assert shift_reports[0]["project"] == seed_project['project_id']
     assert shift_reports[0]["date"] == seed_shift_report['date']
+    assert shift_reports[0]["date_start"] == seed_shift_report['date_start']
+    assert shift_reports[0]["date_end"] == seed_shift_report['date_end']
     assert shift_reports[0]["signed"] == seed_shift_report['signed']
 
 
 def test_edit_shift_report_conflict_with_leave(client, jwt_token, seed_shift_report, seed_leave):
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    data = {"date": seed_leave["start_date"]}
+    data = {
+        "date": seed_leave["start_date"],
+        "date_start": seed_leave["start_date"],
+        "date_end": seed_leave["start_date"],
+    }
 
     response = client.patch(
         f"/shift_reports/{seed_shift_report['shift_report_id']}/edit",

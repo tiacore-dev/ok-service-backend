@@ -28,6 +28,8 @@ shift_report_model = Model(
         ),
         "user": fields.String(required=True, description="User details"),
         "date": fields.Integer(required=True, description="Report date"),
+        "date_start": fields.Integer(required=True, description="Shift start timestamp"),
+        "date_end": fields.Integer(required=True, description="Shift end timestamp"),
         "project": fields.String(required=True, description="Project details"),
         "signed": fields.Boolean(required=True, description="Is the report signed"),
         "deleted": fields.Boolean(
@@ -94,6 +96,18 @@ shift_report_filter_parser.add_argument(
 shift_report_filter_parser.add_argument("user", type=str, help="Filter by user ID")
 shift_report_filter_parser.add_argument("date_from", type=int, help="Filter by date")
 shift_report_filter_parser.add_argument("date_to", type=int, help="Filter by date")
+shift_report_filter_parser.add_argument(
+    "date_start_from", type=int, required=False, help="Filter by shift start (from)"
+)
+shift_report_filter_parser.add_argument(
+    "date_start_to", type=int, required=False, help="Filter by shift start (to)"
+)
+shift_report_filter_parser.add_argument(
+    "date_end_from", type=int, required=False, help="Filter by shift end (from)"
+)
+shift_report_filter_parser.add_argument(
+    "date_end_to", type=int, required=False, help="Filter by shift end (to)"
+)
 shift_report_filter_parser.add_argument(
     "project", type=str, help="Filter by project ID"
 )

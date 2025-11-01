@@ -106,6 +106,8 @@ class ShiftReportsManager(ShiftManager):
             "shift_report_id": uuid4(),
             "user": UUID(data['user']),
             "date": data['date'],
+            "date_start": data.get("date_start", data["date"]),
+            "date_end": data.get("date_end", data["date"]),
             "project": UUID(data['project']),
             "signed": data.get("signed", False),  # По умолчанию False
             "created_by": created_by,
@@ -123,8 +125,8 @@ class ShiftReportsManager(ShiftManager):
                     .filter(
                         Leaves.user_id == shift_report_data["user"],
                         Leaves.deleted.is_(False),
-                        Leaves.start_date <= shift_report_data["date"],
-                        Leaves.end_date >= shift_report_data["date"],
+                        Leaves.start_date <= shift_report_data["date_end"],
+                        Leaves.end_date >= shift_report_data["date_start"],
                     )
                     .first()
                 )
@@ -221,9 +223,31 @@ class ShiftReportsManager(ShiftManager):
                 query = query.filter(
                     getattr(self.model, "date") <= filters["date_to"])
 
+            if filters.get("date_start_from") and filters.get("date_start_to") and hasattr(self.model, "date_start"):
+                column = getattr(self.model, "date_start")
+                query = query.filter(column.between(
+                    filters["date_start_from"], filters["date_start_to"]))
+            elif filters.get("date_start_from") and hasattr(self.model, "date_start"):
+                query = query.filter(
+                    getattr(self.model, "date_start") >= filters["date_start_from"])
+            elif filters.get("date_start_to") and hasattr(self.model, "date_start"):
+                query = query.filter(
+                    getattr(self.model, "date_start") <= filters["date_start_to"])
+
+            if filters.get("date_end_from") and filters.get("date_end_to") and hasattr(self.model, "date_end"):
+                column = getattr(self.model, "date_end")
+                query = query.filter(column.between(
+                    filters["date_end_from"], filters["date_end_to"]))
+            elif filters.get("date_end_from") and hasattr(self.model, "date_end"):
+                query = query.filter(
+                    getattr(self.model, "date_end") >= filters["date_end_from"])
+            elif filters.get("date_end_to") and hasattr(self.model, "date_end"):
+                query = query.filter(
+                    getattr(self.model, "date_end") <= filters["date_end_to"])
+
             # Остальные фильтры
             for key, value in filters.items():
-                if key in ["date_from", "date_to"]:
+                if key in ["date_from", "date_to", "date_start_from", "date_start_to", "date_end_from", "date_end_to"]:
                     continue
                 if value is not None and hasattr(self.model, key):
                     column = getattr(self.model, key)

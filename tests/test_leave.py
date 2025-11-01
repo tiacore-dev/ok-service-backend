@@ -57,8 +57,8 @@ def test_add_leave_conflict_with_shift(
     payload = {
         "user": seed_shift_report["user"],
         "responsible": seed_leader["user_id"],
-        "start_date": seed_shift_report["date"],
-        "end_date": seed_shift_report["date"] + 1,
+        "start_date": seed_shift_report["date_start"],
+        "end_date": seed_shift_report["date_end"] + 1,
         "reason": "day_off",
     }
 

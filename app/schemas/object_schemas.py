@@ -27,6 +27,8 @@ class ObjectCreateSchema(Schema):
         validate=[validate_city_exists],
         error_messages={"required": "Field 'city' is required."},
     )
+    lng = fields.Float(required=False, allow_none=True)
+    ltd = fields.Float(required=False, allow_none=True)
 
 
 class ObjectEditSchema(Schema):
@@ -46,6 +48,8 @@ class ObjectEditSchema(Schema):
     city = fields.String(
         required=False, allow_none=True, validate=[validate_city_exists]
     )
+    lng = fields.Float(required=False, allow_none=True)
+    ltd = fields.Float(required=False, allow_none=True)
 
 
 class ObjectFilterSchema(Schema):
@@ -62,3 +66,5 @@ class ObjectFilterSchema(Schema):
     manager = fields.String(required=False)
     deleted = fields.Boolean(required=False)
     city = fields.String(required=False)
+    lng = fields.Float(required=False)
+    ltd = fields.Float(required=False)

@@ -18,6 +18,18 @@ class ShiftReports(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     user = Column(UUID, ForeignKey('users.user_id'), nullable=False)
     date = Column(BigInteger, nullable=False)
+    date_start = Column(
+        BigInteger,
+        nullable=False,
+        default=lambda: int(datetime.utcnow().timestamp()),
+        server_default=text("EXTRACT(EPOCH FROM NOW())"),
+    )
+    date_end = Column(
+        BigInteger,
+        nullable=False,
+        default=lambda: int(datetime.utcnow().timestamp()),
+        server_default=text("EXTRACT(EPOCH FROM NOW())"),
+    )
     project = Column(UUID, ForeignKey('projects.project_id'), nullable=False)
     signed = Column(Boolean, nullable=False, default=False)
     created_at = Column(BigInteger, default=lambda: int(datetime.utcnow().timestamp()),
@@ -46,13 +58,16 @@ class ShiftReports(Base):
         return (f"<ShiftReports(shift_report_id={self.shift_report_id}, user={self.user}, "
                 f"date={self.date}, project={
                     self.project}, signed={self.signed}, "
-                f"deleted={self.deleted}, number={self.number})>")
+                f"deleted={self.deleted}, number={self.number}, "
+                f"date_start={self.date_start}, date_end={self.date_end})>")
 
     def to_dict(self):
         return {
             "shift_report_id": str(self.shift_report_id),
             "user": str(self.user),
             "date": self.date,
+            "date_start": self.date_start,
+            "date_end": self.date_end,
             "project": str(self.project),
             "signed": self.signed,
             "deleted": self.deleted,
