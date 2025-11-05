@@ -139,8 +139,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
             cd $DEPLOY_PATH
-            docker compose -f docker-compose.app.yaml pull web
-            docker compose -f docker-compose.app.yaml run --rm web alembic upgrade head 
+            docker compose -f docker-compose.app.yaml exec -T web alembic upgrade head
           EOF
 
 
