@@ -140,6 +140,7 @@ jobs:
             set -e
             cd $DEPLOY_PATH
             docker compose -f docker-compose.app.yaml pull web
+            docker compose -f docker-compose.app.yaml down web
             docker compose -f docker-compose.app.yaml run --rm web alembic upgrade head 
           EOF
 
