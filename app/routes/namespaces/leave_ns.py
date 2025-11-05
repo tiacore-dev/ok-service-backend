@@ -334,7 +334,8 @@ class LeaveReasons(Resource):
         logger.info("Request to fetch leave reasons", extra={"login": current_user})
 
         reasons = [
-            {"name": reason.name, "value": reason.value} for reason in AbsenceReason
+            {"reason_id": reason.value, "name": reason.label()}
+            for reason in AbsenceReason
         ]
 
         return {"msg": "Leave reasons found successfully", "reasons": reasons}, 200

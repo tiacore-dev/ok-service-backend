@@ -45,12 +45,10 @@ leave_response = Model(
 leave_reason_model = Model(
     "LeaveReason",
     {
-        "name": fields.String(
-            required=True, description="Название причины (имя Enum)"
+        "reason_id": fields.String(
+            required=True, description="Идентификатор причины (значение Enum)"
         ),
-        "value": fields.String(
-            required=True, description="Значение причины отсутствия"
-        ),
+        "name": fields.String(required=True, description="Название причины"),
     },
 )
 

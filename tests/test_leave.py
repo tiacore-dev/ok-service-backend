@@ -90,3 +90,22 @@ def test_shift_creation_conflict_with_leave(
 
     assert response.status_code == 409
     assert response.json["msg"] == "User has a leave during the requested date"
+
+
+def test_leave_reasons_list(client, jwt_token):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    response = client.get("/leaves/reasons/all", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json["msg"] == "Leave reasons found successfully"
+
+    reasons = response.json["reasons"]
+    assert len(reasons) == 3
+
+    expected = {
+        "vacation": "Отпуск",
+        "sick_leave": "Больничный",
+        "day_off": "Отгул",
+    }
+    assert {item["reason_id"]: item["name"] for item in reasons} == expected

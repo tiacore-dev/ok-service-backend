@@ -22,6 +22,13 @@ class AbsenceReason(PyEnum):
     SICK_LEAVE = "sick_leave"
     DAY_OFF = "day_off"
 
+    def label(self):
+        return {
+            "vacation": "Отпуск",
+            "sick_leave": "Больничный",
+            "day_off": "Отгул",
+        }[self.value]
+
 
 class Leaves(Base):
     __tablename__ = "leaves"
@@ -69,7 +76,9 @@ class Leaves(Base):
     def __repr__(self):
         return (
             f"<Leaves(leave_id={self.leave_id}, user_id={self.user_id}, "
-            f"start_date={self.start_date}, end_date={self.end_date}, reason={self.reason})>"
+            f"start_date={self.start_date}, end_date={self.end_date}, reason={
+                self.reason
+            })>"
         )
 
     def to_dict(self):
