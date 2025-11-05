@@ -42,6 +42,29 @@ leave_response = Model(
     },
 )
 
+leave_reason_model = Model(
+    "LeaveReason",
+    {
+        "name": fields.String(
+            required=True, description="Название причины (имя Enum)"
+        ),
+        "value": fields.String(
+            required=True, description="Значение причины отсутствия"
+        ),
+    },
+)
+
+leave_reason_all_response = Model(
+    "LeaveReasonAllResponse",
+    {
+        "msg": fields.String(required=True, description="Сообщение"),
+        "reasons": fields.List(
+            fields.Nested(leave_reason_model),
+            description="Список доступных причин отсутствия",
+        ),
+    },
+)
+
 leave_all_response = Model(
     "LeaveAllResponse",
     {

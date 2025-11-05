@@ -31,7 +31,14 @@ class Leaves(Base):
     )
     start_date = Column(BigInteger, nullable=False)
     end_date = Column(BigInteger, nullable=False)
-    reason = Column(Enum(AbsenceReason, name="absence_reason_enum"), nullable=False)
+    reason = Column(
+        Enum(
+            AbsenceReason,
+            name="absence_reason_enum",
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+        ),
+        nullable=False,
+    )
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
     responsible_id = Column(
         UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False

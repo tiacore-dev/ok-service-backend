@@ -9,6 +9,7 @@ from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from app.database.models.leaves import AbsenceReason
 from app.decorators import admin_required
 from app.routes.models.leave_models import (
     leave_all_response,
@@ -17,6 +18,8 @@ from app.routes.models.leave_models import (
     leave_filter_parser,
     leave_model,
     leave_msg_model,
+    leave_reason_all_response,
+    leave_reason_model,
     leave_response,
 )
 from app.schemas.leave_schemas import (
@@ -35,6 +38,8 @@ leave_ns.models[leave_response.name] = leave_response
 leave_ns.models[leave_all_response.name] = leave_all_response
 leave_ns.models[leave_model.name] = leave_model
 leave_ns.models[leave_edit_model.name] = leave_edit_model
+leave_ns.models[leave_reason_model.name] = leave_reason_model
+leave_ns.models[leave_reason_all_response.name] = leave_reason_all_response
 
 
 def _current_timestamp():
@@ -318,3 +323,18 @@ class LeaveAll(Resource):
             **filters,
         )
         return {"msg": "Leaves found successfully", "leaves": leaves}, 200
+
+
+@leave_ns.route("/reasons/all")
+class LeaveReasons(Resource):
+    @jwt_required()
+    @leave_ns.marshal_with(leave_reason_all_response)
+    def get(self):
+        current_user = json.loads(get_jwt_identity())
+        logger.info("Request to fetch leave reasons", extra={"login": current_user})
+
+        reasons = [
+            {"name": reason.name, "value": reason.value} for reason in AbsenceReason
+        ]
+
+        return {"msg": "Leave reasons found successfully", "reasons": reasons}, 200
