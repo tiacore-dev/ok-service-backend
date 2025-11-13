@@ -355,6 +355,8 @@ class ShiftReportAll(Resource):
             "date_from": int(args.get("date_from")) if args.get("date_from") else None,  # type: ignore
             "date_to": int(args.get("date_to")) if args.get("date_to") else None,  # type: ignore
             "project": args.get("project") if args.get("project") else None,  # type: ignore
+            "lng": args.get("lng"),
+            "ltd": args.get("ltd"),
             "created_by": args.get("created_by"),  # type: ignore
             "created_at": args.get("created_at"),  # type: ignore
             "deleted": args.get("deleted", None),  # type: ignore

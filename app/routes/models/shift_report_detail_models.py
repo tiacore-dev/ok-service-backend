@@ -1,12 +1,17 @@
 # Models for shift report details namespace
 from flask_restx import Model, fields, reqparse
-from app.schemas.shift_report_detail_schemas import ShiftReportDetailsCreateSchema
+from app.schemas.shift_report_detail_schemas import (
+    ShiftReportDetailsCreateSchema,
+    ShiftReportDetailsEditSchema,
+)
 from app.utils.helpers import generate_swagger_model
 
 # Модель для создания проекта
 shift_report_details_create_model = generate_swagger_model(
     ShiftReportDetailsCreateSchema(), "ShiftReportDetailsCreate")
 
+shift_report_details_edit_model = generate_swagger_model(
+    ShiftReportDetailsEditSchema(), "ShiftReportDetailsEdit")
 
 shift_report_details_model = Model('ShiftReportDetails', {
     "shift_report_detail_id": fields.String(required=True, description="ID of the shift report detail"),

@@ -31,6 +31,8 @@ shift_report_model = Model(
         "date_start": fields.Integer(required=True, description="Shift start timestamp"),
         "date_end": fields.Integer(required=True, description="Shift end timestamp"),
         "project": fields.String(required=True, description="Project details"),
+        "lng": fields.Float(required=False, description="Longitude of the shift report"),
+        "ltd": fields.Float(required=False, description="Latitude of the shift report"),
         "signed": fields.Boolean(required=True, description="Is the report signed"),
         "deleted": fields.Boolean(
             required=True, description="Deletion status of the shift report"
@@ -110,6 +112,12 @@ shift_report_filter_parser.add_argument(
 )
 shift_report_filter_parser.add_argument(
     "project", type=str, help="Filter by project ID"
+)
+shift_report_filter_parser.add_argument(
+    "lng", type=float, required=False, help="Filter by longitude"
+)
+shift_report_filter_parser.add_argument(
+    "ltd", type=float, required=False, help="Filter by latitude"
 )
 shift_report_filter_parser.add_argument(
     "night_shift",

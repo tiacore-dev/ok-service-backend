@@ -13,6 +13,7 @@ from app.routes.models.shift_report_detail_models import (
     shift_report_details_all_response,
     shift_report_details_by_report_ids,
     shift_report_details_create_model,
+    shift_report_details_edit_model,
     shift_report_details_filter_parser,
     shift_report_details_many_msg_model,
     shift_report_details_model,
@@ -35,6 +36,9 @@ shift_report_details_ns = Namespace(
 # Initialize models
 shift_report_details_ns.models[shift_report_details_create_model.name] = (
     shift_report_details_create_model
+)
+shift_report_details_ns.models[shift_report_details_edit_model.name] = (
+    shift_report_details_edit_model
 )
 shift_report_details_ns.models[shift_report_details_msg_model.name] = (
     shift_report_details_msg_model
@@ -251,7 +255,7 @@ class ShiftReportDetailsDelete(Resource):
 @shift_report_details_ns.route("/<string:detail_id>/edit")
 class ShiftReportDetailsEdit(Resource):
     @jwt_required()
-    @shift_report_details_ns.expect(shift_report_details_create_model)
+    @shift_report_details_ns.expect(shift_report_details_edit_model)
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def patch(self, detail_id):
         current_user = get_jwt_identity()

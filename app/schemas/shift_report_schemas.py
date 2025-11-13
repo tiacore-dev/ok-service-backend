@@ -40,6 +40,9 @@ class ShiftReportCreateSchema(Schema):
         "required": "Field 'project' is required."
     }, validate=[validate_project_exists])
 
+    lng = fields.Float(required=False, allow_none=True)
+    ltd = fields.Float(required=False, allow_none=True)
+
     signed = fields.Boolean(required=False)
 
     night_shift = fields.Boolean(required=False)
@@ -86,6 +89,8 @@ class ShiftReportEditSchema(Schema):
     date_end = fields.Int(required=False, allow_none=True)
     project = fields.String(required=False, allow_none=True, validate=[
         validate_project_exists])
+    lng = fields.Float(required=False, allow_none=True)
+    ltd = fields.Float(required=False, allow_none=True)
     signed = fields.Boolean(
         required=False, allow_none=True)
     night_shift = fields.Boolean(required=False, allow_none=True)
@@ -129,6 +134,8 @@ class ShiftReportFilterSchema(Schema):
     date_end_from = fields.Int(required=False)
     date_end_to = fields.Int(required=False)
     project = fields.String(required=False)
+    lng = fields.Float(required=False)
+    ltd = fields.Float(required=False)
     night_shift = fields.Boolean(required=False)
     extreme_conditions = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False)

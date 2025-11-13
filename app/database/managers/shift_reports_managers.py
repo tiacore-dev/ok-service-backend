@@ -1,27 +1,26 @@
-from uuid import uuid4, UUID
-from decimal import Decimal
 import logging
-from sqlalchemy.sql import func
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm import aliased
+from decimal import Decimal
+from uuid import UUID, uuid4
+
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.sql import func
+
+from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import (
     Leaves,
-    ShiftReports,
-    ShiftReportDetails,
-    WorkPrices,
-    Users,
     Projects,
+    ShiftReportDetails,
+    ShiftReports,
+    Users,
+    WorkPrices,
 )
-from app.database.managers.abstract_manager import BaseDBManager
 
-
-logger = logging.getLogger('ok_service')
+logger = logging.getLogger("ok_service")
 
 
 class ShiftManager(BaseDBManager):
-
     def _convert_to_uuid(self, value):
         """Приводит строку к UUID, если это ещё не UUID"""
         if isinstance(value, str):
@@ -37,8 +36,7 @@ class ShiftManager(BaseDBManager):
             else:
                 return self._count_summ_internal(work_id, shift_report_id, session)
         except Exception as e:
-            logger.error(f"Ошибка при подсчете суммы: {e}", extra={
-                         "login": "database"})
+            logger.error(f"Ошибка при подсчете суммы: {e}", extra={"login": "database"})
             raise
 
     def _count_summ_internal(self, work_id, shift_report_id, session):
@@ -47,21 +45,23 @@ class ShiftManager(BaseDBManager):
         shift_report_id = self._convert_to_uuid(shift_report_id)
         work_id = self._convert_to_uuid(work_id)
 
-        shift_report = session.query(ShiftReports).filter(
-            ShiftReports.shift_report_id == shift_report_id
-        ).first()
+        shift_report = (
+            session.query(ShiftReports)
+            .filter(ShiftReports.shift_report_id == shift_report_id)
+            .first()
+        )
 
-        user = session.query(Users).filter(
-            Users.user_id == shift_report.user
-        ).first()
+        user = session.query(Users).filter(Users.user_id == shift_report.user).first()
 
         if not shift_report:
             logger.warning(f"ShiftReport {shift_report_id} не найден")
             return Decimal(0)
 
-        work_price = session.query(WorkPrices).filter(
-            WorkPrices.work == work_id, WorkPrices.category == user.category
-        ).first()
+        work_price = (
+            session.query(WorkPrices)
+            .filter(WorkPrices.work == work_id, WorkPrices.category == user.category)
+            .first()
+        )
 
         if not work_price:
             logger.warning(f"WorkPrices для work_id {work_id} не найден")
@@ -82,7 +82,6 @@ class ShiftManager(BaseDBManager):
 
 
 class ShiftReportsManager(ShiftManager):
-
     @property
     def model(self):
         return ShiftReports
@@ -92,7 +91,10 @@ class ShiftReportsManager(ShiftManager):
         with self.session_scope() as session:
             result = (
                 session.query(func.sum(ShiftReportDetails.summ))
-                .join(ShiftReports, ShiftReports.shift_report_id == ShiftReportDetails.shift_report)
+                .join(
+                    ShiftReports,
+                    ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
+                )
                 .filter(ShiftReports.shift_report_id == shift_report_id)
                 .scalar()
             )
@@ -104,19 +106,22 @@ class ShiftReportsManager(ShiftManager):
 
         shift_report_data = {
             "shift_report_id": uuid4(),
-            "user": UUID(data['user']),
-            "date": data['date'],
+            "user": UUID(data["user"]),
+            "date": data["date"],
             "date_start": data.get("date_start", data["date"]),
             "date_end": data.get("date_end", data["date"]),
-            "project": UUID(data['project']),
+            "project": UUID(data["project"]),
+            "lng": data.get("lng"),
+            "ltd": data.get("ltd"),
             "signed": data.get("signed", False),  # По умолчанию False
             "created_by": created_by,
-            "extreme_conditions": data.get('extreme_conditions', False),
-            "night_shift": data.get('night_shift', False)
+            "extreme_conditions": data.get("extreme_conditions", False),
+            "night_shift": data.get("night_shift", False),
         }
 
         shift_report_details_data = data.get(
-            "details", [])  # Детали могут отсутствовать
+            "details", []
+        )  # Детали могут отсутствовать
 
         with self.session_scope() as session:
             try:
@@ -143,13 +148,20 @@ class ShiftReportsManager(ShiftManager):
                     details = [
                         ShiftReportDetails(
                             shift_report=new_report.shift_report_id,
-                            work=UUID(detail['work']),
-                            quantity=detail['quantity'],
-                            summ=(self.count_summ(
-                                UUID(detail['work']), new_report.shift_report_id, session))*Decimal(detail['quantity']),
+                            work=UUID(detail["work"]),
+                            quantity=detail["quantity"],
+                            summ=(
+                                self.count_summ(
+                                    UUID(detail["work"]),
+                                    new_report.shift_report_id,
+                                    session,
+                                )
+                            )
+                            * Decimal(detail["quantity"]),
                             created_by=created_by,
-                            project_work=UUID(detail['project_work'])
-                        ) for detail in shift_report_details_data
+                            project_work=UUID(detail["project_work"]),
+                        )
+                        for detail in shift_report_details_data
                     ]
 
                     # Массовая вставка `shift_report_details`
@@ -169,38 +181,54 @@ class ShiftReportsManager(ShiftManager):
     def get_project_leader(self, project):
         """Получение руководителя проекта по project"""
         try:
-            logger.debug(f"Получение project_leader для project: {project}", extra={
-                         "login": "database"})
+            logger.debug(
+                f"Получение project_leader для project: {project}",
+                extra={"login": "database"},
+            )
 
             with self.session_scope() as session:
-                shift_report = session.query(self.model).options(
-                    joinedload(self.model.projects)
-                ).filter(self.model.project == project).first()
+                shift_report = (
+                    session.query(self.model)
+                    .options(joinedload(self.model.projects))
+                    .filter(self.model.project == project)
+                    .first()
+                )
 
                 if not shift_report:
-                    logger.warning(f"ShiftReport с project {project} не найден", extra={
-                                   "login": "database"})
+                    logger.warning(
+                        f"ShiftReport с project {project} не найден",
+                        extra={"login": "database"},
+                    )
                     return None
 
                 project_leader = shift_report.projects.project_leader
                 if not project_leader:
-                    logger.warning(f"У проекта {project} нет руководителя", extra={
-                                   "login": "database"})
+                    logger.warning(
+                        f"У проекта {project} нет руководителя",
+                        extra={"login": "database"},
+                    )
                     return None
 
-                logger.info(f"Найден project_leader {project_leader} для project {project}", extra={
-                            "login": "database"})
+                logger.info(
+                    f"Найден project_leader {project_leader} для project {project}",
+                    extra={"login": "database"},
+                )
                 return str(project_leader)
 
         except Exception as e:
-            logger.error(f"Ошибка при получении project_leader: {e}", extra={
-                         "login": "database"})
+            logger.error(
+                f"Ошибка при получении project_leader: {e}", extra={"login": "database"}
+            )
             raise
 
-    def get_shift_reports_filtered(self, offset=0, limit=None, sort_by="created_at", sort_order='desc', **filters):
+    def get_shift_reports_filtered(
+        self, offset=0, limit=None, sort_by="created_at", sort_order="desc", **filters
+    ):
         """Фильтрация отчетов по сменам с поддержкой диапазона дат и сортировки по user/project.name."""
-        logger.debug("get_shift_reports_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
-                     extra={"login": "database"})
+        logger.debug(
+            "get_shift_reports_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
+            extra={"login": "database"},
+        )
 
         with self.session_scope() as session:
             query = session.query(self.model)
@@ -210,51 +238,82 @@ class ShiftReportsManager(ShiftManager):
             project_alias = aliased(Projects)
 
             # Фильтрация по дате
-            if filters.get("date_from") and filters.get("date_to") and hasattr(self.model, "date"):
+            if (
+                filters.get("date_from")
+                and filters.get("date_to")
+                and hasattr(self.model, "date")
+            ):
                 column = getattr(self.model, "date")
-                query = query.filter(column.between(
-                    filters["date_from"], filters["date_to"]))
-                logger.debug(f"Фильтруем по дате: {filters['date_from']} - {filters['date_to']}",
-                             extra={"login": "database"})
+                query = query.filter(
+                    column.between(filters["date_from"], filters["date_to"])
+                )
+                logger.debug(
+                    f"Фильтруем по дате: {filters['date_from']} - {filters['date_to']}",
+                    extra={"login": "database"},
+                )
             elif filters.get("date_from") and hasattr(self.model, "date"):
                 query = query.filter(
-                    getattr(self.model, "date") >= filters["date_from"])
+                    getattr(self.model, "date") >= filters["date_from"]
+                )
             elif filters.get("date_to") and hasattr(self.model, "date"):
-                query = query.filter(
-                    getattr(self.model, "date") <= filters["date_to"])
+                query = query.filter(getattr(self.model, "date") <= filters["date_to"])
 
-            if filters.get("date_start_from") and filters.get("date_start_to") and hasattr(self.model, "date_start"):
+            if (
+                filters.get("date_start_from")
+                and filters.get("date_start_to")
+                and hasattr(self.model, "date_start")
+            ):
                 column = getattr(self.model, "date_start")
-                query = query.filter(column.between(
-                    filters["date_start_from"], filters["date_start_to"]))
+                query = query.filter(
+                    column.between(filters["date_start_from"], filters["date_start_to"])
+                )
             elif filters.get("date_start_from") and hasattr(self.model, "date_start"):
                 query = query.filter(
-                    getattr(self.model, "date_start") >= filters["date_start_from"])
+                    getattr(self.model, "date_start") >= filters["date_start_from"]
+                )
             elif filters.get("date_start_to") and hasattr(self.model, "date_start"):
                 query = query.filter(
-                    getattr(self.model, "date_start") <= filters["date_start_to"])
+                    getattr(self.model, "date_start") <= filters["date_start_to"]
+                )
 
-            if filters.get("date_end_from") and filters.get("date_end_to") and hasattr(self.model, "date_end"):
+            if (
+                filters.get("date_end_from")
+                and filters.get("date_end_to")
+                and hasattr(self.model, "date_end")
+            ):
                 column = getattr(self.model, "date_end")
-                query = query.filter(column.between(
-                    filters["date_end_from"], filters["date_end_to"]))
+                query = query.filter(
+                    column.between(filters["date_end_from"], filters["date_end_to"])
+                )
             elif filters.get("date_end_from") and hasattr(self.model, "date_end"):
                 query = query.filter(
-                    getattr(self.model, "date_end") >= filters["date_end_from"])
+                    getattr(self.model, "date_end") >= filters["date_end_from"]
+                )
             elif filters.get("date_end_to") and hasattr(self.model, "date_end"):
                 query = query.filter(
-                    getattr(self.model, "date_end") <= filters["date_end_to"])
+                    getattr(self.model, "date_end") <= filters["date_end_to"]
+                )
 
             # Остальные фильтры
             for key, value in filters.items():
-                if key in ["date_from", "date_to", "date_start_from", "date_start_to", "date_end_from", "date_end_to"]:
+                if key in [
+                    "date_from",
+                    "date_to",
+                    "date_start_from",
+                    "date_start_to",
+                    "date_end_from",
+                    "date_end_to",
+                ]:
                     continue
                 if value is not None and hasattr(self.model, key):
                     column = getattr(self.model, key)
-                    query = query.filter(column.in_(value) if isinstance(
-                        value, list) else column == value)
+                    query = query.filter(
+                        column.in_(value)
+                        if isinstance(value, list)
+                        else column == value
+                    )
 
-            order = desc if sort_order == 'desc' else asc
+            order = desc if sort_order == "desc" else asc
             if sort_by:
                 if sort_by == "user":
                     query = query.join(user_alias, self.model.users)
@@ -267,8 +326,9 @@ class ShiftReportsManager(ShiftManager):
 
             # Получение общего количества
             total_count = session.query(query.subquery()).count()
-            logger.debug(f"Общее количество записей: {total_count}", extra={
-                         "login": "database"})
+            logger.debug(
+                f"Общее количество записей: {total_count}", extra={"login": "database"}
+            )
 
             # Пагинация
             if offset:
@@ -277,13 +337,14 @@ class ShiftReportsManager(ShiftManager):
                 query = query.limit(limit)
 
             records = query.all()
-            logger.debug(f"Найдено записей (после пагинации): {len(records)}", extra={
-                         "login": "database"})
+            logger.debug(
+                f"Найдено записей (после пагинации): {len(records)}",
+                extra={"login": "database"},
+            )
             return total_count, [record.to_dict() for record in records]
 
 
 class ShiftReportsDetailsManager(ShiftManager):
-
     @property
     def model(self):
         return ShiftReportDetails
@@ -292,14 +353,15 @@ class ShiftReportsDetailsManager(ShiftManager):
         try:
             with self.session_scope() as session:
                 summ = self.count_summ(
-                    UUID(data['work']), UUID(data['shift_report']), session)
+                    UUID(data["work"]), UUID(data["shift_report"]), session
+                )
                 new_record = ShiftReportDetails(
-                    shift_report=data['shift_report'],
-                    work=data['work'],
-                    quantity=data['quantity'],
-                    summ=summ*Decimal(data['quantity']),
+                    shift_report=data["shift_report"],
+                    work=data["work"],
+                    quantity=data["quantity"],
+                    summ=summ * Decimal(data["quantity"]),
                     created_by=created_by,
-                    project_work=data['project_work']
+                    project_work=data["project_work"],
                 )
                 session.add(new_record)
                 try:
@@ -309,42 +371,50 @@ class ShiftReportsDetailsManager(ShiftManager):
                     raise
                 return new_record.to_dict()
         except Exception as e:
-            logger.error(f"""Ошибка при добавлении записи: {
-                         e}""", extra={"login": "database"})
+            logger.error(
+                f"""Ошибка при добавлении записи: {e}""", extra={"login": "database"}
+            )
             raise
 
-    def update_summ(self, work_id, quantity, extreme_conditions, night_shift, session, user_id):
+    def update_summ(
+        self, work_id, quantity, extreme_conditions, night_shift, session, user_id
+    ):
         """Пересчитывает сумму для конкретной работы"""
-        logger.debug(f"[DEBUG] Входные данные: work_id={work_id}, quantity={quantity}, "
-                     f"extreme_conditions={extreme_conditions}, night_shift={night_shift}, user_id={user_id}")
+        logger.debug(
+            f"[DEBUG] Входные данные: work_id={work_id}, quantity={quantity}, "
+            f"extreme_conditions={extreme_conditions}, night_shift={night_shift}, user_id={user_id}"
+        )
 
         # Преобразуем ID к UUID, если это строка
         user_id = self._convert_to_uuid(user_id)
         work_id = self._convert_to_uuid(work_id)
 
         logger.debug(
-            f"[DEBUG] Преобразованные UUID: work_id={work_id}, user_id={user_id}")
+            f"[DEBUG] Преобразованные UUID: work_id={work_id}, user_id={user_id}"
+        )
 
         # Получаем пользователя
-        user = session.query(Users).filter(
-            Users.user_id == user_id
-        ).first()
+        user = session.query(Users).filter(Users.user_id == user_id).first()
 
         if not user:
             logger.warning(f"[WARNING] Пользователь с ID {user_id} не найден!")
             return Decimal(0)
 
         logger.debug(
-            f"[DEBUG] Найден пользователь: {user.user_id}, категория: {user.category}")
+            f"[DEBUG] Найден пользователь: {user.user_id}, категория: {user.category}"
+        )
 
         # Получаем цену работы
-        work_price = session.query(WorkPrices).filter(
-            WorkPrices.work == work_id, WorkPrices.category == user.category
-        ).first()
+        work_price = (
+            session.query(WorkPrices)
+            .filter(WorkPrices.work == work_id, WorkPrices.category == user.category)
+            .first()
+        )
 
         if not work_price:
             logger.warning(
-                f"[WARNING] Цена работы для work_id {work_id} и категории {user.category} не найдена!")
+                f"[WARNING] Цена работы для work_id {work_id} и категории {user.category} не найдена!"
+            )
             return Decimal(0)
 
         price = work_price.price
@@ -356,8 +426,7 @@ class ShiftReportsDetailsManager(ShiftManager):
 
         # Применяем коэффициенты
         if extreme_conditions:
-            logger.debug(
-                "[DEBUG] Extreme conditions применяются (увеличение на 25%)")
+            logger.debug("[DEBUG] Extreme conditions применяются (увеличение на 25%)")
             summ += price * Decimal("0.25")
 
         if night_shift:
@@ -367,7 +436,8 @@ class ShiftReportsDetailsManager(ShiftManager):
         # Итоговая сумма
         total_summ = summ * Decimal(quantity)
         logger.debug(
-            f"[DEBUG] Итоговая сумма (с учетом количества {quantity}): {total_summ}")
+            f"[DEBUG] Итоговая сумма (с учетом количества {quantity}): {total_summ}"
+        )
 
         return total_summ
 
@@ -376,53 +446,70 @@ class ShiftReportsDetailsManager(ShiftManager):
         try:
             with self.session_scope() as session:
                 logger.debug(
-                    f"[DEBUG] Обновление shift_report_detail {shift_report_detail_id} с данными: {data}")
+                    f"[DEBUG] Обновление shift_report_detail {shift_report_detail_id} с данными: {data}"
+                )
 
-                detail = session.query(ShiftReportDetails).filter(
-                    ShiftReportDetails.shift_report_detail_id == shift_report_detail_id
-                ).first()
+                detail = (
+                    session.query(ShiftReportDetails)
+                    .filter(
+                        ShiftReportDetails.shift_report_detail_id
+                        == shift_report_detail_id
+                    )
+                    .first()
+                )
 
                 if not detail:
                     logger.warning(
-                        f"[WARNING] Запись ShiftReportDetails с ID {shift_report_detail_id} не найдена!")
+                        f"[WARNING] Запись ShiftReportDetails с ID {shift_report_detail_id} не найдена!"
+                    )
                     return None
 
                 # Получаем shift_report
-                shift_report = session.query(ShiftReports).filter(
-                    ShiftReports.shift_report_id == detail.shift_report
-                ).first()
+                shift_report = (
+                    session.query(ShiftReports)
+                    .filter(ShiftReports.shift_report_id == detail.shift_report)
+                    .first()
+                )
 
                 if not shift_report:
                     logger.warning(
-                        f"[WARNING] ShiftReport с ID {detail.shift_report} не найден!")
+                        f"[WARNING] ShiftReport с ID {detail.shift_report} не найден!"
+                    )
                     return None
 
                 # Обновляем данные
                 # Оставляем текущее значение, если work не передан
-                detail.work = data.get('work', detail.work)
-                detail.quantity = data.get('quantity', detail.quantity)
-                detail.project_work = data.get(
-                    'project_work', detail.project_work)
+                detail.work = data.get("work", detail.work)
+                detail.quantity = data.get("quantity", detail.quantity)
+                detail.project_work = data.get("project_work", detail.project_work)
 
                 # Пересчёт суммы
                 detail.summ = self.update_summ(
-                    detail.work, detail.quantity,
-                    shift_report.extreme_conditions, shift_report.night_shift,
-                    session, shift_report.user
+                    detail.work,
+                    detail.quantity,
+                    shift_report.extreme_conditions,
+                    shift_report.night_shift,
+                    session,
+                    shift_report.user,
                 )
 
                 session.commit()
                 logger.info(
-                    f"[INFO] Обновлены данные для shift_report_detail {shift_report_detail_id}")
+                    f"[INFO] Обновлены данные для shift_report_detail {shift_report_detail_id}"
+                )
 
                 return detail
 
         except Exception as e:
-            logger.error(f"[ERROR] Ошибка при обновлении записи {shift_report_detail_id}: {e}",
-                         extra={"login": "database"})
+            logger.error(
+                f"[ERROR] Ошибка при обновлении записи {shift_report_detail_id}: {e}",
+                extra={"login": "database"},
+            )
             raise
 
-    def recalculate_by_conditions(self, shift_report_id, extreme_conditions, night_shift, user):
+    def recalculate_by_conditions(
+        self, shift_report_id, extreme_conditions, night_shift, user
+    ):
         """Пересчитывает сумму (summ) для всех записей в ShiftReportDetails, если изменились условия"""
 
         shift_report_id = self._convert_to_uuid(shift_report_id)
@@ -430,38 +517,51 @@ class ShiftReportsDetailsManager(ShiftManager):
 
         with self.session_scope() as session:
             try:
-                logger.debug(f"[DEBUG] Начало пересчёта для shift_report_id={shift_report_id}, "
-                             f"extreme_conditions={extreme_conditions}, night_shift={night_shift}, user={user}")
-
-                details = session.query(ShiftReportDetails).filter(
-                    ShiftReportDetails.shift_report == shift_report_id
-                ).all()
-
                 logger.debug(
-                    f"[DEBUG] Найдено {len(details)} записей для пересчёта")
+                    f"[DEBUG] Начало пересчёта для shift_report_id={shift_report_id}, "
+                    f"extreme_conditions={extreme_conditions}, night_shift={night_shift}, user={user}"
+                )
+
+                details = (
+                    session.query(ShiftReportDetails)
+                    .filter(ShiftReportDetails.shift_report == shift_report_id)
+                    .all()
+                )
+
+                logger.debug(f"[DEBUG] Найдено {len(details)} записей для пересчёта")
 
                 if not details:
                     logger.warning(
-                        f"[WARNING] Нет записей в ShiftReportDetails для shift_report_id={shift_report_id}")
+                        f"[WARNING] Нет записей в ShiftReportDetails для shift_report_id={shift_report_id}"
+                    )
                     return
 
                 for detail in details:
-                    logger.debug(f"[DEBUG] Пересчёт для detail_id={detail.shift_report_detail_id}, "
-                                 f"work={detail.work}, quantity={detail.quantity}")
+                    logger.debug(
+                        f"[DEBUG] Пересчёт для detail_id={detail.shift_report_detail_id}, "
+                        f"work={detail.work}, quantity={detail.quantity}"
+                    )
 
                     new_summ = self.update_summ(
-                        detail.work, detail.quantity, extreme_conditions, night_shift, session, user
+                        detail.work,
+                        detail.quantity,
+                        extreme_conditions,
+                        night_shift,
+                        session,
+                        user,
                     )
 
                     logger.debug(
-                        f"[DEBUG] Новая сумма: {new_summ} (было {detail.summ})")
+                        f"[DEBUG] Новая сумма: {new_summ} (было {detail.summ})"
+                    )
                     detail.summ = new_summ  # Обновляем сумму
 
                 session.commit()  # Фиксируем изменения
-                logger.info(
-                    f"[INFO] Обновлены суммы для ShiftReport {shift_report_id}")
+                logger.info(f"[INFO] Обновлены суммы для ShiftReport {shift_report_id}")
 
             except Exception as e:
-                logger.error(f"[ERROR] Ошибка при пересчете суммы для ShiftReport {shift_report_id}: {e}",
-                             extra={"login": "database"})
+                logger.error(
+                    f"[ERROR] Ошибка при пересчете суммы для ShiftReport {shift_report_id}: {e}",
+                    extra={"login": "database"},
+                )
                 raise
