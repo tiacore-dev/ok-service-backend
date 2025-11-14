@@ -60,6 +60,9 @@ shift_report_msg_model = Model(
     {
         "msg": fields.String(required=True, description="Response message"),
         "shift_report_id": fields.String(description="ID of shift report"),
+        "detail": fields.Raw(
+            required=False, description="Additional details (e.g., validation errors)"
+        ),
     },
 )
 
@@ -79,6 +82,9 @@ shift_report_all_response = Model(
             fields.Nested(shift_report_model), description="List of shift reports"
         ),
         "total": fields.Integer(description="Total count of shift reports"),
+        "detail": fields.Raw(
+            required=False, description="Additional details (e.g., validation errors)"
+        ),
     },
 )
 

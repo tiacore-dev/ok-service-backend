@@ -28,18 +28,8 @@ class ShiftReports(Base):
     )
     user = Column(UUID, ForeignKey("users.user_id"), nullable=False)
     date = Column(BigInteger, nullable=False)
-    date_start = Column(
-        BigInteger,
-        nullable=False,
-        default=lambda: int(datetime.utcnow().timestamp()),
-        server_default=text("EXTRACT(EPOCH FROM NOW())"),
-    )
-    date_end = Column(
-        BigInteger,
-        nullable=False,
-        default=lambda: int(datetime.utcnow().timestamp()),
-        server_default=text("EXTRACT(EPOCH FROM NOW())"),
-    )
+    date_start = Column(BigInteger, nullable=True)
+    date_end = Column(BigInteger, nullable=True)
     project = Column(UUID, ForeignKey("projects.project_id"), nullable=False)
     lng = Column(Float, nullable=True)
     ltd = Column(Float, nullable=True)

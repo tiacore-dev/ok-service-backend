@@ -55,7 +55,7 @@ class ShiftReportAdd(Resource):
             data = schema.load(request.json)  # type: ignore
         except ValidationError as err:
             # Возвращаем 400 с описанием ошибки
-            return {"error": err.messages}, 400
+            return {"msg": "Validation error", "detail": err.messages}, 400
         try:
             from app.database.managers.shift_reports_managers import ShiftReportsManager
 
@@ -256,7 +256,7 @@ class ShiftReportEdit(Resource):
                 f"Validation error: {err.messages}", extra={"login": current_user}
             )
             # Возвращаем 400 с описанием ошибки
-            return {"error": err.messages}, 400
+            return {"msg": "Validation error", "detail": err.messages}, 400
         if "date" in data and data["date"] is not None:  # type: ignore
             data.setdefault("date_start", data["date"])  # type: ignore
             data.setdefault("date_end", data["date"])  # type: ignore
@@ -345,7 +345,7 @@ class ShiftReportAll(Resource):
             logger.error(
                 f"Validation error: {err.messages}", extra={"login": current_user}
             )
-            return {"error": err.messages}, 400
+            return {"msg": "Validation error", "detail": err.messages}, 400
         offset = args.get("offset", 0)  # type: ignore
         limit = args.get("limit", None)  # type: ignore
         sort_by = args.get("sort_by")  # type: ignore
