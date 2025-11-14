@@ -285,21 +285,30 @@ class ShiftReportEdit(Resource):
                 return {"msg": "User cannot edit signed shift report"}, 403
 
             target_user = data.get("user") or shift_report["user"]  # type: ignore
-            target_date_start = (
-                data.get("date_start")  # type: ignore
-                if data.get("date_start") is not None  # type: ignore
-                else shift_report["date_start"]  # type: ignore
-            )
-            target_date_end = (
-                data.get("date_end")  # type: ignore
-                if data.get("date_end") is not None  # type: ignore
-                else shift_report["date_end"]  # type: ignore
-            )
+
+            def _resolve_date(field_name):
+                """Возвращает значение поля даты с резервом на общее поле date."""
+                if field_name in data and data.get(field_name) is not None:  # type: ignore
+                    return data.get(field_name)  # type: ignore
+                if shift_report.get(field_name) is not None:  # type: ignore
+                    return shift_report.get(field_name)  # type: ignore
+                # Если конкретное поле отсутствует, используем значение date
+                base_date = (
+                    data.get("date")
+                    if data.get("date") is not None  # type: ignore
+                    else shift_report.get("date")
+                )
+                return base_date
+
+            target_date_start = _resolve_date("date_start")
+            target_date_end = _resolve_date("date_end")
 
             from app.database.managers.leaves_manager import LeavesManager
 
             leaves_manager = LeavesManager()
-            if leaves_manager.has_overlapping_leave(
+            if (
+                target_date_start is not None and target_date_end is not None
+            ) and leaves_manager.has_overlapping_leave(
                 target_user, target_date_start, target_date_end
             ):
                 logger.warning(
