@@ -28,10 +28,16 @@ shift_report_model = Model(
         ),
         "user": fields.String(required=True, description="User details"),
         "date": fields.Integer(required=True, description="Report date"),
-        "date_start": fields.Integer(required=True, description="Shift start timestamp"),
-        "date_end": fields.Integer(required=True, description="Shift end timestamp"),
+        "date_start": fields.Integer(
+            required=False, description="Shift start timestamp (nullable)"
+        ),
+        "date_end": fields.Integer(
+            required=False, description="Shift end timestamp (nullable)"
+        ),
         "project": fields.String(required=True, description="Project details"),
-        "lng": fields.Float(required=False, description="Longitude of the shift report"),
+        "lng": fields.Float(
+            required=False, description="Longitude of the shift report"
+        ),
         "ltd": fields.Float(required=False, description="Latitude of the shift report"),
         "signed": fields.Boolean(required=True, description="Is the report signed"),
         "deleted": fields.Boolean(
