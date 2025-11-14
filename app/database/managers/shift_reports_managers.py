@@ -108,8 +108,8 @@ class ShiftReportsManager(ShiftManager):
             "shift_report_id": uuid4(),
             "user": UUID(data["user"]),
             "date": data["date"],
-            "date_start": data.get("date_start", data["date"]),
-            "date_end": data.get("date_end", data["date"]),
+            "date_start": data.get("date_start"),
+            "date_end": data.get("date_end"),
             "project": UUID(data["project"]),
             "lng": data.get("lng"),
             "ltd": data.get("ltd"),
@@ -125,13 +125,15 @@ class ShiftReportsManager(ShiftManager):
 
         with self.session_scope() as session:
             try:
+                leave_start = shift_report_data["date_start"] or shift_report_data["date"]
+                leave_end = shift_report_data["date_end"] or shift_report_data["date"]
                 leave_conflict = (
                     session.query(Leaves)
                     .filter(
                         Leaves.user_id == shift_report_data["user"],
                         Leaves.deleted.is_(False),
-                        Leaves.start_date <= shift_report_data["date_end"],
-                        Leaves.end_date >= shift_report_data["date_start"],
+                        Leaves.start_date <= leave_end,
+                        Leaves.end_date >= leave_start,
                     )
                     .first()
                 )

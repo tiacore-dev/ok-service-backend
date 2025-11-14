@@ -64,9 +64,6 @@ class ShiftReportAdd(Resource):
             if current_user["role"] == "user":
                 data["user"] = current_user["user_id"]  # type: ignore
                 data["signed"] = False  # type: ignore
-            if "date" in data and data["date"] is not None:  # type: ignore
-                data.setdefault("date_start", data["date"])  # type: ignore
-                data.setdefault("date_end", data["date"])  # type: ignore
             new_report = db.add_shift_report_with_details(
                 # Returns a dictionary
                 data,
@@ -257,9 +254,6 @@ class ShiftReportEdit(Resource):
             )
             # Возвращаем 400 с описанием ошибки
             return {"msg": "Validation error", "detail": err.messages}, 400
-        if "date" in data and data["date"] is not None:  # type: ignore
-            data.setdefault("date_start", data["date"])  # type: ignore
-            data.setdefault("date_end", data["date"])  # type: ignore
         try:
             try:
                 report_id = UUID(report_id)
