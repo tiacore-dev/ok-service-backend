@@ -132,8 +132,8 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
             shift_report_id=UUID(seed_shift_report['shift_report_id'])).first()
         assert report is not None
         assert report.date == 20240103
-        assert report.date_start == 20240103
-        assert report.date_end == 20240103
+        assert report.date_start == seed_shift_report['date_start']
+        assert report.date_end == seed_shift_report['date_end']
         assert report.signed is True
         assert report.lng == 40.0
         assert report.ltd == 50.0
