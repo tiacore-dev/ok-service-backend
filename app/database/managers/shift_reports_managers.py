@@ -311,7 +311,7 @@ class ShiftReportsManager(ShiftManager):
                     column = getattr(self.model, key)
                     query = query.filter(
                         column.in_(value)
-                        if isinstance(value, list)
+                        if isinstance(value, (list, tuple, set))
                         else column == value
                     )
 

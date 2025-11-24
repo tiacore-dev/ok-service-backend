@@ -156,7 +156,7 @@ jobs:
 
 
   notify:
-    name: 📬 Telegram Notify
+    name: 📬 Notifications
     runs-on: ubuntu-latest
     needs: [build-test-push, deploy]
     if: always()
@@ -194,3 +194,119 @@ jobs:
             -d message_thread_id=$THREAD_ID \
             -d parse_mode=Markdown \
             -d "text=$TEXT"
+
+      - name: 📥 Mattermost & OpenProject notification
+        # чтобы уведомление не ломало пайплайн, но job всё равно выполнялся
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          MATTERMOST_WEBHOOK_URL="${{ secrets.MATTERMOST_WEBHOOK_URL }}"
+          OPENPROJECT_URL="${{ secrets.OPENPROJECT_URL }}"
+          OPENPROJECT_API_TOKEN="${{ secrets.OPENPROJECT_API_TOKEN }}"
+          SERVICE_NAME="ok-service-backend"
+
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          REF_NAME="${{ github.ref_name }}"
+          SHA="${{ github.sha }}"
+          SHORT_SHA="${SHA::8}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          REPO_URL="https://github.com/${{ github.repository }}"
+          DEPLOY_STATUS="${{ needs.deploy.result }}"
+
+          # --- 1. Определяем окружение по ветке (как в GitLab-примере)
+          case "${REF_NAME}" in
+            dev)    ENV_NAME="dev" ;;
+            stage)  ENV_NAME="stage" ;;
+            master) ENV_NAME="prod" ;;
+            *)      ENV_NAME="${REF_NAME}" ;;
+          esac
+
+          # --- 2. Достаём ID задач из сообщения коммита (OP#123)
+          extract_op_ids() {
+            printf '%s\n' "${COMMIT_MESSAGE}" \
+              | grep -oE 'OP#[0-9]+' \
+              | sed 's/OP#//g' \
+              | sort -u
+          }
+
+          OP_IDS="$(extract_op_ids || true)"
+
+          TASKS_BLOCK=""
+          if [ -n "${OP_IDS:-}" ]; then
+            TASKS_BLOCK="**Tasks (OpenProject):**"
+            for ID in ${OP_IDS}; do
+              URL="${OPENPROJECT_URL%/}/work_packages/${ID}"
+              TASKS_BLOCK="${TASKS_BLOCK}
+              • [#${ID}](${URL})"
+            done
+          else
+            TASKS_BLOCK="_No linked tasks (no OP#ID in commit message)_"
+          fi
+
+          # --- 3. Заголовок по статусу деплоя (по аналогии с DEPLOY_STACK_STATUS)
+          STATUS="${DEPLOY_STATUS}"
+
+          case "${STATUS}" in
+            success)  HEAD="✅ Deploy successful" ;;
+            failure)  HEAD="🛑 Deploy failed" ;;
+            cancelled) HEAD="🚫 Deploy canceled" ;;
+            skipped)  HEAD="⏭ Deploy skipped" ;;
+            *)        HEAD="ℹ️ Deploy status: ${STATUS}" ;;
+          esac
+
+          # --- 4. Текст сообщения для Mattermost
+          TEXT=$(cat <<EOF
+            ${HEAD}
+
+            **Service:** \`${SERVICE_NAME}\`
+            **Env:** \`${ENV_NAME}\`
+            **Branch:** \`${REF_NAME}\`
+            **Commit:** \`${SHORT_SHA}\`
+
+            ${TASKS_BLOCK}
+
+            [🔗 Open pipeline](${RUN_URL})
+            [📦 Repository](${REPO_URL})
+            EOF
+          )
+
+          # --- 5. Отправка в Mattermost
+          if [ -n "${MATTERMOST_WEBHOOK_URL:-}" ]; then
+            # jq обычно есть на ubuntu-latest, но на всякий случай можно установить:
+            if ! command -v jq >/dev/null 2>&1; then
+              sudo apt-get update -y >/dev/null
+              sudo apt-get install -y jq >/dev/null
+            fi
+
+            payload=$(jq -n --arg text "$TEXT" '{text: $text, username: "github-actions", icon_emoji: ":rocket:"}')
+
+            curl -sS -X POST \
+              -H "Content-Type: application/json" \
+              -d "$payload" \
+              "${MATTERMOST_WEBHOOK_URL}"
+          else
+            echo "No MATTERMOST_WEBHOOK_URL, skip Mattermost notification"
+          fi
+
+          # --- 6. Комментарии в OpenProject
+          if [ -n "${OP_IDS:-}" ] && [ -n "${OPENPROJECT_API_TOKEN:-}" ] && [ -n "${OPENPROJECT_URL:-}" ]; then
+            if ! command -v jq >/dev/null 2>&1; then
+              sudo apt-get update -y >/dev/null
+              sudo apt-get install -y jq >/dev/null
+            fi
+
+            COMMENT="Deployed to ${ENV_NAME} via GitHub Actions run ${RUN_URL}"
+
+            for ID in ${OP_IDS}; do
+              echo "Post comment to OP#${ID}"
+              curl -sS -X POST \
+                -u "apikey:${OPENPROJECT_API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                "${OPENPROJECT_URL%/}/api/v3/work_packages/${ID}/activities" \
+                -d "$(jq -n --arg c "$COMMENT" '{comment: {raw: $c}}')" \
+                || echo "Failed to comment on ${ID}"
+            done
+          else
+            echo "No OP_IDS or OPENPROJECT credentials, skip OpenProject comments"
+          fi

@@ -107,7 +107,12 @@ shift_report_filter_parser.add_argument(
 shift_report_filter_parser.add_argument(
     "sort_order", type=str, required=False, choices=["asc", "desc"], help="Sort order"
 )
-shift_report_filter_parser.add_argument("user", type=str, help="Filter by user ID")
+shift_report_filter_parser.add_argument(
+    "user",
+    type=str,
+    action="append",
+    help="Filter by user IDs (can be passed multiple times or comma-separated)",
+)
 shift_report_filter_parser.add_argument("date_from", type=int, help="Filter by date")
 shift_report_filter_parser.add_argument("date_to", type=int, help="Filter by date")
 shift_report_filter_parser.add_argument(
@@ -123,7 +128,10 @@ shift_report_filter_parser.add_argument(
     "date_end_to", type=int, required=False, help="Filter by shift end (to)"
 )
 shift_report_filter_parser.add_argument(
-    "project", type=str, help="Filter by project ID"
+    "project",
+    type=str,
+    action="append",
+    help="Filter by project IDs (can be passed multiple times or comma-separated)",
 )
 shift_report_filter_parser.add_argument(
     "lng", type=float, required=False, help="Filter by longitude"

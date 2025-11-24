@@ -3,6 +3,7 @@ from marshmallow import (
     ValidationError,
     fields,
     validate,
+    pre_load,
     validates,
     validates_schema,
 )
@@ -166,16 +167,41 @@ class ShiftReportFilterSchema(Schema):
             ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."
         ),
     )
-    user = fields.String(required=False)
+    user = fields.List(fields.String(), required=False)
     date_from = fields.Int(required=False)
     date_to = fields.Int(required=False)
     date_start_from = fields.Int(required=False)
     date_start_to = fields.Int(required=False)
     date_end_from = fields.Int(required=False)
     date_end_to = fields.Int(required=False)
-    project = fields.String(required=False)
+    project = fields.List(fields.String(), required=False)
     lng = fields.Float(required=False)
     ltd = fields.Float(required=False)
     night_shift = fields.Boolean(required=False)
     extreme_conditions = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False)
+
+    @pre_load
+    def split_list_filters(self, data, **kwargs):
+        """Normalize list-like filters (user, project) for IN queries."""
+        for field_name in ["user", "project"]:
+            raw_value = data.get(field_name)
+            if raw_value is None:
+                continue
+
+            values: list[str] = []
+            if isinstance(raw_value, str):
+                values = raw_value.split(",")
+            elif isinstance(raw_value, list):
+                for item in raw_value:
+                    if isinstance(item, str) and "," in item:
+                        values.extend(item.split(","))
+                    else:
+                        values.append(item)
+            else:
+                continue
+
+            data[field_name] = [
+                str(val).strip() for val in values if str(val).strip()
+            ]
+        return data

@@ -1,5 +1,5 @@
 # Tests for ShiftReports
-from uuid import UUID
+from uuid import UUID, uuid4
 import logging
 
 logger = logging.getLogger('ok_service')
@@ -144,13 +144,17 @@ def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report
     Test fetching all shift reports with filters via API.
     """
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    params = {
-        "user": seed_user['user_id'],
-        "date_start_from": seed_shift_report['date_start'],
-        "date_start_to": seed_shift_report['date_start'],
-        "project": seed_project['project_id'],
-        "deleted": False
-    }
+    allowed_users = [seed_user['user_id'], str(uuid4())]
+    allowed_projects = [seed_project['project_id'], str(uuid4())]
+    params = [
+        ("user", allowed_users[0]),
+        ("user", allowed_users[1]),
+        ("date_start_from", seed_shift_report['date_start']),
+        ("date_start_to", seed_shift_report['date_start']),
+        ("project", allowed_projects[0]),
+        ("project", allowed_projects[1]),
+        ("deleted", False),
+    ]
     logger.info(f'Отправляемые параметры: {params}')
     response = client.get("/shift_reports/all",
                           query_string=params, headers=headers)
@@ -161,16 +165,18 @@ def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report
 
     shift_reports = response.json["shift_reports"]
     assert len(shift_reports) > 0
-    assert any(report["shift_report_id"] == seed_shift_report['shift_report_id']
-               for report in shift_reports)
-    assert shift_reports[0]["user"] == seed_user['user_id']
-    assert shift_reports[0]["project"] == seed_project['project_id']
-    assert shift_reports[0]["date"] == seed_shift_report['date']
-    assert shift_reports[0]["date_start"] == seed_shift_report['date_start']
-    assert shift_reports[0]["date_end"] == seed_shift_report['date_end']
-    assert shift_reports[0]["signed"] == seed_shift_report['signed']
-    assert shift_reports[0]["lng"] == seed_shift_report['lng']
-    assert shift_reports[0]["ltd"] == seed_shift_report['ltd']
+    assert all(report["user"] in allowed_users for report in shift_reports)
+    assert all(report["project"] in allowed_projects for report in shift_reports)
+    target_report = next(
+        report for report in shift_reports if report["shift_report_id"] == seed_shift_report['shift_report_id'])
+    assert target_report["user"] == seed_user['user_id']
+    assert target_report["project"] == seed_project['project_id']
+    assert target_report["date"] == seed_shift_report['date']
+    assert target_report["date_start"] == seed_shift_report['date_start']
+    assert target_report["date_end"] == seed_shift_report['date_end']
+    assert target_report["signed"] == seed_shift_report['signed']
+    assert target_report["lng"] == seed_shift_report['lng']
+    assert target_report["ltd"] == seed_shift_report['ltd']
 
 
 def test_edit_shift_report_conflict_with_leave(client, jwt_token, seed_shift_report, seed_leave):

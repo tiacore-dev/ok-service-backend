@@ -342,8 +342,15 @@ class ShiftReportAll(Resource):
 
         # Валидация query-параметров через Marshmallow
         schema = ShiftReportFilterSchema()
+        raw_args = request.args.to_dict()
+        user_args = request.args.getlist("user")
+        project_args = request.args.getlist("project")
+        if user_args:
+            raw_args["user"] = user_args  # type: ignore
+        if project_args:
+            raw_args["project"] = project_args  # type: ignore
         try:
-            args = schema.load(request.args)  # Валидируем query-параметры
+            args = schema.load(raw_args)  # Валидируем query-параметры
         except ValidationError as err:
             logger.error(
                 f"Validation error: {err.messages}", extra={"login": current_user}
@@ -353,11 +360,13 @@ class ShiftReportAll(Resource):
         limit = args.get("limit", None)  # type: ignore
         sort_by = args.get("sort_by")  # type: ignore
         sort_order = args.get("sort_order", "desc")  # type: ignore
+        user_filter = args.get("user") or []  # type: ignore
+        project_filter = args.get("project") or []  # type: ignore
         filters = {
-            "user": UUID(args.get("user")) if args.get("user") else None,  # type: ignore
+            "user": [UUID(user_id) for user_id in user_filter] if user_filter else None,  # type: ignore
             "date_from": int(args.get("date_from")) if args.get("date_from") else None,  # type: ignore
             "date_to": int(args.get("date_to")) if args.get("date_to") else None,  # type: ignore
-            "project": args.get("project") if args.get("project") else None,  # type: ignore
+            "project": [UUID(project_id) for project_id in project_filter] if project_filter else None,  # type: ignore
             "lng": args.get("lng"),  # type: ignore
             "ltd": args.get("ltd"),  # type: ignore
             "created_by": args.get("created_by"),  # type: ignore
@@ -365,7 +374,7 @@ class ShiftReportAll(Resource):
             "deleted": args.get("deleted", None),  # type: ignore
         }
         if current_user["role"] == "user":
-            filters["user"] = UUID(current_user["user_id"])
+            filters["user"] = [UUID(current_user["user_id"])]
 
         if current_user["role"] == "project-leader":
             from app.database.managers.projects_managers import ProjectsManager
@@ -381,7 +390,7 @@ class ShiftReportAll(Resource):
                 # Фильтруем только по проектам прораба
                 filters["project"] = project_ids
             else:
-                if filters["project"] not in project_ids:
+                if any(proj not in project_ids for proj in filters["project"]):  # type: ignore
                     return {"msg": "Forbidden"}, 403
 
         logger.debug(
