@@ -294,9 +294,9 @@ class ShiftReportEdit(Resource):
                     return shift_report.get(field_name)  # type: ignore
                 # Если конкретное поле отсутствует, используем значение date
                 base_date = (
-                    data.get("date")
+                    data.get("date")  # type: ignore
                     if data.get("date") is not None  # type: ignore
-                    else shift_report.get("date")
+                    else shift_report.get("date")  # type: ignore
                 )
                 return base_date
 
@@ -358,8 +358,8 @@ class ShiftReportAll(Resource):
             "date_from": int(args.get("date_from")) if args.get("date_from") else None,  # type: ignore
             "date_to": int(args.get("date_to")) if args.get("date_to") else None,  # type: ignore
             "project": args.get("project") if args.get("project") else None,  # type: ignore
-            "lng": args.get("lng"),
-            "ltd": args.get("ltd"),
+            "lng": args.get("lng"),  # type: ignore
+            "ltd": args.get("ltd"),  # type: ignore
             "created_by": args.get("created_by"),  # type: ignore
             "created_at": args.get("created_at"),  # type: ignore
             "deleted": args.get("deleted", None),  # type: ignore
