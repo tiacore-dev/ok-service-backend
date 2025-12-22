@@ -35,6 +35,8 @@ class ShiftReports(Base):
     ltd_start = Column(Float, nullable=True)
     lng_end = Column(Float, nullable=True)
     ltd_end = Column(Float, nullable=True)
+    distance_start = Column(Float, nullable=True)
+    distance_end = Column(Float, nullable=True)
     signed = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         BigInteger,
@@ -71,6 +73,7 @@ class ShiftReports(Base):
             f"deleted={self.deleted}, number={self.number}, "
             f"lng_start={self.lng_start}, ltd_start={self.ltd_start}, "
             f"lng_end={self.lng_end}, ltd_end={self.ltd_end}, "
+            f"distance_start={self.distance_start}, distance_end={self.distance_end}, "
             f"date_start={self.date_start}, date_end={self.date_end})>"
         )
 
@@ -86,6 +89,8 @@ class ShiftReports(Base):
             "ltd_start": self.ltd_start,
             "lng_end": self.lng_end,
             "ltd_end": self.ltd_end,
+            "distance_start": self.distance_start,
+            "distance_end": self.distance_end,
             "signed": self.signed,
             "deleted": self.deleted,
             "created_by": str(self.created_by),

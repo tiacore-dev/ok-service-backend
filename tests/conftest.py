@@ -458,6 +458,8 @@ def seed_shift_report(db_session, seed_user, seed_project):
         ltd_start=55.7558,
         lng_end=37.6174,
         ltd_end=55.7559,
+        distance_start=10.5,
+        distance_end=12.0,
         deleted=False,
     )
     db_session.add(report)
@@ -484,6 +486,8 @@ def seed_shift_reports(db_session, seed_user, seed_project):
             ltd_start=55.7558 + i,
             lng_end=37.6174 + i,
             ltd_end=55.7559 + i,
+            distance_start=10.5 + i,
+            distance_end=12.0 + i,
             deleted=False,
         )
         db_session.add(report)

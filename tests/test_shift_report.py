@@ -20,6 +20,8 @@ def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift
         "ltd_start": 55.756,
         "lng_end": 37.619,
         "ltd_end": 55.757,
+        "distance_start": 12.5,
+        "distance_end": 18.75,
         "details": [{
             "work": seed_shift_report_detail['work'],
             "summ": seed_shift_report_detail['summ'],
@@ -48,6 +50,8 @@ def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift
         assert report.ltd_start == 55.756
         assert report.lng_end == 37.619
         assert report.ltd_end == 55.757
+        assert report.distance_start == 12.5
+        assert report.distance_end == 18.75
 
 
 def test_view_shift_report(client, jwt_token, seed_shift_report, seed_user, seed_project):
@@ -71,6 +75,8 @@ def test_view_shift_report(client, jwt_token, seed_shift_report, seed_user, seed
     assert response.json["shift_report"]["ltd_start"] == seed_shift_report['ltd_start']
     assert response.json["shift_report"]["lng_end"] == seed_shift_report['lng_end']
     assert response.json["shift_report"]["ltd_end"] == seed_shift_report['ltd_end']
+    assert response.json["shift_report"]["distance_start"] == seed_shift_report['distance_start']
+    assert response.json["shift_report"]["distance_end"] == seed_shift_report['distance_end']
 
 
 def test_soft_delete_shift_report(client, jwt_token, seed_shift_report):
@@ -124,6 +130,8 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
         "ltd_start": 50.0,
         "lng_end": 41.0,
         "ltd_end": 51.0,
+        "distance_start": 22.0,
+        "distance_end": 24.0,
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
@@ -147,6 +155,8 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
         assert report.ltd_start == 50.0
         assert report.lng_end == 41.0
         assert report.ltd_end == 51.0
+        assert report.distance_start == 22.0
+        assert report.distance_end == 24.0
 
 
 def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report, seed_user, seed_project):
@@ -189,6 +199,8 @@ def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report
     assert target_report["ltd_start"] == seed_shift_report['ltd_start']
     assert target_report["lng_end"] == seed_shift_report['lng_end']
     assert target_report["ltd_end"] == seed_shift_report['ltd_end']
+    assert target_report["distance_start"] == seed_shift_report['distance_start']
+    assert target_report["distance_end"] == seed_shift_report['distance_end']
 
 
 def test_edit_shift_report_conflict_with_leave(client, jwt_token, seed_shift_report, seed_leave):

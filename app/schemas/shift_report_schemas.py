@@ -68,6 +68,8 @@ class ShiftReportCreateSchema(Schema):
     ltd_start = fields.Float(required=False, allow_none=True)
     lng_end = fields.Float(required=False, allow_none=True)
     ltd_end = fields.Float(required=False, allow_none=True)
+    distance_start = fields.Float(required=False, allow_none=True)
+    distance_end = fields.Float(required=False, allow_none=True)
 
     signed = fields.Boolean(required=False)
 
@@ -123,6 +125,8 @@ class ShiftReportEditSchema(Schema):
     ltd_start = fields.Float(required=False, allow_none=True)
     lng_end = fields.Float(required=False, allow_none=True)
     ltd_end = fields.Float(required=False, allow_none=True)
+    distance_start = fields.Float(required=False, allow_none=True)
+    distance_end = fields.Float(required=False, allow_none=True)
     signed = fields.Boolean(required=False, allow_none=True)
     night_shift = fields.Boolean(required=False, allow_none=True)
     extreme_conditions = fields.Boolean(required=False, allow_none=True)
@@ -183,6 +187,8 @@ class ShiftReportFilterSchema(Schema):
     ltd_start = fields.Float(required=False)
     lng_end = fields.Float(required=False)
     ltd_end = fields.Float(required=False)
+    distance_start = fields.Float(required=False)
+    distance_end = fields.Float(required=False)
     night_shift = fields.Boolean(required=False)
     extreme_conditions = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False)

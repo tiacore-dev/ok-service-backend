@@ -371,6 +371,8 @@ class ShiftReportAll(Resource):
             "ltd_start": args.get("ltd_start"),  # type: ignore
             "lng_end": args.get("lng_end"),  # type: ignore
             "ltd_end": args.get("ltd_end"),  # type: ignore
+            "distance_start": args.get("distance_start"),  # type: ignore
+            "distance_end": args.get("distance_end"),  # type: ignore
             "created_by": args.get("created_by"),  # type: ignore
             "created_at": args.get("created_at"),  # type: ignore
             "deleted": args.get("deleted", None),  # type: ignore

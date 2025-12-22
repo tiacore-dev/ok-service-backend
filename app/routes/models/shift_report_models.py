@@ -45,6 +45,12 @@ shift_report_model = Model(
             required=False, description="Longitude of the shift end"
         ),
         "ltd_end": fields.Float(required=False, description="Latitude of the shift end"),
+        "distance_start": fields.Float(
+            required=False, description="Distance at the shift start"
+        ),
+        "distance_end": fields.Float(
+            required=False, description="Distance at the shift end"
+        ),
         "signed": fields.Boolean(required=True, description="Is the report signed"),
         "deleted": fields.Boolean(
             required=True, description="Deletion status of the shift report"
@@ -150,6 +156,12 @@ shift_report_filter_parser.add_argument(
 )
 shift_report_filter_parser.add_argument(
     "ltd_end", type=float, required=False, help="Filter by end latitude"
+)
+shift_report_filter_parser.add_argument(
+    "distance_start", type=float, required=False, help="Filter by start distance"
+)
+shift_report_filter_parser.add_argument(
+    "distance_end", type=float, required=False, help="Filter by end distance"
 )
 shift_report_filter_parser.add_argument(
     "night_shift",

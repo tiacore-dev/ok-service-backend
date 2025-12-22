@@ -115,6 +115,8 @@ class ShiftReportsManager(ShiftManager):
             "ltd_start": data.get("ltd_start"),
             "lng_end": data.get("lng_end"),
             "ltd_end": data.get("ltd_end"),
+            "distance_start": data.get("distance_start"),
+            "distance_end": data.get("distance_end"),
             "signed": data.get("signed", False),  # По умолчанию False
             "created_by": created_by,
             "extreme_conditions": data.get("extreme_conditions", False),
