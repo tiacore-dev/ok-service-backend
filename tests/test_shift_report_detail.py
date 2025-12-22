@@ -48,6 +48,9 @@ def test_view_shift_report_detail(client, jwt_token, seed_shift_report_detail):
     assert response.json["msg"] == "Shift report detail found successfully"
     assert response.json["shift_report_detail"]["quantity"] == seed_shift_report_detail['quantity']
     assert response.json["shift_report_detail"]["summ"] == seed_shift_report_detail['summ']
+    assert response.json["shift_report_detail"]["project_work"][
+        "project_work_id"
+    ] == seed_shift_report_detail["project_work"]["project_work_id"]
 
 
 def test_edit_shift_report_detail(client, jwt_token, seed_shift_report_detail):

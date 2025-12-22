@@ -10,6 +10,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from app.routes.models.shift_report_detail_models import (
+    project_work_brief_model,
     shift_report_details_all_response,
     shift_report_details_by_report_ids,
     shift_report_details_create_model,
@@ -36,6 +37,9 @@ shift_report_details_ns = Namespace(
 # Initialize models
 shift_report_details_ns.models[shift_report_details_create_model.name] = (
     shift_report_details_create_model
+)
+shift_report_details_ns.models[project_work_brief_model.name] = (
+    project_work_brief_model
 )
 shift_report_details_ns.models[shift_report_details_edit_model.name] = (
     shift_report_details_edit_model

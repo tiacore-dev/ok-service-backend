@@ -50,12 +50,17 @@ class ShiftReportDetails(Base):
         )
 
     def to_dict(self):
+        project_work = None
+        if self.project_work:
+            project_work = {
+                "project_work_id": str(self.project_work),
+                "name": self.project_works.project_work_name
+                if self.project_works
+                else None,
+            }
         return {
             "shift_report_detail_id": str(self.shift_report_detail_id),
-            "project_work": str(self.project_work) if self.project_work else None,  # type: ignore
-            "project_work_name": self.project_works.project_work_name
-            if self.project_works
-            else None,
+            "project_work": project_work,
             "shift_report": str(self.shift_report),
             "work": str(self.work),
             "quantity": self.quantity,

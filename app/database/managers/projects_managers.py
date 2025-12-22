@@ -208,7 +208,11 @@ class ProjectsManager(BaseDBManager):
                     details = [detail.to_dict() for detail in details]
 
                     for detail in details:
-                        detail_project_work_id = str(detail['project_work'])
+                        project_work = detail.get("project_work") or {}
+                        detail_project_work_id = project_work.get("project_work_id")
+                        if not detail_project_work_id:
+                            continue
+                        detail_project_work_id = str(detail_project_work_id)
                         if isinstance(detail['quantity'], Decimal):
                             detail['quantity'] = float(detail['quantity'])
                         if detail_project_work_id in result:
