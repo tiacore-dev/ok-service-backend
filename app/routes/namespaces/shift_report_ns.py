@@ -367,8 +367,10 @@ class ShiftReportAll(Resource):
             "date_from": int(args.get("date_from")) if args.get("date_from") else None,  # type: ignore
             "date_to": int(args.get("date_to")) if args.get("date_to") else None,  # type: ignore
             "project": [UUID(project_id) for project_id in project_filter] if project_filter else None,  # type: ignore
-            "lng": args.get("lng"),  # type: ignore
-            "ltd": args.get("ltd"),  # type: ignore
+            "lng_start": args.get("lng_start"),  # type: ignore
+            "ltd_start": args.get("ltd_start"),  # type: ignore
+            "lng_end": args.get("lng_end"),  # type: ignore
+            "ltd_end": args.get("ltd_end"),  # type: ignore
             "created_by": args.get("created_by"),  # type: ignore
             "created_at": args.get("created_at"),  # type: ignore
             "deleted": args.get("deleted", None),  # type: ignore

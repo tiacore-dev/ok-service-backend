@@ -111,8 +111,10 @@ class ShiftReportsManager(ShiftManager):
             "date_start": data.get("date_start"),
             "date_end": data.get("date_end"),
             "project": UUID(data["project"]),
-            "lng": data.get("lng"),
-            "ltd": data.get("ltd"),
+            "lng_start": data.get("lng_start"),
+            "ltd_start": data.get("ltd_start"),
+            "lng_end": data.get("lng_end"),
+            "ltd_end": data.get("ltd_end"),
             "signed": data.get("signed", False),  # По умолчанию False
             "created_by": created_by,
             "extreme_conditions": data.get("extreme_conditions", False),

@@ -16,8 +16,10 @@ def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift
         "date_end": 20240102,
         "project": seed_project['project_id'],
         "signed": True,
-        "lng": 37.618,
-        "ltd": 55.756,
+        "lng_start": 37.618,
+        "ltd_start": 55.756,
+        "lng_end": 37.619,
+        "ltd_end": 55.757,
         "details": [{
             "work": seed_shift_report_detail['work'],
             "summ": seed_shift_report_detail['summ'],
@@ -42,8 +44,10 @@ def test_add_shift_report(client, jwt_token, seed_user, seed_project, seed_shift
         assert report.signed is True
         assert report.date_start == 20240102
         assert report.date_end == 20240102
-        assert report.lng == 37.618
-        assert report.ltd == 55.756
+        assert report.lng_start == 37.618
+        assert report.ltd_start == 55.756
+        assert report.lng_end == 37.619
+        assert report.ltd_end == 55.757
 
 
 def test_view_shift_report(client, jwt_token, seed_shift_report, seed_user, seed_project):
@@ -63,8 +67,10 @@ def test_view_shift_report(client, jwt_token, seed_shift_report, seed_user, seed
     assert response.json["shift_report"]["date_start"] == seed_shift_report['date_start']
     assert response.json["shift_report"]["date_end"] == seed_shift_report['date_end']
     assert response.json["shift_report"]["signed"] == seed_shift_report['signed']
-    assert response.json["shift_report"]["lng"] == seed_shift_report['lng']
-    assert response.json["shift_report"]["ltd"] == seed_shift_report['ltd']
+    assert response.json["shift_report"]["lng_start"] == seed_shift_report['lng_start']
+    assert response.json["shift_report"]["ltd_start"] == seed_shift_report['ltd_start']
+    assert response.json["shift_report"]["lng_end"] == seed_shift_report['lng_end']
+    assert response.json["shift_report"]["ltd_end"] == seed_shift_report['ltd_end']
 
 
 def test_soft_delete_shift_report(client, jwt_token, seed_shift_report):
@@ -114,8 +120,10 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
     data = {
         "date": 20240103,
         "signed": True,
-        "lng": 40.0,
-        "ltd": 50.0,
+        "lng_start": 40.0,
+        "ltd_start": 50.0,
+        "lng_end": 41.0,
+        "ltd_end": 51.0,
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
@@ -135,8 +143,10 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
         assert report.date_start == seed_shift_report['date_start']
         assert report.date_end == seed_shift_report['date_end']
         assert report.signed is True
-        assert report.lng == 40.0
-        assert report.ltd == 50.0
+        assert report.lng_start == 40.0
+        assert report.ltd_start == 50.0
+        assert report.lng_end == 41.0
+        assert report.ltd_end == 51.0
 
 
 def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report, seed_user, seed_project):
@@ -175,8 +185,10 @@ def test_get_all_shift_reports_with_filters(client, jwt_token, seed_shift_report
     assert target_report["date_start"] == seed_shift_report['date_start']
     assert target_report["date_end"] == seed_shift_report['date_end']
     assert target_report["signed"] == seed_shift_report['signed']
-    assert target_report["lng"] == seed_shift_report['lng']
-    assert target_report["ltd"] == seed_shift_report['ltd']
+    assert target_report["lng_start"] == seed_shift_report['lng_start']
+    assert target_report["ltd_start"] == seed_shift_report['ltd_start']
+    assert target_report["lng_end"] == seed_shift_report['lng_end']
+    assert target_report["ltd_end"] == seed_shift_report['ltd_end']
 
 
 def test_edit_shift_report_conflict_with_leave(client, jwt_token, seed_shift_report, seed_leave):

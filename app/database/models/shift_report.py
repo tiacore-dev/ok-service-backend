@@ -31,8 +31,10 @@ class ShiftReports(Base):
     date_start = Column(BigInteger, nullable=True)
     date_end = Column(BigInteger, nullable=True)
     project = Column(UUID, ForeignKey("projects.project_id"), nullable=False)
-    lng = Column(Float, nullable=True)
-    ltd = Column(Float, nullable=True)
+    lng_start = Column(Float, nullable=True)
+    ltd_start = Column(Float, nullable=True)
+    lng_end = Column(Float, nullable=True)
+    ltd_end = Column(Float, nullable=True)
     signed = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         BigInteger,
@@ -67,7 +69,8 @@ class ShiftReports(Base):
             f"<ShiftReports(shift_report_id={self.shift_report_id}, user={self.user}, "
             f"date={self.date}, project={self.project}, signed={self.signed}, "
             f"deleted={self.deleted}, number={self.number}, "
-            f"lng={self.lng}, ltd={self.ltd}, "
+            f"lng_start={self.lng_start}, ltd_start={self.ltd_start}, "
+            f"lng_end={self.lng_end}, ltd_end={self.ltd_end}, "
             f"date_start={self.date_start}, date_end={self.date_end})>"
         )
 
@@ -79,8 +82,10 @@ class ShiftReports(Base):
             "date_start": self.date_start,
             "date_end": self.date_end,
             "project": str(self.project),
-            "lng": self.lng,
-            "ltd": self.ltd,
+            "lng_start": self.lng_start,
+            "ltd_start": self.ltd_start,
+            "lng_end": self.lng_end,
+            "ltd_end": self.ltd_end,
             "signed": self.signed,
             "deleted": self.deleted,
             "created_by": str(self.created_by),

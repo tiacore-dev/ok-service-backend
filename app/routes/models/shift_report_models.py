@@ -35,10 +35,16 @@ shift_report_model = Model(
             required=False, description="Shift end timestamp (nullable)"
         ),
         "project": fields.String(required=True, description="Project details"),
-        "lng": fields.Float(
-            required=False, description="Longitude of the shift report"
+        "lng_start": fields.Float(
+            required=False, description="Longitude of the shift start"
         ),
-        "ltd": fields.Float(required=False, description="Latitude of the shift report"),
+        "ltd_start": fields.Float(
+            required=False, description="Latitude of the shift start"
+        ),
+        "lng_end": fields.Float(
+            required=False, description="Longitude of the shift end"
+        ),
+        "ltd_end": fields.Float(required=False, description="Latitude of the shift end"),
         "signed": fields.Boolean(required=True, description="Is the report signed"),
         "deleted": fields.Boolean(
             required=True, description="Deletion status of the shift report"
@@ -134,10 +140,16 @@ shift_report_filter_parser.add_argument(
     help="Filter by project IDs (can be passed multiple times or comma-separated)",
 )
 shift_report_filter_parser.add_argument(
-    "lng", type=float, required=False, help="Filter by longitude"
+    "lng_start", type=float, required=False, help="Filter by start longitude"
 )
 shift_report_filter_parser.add_argument(
-    "ltd", type=float, required=False, help="Filter by latitude"
+    "ltd_start", type=float, required=False, help="Filter by start latitude"
+)
+shift_report_filter_parser.add_argument(
+    "lng_end", type=float, required=False, help="Filter by end longitude"
+)
+shift_report_filter_parser.add_argument(
+    "ltd_end", type=float, required=False, help="Filter by end latitude"
 )
 shift_report_filter_parser.add_argument(
     "night_shift",

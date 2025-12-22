@@ -454,8 +454,10 @@ def seed_shift_report(db_session, seed_user, seed_project):
         project=UUID(seed_project["project_id"]),
         created_by=UUID(seed_user["user_id"]),
         signed=False,
-        lng=37.6173,
-        ltd=55.7558,
+        lng_start=37.6173,
+        ltd_start=55.7558,
+        lng_end=37.6174,
+        ltd_end=55.7559,
         deleted=False,
     )
     db_session.add(report)
@@ -478,8 +480,10 @@ def seed_shift_reports(db_session, seed_user, seed_project):
             project=UUID(seed_project["project_id"]),
             created_by=UUID(seed_user["user_id"]),
             signed=False,
-            lng=37.6173 + i,
-            ltd=55.7558 + i,
+            lng_start=37.6173 + i,
+            ltd_start=55.7558 + i,
+            lng_end=37.6174 + i,
+            ltd_end=55.7559 + i,
             deleted=False,
         )
         db_session.add(report)
