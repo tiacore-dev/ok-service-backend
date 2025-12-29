@@ -222,6 +222,67 @@ class UserDeleteSoft(Resource):
             return {"msg": f"Error during soft deleting user: {e}"}, 500
 
 
+@user_ns.route("/<string:user_id>/restore")
+class UserRestore(Resource):
+    @jwt_required()
+    @user_ns.marshal_with(user_msg_model)
+    @user_ns.response(404, "User not found")
+    @user_ns.response(500, "Internal Server Error")
+    def patch(self, user_id):
+        current_user = json.loads(get_jwt_identity())
+        if current_user["role"] != "admin":
+            logger.warning(
+                f"Несанкционированный запрос на восстановление пользователя user_id={
+                    user_id
+                }.",
+                extra={"login": current_user.get("login")},
+            )
+            return {"msg": "Forbidden"}, 403
+        logger.info(
+            f"Запрос на восстановление пользователя user_id={user_id}",
+            extra={"login": current_user.get("login")},
+        )
+        try:
+            # Преобразуем строку в UUID
+            try:
+                user_id = UUID(user_id)
+            except ValueError:
+                logger.warning(
+                    f"Неверный формат user_id при восстановлении: {user_id}",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "Invalid user ID format"}, 400
+            from app.database.managers.user_manager import UserManager
+
+            db = UserManager()
+
+            logger.debug(
+                "Сброс флага deleted пользователя в базе...",
+                extra={"login": current_user.get("login")},
+            )
+            updated = db.update(record_id=user_id, deleted=False)
+            if not updated:
+                logger.warning(
+                    f"Пользователь user_id={user_id} не найден при восстановлении",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "User not found"}, 404
+            logger.info(
+                f"Пользователь user_id={user_id} восстановлен",
+                extra={"login": current_user.get("login")},
+            )
+            return {
+                "msg": f"User {user_id} restored successfully",
+                "user_id": user_id,
+            }, 200
+        except Exception as e:
+            logger.error(
+                f"Ошибка при восстановлении пользователя user_id={user_id}: {e}",
+                extra={"login": current_user.get("login")},
+            )
+            return {"msg": f"Error during restoring user: {e}"}, 500
+
+
 @user_ns.route("/<string:user_id>/delete/hard")
 class UserDeleteHard(Resource):
     @jwt_required()
