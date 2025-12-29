@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
@@ -50,6 +51,7 @@ class Users(Base):
 
     __table_args__ = (
         CheckConstraint("category IN (0, 1, 2, 3, 4)", name="check_category_values"),
+        UniqueConstraint("login", name="uq_users_login"),
     )
 
     roles = relationship("Roles", back_populates="user")
