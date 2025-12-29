@@ -236,20 +236,23 @@ def seed_user(db_session):
     """
     from app.database.models import Users
 
-    user_id = uuid4()
-    user = Users(
-        user_id=user_id,
-        login="test_user",
-        name="Test User",
-        role="user",
-        created_by=user_id,
-        deleted=False,
-        city_id=None,
-    )
-    user.set_password("qweasdzcx")
-    db_session.add(user)
-    db_session.commit()
-    create_city_for_user(db_session, user)
+    user = db_session.query(Users).filter_by(login="test_user").first()
+    if not user:
+        user_id = uuid4()
+        user = Users(
+            user_id=user_id,
+            login="test_user",
+            name="Test User",
+            role="user",
+            created_by=user_id,
+            deleted=False,
+            city_id=None,
+        )
+        user.set_password("qweasdzcx")
+        db_session.add(user)
+        db_session.commit()
+    if not user.city_id:  # type: ignore
+        create_city_for_user(db_session, user)
     return user.to_dict()
 
 
@@ -260,20 +263,23 @@ def seed_leader(db_session):
     """
     from app.database.models import Users
 
-    user_id = uuid4()
-    user = Users(
-        user_id=user_id,
-        login="test_leader",
-        name="Test Leader",
-        role="project-leader",
-        created_by=user_id,
-        deleted=False,
-        city_id=None,
-    )
-    user.set_password("qweasdzcx")
-    db_session.add(user)
-    db_session.commit()
-    create_city_for_user(db_session, user)
+    user = db_session.query(Users).filter_by(login="test_leader").first()
+    if not user:
+        user_id = uuid4()
+        user = Users(
+            user_id=user_id,
+            login="test_leader",
+            name="Test Leader",
+            role="project-leader",
+            created_by=user_id,
+            deleted=False,
+            city_id=None,
+        )
+        user.set_password("qweasdzcx")
+        db_session.add(user)
+        db_session.commit()
+    if not user.city_id:  # type: ignore
+        create_city_for_user(db_session, user)
     return user.to_dict()
 
 
@@ -284,20 +290,23 @@ def seed_admin(db_session):
     """
     from app.database.models import Users
 
-    user_id = uuid4()
-    user = Users(
-        user_id=user_id,
-        login="test_admin",
-        name="Test Admin",
-        role="admin",
-        created_by=user_id,
-        deleted=False,
-        city_id=None,
-    )
-    user.set_password("qweasdzcx")
-    db_session.add(user)
-    db_session.commit()
-    create_city_for_user(db_session, user)
+    user = db_session.query(Users).filter_by(login="test_admin").first()
+    if not user:
+        user_id = uuid4()
+        user = Users(
+            user_id=user_id,
+            login="test_admin",
+            name="Test Admin",
+            role="admin",
+            created_by=user_id,
+            deleted=False,
+            city_id=None,
+        )
+        user.set_password("qweasdzcx")
+        db_session.add(user)
+        db_session.commit()
+    if not user.city_id:  # type: ignore
+        create_city_for_user(db_session, user)
     return user.to_dict()
 
 
@@ -523,18 +532,20 @@ def seed_other_leader(db_session):
     """
     from app.database.models import Users
 
-    user_id = uuid4()
-    user = Users(
-        user_id=user_id,
-        login="test_other_leader",
-        name="Test Other Leader",
-        role="project-leader",
-        created_by=user_id,
-        deleted=False,
-    )
-    user.set_password("qweasdzcx")
-    db_session.add(user)
-    db_session.commit()
+    user = db_session.query(Users).filter_by(login="test_other_leader").first()
+    if not user:
+        user_id = uuid4()
+        user = Users(
+            user_id=user_id,
+            login="test_other_leader",
+            name="Test Other Leader",
+            role="project-leader",
+            created_by=user_id,
+            deleted=False,
+        )
+        user.set_password("qweasdzcx")
+        db_session.add(user)
+        db_session.commit()
     return user.to_dict()
 
 
