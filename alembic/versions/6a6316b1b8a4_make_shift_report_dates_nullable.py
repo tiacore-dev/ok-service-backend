@@ -5,11 +5,12 @@ Revises: 2f3df0110a2b
 Create Date: 2025-02-25 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "6a6316b1b8a4"
@@ -26,7 +27,7 @@ def upgrade() -> None:
         nullable=True,
         existing_nullable=False,
         server_default=None,
-        existing_server_default=sa.text("EXTRACT(EPOCH FROM NOW())"),
+        existing_server_default=sa.text("EXTRACT(EPOCH FROM NOW())"),  # type: ignore
     )
     op.alter_column(
         "shift_reports",
@@ -35,7 +36,7 @@ def upgrade() -> None:
         nullable=True,
         existing_nullable=False,
         server_default=None,
-        existing_server_default=sa.text("EXTRACT(EPOCH FROM NOW())"),
+        existing_server_default=sa.text("EXTRACT(EPOCH FROM NOW())"),  # type: ignore
     )
 
 

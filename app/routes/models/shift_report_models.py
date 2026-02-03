@@ -44,7 +44,9 @@ shift_report_model = Model(
         "lng_end": fields.Float(
             required=False, description="Longitude of the shift end"
         ),
-        "ltd_end": fields.Float(required=False, description="Latitude of the shift end"),
+        "ltd_end": fields.Float(
+            required=False, description="Latitude of the shift end"
+        ),
         "distance_start": fields.Float(
             required=False, description="Distance at the shift start"
         ),
