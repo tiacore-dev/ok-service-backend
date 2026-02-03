@@ -101,10 +101,13 @@ def test_project_leader_cannot_assign_other_leader(client, jwt_token_leader, see
     with client.application.app_context():
         from app.database.db_globals import Session
         session = Session()
-        project = session.query(Projects).filter_by(
-            project_id=UUID(project_id)).first()
-        assert project is not None
-        assert str(
-            project.project_leader) == seed_leader["user_id"]
-        assert str(
-            project.project_leader) != seed_other_leader["user_id"]
+        try:
+            project = session.query(Projects).filter_by(
+                project_id=UUID(project_id)).first()
+            assert project is not None
+            assert str(
+                project.project_leader) == seed_leader["user_id"]
+            assert str(
+                project.project_leader) != seed_other_leader["user_id"]
+        finally:
+            session.close()

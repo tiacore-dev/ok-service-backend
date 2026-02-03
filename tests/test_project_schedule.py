@@ -22,11 +22,14 @@ def test_add_project_schedule(client, jwt_token_leader, seed_work, seed_project_
     with client.application.app_context():
         from app.database.db_globals import Session
         session = Session()
-        schedule = session.query(ProjectSchedules).filter_by(
-            quantity=200.0).first()
-        assert str(
-            schedule.project_schedule_id) == response.json['project_schedule_id']
-        assert schedule is not None
+        try:
+            schedule = session.query(ProjectSchedules).filter_by(
+                quantity=200.0).first()
+            assert str(
+                schedule.project_schedule_id) == response.json['project_schedule_id']
+            assert schedule is not None
+        finally:
+            session.close()
 
 
 def test_view_project_schedule(client, jwt_token_leader, seed_project_schedule_own, seed_work):
@@ -64,11 +67,14 @@ def test_edit_project_schedule(client, jwt_token_leader, seed_project_schedule_o
     with client.application.app_context():
         from app.database.db_globals import Session
         session = Session()
-        schedule = session.query(ProjectSchedules).filter_by(
-            project_schedule_id=seed_project_schedule_own['project_schedule_id']).first()
-        assert schedule is not None
-        assert schedule.quantity == 150.0
-        assert schedule.date == 20240105
+        try:
+            schedule = session.query(ProjectSchedules).filter_by(
+                project_schedule_id=seed_project_schedule_own['project_schedule_id']).first()
+            assert schedule is not None
+            assert schedule.quantity == 150.0
+            assert schedule.date == 20240105
+        finally:
+            session.close()
 
 
 def test_hard_delete_project_schedule(client, jwt_token_leader, seed_project_schedule_own, db_session):

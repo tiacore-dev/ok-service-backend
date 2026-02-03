@@ -101,6 +101,12 @@ class Users(Base):
         "WorkPrices", back_populates="work_price_creator"
     )
     created_works = relationship("Works", back_populates="work_creator")
+    created_materials = relationship(
+        "Materials", back_populates="material_creator"
+    )
+    created_work_material_relations = relationship(
+        "WorkMaterialRelations", back_populates="work_material_relation_creator"
+    )
     created_cities = relationship(
         "Cities", back_populates="creator", foreign_keys="[Cities.created_by]"
     )

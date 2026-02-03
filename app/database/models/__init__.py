@@ -14,3 +14,5 @@ from .works import Works
 from .logs import Logs
 from .subscriptions import Subscriptions
 from .leaves import Leaves, AbsenceReason
+from .materials import Materials
+from .work_material_relations import WorkMaterialRelations

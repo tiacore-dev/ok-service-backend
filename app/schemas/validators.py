@@ -219,3 +219,23 @@ def validate_leave_exists(leave_id_str):
         raise ValidationError(f"Leave with id={leave_id} does not exist")
 
     return leave_id_str
+
+
+def validate_material_exists(material_id_str):
+    """Проверяет, существует ли запись в materials по material_id (UUID)."""
+    if not material_id_str:
+        return None
+
+    try:
+        material_id = UUID(material_id_str)
+    except ValueError as exc:
+        raise ValidationError("Invalid UUID format") from exc
+
+    from app.database.managers.materials_manager import MaterialsManager
+
+    db = MaterialsManager()
+    material = db.get_record_by_id(material_id)
+    if not material:
+        raise ValidationError(f"Material with id={material_id} does not exist")
+
+    return material_id_str

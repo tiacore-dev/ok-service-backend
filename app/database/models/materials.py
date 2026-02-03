@@ -27,6 +27,9 @@ class Materials(Base):
     material_creator = relationship(
         "Users", back_populates="created_materials", foreign_keys=[created_by]
     )
+    work_materials = relationship(
+        "WorkMaterialRelations", back_populates="materials"
+    )
 
     def __repr__(self):
         return f"<Materials(material_id={self.material_id}, name={self.name}, "

@@ -68,9 +68,12 @@ def test_edit_shift_report_detail(client, jwt_token, seed_shift_report_detail):
         from app.database.db_globals import Session
         session = Session()
         from app.database.models import ShiftReportDetails
-        detail = session.query(ShiftReportDetails).filter_by(
-            shift_report_detail_id=seed_shift_report_detail['shift_report_detail_id']).first()
-        assert detail.quantity == 3.0
+        try:
+            detail = session.query(ShiftReportDetails).filter_by(
+                shift_report_detail_id=seed_shift_report_detail['shift_report_detail_id']).first()
+            assert detail.quantity == 3.0
+        finally:
+            session.close()
 
 
 def test_delete_shift_report_detail(client, jwt_token, seed_shift_report_detail, db_session):

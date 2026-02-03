@@ -52,20 +52,23 @@ def test_add_shift_report(
         from app.database.db_globals import Session
 
         session = Session()
-        report = session.query(ShiftReports).filter_by(date=20240102).first()
-        assert report is not None
-        assert str(report.user) == seed_user["user_id"]
-        assert str(report.project) == seed_project["project_id"]
-        assert report.signed is True
-        assert report.date_start == 20240102
-        assert report.date_end == 20240102
-        assert report.lng_start == 37.618
-        assert report.ltd_start == 55.756
-        assert report.lng_end == 37.619
-        assert report.ltd_end == 55.757
-        assert report.distance_start == 12.5
-        assert report.distance_end == 18.75
-        assert report.comment == "Test shift report comment"
+        try:
+            report = session.query(ShiftReports).filter_by(date=20240102).first()
+            assert report is not None
+            assert str(report.user) == seed_user["user_id"]
+            assert str(report.project) == seed_project["project_id"]
+            assert report.signed is True
+            assert report.date_start == 20240102
+            assert report.date_end == 20240102
+            assert report.lng_start == 37.618
+            assert report.ltd_start == 55.756
+            assert report.lng_end == 37.619
+            assert report.ltd_end == 55.757
+            assert report.distance_start == 12.5
+            assert report.distance_end == 18.75
+            assert report.comment == "Test shift report comment"
+        finally:
+            session.close()
 
 
 def test_view_shift_report(
@@ -130,13 +133,16 @@ def test_soft_delete_shift_report(client, jwt_token, seed_shift_report):
         from app.database.db_globals import Session
 
         session = Session()
-        report = (
-            session.query(ShiftReports)
-            .filter_by(shift_report_id=seed_shift_report["shift_report_id"])
-            .first()
-        )
-        assert report is not None
-        assert report.deleted is True
+        try:
+            report = (
+                session.query(ShiftReports)
+                .filter_by(shift_report_id=seed_shift_report["shift_report_id"])
+                .first()
+            )
+            assert report is not None
+            assert report.deleted is True
+        finally:
+            session.close()
 
 
 def test_hard_delete_shift_report(client, jwt_token, seed_shift_report, db_session):
@@ -198,23 +204,26 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
         from app.database.db_globals import Session
 
         session = Session()
-        report = (
-            session.query(ShiftReports)
-            .filter_by(shift_report_id=UUID(seed_shift_report["shift_report_id"]))
-            .first()
-        )
-        assert report is not None
-        assert report.date == 20240103
-        assert report.date_start == seed_shift_report["date_start"]
-        assert report.date_end == seed_shift_report["date_end"]
-        assert report.signed is True
-        assert report.lng_start == 40.0
-        assert report.ltd_start == 50.0
-        assert report.lng_end == 41.0
-        assert report.ltd_end == 51.0
-        assert report.distance_start == 22.0
-        assert report.distance_end == 24.0
-        assert report.comment == "Updated comment"
+        try:
+            report = (
+                session.query(ShiftReports)
+                .filter_by(shift_report_id=UUID(seed_shift_report["shift_report_id"]))
+                .first()
+            )
+            assert report is not None
+            assert report.date == 20240103
+            assert report.date_start == seed_shift_report["date_start"]
+            assert report.date_end == seed_shift_report["date_end"]
+            assert report.signed is True
+            assert report.lng_start == 40.0
+            assert report.ltd_start == 50.0
+            assert report.lng_end == 41.0
+            assert report.ltd_end == 51.0
+            assert report.distance_start == 22.0
+            assert report.distance_end == 24.0
+            assert report.comment == "Updated comment"
+        finally:
+            session.close()
 
 
 def test_get_all_shift_reports_with_filters(

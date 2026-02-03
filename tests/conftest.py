@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from flask_jwt_extended import create_access_token
 
 from app import create_app
-from app.database import init_db, set_db_globals
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -41,15 +40,13 @@ def create_city_for_user(db_session, user, name=None):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_database():
+def setup_database(test_app):
     """
     Инициализация глобальной базы данных для всех тестов.
     """
     global GLOBAL_BASE  # pylint: disable=global-statement
 
-    # Инициализируем базу данных
-    engine, Session, Base = init_db(TEST_DATABASE_URL, "testing")
-    set_db_globals(engine, Session, Base)
+    from app.database.db_globals import Base, Session, engine
 
     GLOBAL_BASE = Base  # Сохраняем Base в глобальной переменной
 
@@ -87,6 +84,8 @@ def clean_db(db_session):
     for table in reversed(
         GLOBAL_BASE.metadata.sorted_tables  # type: ignore
     ):  # Используем GLOBAL_BASE
+        if table.name in {"roles", "object_statuses"}:
+            continue
         db_session.execute(table.delete())
     db_session.commit()
 
@@ -100,7 +99,7 @@ def cleanup_scoped_session():
 
 
 @pytest.fixture
-def db_session():
+def db_session(test_app):
     """
     Возвращает новую сессию базы данных для каждого теста.
     """
@@ -113,8 +112,8 @@ def db_session():
     Session.remove()
 
 
-@pytest.fixture
-def test_app(db_session):
+@pytest.fixture(scope="session")
+def test_app():
     """
     Создаёт экземпляр Flask-приложения для тестирования с подключением к тестовой базе.
     """
@@ -125,9 +124,6 @@ def test_app(db_session):
             "SQLALCHEMY_DATABASE_URI": TEST_DATABASE_URL,
         }
     )
-
-    # Передаем тестовую сессию в приложение
-    app.dependency_overrides = {"db_session": lambda: db_session}  # type: ignore
     return app
 
 
@@ -400,6 +396,38 @@ def seed_work_price(db_session, seed_work, seed_user):
     db_session.add(work_price)
     db_session.commit()
     return work_price.to_dict()
+
+
+@pytest.fixture
+def seed_material(db_session, seed_user):
+    from app.database.models import Materials
+
+    material = Materials(
+        material_id=uuid4(),
+        name="Test Material",
+        measurement_unit="kg",
+        created_by=seed_user["user_id"],
+        deleted=False,
+    )
+    db_session.add(material)
+    db_session.commit()
+    return material.to_dict()
+
+
+@pytest.fixture
+def seed_work_material_relation(db_session, seed_work, seed_material, seed_user):
+    from app.database.models import WorkMaterialRelations
+
+    relation = WorkMaterialRelations(
+        work_material_relation_id=uuid4(),
+        work=seed_work["work_id"],
+        material=seed_material["material_id"],
+        quantity=5.5,
+        created_by=seed_user["user_id"],
+    )
+    db_session.add(relation)
+    db_session.commit()
+    return relation.to_dict()
 
 
 @pytest.fixture
