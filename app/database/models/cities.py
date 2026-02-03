@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import BigInteger, Boolean, Column, ForeignKey, String, UUID
+from sqlalchemy import UUID, BigInteger, Boolean, Column, ForeignKey, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
@@ -39,13 +39,13 @@ class Cities(Base):
         foreign_keys=[created_by],
         passive_deletes=True,
     )
-    users = relationship(
-        "Users", back_populates="city", foreign_keys="Users.city_id"
-    )
+    users = relationship("Users", back_populates="city", foreign_keys="Users.city_id")
     objects = relationship("Objects", back_populates="city")
 
     def __repr__(self):
-        return f"<Cities(city_id={self.city_id}, name={self.name}, deleted={self.deleted})>"
+        return f"<Cities(city_id={self.city_id}, name={self.name}, deleted={
+            self.deleted
+        })>"
 
     def to_dict(self):
         return {

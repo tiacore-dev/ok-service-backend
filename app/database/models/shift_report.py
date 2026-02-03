@@ -6,10 +6,11 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Column,
+    Float,
     ForeignKey,
     Integer,
     Sequence,
-    Float,
+    Text,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
@@ -66,6 +67,8 @@ class ShiftReports(Base):
     )
     users = relationship("Users", back_populates="shift_report", foreign_keys=[user])
 
+    comment = Column(Text, nullable=True)
+
     def __repr__(self):
         return (
             f"<ShiftReports(shift_report_id={self.shift_report_id}, user={self.user}, "
@@ -98,4 +101,5 @@ class ShiftReports(Base):
             "night_shift": self.night_shift,
             "extreme_conditions": self.extreme_conditions,
             "number": self.number,
+            "comment": self.comment,
         }

@@ -44,14 +44,16 @@ class ShiftReportDetails(Base):
 
     def __repr__(self):
         return (
-            f"<ShiftReportDetails(shift_report_detail_id={self.shift_report_detail_id}, "
+            f"<ShiftReportDetails(shift_report_detail_id={
+                self.shift_report_detail_id
+            }, "
             f"shift_report={self.shift_report},  "
             f"quantity={self.quantity}, summ={self.summ})>"
         )
 
     def to_dict(self):
         project_work = None
-        if self.project_work:
+        if self.project_work:  # type: ignore
             project_work = {
                 "project_work_id": str(self.project_work),
                 "name": self.project_works.project_work_name

@@ -77,6 +77,8 @@ class ShiftReportCreateSchema(Schema):
 
     extreme_conditions = fields.Boolean(required=False)
 
+    comment = fields.String(required=False, allow_none=True)
+
     details = fields.List(fields.Nested(ShiftReportDetailSchema), required=False)
 
     @validates("date")
@@ -131,6 +133,7 @@ class ShiftReportEditSchema(Schema):
     night_shift = fields.Boolean(required=False, allow_none=True)
     extreme_conditions = fields.Boolean(required=False, allow_none=True)
     deleted = fields.Boolean(required=False, allow_none=True)
+    comment = fields.String(required=False, allow_none=True)
 
     @validates_schema
     def validate_date_range(self, data, **kwargs):
@@ -192,6 +195,7 @@ class ShiftReportFilterSchema(Schema):
     night_shift = fields.Boolean(required=False)
     extreme_conditions = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False)
+    comment = fields.String(required=False)
 
     @pre_load
     def split_list_filters(self, data, **kwargs):

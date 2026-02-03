@@ -470,6 +470,7 @@ def seed_shift_report(db_session, seed_user, seed_project):
         distance_start=10.5,
         distance_end=12.0,
         deleted=False,
+        comment="Seed shift report comment",
     )
     db_session.add(report)
     db_session.commit()
@@ -498,6 +499,7 @@ def seed_shift_reports(db_session, seed_user, seed_project):
             distance_start=10.5 + i,
             distance_end=12.0 + i,
             deleted=False,
+            comment=f"Seed shift report comment {i}",
         )
         db_session.add(report)
         reports.append(report)

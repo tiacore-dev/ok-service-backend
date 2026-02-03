@@ -121,6 +121,7 @@ class ShiftReportsManager(ShiftManager):
             "created_by": created_by,
             "extreme_conditions": data.get("extreme_conditions", False),
             "night_shift": data.get("night_shift", False),
+            "comment": data.get("comment"),
         }
 
         shift_report_details_data = data.get(
@@ -129,7 +130,9 @@ class ShiftReportsManager(ShiftManager):
 
         with self.session_scope() as session:
             try:
-                leave_start = shift_report_data["date_start"] or shift_report_data["date"]
+                leave_start = (
+                    shift_report_data["date_start"] or shift_report_data["date"]
+                )
                 leave_end = shift_report_data["date_end"] or shift_report_data["date"]
                 leave_conflict = (
                     session.query(Leaves)
@@ -230,7 +233,8 @@ class ShiftReportsManager(ShiftManager):
     def get_shift_reports_filtered(
         self, offset=0, limit=None, sort_by="created_at", sort_order="desc", **filters
     ):
-        """Фильтрация отчетов по сменам с поддержкой диапазона дат и сортировки по user/project.name."""
+        """Фильтрация отчетов по сменам
+        Цс поддержкой диапазона дат и сортировки по user/project.name."""
         logger.debug(
             "get_shift_reports_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
             extra={"login": "database"},
@@ -388,7 +392,9 @@ class ShiftReportsDetailsManager(ShiftManager):
         """Пересчитывает сумму для конкретной работы"""
         logger.debug(
             f"[DEBUG] Входные данные: work_id={work_id}, quantity={quantity}, "
-            f"extreme_conditions={extreme_conditions}, night_shift={night_shift}, user_id={user_id}"
+            f"extreme_conditions={extreme_conditions}, night_shift={
+                night_shift
+            }, user_id={user_id}"
         )
 
         # Преобразуем ID к UUID, если это строка
@@ -419,7 +425,9 @@ class ShiftReportsDetailsManager(ShiftManager):
 
         if not work_price:
             logger.warning(
-                f"[WARNING] Цена работы для work_id {work_id} и категории {user.category} не найдена!"
+                f"[WARNING] Цена работы для work_id {work_id} и категории {
+                    user.category
+                } не найдена!"
             )
             return Decimal(0)
 
@@ -452,7 +460,9 @@ class ShiftReportsDetailsManager(ShiftManager):
         try:
             with self.session_scope() as session:
                 logger.debug(
-                    f"[DEBUG] Обновление shift_report_detail {shift_report_detail_id} с данными: {data}"
+                    f"[DEBUG] Обновление shift_report_detail {
+                        shift_report_detail_id
+                    } с данными: {data}"
                 )
 
                 detail = (
@@ -466,7 +476,9 @@ class ShiftReportsDetailsManager(ShiftManager):
 
                 if not detail:
                     logger.warning(
-                        f"[WARNING] Запись ShiftReportDetails с ID {shift_report_detail_id} не найдена!"
+                        f"[WARNING] Запись ShiftReportDetails с ID {
+                            shift_report_detail_id
+                        } не найдена!"
                     )
                     return None
 
@@ -501,7 +513,9 @@ class ShiftReportsDetailsManager(ShiftManager):
 
                 session.commit()
                 logger.info(
-                    f"[INFO] Обновлены данные для shift_report_detail {shift_report_detail_id}"
+                    f"[INFO] Обновлены данные для shift_report_detail {
+                        shift_report_detail_id
+                    }"
                 )
 
                 return detail
@@ -516,7 +530,8 @@ class ShiftReportsDetailsManager(ShiftManager):
     def recalculate_by_conditions(
         self, shift_report_id, extreme_conditions, night_shift, user
     ):
-        """Пересчитывает сумму (summ) для всех записей в ShiftReportDetails, если изменились условия"""
+        """Пересчитывает сумму (summ) для всех записей
+        в ShiftReportDetails, если изменились условия"""
 
         shift_report_id = self._convert_to_uuid(shift_report_id)
         user = self._convert_to_uuid(user)
@@ -525,7 +540,9 @@ class ShiftReportsDetailsManager(ShiftManager):
             try:
                 logger.debug(
                     f"[DEBUG] Начало пересчёта для shift_report_id={shift_report_id}, "
-                    f"extreme_conditions={extreme_conditions}, night_shift={night_shift}, user={user}"
+                    f"extreme_conditions={extreme_conditions}, night_shift={
+                        night_shift
+                    }, user={user}"
                 )
 
                 details = (
@@ -538,13 +555,17 @@ class ShiftReportsDetailsManager(ShiftManager):
 
                 if not details:
                     logger.warning(
-                        f"[WARNING] Нет записей в ShiftReportDetails для shift_report_id={shift_report_id}"
+                        f"[WARNING] Нет записей в ShiftReportDetails для shift_report_id={
+                            shift_report_id
+                        }"
                     )
                     return
 
                 for detail in details:
                     logger.debug(
-                        f"[DEBUG] Пересчёт для detail_id={detail.shift_report_detail_id}, "
+                        f"[DEBUG] Пересчёт для detail_id={
+                            detail.shift_report_detail_id
+                        }, "
                         f"work={detail.work}, quantity={detail.quantity}"
                     )
 
@@ -567,7 +588,9 @@ class ShiftReportsDetailsManager(ShiftManager):
 
             except Exception as e:
                 logger.error(
-                    f"[ERROR] Ошибка при пересчете суммы для ShiftReport {shift_report_id}: {e}",
+                    f"[ERROR] Ошибка при пересчете суммы для ShiftReport {
+                        shift_report_id
+                    }: {e}",
                     extra={"login": "database"},
                 )
                 raise

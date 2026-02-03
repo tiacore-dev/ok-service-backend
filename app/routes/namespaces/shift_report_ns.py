@@ -376,6 +376,7 @@ class ShiftReportAll(Resource):
             "created_by": args.get("created_by"),  # type: ignore
             "created_at": args.get("created_at"),  # type: ignore
             "deleted": args.get("deleted", None),  # type: ignore
+            "comment": args.get("comment"),  # type: ignore
         }
         if current_user["role"] == "user":
             filters["user"] = [UUID(current_user["user_id"])]
