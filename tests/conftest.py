@@ -431,6 +431,40 @@ def seed_work_material_relation(db_session, seed_work, seed_material, seed_user)
 
 
 @pytest.fixture
+def seed_material_pcs(db_session, seed_user):
+    from app.database.models import Materials
+
+    material = Materials(
+        material_id=uuid4(),
+        name="Test Material Pcs",
+        measurement_unit="шт.",
+        created_by=seed_user["user_id"],
+        deleted=False,
+    )
+    db_session.add(material)
+    db_session.commit()
+    return material.to_dict()
+
+
+@pytest.fixture
+def seed_work_material_relation_pcs(
+    db_session, seed_work, seed_material_pcs, seed_user
+):
+    from app.database.models import WorkMaterialRelations
+
+    relation = WorkMaterialRelations(
+        work_material_relation_id=uuid4(),
+        work=seed_work["work_id"],
+        material=seed_material_pcs["material_id"],
+        quantity=1.7,
+        created_by=seed_user["user_id"],
+    )
+    db_session.add(relation)
+    db_session.commit()
+    return relation.to_dict()
+
+
+@pytest.fixture
 def seed_project_material(db_session, seed_project, seed_material, seed_user):
     from app.database.models import ProjectMaterials
 

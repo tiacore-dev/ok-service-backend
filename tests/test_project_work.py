@@ -1,10 +1,18 @@
 
 
-def test_add_project_work(client, jwt_token_leader, db_session, seed_work, seed_project_own):
+def test_add_project_work(
+    client,
+    jwt_token_leader,
+    db_session,
+    seed_work,
+    seed_project_own,
+    seed_work_material_relation,
+    seed_work_material_relation_pcs,
+):
     """
     Тест на добавление нового ProjectWork через API.
     """
-    from app.database.models import ProjectWorks
+    from app.database.models import ProjectMaterials, ProjectWorks
 
     data = {
         "project": seed_project_own['project_id'],
@@ -28,6 +36,18 @@ def test_add_project_work(client, jwt_token_leader, db_session, seed_work, seed_
     assert project_work.quantity == 200.0
     assert project_work.summ == 10000.0
     assert project_work.signed is False
+
+    records = db_session.query(ProjectMaterials).filter_by(
+        project_work=project_work.project_work_id
+    ).all()
+    assert len(records) == 2
+    quantities = {str(r.material): float(r.quantity) for r in records}
+    assert quantities[seed_work_material_relation["material"]] == 200.0 * float(
+        seed_work_material_relation["quantity"]
+    )
+    assert quantities[seed_work_material_relation_pcs["material"]] == int(
+        200.0 * float(seed_work_material_relation_pcs["quantity"])
+    )
 
 
 def test_view_project_work(client, jwt_token_leader, seed_project_work_own, seed_work):
@@ -67,13 +87,35 @@ def test_soft_delete_project_work(client, jwt_token_leader, seed_project_work_ow
     assert response.json['project_work_id'] == seed_project_work_own['project_work_id']
 
 
-def test_hard_delete_project_work(client, jwt_token_leader, seed_project_work_own, db_session):
+def test_hard_delete_project_work(
+    client,
+    jwt_token_leader,
+    seed_project_work_own,
+    db_session,
+    seed_work_material_relation,
+    seed_work_material_relation_pcs,
+):
     """
     Тест на жесткое удаление ProjectWork.
     """
-    from app.database.models import ProjectWorks
+    from app.database.models import ProjectMaterials, ProjectWorks
+    from app.database.managers.projects_managers import ProjectWorksManager
 
     headers = {"Authorization": f"Bearer {jwt_token_leader}"}
+
+    project_work = db_session.query(ProjectWorks).filter_by(
+        project_work_id=seed_project_work_own["project_work_id"]
+    ).first()
+    ProjectWorksManager()._sync_project_materials(
+        db_session, project_work, project_work.created_by
+    )
+    db_session.commit()
+
+    records = db_session.query(ProjectMaterials).filter_by(
+        project_work=seed_project_work_own["project_work_id"]
+    ).all()
+    assert len(records) == 2
+
     response = client.delete(
         f"/project_works/{str(seed_project_work_own['project_work_id'])}/delete/hard", headers=headers)
 
@@ -86,12 +128,24 @@ def test_hard_delete_project_work(client, jwt_token_leader, seed_project_work_ow
         project_work_id=seed_project_work_own["project_work_id"]).first()
     assert project_work is None
 
+    records = db_session.query(ProjectMaterials).filter_by(
+        project_work=seed_project_work_own["project_work_id"]
+    ).all()
+    assert records == []
 
-def test_edit_project_work(client, jwt_token_leader, seed_project_work_own, db_session):
+
+def test_edit_project_work(
+    client,
+    jwt_token_leader,
+    seed_project_work_own,
+    db_session,
+    seed_work_material_relation,
+    seed_work_material_relation_pcs,
+):
     """
     Тест на редактирование данных ProjectWork через API.
     """
-    from app.database.models import ProjectWorks
+    from app.database.models import ProjectMaterials, ProjectWorks
 
     data = {
         "quantity": 300.0,
@@ -112,6 +166,18 @@ def test_edit_project_work(client, jwt_token_leader, seed_project_work_own, db_s
     assert project_work.quantity == 300.0
     assert project_work.summ == 15000.0
     assert project_work.signed is True
+
+    records = db_session.query(ProjectMaterials).filter_by(
+        project_work=seed_project_work_own["project_work_id"]
+    ).all()
+    assert len(records) == 2
+    quantities = {str(r.material): float(r.quantity) for r in records}
+    assert quantities[seed_work_material_relation["material"]] == 300.0 * float(
+        seed_work_material_relation["quantity"]
+    )
+    assert quantities[seed_work_material_relation_pcs["material"]] == int(
+        300.0 * float(seed_work_material_relation_pcs["quantity"])
+    )
 
 
 def test_get_all_project_works(client, jwt_token_leader, seed_project_work_own, seed_work):
