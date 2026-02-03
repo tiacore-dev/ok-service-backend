@@ -180,7 +180,8 @@ def validate_shift_report_exists(shift_report_id_str):
 
 
 def validate_work_category_exists(work_category_id_str):
-    """Проверяет, существует ли запись в work_categoryModel по work_category_id (UUID)."""
+    """Проверяет, существует ли запись в
+    work_categoryModel по work_category_id (UUID)."""
     if not work_category_id_str:
         return None
 
@@ -239,3 +240,26 @@ def validate_material_exists(material_id_str):
         raise ValidationError(f"Material with id={material_id} does not exist")
 
     return material_id_str
+
+
+def validate_shift_report_detail_exists(shift_report_detail_id_str):
+    """Проверяет, существует ли запись в
+    shift_report_details по shift_report_detail_id (UUID)."""
+    if not shift_report_detail_id_str:
+        return None
+
+    try:
+        shift_report_detail_id = UUID(shift_report_detail_id_str)
+    except ValueError as exc:
+        raise ValidationError("Invalid UUID format") from exc
+
+    from app.database.managers.shift_reports_managers import ShiftReportsDetailsManager
+
+    db = ShiftReportsDetailsManager()
+    detail = db.get_record_by_id(shift_report_detail_id)
+    if not detail:
+        raise ValidationError(
+            f"Shift report detail with id={shift_report_detail_id} does not exist"
+        )
+
+    return shift_report_detail_id_str

@@ -107,6 +107,12 @@ class Users(Base):
     created_work_material_relations = relationship(
         "WorkMaterialRelations", back_populates="work_material_relation_creator"
     )
+    created_project_materials = relationship(
+        "ProjectMaterials", back_populates="project_material_creator"
+    )
+    created_shift_report_materials = relationship(
+        "ShiftReportMaterials", back_populates="shift_report_material_creator"
+    )
     created_cities = relationship(
         "Cities", back_populates="creator", foreign_keys="[Cities.created_by]"
     )

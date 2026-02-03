@@ -41,6 +41,9 @@ class ShiftReportDetails(Base):
     )
 
     project_works = relationship("ProjectWorks", back_populates="shift_report_details")
+    shift_report_materials = relationship(
+        "ShiftReportMaterials", back_populates="shift_report_details"
+    )
 
     def __repr__(self):
         return (

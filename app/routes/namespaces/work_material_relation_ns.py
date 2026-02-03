@@ -77,7 +77,9 @@ class WorkMaterialRelationAdd(Resource):
             db = WorkMaterialRelationsManager()
             new_relation = db.add(created_by=current_user["user_id"], **data)  # type: ignore
             logger.info(
-                f"New work material relation added: {new_relation['work_material_relation_id']}",
+                f"New work material relation added: {
+                    new_relation['work_material_relation_id']
+                }",
                 extra={"login": current_user},
             )
             return {
@@ -162,7 +164,9 @@ class WorkMaterialRelationHardDelete(Resource):
                 )
                 return {"msg": "Work material relation not found"}, 404
             return {
-                "msg": f"Work material relation {relation_id} hard deleted successfully",
+                "msg": f"Work material relation {
+                    relation_id
+                } hard deleted successfully",
                 "work_material_relation_id": relation_id,
             }, 200
         except IntegrityError:
@@ -174,7 +178,8 @@ class WorkMaterialRelationHardDelete(Resource):
             )
             abort(
                 409,
-                description="Cannot delete work material relation: dependent data exists.",
+                description="Cannot delete work material relation: "
+                "dependent data exists.",
             )
         except Exception as e:
             logger.error(

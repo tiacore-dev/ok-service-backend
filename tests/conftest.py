@@ -431,6 +431,38 @@ def seed_work_material_relation(db_session, seed_work, seed_material, seed_user)
 
 
 @pytest.fixture
+def seed_project_material(db_session, seed_project, seed_material, seed_user):
+    from app.database.models import ProjectMaterials
+
+    record = ProjectMaterials(
+        project_material_id=uuid4(),
+        project=UUID(seed_project["project_id"]),
+        material=UUID(seed_material["material_id"]),
+        quantity=2.5,
+        created_by=seed_user["user_id"],
+    )
+    db_session.add(record)
+    db_session.commit()
+    return record.to_dict()
+
+
+@pytest.fixture
+def seed_shift_report_material(db_session, seed_shift_report, seed_material, seed_user):
+    from app.database.models import ShiftReportMaterials
+
+    record = ShiftReportMaterials(
+        shift_report_material_id=uuid4(),
+        shift_report=UUID(seed_shift_report["shift_report_id"]),
+        material=UUID(seed_material["material_id"]),
+        quantity=1.5,
+        created_by=seed_user["user_id"],
+    )
+    db_session.add(record)
+    db_session.commit()
+    return record.to_dict()
+
+
+@pytest.fixture
 def seed_object(db_session, seed_user):
     """
     Добавляет тестовый объект в базу перед тестом.
