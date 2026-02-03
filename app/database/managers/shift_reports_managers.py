@@ -12,8 +12,10 @@ from app.database.models import (
     Leaves,
     Projects,
     ShiftReportDetails,
+    ShiftReportMaterials,
     ShiftReports,
     Users,
+    WorkMaterialRelations,
     WorkPrices,
 )
 
@@ -154,8 +156,9 @@ class ShiftReportsManager(ShiftManager):
 
                 # 2. Создаем `shift_report_details`, если есть
                 if shift_report_details_data:
-                    details = [
-                        ShiftReportDetails(
+                    details = []
+                    for detail in shift_report_details_data:
+                        new_detail = ShiftReportDetails(
                             shift_report=new_report.shift_report_id,
                             work=UUID(detail["work"]),
                             quantity=detail["quantity"],
@@ -170,11 +173,17 @@ class ShiftReportsManager(ShiftManager):
                             created_by=created_by,
                             project_work=UUID(detail["project_work"]),
                         )
-                        for detail in shift_report_details_data
-                    ]
+                        details.append(new_detail)
 
                     # Массовая вставка `shift_report_details`
                     session.add_all(details)
+                    session.flush()
+
+                    details_manager = ShiftReportsDetailsManager()
+                    for detail in details:
+                        details_manager._sync_shift_report_materials(
+                            session, detail, created_by
+                        )
 
                 session.commit()  # Сохраняем все одной транзакцией
 
@@ -359,6 +368,40 @@ class ShiftReportsDetailsManager(ShiftManager):
     def model(self):
         return ShiftReportDetails
 
+    @staticmethod
+    def _sync_shift_report_materials(session, detail, created_by):
+        session.query(ShiftReportMaterials).filter(
+            ShiftReportMaterials.shift_report_detail == detail.shift_report_detail_id
+        ).delete(synchronize_session=False)
+
+        relations = (
+            session.query(WorkMaterialRelations)
+            .options(joinedload(WorkMaterialRelations.materials))
+            .filter(WorkMaterialRelations.work == detail.work)
+            .all()
+        )
+        if not relations:
+            return
+
+        for relation in relations:
+            quantity = Decimal(detail.quantity) * Decimal(relation.quantity)
+            material = relation.materials
+            if material and material.measurement_unit:
+                unit = str(material.measurement_unit).strip().lower()
+                if unit == "шт.":
+                    quantity = Decimal(int(quantity))
+
+            session.add(
+                ShiftReportMaterials(
+                    shift_report_material_id=uuid4(),
+                    shift_report=detail.shift_report,
+                    material=relation.material,
+                    quantity=quantity,
+                    shift_report_detail=detail.shift_report_detail_id,
+                    created_by=created_by,
+                )
+            )
+
     def add_shift_report_deatails(self, created_by, **data):
         try:
             with self.session_scope() as session:
@@ -379,6 +422,9 @@ class ShiftReportsDetailsManager(ShiftManager):
                 except Exception:
                     session.rollback()
                     raise
+                self._sync_shift_report_materials(
+                    session, new_record, created_by or new_record.created_by
+                )
                 return new_record.to_dict()
         except Exception as e:
             logger.error(
@@ -511,6 +557,9 @@ class ShiftReportsDetailsManager(ShiftManager):
                     shift_report.user,
                 )
 
+                self._sync_shift_report_materials(
+                    session, detail, detail.created_by
+                )
                 session.commit()
                 logger.info(
                     f"[INFO] Обновлены данные для shift_report_detail {
@@ -523,6 +572,29 @@ class ShiftReportsDetailsManager(ShiftManager):
         except Exception as e:
             logger.error(
                 f"[ERROR] Ошибка при обновлении записи {shift_report_detail_id}: {e}",
+                extra={"login": "database"},
+            )
+            raise
+
+    def delete(self, record_id):
+        try:
+            with self.session_scope() as session:
+                record = (
+                    session.query(ShiftReportDetails)
+                    .filter(ShiftReportDetails.shift_report_detail_id == record_id)
+                    .first()
+                )
+                if not record:
+                    return None
+
+                session.query(ShiftReportMaterials).filter(
+                    ShiftReportMaterials.shift_report_detail == record.shift_report_detail_id
+                ).delete(synchronize_session=False)
+                session.delete(record)
+                return record
+        except Exception as e:
+            logger.error(
+                f"Error deleting shift_report_detail {record_id}: {e}",
                 extra={"login": "database"},
             )
             raise
