@@ -164,12 +164,22 @@ def test_delete_shift_report_detail(
     assert records == []
 
 
-def test_get_all_shift_report_details_with_filters(client, jwt_token, seed_shift_report_detail, seed_shift_report, seed_work):
+def test_get_all_shift_report_details_with_filters(
+    client,
+    jwt_token,
+    seed_shift_report_detail,
+    seed_shift_report,
+    seed_work,
+    seed_project_work_own,
+    seed_project_work_other,
+):
     headers = {"Authorization": f"Bearer {jwt_token}"}
-    params = {
-        "shift_report": seed_shift_report['shift_report_id'],
-        "work": seed_work['work_id']
-    }
+    params = [
+        ("shift_report", seed_shift_report["shift_report_id"]),
+        ("work", seed_work["work_id"]),
+        ("project_work", seed_project_work_own["project_work_id"]),
+        ("project_work", seed_project_work_other["project_work_id"]),
+    ]
     response = client.get("/shift_report_details/all",
                           query_string=params, headers=headers)
 

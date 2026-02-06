@@ -322,8 +322,12 @@ class ShiftReportDetailsAll(Resource):
 
         # Валидация query-параметров через Marshmallow
         schema = ShiftReportDetailsFilterSchema()
+        raw_args = request.args.to_dict()
+        project_work_args = request.args.getlist("project_work")
+        if project_work_args:
+            raw_args["project_work"] = project_work_args  # type: ignore
         try:
-            args = schema.load(request.args)  # Валидируем query-параметры
+            args = schema.load(raw_args)  # Валидируем query-параметры
         except ValidationError as err:
             logger.error(
                 f"Validation error: {err.messages}", extra={"login": current_user}
@@ -333,10 +337,13 @@ class ShiftReportDetailsAll(Resource):
         limit = args.get("limit", 10)  # type: ignore
         sort_by = args.get("sort_by")  # type: ignore
         sort_order = args.get("sort_order", "desc")  # type: ignore
+        project_work_filter = args.get("project_work") or []  # type: ignore
         filters = {
             "shift_report": args.get("shift_report"),  # type: ignore
             "work": args.get("work"),  # type: ignore
-            "project_work": args.get("project_work"),  # type: ignore
+            "project_work": [UUID(work_id) for work_id in project_work_filter]
+            if project_work_filter
+            else None,  # type: ignore
             "min_quantity": args.get("min_quantity"),  # type: ignore
             "max_quantity": args.get("max_quantity"),  # type: ignore
             "min_summ": args.get("min_summ"),  # type: ignore

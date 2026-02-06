@@ -112,7 +112,10 @@ shift_report_details_filter_parser.add_argument(
     "shift_report", type=str, help="Filter by shift report ID"
 )
 shift_report_details_filter_parser.add_argument(
-    "project_work", type=str, help="Filter by project work id"
+    "project_work",
+    type=str,
+    action="append",
+    help="Filter by project work IDs (can be passed multiple times or comma-separated)",
 )
 shift_report_details_filter_parser.add_argument(
     "work", type=str, help="Filter by work ID"

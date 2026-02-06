@@ -414,6 +414,13 @@ class BaseDBManager(ABC):
                             extra={"login": "database"},
                         )
 
+                    elif isinstance(value, (list, tuple, set)):
+                        query = query.filter(column.in_(value))
+                        logger.debug(
+                            f"Применяем IN-фильтр для {key}: {key} IN {value}",
+                            extra={"login": "database"},
+                        )
+
                     # Поля, требующие точного сравнения
                     elif key in EXACT_MATCH_FIELDS:
                         query = query.filter(column == value)
