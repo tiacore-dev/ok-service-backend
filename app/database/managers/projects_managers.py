@@ -519,7 +519,9 @@ class ProjectWorksManager(BaseDBManager):
                     return None
 
                 logger.info(
-                    f"Найден project_leader ID {project_leader} для project_work_id {project_work_id}",
+                    f"Найден project_leader ID {project_leader} для project_work_id {
+                        project_work_id
+                    }",
                     extra={"login": "database"},
                 )
                 return str(project_leader)  # Приводим UUID к строке
