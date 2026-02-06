@@ -15,6 +15,7 @@ from app.database.models import (
     ProjectSchedules,
     ProjectWorks,
     ShiftReportDetails,
+    ShiftReportMaterials,
     ShiftReports,
     WorkMaterialRelations,
 )
@@ -299,6 +300,89 @@ class ProjectsManager(BaseDBManager):
         except Exception as e:
             logger.error(
                 f"Error fetching project stats by project_work for project {
+                    project_id
+                }: {e}",
+                extra={"login": "database"},
+            )
+            return {}
+
+    def get_project_stats_by_project_materials(self, project_id):
+        try:
+            logger.debug(
+                f"Fetching project stats BY PROJECT MATERIALS for project id: {
+                    project_id
+                }",
+                extra={"login": "database"},
+            )
+
+            with self.session_scope() as session:
+                project_materials = (
+                    session.query(ProjectMaterials)
+                    .filter(ProjectMaterials.project == project_id)
+                    .all()
+                )
+
+                result = {
+                    str(pm.material): {
+                        "project_material_quantity": 0,
+                        "shift_report_materials_quantity": 0,
+                        "material_name": pm.materials.name if pm.materials else None,
+                    }
+                    for pm in project_materials
+                }
+
+                for pm in project_materials:
+                    material_id = str(pm.material)
+                    quantity = pm.quantity
+                    if isinstance(quantity, Decimal):
+                        quantity = float(quantity)
+                    if material_id not in result:
+                        result[material_id] = {
+                            "project_material_quantity": 0,
+                            "shift_report_materials_quantity": 0,
+                            "material_name": pm.materials.name
+                            if pm.materials
+                            else None,
+                        }
+                    result[material_id]["project_material_quantity"] += quantity
+
+                reports = (
+                    session.query(ShiftReports)
+                    .filter(
+                        ShiftReports.project == project_id,
+                        ShiftReports.signed.is_(True),
+                    )
+                    .all()
+                )
+
+                report_ids = [report.shift_report_id for report in reports]
+                if report_ids:
+                    shift_materials = (
+                        session.query(ShiftReportMaterials)
+                        .filter(ShiftReportMaterials.shift_report.in_(report_ids))
+                        .all()
+                    )
+                else:
+                    shift_materials = []
+
+                for sm in shift_materials:
+                    material_id = str(sm.material)
+                    quantity = sm.quantity
+                    if isinstance(quantity, Decimal):
+                        quantity = float(quantity)
+
+                    if material_id not in result:
+                        result[material_id] = {
+                            "project_material_quantity": 0,
+                            "shift_report_materials_quantity": 0,
+                            "material_name": None,
+                        }
+                    result[material_id]["shift_report_materials_quantity"] += quantity
+
+                return result
+        except Exception as e:
+            logger.error(
+                f"Error fetching project stats by project materials for project {
                     project_id
                 }: {e}",
                 extra={"login": "database"},
