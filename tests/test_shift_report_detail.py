@@ -77,7 +77,9 @@ def test_add_shift_report_detail(
     )
 
 
-def test_view_shift_report_detail(client, jwt_token, seed_shift_report_detail):
+def test_view_shift_report_detail(
+    client, jwt_token, seed_shift_report_detail, seed_shift_report
+):
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.get(
         f"""/shift_report_details/{
@@ -92,6 +94,15 @@ def test_view_shift_report_detail(client, jwt_token, seed_shift_report_detail):
     assert response.json["shift_report_detail"]["project_work"][
         "project_work_id"
     ] == seed_shift_report_detail["project_work"]["project_work_id"]
+    assert response.json["shift_report_detail"]["shift_report"]["id"] == seed_shift_report[
+        "shift_report_id"
+    ]
+    assert response.json["shift_report_detail"]["shift_report"]["user_id"] == seed_shift_report[
+        "user"
+    ]
+    assert response.json["shift_report_detail"]["shift_report"]["date"] == seed_shift_report[
+        "date"
+    ]
 
 
 def test_edit_shift_report_detail(
@@ -212,5 +223,6 @@ def test_post_all_shift_report_details_by_ids(client, jwt_token, seed_shift_repo
     details = data["shift_report_details"]
     assert isinstance(details, list)
     assert len(details) >= 1
-    assert any(detail["shift_report"]
-               in shift_report_ids for detail in details)
+    assert any(
+        detail["shift_report"]["id"] in shift_report_ids for detail in details
+    )

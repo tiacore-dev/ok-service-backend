@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import UUID, BigInteger, Column, ForeignKey, Numeric
@@ -27,7 +28,7 @@ class ShiftReportDetails(Base):
     summ = Column(Numeric(precision=10, scale=2), nullable=False)
     created_at = Column(
         BigInteger,
-        default=lambda: int(datetime.utcnow().timestamp()),
+        default=lambda: int(datetime.now(timezone.utc).timestamp()),
         server_default=text("EXTRACT(EPOCH FROM NOW())"),
         nullable=False,
     )
@@ -63,10 +64,17 @@ class ShiftReportDetails(Base):
                 if self.project_works
                 else None,
             }
+        shift_report: dict[str, Any] = {"id": str(self.shift_report)}
+        if self.shift_reports:
+            shift_report["user_id"] = str(self.shift_reports.user)
+            shift_report["date"] = self.shift_reports.date
+        else:
+            shift_report["user_id"] = None
+            shift_report["date"] = None
         return {
             "shift_report_detail_id": str(self.shift_report_detail_id),
             "project_work": project_work,
-            "shift_report": str(self.shift_report),
+            "shift_report": shift_report,
             "work": str(self.work),
             "quantity": self.quantity,
             "created_by": str(self.created_by),

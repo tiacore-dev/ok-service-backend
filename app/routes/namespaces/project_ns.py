@@ -374,7 +374,8 @@ class ProjectStats(Resource):
 #                 )
 #                 return {"msg": "Stats not found", "stats": {}}, 200
 #             logger.info(
-#                 f"Stats BY PROJECT WORK successfully fetched for project {project_id}",
+#                 f"Stats BY PROJECT WORK successfully fetched for
+#  project {project_id}",
 #                 extra={"login": current_user},
 #             )
 #             return {"msg": "Project stats fetched successfully", "stats": stats}, 200

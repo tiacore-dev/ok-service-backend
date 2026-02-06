@@ -24,14 +24,25 @@ project_work_brief_model = Model(
     },
 )
 
+shift_report_brief_model = Model(
+    "ShiftReportBrief",
+    {
+        "id": fields.String(required=True, description="Shift report ID"),
+        "user_id": fields.String(required=True, description="User ID"),
+        "date": fields.Integer(required=True, description="Shift report date"),
+    },
+)
+
 shift_report_details_model = Model(
     "ShiftReportDetails",
     {
         "shift_report_detail_id": fields.String(
             required=True, description="ID of the shift report detail"
         ),
-        "shift_report": fields.String(
-            required=True, description="Shift report details"
+        "shift_report": fields.Nested(
+            shift_report_brief_model,
+            required=True,
+            description="Shift report details",
         ),
         "project_work": fields.Nested(project_work_brief_model, required=False),
         "work": fields.String(required=True, description="Work details"),
