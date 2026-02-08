@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any, cast
 from uuid import UUID
 
 from flask import abort, request
@@ -8,7 +9,6 @@ from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from app.decorators import admin_required
 from app.routes.models.shift_report_material_models import (
     shift_report_material_all_response,
     shift_report_material_create_model,
@@ -30,6 +30,31 @@ shift_report_material_ns = Namespace(
     description="Shift report materials management operations",
 )
 
+
+def _check_shift_report_access(current_user, shift_report_id):
+    if current_user.get("role") == "admin":
+        return None
+
+    try:
+        shift_report_id = UUID(shift_report_id)
+    except ValueError as exc:
+        raise ValueError("Invalid UUID format") from exc
+
+    from app.database.managers.shift_reports_managers import ShiftReportsManager
+
+    shift_reports_manager = ShiftReportsManager()
+    shift_report = shift_reports_manager.get_by_id(record_id=shift_report_id)
+    if not shift_report:
+        return {"msg": "Shift report not found"}, 404
+    if (
+        shift_report["user"] != current_user["user_id"]
+        or shift_report["signed"] is True
+    ):
+        return {"msg": "Forbidden"}, 403
+
+    return None
+
+
 shift_report_material_ns.models[shift_report_material_create_model.name] = (
     shift_report_material_create_model
 )
@@ -50,7 +75,6 @@ shift_report_material_ns.models[shift_report_material_model.name] = (
 @shift_report_material_ns.route("/add")
 class ShiftReportMaterialAdd(Resource):
     @jwt_required()
-    @admin_required
     @shift_report_material_ns.expect(shift_report_material_create_model)
     @shift_report_material_ns.marshal_with(shift_report_material_msg_model)
     def post(self):
@@ -61,7 +85,7 @@ class ShiftReportMaterialAdd(Resource):
 
         schema = ShiftReportMaterialCreateSchema()
         try:
-            data = schema.load(request.json)  # type: ignore
+            data = cast(dict[str, Any], schema.load(request.json))  # type: ignore
         except ValidationError as err:
             logger.error(
                 f"Validation error while adding shift report material: {err.messages}",
@@ -69,6 +93,14 @@ class ShiftReportMaterialAdd(Resource):
             )
             return {"error": err.messages}, 400
         try:
+            shift_report_id = data.get("shift_report")
+            if not shift_report_id:
+                return {
+                    "error": {"shift_report": ["Missing data for required field."]}
+                }, 400
+            access_error = _check_shift_report_access(current_user, shift_report_id)
+            if access_error:
+                return access_error
             from app.database.managers.materials_manager import (
                 ShiftReportMaterialsManager,
             )
@@ -136,7 +168,6 @@ class ShiftReportMaterialView(Resource):
 @shift_report_material_ns.route("/<string:shift_report_material_id>/delete/hard")
 class ShiftReportMaterialHardDelete(Resource):
     @jwt_required()
-    @admin_required
     @shift_report_material_ns.marshal_with(shift_report_material_msg_model)
     def delete(self, shift_report_material_id):
         current_user = json.loads(get_jwt_identity())
@@ -155,6 +186,20 @@ class ShiftReportMaterialHardDelete(Resource):
             )
 
             db = ShiftReportMaterialsManager()
+            record = db.get_by_id(shift_report_material_id)
+            if not record:
+                logger.warning(
+                    f"Shift report material not found for hard delete: {
+                        shift_report_material_id
+                    }",
+                    extra={"login": current_user},
+                )
+                return {"msg": "Shift report material not found"}, 404
+            access_error = _check_shift_report_access(
+                current_user, record["shift_report"]
+            )
+            if access_error:
+                return access_error
             deleted = db.delete(record_id=shift_report_material_id)
             if not deleted:
                 logger.warning(
@@ -193,7 +238,6 @@ class ShiftReportMaterialHardDelete(Resource):
 @shift_report_material_ns.route("/<string:shift_report_material_id>/edit")
 class ShiftReportMaterialEdit(Resource):
     @jwt_required()
-    @admin_required
     @shift_report_material_ns.expect(shift_report_material_create_model)
     @shift_report_material_ns.marshal_with(shift_report_material_msg_model)
     def patch(self, shift_report_material_id):
@@ -205,7 +249,7 @@ class ShiftReportMaterialEdit(Resource):
 
         schema = ShiftReportMaterialEditSchema()
         try:
-            data = schema.load(request.json)  # type: ignore
+            data = cast(dict[str, Any], schema.load(request.json))  # type: ignore
         except ValidationError as err:
             logger.error(
                 f"Validation error while editing shift report material: {err.messages}",
@@ -223,6 +267,21 @@ class ShiftReportMaterialEdit(Resource):
             )
 
             db = ShiftReportMaterialsManager()
+            record = db.get_by_id(shift_report_material_id)
+            if not record:
+                logger.warning(
+                    f"Shift report material not found for edit: {
+                        shift_report_material_id
+                    }",
+                    extra={"login": current_user},
+                )
+                return {"msg": "Shift report material not found"}, 404
+            target_shift_report_id = data.get("shift_report") or record["shift_report"]
+            access_error = _check_shift_report_access(
+                current_user, target_shift_report_id
+            )
+            if access_error:
+                return access_error
             updated = db.update(record_id=shift_report_material_id, **data)  # type: ignore
             if not updated:
                 logger.warning(

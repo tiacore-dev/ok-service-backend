@@ -1,5 +1,5 @@
 def test_add_shift_report_material(
-    client, jwt_token, seed_shift_report, seed_material, db_session
+    client, jwt_token_user, seed_shift_report, seed_material, db_session
 ):
     from app.database.models import ShiftReportMaterials
 
@@ -8,7 +8,7 @@ def test_add_shift_report_material(
         "material": seed_material["material_id"],
         "quantity": 4.5,
     }
-    headers = {"Authorization": f"Bearer {jwt_token}"}
+    headers = {"Authorization": f"Bearer {jwt_token_user}"}
     response = client.post("/shift_report_materials/add", json=data, headers=headers)
 
     assert response.status_code == 200
@@ -31,8 +31,8 @@ def test_add_shift_report_material(
     assert float(record.quantity) == 4.5
 
 
-def test_view_shift_report_material(client, jwt_token, seed_shift_report_material):
-    headers = {"Authorization": f"Bearer {jwt_token}"}
+def test_view_shift_report_material(client, jwt_token_user, seed_shift_report_material):
+    headers = {"Authorization": f"Bearer {jwt_token_user}"}
     response = client.get(
         f"/shift_report_materials/{str(seed_shift_report_material['shift_report_material_id'])}/view",
         headers=headers,
@@ -51,11 +51,11 @@ def test_view_shift_report_material(client, jwt_token, seed_shift_report_materia
 
 
 def test_hard_delete_shift_report_material(
-    client, jwt_token, seed_shift_report_material, db_session
+    client, jwt_token_user, seed_shift_report_material, db_session
 ):
     from app.database.models import ShiftReportMaterials
 
-    headers = {"Authorization": f"Bearer {jwt_token}"}
+    headers = {"Authorization": f"Bearer {jwt_token_user}"}
     response = client.delete(
         f"/shift_report_materials/{str(seed_shift_report_material['shift_report_material_id'])}/delete/hard",
         headers=headers,
@@ -79,11 +79,13 @@ def test_hard_delete_shift_report_material(
     assert record is None
 
 
-def test_edit_shift_report_material(client, jwt_token, seed_shift_report_material, db_session):
+def test_edit_shift_report_material(
+    client, jwt_token_user, seed_shift_report_material, db_session
+):
     from app.database.models import ShiftReportMaterials
 
     data = {"quantity": 8.0}
-    headers = {"Authorization": f"Bearer {jwt_token}"}
+    headers = {"Authorization": f"Bearer {jwt_token_user}"}
     response = client.patch(
         f"/shift_report_materials/{str(seed_shift_report_material['shift_report_material_id'])}/edit",
         json=data,
@@ -106,8 +108,10 @@ def test_edit_shift_report_material(client, jwt_token, seed_shift_report_materia
     assert float(record.quantity) == 8.0
 
 
-def test_get_all_shift_report_materials(client, jwt_token, seed_shift_report_material):
-    headers = {"Authorization": f"Bearer {jwt_token}"}
+def test_get_all_shift_report_materials(
+    client, jwt_token_user, seed_shift_report_material
+):
+    headers = {"Authorization": f"Bearer {jwt_token_user}"}
     response = client.get("/shift_report_materials/all", headers=headers)
 
     assert response.status_code == 200
