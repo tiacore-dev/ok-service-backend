@@ -84,6 +84,10 @@ class ShiftReports(Base):
         )
 
     def to_dict(self):
+        project_name = self.projects.name if self.projects else None
+        object_name = None
+        if self.projects and self.projects.objects:
+            object_name = self.projects.objects.name
         return {
             "shift_report_id": str(self.shift_report_id),
             "user": str(self.user),
@@ -91,6 +95,8 @@ class ShiftReports(Base):
             "date_start": self.date_start,
             "date_end": self.date_end,
             "project": str(self.project),
+            "project_name": project_name,
+            "object_name": object_name,
             "lng_start": self.lng_start,
             "ltd_start": self.ltd_start,
             "lng_end": self.lng_end,

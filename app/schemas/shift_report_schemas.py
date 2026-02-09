@@ -2,8 +2,8 @@ from marshmallow import (
     Schema,
     ValidationError,
     fields,
-    validate,
     pre_load,
+    validate,
     validates,
     validates_schema,
 )
@@ -194,6 +194,7 @@ class ShiftReportFilterSchema(Schema):
     distance_end = fields.Float(required=False)
     night_shift = fields.Boolean(required=False)
     extreme_conditions = fields.Boolean(required=False)
+    signed = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False)
     comment = fields.String(required=False)
 
@@ -217,7 +218,5 @@ class ShiftReportFilterSchema(Schema):
             else:
                 continue
 
-            data[field_name] = [
-                str(val).strip() for val in values if str(val).strip()
-            ]
+            data[field_name] = [str(val).strip() for val in values if str(val).strip()]
         return data

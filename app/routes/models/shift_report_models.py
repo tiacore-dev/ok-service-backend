@@ -35,6 +35,12 @@ shift_report_model = Model(
             required=False, description="Shift end timestamp (nullable)"
         ),
         "project": fields.String(required=True, description="Project details"),
+        "project_name": fields.String(
+            required=False, description="Project name"
+        ),
+        "object_name": fields.String(
+            required=False, description="Object name"
+        ),
         "lng_start": fields.Float(
             required=False, description="Longitude of the shift start"
         ),
@@ -181,6 +187,14 @@ shift_report_filter_parser.add_argument(
     type=lambda x: x.lower() in ["true", "1"],
     required=False,
     help="Флаг для фильтрации по удаленным отчетам",
+)
+
+shift_report_filter_parser.add_argument(
+    "signed",
+    # Интерпретация значения как логического
+    type=lambda x: x.lower() in ["true", "1"],
+    required=False,
+    help="Флаг для фильтрации по согласованным отчетам",
 )
 
 shift_report_filter_parser.add_argument(
