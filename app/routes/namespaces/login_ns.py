@@ -70,6 +70,9 @@ class AuthLogin(Resource):
                 extra={"login": login},
             )
             return {"msg": "User not found"}, 404
+        if user.get("deleted") is True:
+            logger.warning("Authentication blocked: user is deleted", extra={"login": login})
+            return {"msg": "User is deleted"}, 401
         identity = json.dumps(
             {"user_id": user["user_id"], "role": user["role"], "login": login}
         )
