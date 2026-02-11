@@ -72,7 +72,7 @@ shift_report_details_many_msg_model = Model(
     {
         "msg": fields.String(required=True, description="Response message"),
         "shift_report_detail_ids": fields.List(
-            fields.String, description="List of shift report details"
+            fields.String(), description="List of shift report details"
         ),
     },
 )
@@ -81,7 +81,7 @@ shift_report_details_by_report_ids = Model(
     "ShiftReportDetailsByIds",
     {
         "shift_report_ids": fields.List(
-            fields.String, description="List of shift reports to fetch details"
+            fields.String(), description="List of shift reports to fetch details"
         )
     },
 )
@@ -123,6 +123,12 @@ shift_report_details_filter_parser.add_argument(
     "shift_report", type=str, help="Filter by shift report ID"
 )
 shift_report_details_filter_parser.add_argument(
+    "date_from", type=int, required=False, help="Filter by shift report date (from)"
+)
+shift_report_details_filter_parser.add_argument(
+    "date_to", type=int, required=False, help="Filter by shift report date (to)"
+)
+shift_report_details_filter_parser.add_argument(
     "project_work",
     type=str,
     action="append",
@@ -142,4 +148,10 @@ shift_report_details_filter_parser.add_argument(
 )
 shift_report_details_filter_parser.add_argument(
     "max_summ", type=float, required=False, help="Maximum summ filter"
+)
+shift_report_details_filter_parser.add_argument(
+    "created_by", type=str, required=False, help="Filter by creator ID"
+)
+shift_report_details_filter_parser.add_argument(
+    "created_at", type=int, required=False, help="Filter by created at timestamp"
 )

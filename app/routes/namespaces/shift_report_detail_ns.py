@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.routes.models.shift_report_detail_models import (
     project_work_brief_model,
+    shift_report_brief_model,
     shift_report_details_all_response,
     shift_report_details_by_report_ids,
     shift_report_details_create_model,
@@ -41,6 +42,7 @@ shift_report_details_ns.models[shift_report_details_create_model.name] = (
 shift_report_details_ns.models[project_work_brief_model.name] = (
     project_work_brief_model
 )
+shift_report_details_ns.models[shift_report_brief_model.name] = shift_report_brief_model
 shift_report_details_ns.models[shift_report_details_edit_model.name] = (
     shift_report_details_edit_model
 )
@@ -340,6 +342,8 @@ class ShiftReportDetailsAll(Resource):
         project_work_filter = args.get("project_work") or []  # type: ignore
         filters = {
             "shift_report": args.get("shift_report"),  # type: ignore
+            "date_from": args.get("date_from"),  # type: ignore
+            "date_to": args.get("date_to"),  # type: ignore
             "work": args.get("work"),  # type: ignore
             "project_work": [UUID(work_id) for work_id in project_work_filter]
             if project_work_filter

@@ -35,12 +35,8 @@ shift_report_model = Model(
             required=False, description="Shift end timestamp (nullable)"
         ),
         "project": fields.String(required=True, description="Project details"),
-        "project_name": fields.String(
-            required=False, description="Project name"
-        ),
-        "object_name": fields.String(
-            required=False, description="Object name"
-        ),
+        "project_name": fields.String(required=False, description="Project name"),
+        "object_name": fields.String(required=False, description="Object name"),
         "lng_start": fields.Float(
             required=False, description="Longitude of the shift start"
         ),

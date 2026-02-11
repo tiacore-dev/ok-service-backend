@@ -368,6 +368,95 @@ class ShiftReportsDetailsManager(ShiftManager):
     def model(self):
         return ShiftReportDetails
 
+    def get_all_filtered(
+        self, offset=0, limit=None, sort_by="created_at", sort_order="desc", **filters
+    ):
+        """Фильтрация деталей отчетов с поддержкой диапазона дат смен."""
+        with self.session_scope() as session:
+            query = session.query(self.model)
+            joined_shift_reports = False
+
+            # Фильтрация по дате смены (ShiftReports.date)
+            if filters.get("date_from") is not None or filters.get("date_to") is not None:
+                query = query.join(
+                    ShiftReports,
+                    ShiftReports.shift_report_id == self.model.shift_report,
+                )
+                joined_shift_reports = True
+                if filters.get("date_from") is not None and filters.get("date_to") is not None:
+                    query = query.filter(
+                        ShiftReports.date.between(filters["date_from"], filters["date_to"])
+                    )
+                elif filters.get("date_from") is not None:
+                    query = query.filter(ShiftReports.date >= filters["date_from"])
+                elif filters.get("date_to") is not None:
+                    query = query.filter(ShiftReports.date <= filters["date_to"])
+
+            # Диапазоны по количеству и сумме
+            if filters.get("min_quantity") is not None:
+                query = query.filter(self.model.quantity >= filters["min_quantity"])
+            if filters.get("max_quantity") is not None:
+                query = query.filter(self.model.quantity <= filters["max_quantity"])
+            if filters.get("min_summ") is not None:
+                query = query.filter(self.model.summ >= filters["min_summ"])
+            if filters.get("max_summ") is not None:
+                query = query.filter(self.model.summ <= filters["max_summ"])
+
+            def _coerce_uuid(value):
+                if isinstance(value, str):
+                    try:
+                        return UUID(value)
+                    except ValueError:
+                        return value
+                return value
+
+            def _coerce_value(value):
+                if isinstance(value, (list, tuple, set)):
+                    return type(value)(_coerce_uuid(v) for v in value)
+                return _coerce_uuid(value)
+
+            # Остальные фильтры (точные совпадения)
+            for key in [
+                "shift_report",
+                "work",
+                "project_work",
+                "created_by",
+                "created_at",
+            ]:
+                value = filters.get(key)
+                if value is None:
+                    continue
+                if not hasattr(self.model, key):
+                    continue
+                column = getattr(self.model, key)
+                value = _coerce_value(value)
+                if isinstance(value, (list, tuple, set)):
+                    query = query.filter(column.in_(value))
+                else:
+                    query = query.filter(column == value)
+
+            # Сортировка
+            order = desc if sort_order == "desc" else asc
+            if sort_by == "date":
+                if not joined_shift_reports:
+                    query = query.join(
+                        ShiftReports,
+                        ShiftReports.shift_report_id == self.model.shift_report,
+                    )
+                    joined_shift_reports = True
+                query = query.order_by(order(ShiftReports.date))
+            elif sort_by and hasattr(self.model, sort_by):
+                query = query.order_by(order(getattr(self.model, sort_by)))
+
+            # Пагинация
+            if offset:
+                query = query.offset(offset)
+            if limit:
+                query = query.limit(limit)
+
+            records = query.all()
+            return [record.to_dict() for record in records]
+
     @staticmethod
     def _sync_shift_report_materials(session, detail, created_by):
         session.query(ShiftReportMaterials).filter(

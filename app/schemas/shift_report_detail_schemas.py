@@ -81,12 +81,16 @@ class ShiftReportDetailsFilterSchema(Schema):
         ),
     )
     shift_report = fields.String(required=False)
+    date_from = fields.Int(required=False)
+    date_to = fields.Int(required=False)
     project_work = fields.List(fields.String(), required=False)
     work = fields.String(required=False)
     min_quantity = fields.Float(required=False)
     max_quantity = fields.Float(required=False)
     min_summ = fields.Float(required=False)
     max_summ = fields.Float(required=False)
+    created_by = fields.String(required=False)
+    created_at = fields.Int(required=False)
 
     @pre_load
     def split_project_work_filters(self, data, **kwargs):

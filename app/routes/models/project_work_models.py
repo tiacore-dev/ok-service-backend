@@ -27,9 +27,9 @@ project_work_msg_model = Model('ProjectWorkMessage', {
     "project_work_id": fields.String(description="ID of project work")
 })
 
-project_work_msg_many_model = Model('ProjectWorkMessage', {
+project_work_msg_many_model = Model('ProjectWorkManyMessage', {
     "msg": fields.String(required=True, description="Response message"),
-    "project_work_ids": fields.List(fields.String, description="List of project work IDs")
+    "project_work_ids": fields.List(fields.String(), description="List of project work IDs")
 })
 
 project_work_response = Model('ProjectWorkResponse', {
