@@ -22,6 +22,7 @@ from app.routes.models.api_key_models import (
     key_permission_relation_bulk_response,
     key_permission_relation_create_model,
     key_permission_relation_filter_parser,
+    key_permission_relation_model,
     key_permission_relation_msg_model,
     key_permission_relation_response,
     permission_type_all_response,
@@ -53,6 +54,7 @@ api_key_ns.models[key_permission_relation_bulk_create_model.name] = (
 api_key_ns.models[key_permission_relation_response.name] = (
     key_permission_relation_response
 )
+api_key_ns.models[key_permission_relation_model.name] = key_permission_relation_model
 api_key_ns.models[key_permission_relation_msg_model.name] = (
     key_permission_relation_msg_model
 )
