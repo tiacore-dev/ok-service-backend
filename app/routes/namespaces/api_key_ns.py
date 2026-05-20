@@ -17,8 +17,22 @@ from app.routes.models.api_key_models import (
     api_key_model,
     api_key_msg_model,
     api_key_response,
+    key_permission_relation_all_response,
+    key_permission_relation_bulk_create_model,
+    key_permission_relation_bulk_response,
+    key_permission_relation_create_model,
+    key_permission_relation_filter_parser,
+    key_permission_relation_msg_model,
+    key_permission_relation_response,
+    permission_type_all_response,
+    permission_type_filter_parser,
 )
 from app.schemas.api_key_schemas import ApiKeyFilterSchema, ApiKeyGenerateSchema
+from app.schemas.key_permission_type_relation_schemas import (
+    KeyPermissionTypeRelationBulkCreateSchema,
+    KeyPermissionTypeRelationCreateSchema,
+    PermissionTypeFilterSchema,
+)
 
 logger = logging.getLogger("ok_service")
 
@@ -30,6 +44,25 @@ api_key_ns.models[api_key_msg_model.name] = api_key_msg_model
 api_key_ns.models[api_key_response.name] = api_key_response
 api_key_ns.models[api_key_all_response.name] = api_key_all_response
 api_key_ns.models[api_key_model.name] = api_key_model
+api_key_ns.models[key_permission_relation_create_model.name] = (
+    key_permission_relation_create_model
+)
+api_key_ns.models[key_permission_relation_bulk_create_model.name] = (
+    key_permission_relation_bulk_create_model
+)
+api_key_ns.models[key_permission_relation_response.name] = (
+    key_permission_relation_response
+)
+api_key_ns.models[key_permission_relation_msg_model.name] = (
+    key_permission_relation_msg_model
+)
+api_key_ns.models[key_permission_relation_all_response.name] = (
+    key_permission_relation_all_response
+)
+api_key_ns.models[key_permission_relation_bulk_response.name] = (
+    key_permission_relation_bulk_response
+)
+api_key_ns.models[permission_type_all_response.name] = permission_type_all_response
 
 
 @api_key_ns.route("/generate")
@@ -159,3 +192,207 @@ class ApiKeyDelete(Resource):
         except Exception as e:
             logger.error(f"Error deleting API key: {e}", extra={"login": current_user})
             return {"msg": f"Error deleting API key: {e}"}, 500
+
+
+@api_key_ns.route("/permissions/add")
+class KeyPermissionRelationAdd(Resource):
+    @jwt_required()
+    @admin_required
+    @api_key_ns.expect(key_permission_relation_create_model)
+    @api_key_ns.marshal_with(key_permission_relation_response)
+    def post(self):
+        current_user = json.loads(get_jwt_identity())
+        schema = KeyPermissionTypeRelationCreateSchema()
+        try:
+            data = schema.load(request.json)  # type: ignore
+            api_key_id = UUID(data["api_key_id"])  # type: ignore
+            permission_type_id = UUID(data["permission_type_id"])  # type: ignore
+        except ValidationError as err:
+            return {"error": err.messages}, 400
+        except ValueError:
+            return {"msg": "Invalid UUID format"}, 400
+
+        try:
+            from app.database.managers.key_permission_type_relations_manager import (
+                KeyPermissionTypeRelationsManager,
+            )
+
+            db = KeyPermissionTypeRelationsManager()
+            relation = db.add(
+                api_key_id=api_key_id, permission_type_id=permission_type_id
+            )
+            return {"msg": "Relation added successfully", "relation": relation}, 200
+        except IntegrityError:
+            return {"msg": "Relation already exists or foreign key is invalid"}, 409
+        except Exception as e:
+            logger.error(f"Error adding relation: {e}", extra={"login": current_user})
+            return {"msg": f"Error adding relation: {e}"}, 500
+
+
+@api_key_ns.route("/permissions/add/many")
+class KeyPermissionRelationAddMany(Resource):
+    @jwt_required()
+    @admin_required
+    @api_key_ns.expect(key_permission_relation_bulk_create_model)
+    @api_key_ns.marshal_with(key_permission_relation_bulk_response)
+    def post(self):
+        current_user = json.loads(get_jwt_identity())
+        schema = KeyPermissionTypeRelationBulkCreateSchema()
+        try:
+            data = schema.load(request.json)  # type: ignore
+            api_key_id = UUID(data["api_key_id"])  # type: ignore
+            permission_type_ids = [UUID(value) for value in data["permission_type_ids"]]  # type: ignore
+        except ValidationError as err:
+            return {"error": err.messages}, 400
+        except ValueError:
+            return {"msg": "Invalid UUID format"}, 400
+
+        try:
+            from app.database.managers.key_permission_type_relations_manager import (
+                KeyPermissionTypeRelationsManager,
+            )
+
+            db = KeyPermissionTypeRelationsManager()
+            relations = db.add_many(
+                api_key_id=api_key_id, permission_type_ids=permission_type_ids
+            )
+            return {"msg": "Relations added successfully", "relations": relations}, 200
+        except IntegrityError:
+            return {
+                "msg": "One or more relations already exist or foreign keys are invalid"
+            }, 409
+        except Exception as e:
+            logger.error(
+                f"Error adding relations in bulk: {e}", extra={"login": current_user}
+            )
+            return {"msg": f"Error adding relations in bulk: {e}"}, 500
+
+
+@api_key_ns.route("/permissions/all")
+class KeyPermissionRelationAll(Resource):
+    @jwt_required()
+    @admin_required
+    @api_key_ns.expect(key_permission_relation_filter_parser)
+    @api_key_ns.marshal_with(key_permission_relation_all_response)
+    def get(self):
+        current_user = json.loads(get_jwt_identity())
+        args = key_permission_relation_filter_parser.parse_args()
+        filters = {}
+        try:
+            if args.get("api_key_id"):
+                filters["api_key_id"] = UUID(args["api_key_id"])
+            if args.get("permission_type_id"):
+                filters["permission_type_id"] = UUID(args["permission_type_id"])
+        except ValueError:
+            return {"msg": "Invalid UUID format"}, 400
+
+        try:
+            from app.database.managers.key_permission_type_relations_manager import (
+                KeyPermissionTypeRelationsManager,
+            )
+
+            db = KeyPermissionTypeRelationsManager()
+            relations = db.get_all_filtered(
+                offset=args.get("offset", 0),
+                limit=args.get("limit"),
+                sort_by=args.get("sort_by", "id"),
+                sort_order=args.get("sort_order", "desc"),
+                **filters,
+            )
+            return {"msg": "Relations found successfully", "relations": relations}, 200
+        except Exception as e:
+            logger.error(
+                f"Error fetching relations: {e}", extra={"login": current_user}
+            )
+            return {"msg": f"Error fetching relations: {e}"}, 500
+
+
+@api_key_ns.route("/permissions/<string:relation_id>/view")
+class KeyPermissionRelationView(Resource):
+    @jwt_required()
+    @admin_required
+    @api_key_ns.marshal_with(key_permission_relation_response)
+    def get(self, relation_id):
+        current_user = json.loads(get_jwt_identity())
+        try:
+            relation_id = UUID(relation_id)
+        except ValueError:
+            return {"msg": "Invalid relation ID format"}, 400
+
+        try:
+            from app.database.managers.key_permission_type_relations_manager import (
+                KeyPermissionTypeRelationsManager,
+            )
+
+            db = KeyPermissionTypeRelationsManager()
+            relation = db.get_by_id(relation_id)
+            if not relation:
+                return {"msg": "Relation not found"}, 404
+            return {"msg": "Relation found successfully", "relation": relation}, 200
+        except Exception as e:
+            logger.error(f"Error fetching relation: {e}", extra={"login": current_user})
+            return {"msg": f"Error fetching relation: {e}"}, 500
+
+
+@api_key_ns.route("/permissions/<string:relation_id>/delete")
+class KeyPermissionRelationDelete(Resource):
+    @jwt_required()
+    @admin_required
+    @api_key_ns.marshal_with(key_permission_relation_msg_model)
+    def delete(self, relation_id):
+        current_user = json.loads(get_jwt_identity())
+        try:
+            relation_id = UUID(relation_id)
+        except ValueError:
+            return {"msg": "Invalid relation ID format"}, 400
+
+        try:
+            from app.database.managers.key_permission_type_relations_manager import (
+                KeyPermissionTypeRelationsManager,
+            )
+
+            db = KeyPermissionTypeRelationsManager()
+            deleted = db.delete(record_id=relation_id)
+            if not deleted:
+                return {"msg": "Relation not found"}, 404
+            return {"msg": "Relation deleted successfully", "id": str(relation_id)}, 200
+        except Exception as e:
+            logger.error(f"Error deleting relation: {e}", extra={"login": current_user})
+            return {"msg": f"Error deleting relation: {e}"}, 500
+
+
+@api_key_ns.route("/permission-types/all")
+class PermissionTypeAll(Resource):
+    @jwt_required()
+    @admin_required
+    @api_key_ns.expect(permission_type_filter_parser)
+    @api_key_ns.marshal_with(permission_type_all_response)
+    def get(self):
+        current_user = json.loads(get_jwt_identity())
+        schema = PermissionTypeFilterSchema()
+        try:
+            args = schema.load(request.args)
+        except ValidationError as err:
+            return {"error": err.messages}, 400
+
+        try:
+            from app.database.managers.key_permission_type_relations_manager import (
+                KeyPermissionTypeRelationsManager,
+            )
+
+            db = KeyPermissionTypeRelationsManager()
+            permission_types = db.get_permission_types_all(
+                offset=args.get("offset", 0),  # type: ignore
+                limit=args.get("limit"),  # type: ignore
+                sort_by=args.get("sort_by", "code"),  # type: ignore
+                sort_order=args.get("sort_order", "asc"),  # type: ignore
+            )
+            return {
+                "msg": "Permission types found successfully",
+                "permission_types": permission_types,
+            }, 200
+        except Exception as e:
+            logger.error(
+                f"Error fetching permission types: {e}", extra={"login": current_user}
+            )
+            return {"msg": f"Error fetching permission types: {e}"}, 500

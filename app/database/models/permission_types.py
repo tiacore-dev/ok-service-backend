@@ -24,9 +24,10 @@ class PermissionTypes(Base):
     )
 
     def __repr__(self):
-        return f"<PermissionTypes(permission_type_id={self.permission_type_id}, code={
-            self.code
-        })>"
+        return (
+            f"<PermissionTypes(permission_type_id={self.permission_type_id}, "
+            f"code={self.code})>"
+        )
 
     def to_dict(self):
         return {
