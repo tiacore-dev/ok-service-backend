@@ -27,6 +27,7 @@ from app.routes.models.api_key_models import (
     key_permission_relation_response,
     permission_type_all_response,
     permission_type_filter_parser,
+    permission_type_model,
 )
 from app.schemas.api_key_schemas import ApiKeyFilterSchema, ApiKeyGenerateSchema
 from app.schemas.key_permission_type_relation_schemas import (
@@ -64,6 +65,7 @@ api_key_ns.models[key_permission_relation_all_response.name] = (
 api_key_ns.models[key_permission_relation_bulk_response.name] = (
     key_permission_relation_bulk_response
 )
+api_key_ns.models[permission_type_model.name] = permission_type_model
 api_key_ns.models[permission_type_all_response.name] = permission_type_all_response
 
 
