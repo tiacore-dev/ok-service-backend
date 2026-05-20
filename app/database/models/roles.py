@@ -1,10 +1,11 @@
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
+
 from app.database.db_setup import Base
 
 
 class Roles(Base):
-    __tablename__ = 'roles'
+    __tablename__ = "roles"
 
     role_id = Column(String, primary_key=True, nullable=False)
     name = Column(String, nullable=False)
@@ -15,7 +16,4 @@ class Roles(Base):
         return f"<Roles(role_id={self.role_id}, name={self.name})>"
 
     def to_dict(self):
-        return {
-            "role_id": self.role_id,
-            "name": self.name
-        }
+        return {"role_id": self.role_id, "name": self.name}

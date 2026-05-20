@@ -1,9 +1,12 @@
+from .api_keys import ApiKeys
 from .cities import Cities
+from .key_permission_type_relations import KeyPermissionTypeRelations
 from .leaves import AbsenceReason, Leaves
 from .logs import Logs
 from .materials import Materials
 from .object_statuses import ObjectStatuses
 from .objects import Objects
+from .permission_types import PermissionTypes
 from .project_materials import ProjectMaterials
 from .project_schedule import ProjectSchedules
 from .project_works import ProjectWorks
