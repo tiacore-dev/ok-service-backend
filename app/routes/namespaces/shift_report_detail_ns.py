@@ -1,10 +1,11 @@
 # Namespace for ShiftReportDetails
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -31,13 +32,26 @@ from app.schemas.shift_report_detail_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 shift_report_details_ns = Namespace(
     "shift_report_details", description="Shift report details management operations"
@@ -47,9 +61,7 @@ shift_report_details_ns = Namespace(
 shift_report_details_ns.models[shift_report_details_create_model.name] = (
     shift_report_details_create_model
 )
-shift_report_details_ns.models[project_work_brief_model.name] = (
-    project_work_brief_model
-)
+shift_report_details_ns.models[project_work_brief_model.name] = project_work_brief_model
 shift_report_details_ns.models[shift_report_brief_model.name] = shift_report_brief_model
 shift_report_details_ns.models[shift_report_details_edit_model.name] = (
     shift_report_details_edit_model
@@ -76,11 +88,11 @@ shift_report_details_ns.models[shift_report_details_by_report_ids.name] = (
 
 @shift_report_details_ns.route("/add/many")
 class ShiftReportDetailsAddBulk(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_details_ns.expect([shift_report_details_create_model])
     @shift_report_details_ns.marshal_with(shift_report_details_many_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Request to add multiple shift report details",
             extra={"login": current_user},
@@ -131,11 +143,11 @@ class ShiftReportDetailsAddBulk(Resource):
 
 @shift_report_details_ns.route("/add")
 class ShiftReportDetailsAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_create_model)
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Request to add new shift report detail", extra={"login": current_user}
         )
@@ -182,7 +194,7 @@ class ShiftReportDetailsAdd(Resource):
 
 @shift_report_details_ns.route("/<string:detail_id>/view")
 class ShiftReportDetailsView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_details_ns.marshal_with(shift_report_details_response)
     def get(self, detail_id):
         current_user = get_jwt_identity()
@@ -220,7 +232,7 @@ class ShiftReportDetailsView(Resource):
 
 @shift_report_details_ns.route("/<string:detail_id>/delete/hard")
 class ShiftReportDetailsDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def delete(self, detail_id):
         current_user = get_jwt_identity()
@@ -268,7 +280,7 @@ class ShiftReportDetailsDelete(Resource):
 
 @shift_report_details_ns.route("/<string:detail_id>/edit")
 class ShiftReportDetailsEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_edit_model)
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def patch(self, detail_id):
@@ -321,7 +333,7 @@ class ShiftReportDetailsEdit(Resource):
 
 @shift_report_details_ns.route("/all")
 class ShiftReportDetailsAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_filter_parser)
     @shift_report_details_ns.marshal_with(shift_report_details_all_response)
     def get(self):
@@ -402,7 +414,7 @@ class ShiftReportDetailsAll(Resource):
 
 @shift_report_details_ns.route("/all-by-reports")
 class ShiftReportDetailsByReports(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_by_report_ids, validate=True)
     @shift_report_details_ns.doc(consumes=["application/json"])
     @shift_report_details_ns.marshal_with(shift_report_details_all_response)

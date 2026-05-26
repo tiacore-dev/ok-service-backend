@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -24,13 +25,26 @@ from app.schemas.work_material_relation_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 work_material_relation_ns = Namespace(
     "work_material_relations",
@@ -56,12 +70,12 @@ work_material_relation_ns.models[work_material_relation_model.name] = (
 
 @work_material_relation_ns.route("/add")
 class WorkMaterialRelationAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_material_relation_ns.expect(work_material_relation_create_model)
     @work_material_relation_ns.marshal_with(work_material_relation_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Request to add new work material relation",
             extra={"login": current_user},
@@ -103,7 +117,7 @@ class WorkMaterialRelationAdd(Resource):
 
 @work_material_relation_ns.route("/<string:relation_id>/view")
 class WorkMaterialRelationView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @work_material_relation_ns.marshal_with(work_material_relation_response)
     def get(self, relation_id):
         current_user = get_jwt_identity()
@@ -143,11 +157,11 @@ class WorkMaterialRelationView(Resource):
 
 @work_material_relation_ns.route("/<string:relation_id>/delete/hard")
 class WorkMaterialRelationHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_material_relation_ns.marshal_with(work_material_relation_msg_model)
     def delete(self, relation_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete work material relation: {relation_id}",
             extra={"login": current_user},
@@ -198,12 +212,12 @@ class WorkMaterialRelationHardDelete(Resource):
 
 @work_material_relation_ns.route("/<string:relation_id>/edit")
 class WorkMaterialRelationEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_material_relation_ns.expect(work_material_relation_create_model)
     @work_material_relation_ns.marshal_with(work_material_relation_msg_model)
     def patch(self, relation_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to edit work material relation: {relation_id}",
             extra={"login": current_user},
@@ -252,7 +266,7 @@ class WorkMaterialRelationEdit(Resource):
 
 @work_material_relation_ns.route("/all")
 class WorkMaterialRelationAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @work_material_relation_ns.expect(work_material_relation_filter_parser)
     @work_material_relation_ns.marshal_with(work_material_relation_all_response)
     def get(self):

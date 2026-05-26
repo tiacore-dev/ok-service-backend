@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -24,13 +25,26 @@ from app.schemas.work_price_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 work_price_ns = Namespace(
     "work_prices", description="Work Prices management operations"
@@ -46,12 +60,12 @@ work_price_ns.models[work_price_model.name] = work_price_model
 
 @work_price_ns.route("/add")
 class WorkPriceAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_price_ns.expect(work_price_create_model)
     @work_price_ns.marshal_with(work_price_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         if current_user["role"] != "admin":
             logger.warning(
                 "Несанкционированный запрос на добавление нового объекта.",
@@ -92,7 +106,7 @@ class WorkPriceAdd(Resource):
 
 @work_price_ns.route("/<string:work_price_id>/view")
 class WorkPriceView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @work_price_ns.marshal_with(work_price_response)
     def get(self, work_price_id):
         current_user = get_jwt_identity()
@@ -130,11 +144,11 @@ class WorkPriceView(Resource):
 
 @work_price_ns.route("/<string:work_price_id>/delete/soft")
 class WorkPriceSoftDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_price_ns.marshal_with(work_price_msg_model)
     def patch(self, work_price_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to soft delete work price: {work_price_id}",
             extra={"login": current_user},
@@ -169,11 +183,11 @@ class WorkPriceSoftDelete(Resource):
 
 @work_price_ns.route("/<string:work_price_id>/delete/hard")
 class WorkPriceHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_price_ns.marshal_with(work_price_msg_model)
     def delete(self, work_price_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete work price: {work_price_id}",
             extra={"login": current_user},
@@ -214,12 +228,12 @@ class WorkPriceHardDelete(Resource):
 
 @work_price_ns.route("/<string:work_price_id>/edit")
 class WorkPriceEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_price_ns.expect(work_price_create_model)
     @work_price_ns.marshal_with(work_price_msg_model)
     def patch(self, work_price_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to edit work price: {work_price_id}",
             extra={"login": current_user},
@@ -265,7 +279,7 @@ class WorkPriceEdit(Resource):
 
 @work_price_ns.route("/all")
 class WorkPriceAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @work_price_ns.expect(work_price_filter_parser)
     @work_price_ns.marshal_with(work_price_all_response)
     def get(self):

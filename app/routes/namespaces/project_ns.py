@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -26,13 +27,26 @@ from app.schemas.project_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 project_ns = Namespace("projects", description="Projects management operations")
 
@@ -48,12 +62,12 @@ project_ns.models[project_stats_response.name] = project_stats_response
 
 @project_ns.route("/add")
 class ProjectAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_ns.expect(project_create_model)
     @project_ns.marshal_with(project_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to add new project", extra={"login": current_user})
 
         schema = ProjectCreateSchema()
@@ -83,7 +97,7 @@ class ProjectAdd(Resource):
 
 @project_ns.route("/<string:project_id>/view")
 class ProjectView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_ns.marshal_with(project_response)
     def get(self, project_id):
         current_user = get_jwt_identity()
@@ -109,11 +123,11 @@ class ProjectView(Resource):
 
 @project_ns.route("/<string:project_id>/delete/soft")
 class ProjectSoftDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_ns.marshal_with(project_msg_model)
     def patch(self, project_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to soft delete project: {project_id}",
             extra={"login": current_user},
@@ -155,11 +169,11 @@ class ProjectSoftDelete(Resource):
 
 @project_ns.route("/<string:project_id>/delete/hard")
 class ProjectHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_ns.marshal_with(project_msg_model)
     def delete(self, project_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete project: {project_id}",
             extra={"login": current_user},
@@ -208,12 +222,12 @@ class ProjectHardDelete(Resource):
 
 @project_ns.route("/<string:project_id>/edit")
 class ProjectEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_ns.expect(project_create_model)
     @project_ns.marshal_with(project_msg_model)
     def patch(self, project_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to edit project: {project_id}", extra={"login": current_user}
         )
@@ -262,11 +276,11 @@ class ProjectEdit(Resource):
 
 @project_ns.route("/all")
 class ProjectAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_ns.expect(project_filter_parser)
     @project_ns.marshal_with(project_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to fetch all projects", extra={"login": current_user})
 
         schema = ProjectFilterSchema()
@@ -322,10 +336,10 @@ class ProjectAll(Resource):
 
 @project_ns.route("/<string:project_id>/get-stat")
 class ProjectStats(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_ns.marshal_with(project_stats_response)
     def get(self, project_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to view stats of project: {project_id}",
             extra={"login": current_user},
@@ -355,10 +369,10 @@ class ProjectStats(Resource):
 
 # @project_ns.route("/<string:project_id>/get-stat-by-project-work")
 # class ProjectStatsByProjectWork(Resource):
-#     @jwt_required()
+#     @api_key_or_jwt_required
 #     @project_ns.marshal_with(project_stats_response)
 #     def get(self, project_id):
-#         current_user = json.loads(get_jwt_identity())
+#         current_user = _get_current_user()
 #         logger.info(
 #             f"Request to get project stats BY PROJECT WORK for project: {project_id}",
 #             extra={"login": current_user},
@@ -396,10 +410,10 @@ class ProjectStats(Resource):
 
 @project_ns.route("/<string:project_id>/get-stat-by-project-materials")
 class ProjectStatsByProjectMaterials(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_ns.marshal_with(project_stats_response)
     def get(self, project_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to get project stats BY PROJECT MATERIALS for project: {
                 project_id

@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -20,13 +21,34 @@ from app.routes.models.user_models import (
 from app.schemas.user_schemas import UserCreateSchema, UserEditSchema, UserFilterSchema
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _forbid_api_key_admin_target(user: dict[str, Any] | None) -> bool:
+    return bool(
+        getattr(g, "auth_via_api_key", False)
+        and user
+        and user.get("role") == "admin"
+    )
+
 
 user_ns = Namespace("users", description="User management operations")
 
@@ -39,13 +61,13 @@ user_ns.models[user_model.name] = user_model
 
 @user_ns.route("/add")
 class UserAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_ns.expect(user_create_model)
     @user_ns.marshal_with(user_msg_model)
     @user_ns.response(400, "Bad request, invalid data.")
     @user_ns.response(500, "Internal Server Error")
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user["role"] != "admin":
             logger.warning(
@@ -122,12 +144,12 @@ class UserAdd(Resource):
 
 @user_ns.route("/<string:user_id>/view")
 class UserView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_ns.marshal_with(user_response)
     @user_ns.response(404, "User not found")
     @user_ns.response(500, "Internal Server Error")
     def get(self, user_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Запрос на просмотр пользователя user_id={user_id}",
             extra={"login": current_user.get("login")},
@@ -171,12 +193,12 @@ class UserView(Resource):
 
 @user_ns.route("/<string:user_id>/delete/soft")
 class UserDeleteSoft(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_ns.marshal_with(user_msg_model)
     @user_ns.response(404, "User not found")
     @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         if current_user["role"] != "admin":
             logger.warning(
                 f"Несанкционированный запрос на мягкое удаление пользователя user_id={
@@ -207,6 +229,19 @@ class UserDeleteSoft(Resource):
                 "Обновление статуса deleted пользователя в базе...",
                 extra={"login": current_user.get("login")},
             )
+            target_user = db.get_by_id(user_id)
+            if not target_user:
+                logger.warning(
+                    f"Пользователь user_id={user_id} не найден при мягком удалении",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "User not found"}, 404
+            if _forbid_api_key_admin_target(target_user):
+                logger.warning(
+                    "API key cannot modify admin user",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "Forbidden"}, 403
             updated = db.update(record_id=user_id, deleted=True)
             if not updated:
                 logger.warning(
@@ -232,12 +267,12 @@ class UserDeleteSoft(Resource):
 
 @user_ns.route("/<string:user_id>/restore")
 class UserRestore(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_ns.marshal_with(user_msg_model)
     @user_ns.response(404, "User not found")
     @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         if current_user["role"] != "admin":
             logger.warning(
                 f"Несанкционированный запрос на восстановление пользователя user_id={
@@ -268,6 +303,19 @@ class UserRestore(Resource):
                 "Сброс флага deleted пользователя в базе...",
                 extra={"login": current_user.get("login")},
             )
+            target_user = db.get_by_id(user_id)
+            if not target_user:
+                logger.warning(
+                    f"Пользователь user_id={user_id} не найден при восстановлении",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "User not found"}, 404
+            if _forbid_api_key_admin_target(target_user):
+                logger.warning(
+                    "API key cannot modify admin user",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "Forbidden"}, 403
             updated = db.update(record_id=user_id, deleted=False)
             if not updated:
                 logger.warning(
@@ -293,12 +341,12 @@ class UserRestore(Resource):
 
 @user_ns.route("/<string:user_id>/delete/hard")
 class UserDeleteHard(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_ns.marshal_with(user_msg_model)
     @user_ns.response(404, "User not found")
     @user_ns.response(500, "Internal Server Error")
     def delete(self, user_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         if current_user["role"] != "admin":
             logger.warning(
                 f"Несанкционированный запрос на окончательное (hard) удаление пользователя user_id={
@@ -329,6 +377,18 @@ class UserDeleteHard(Resource):
                 extra={"login": current_user.get("login")},
             )
             user = db.get_by_id(record_id=user_id)
+            if not user:
+                logger.warning(
+                    f"Пользователь user_id={user_id} не найден при hard удалении",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "User not found"}, 404
+            if _forbid_api_key_admin_target(user):
+                logger.warning(
+                    "API key cannot modify admin user",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "Forbidden"}, 403
             if user["created_by"] == user["user_id"]:  # type: ignore
                 logger.warning(
                     "Попытка удлить админа", extra={"login": current_user.get("login")}
@@ -363,14 +423,14 @@ class UserDeleteHard(Resource):
 
 @user_ns.route("/<string:user_id>/edit")
 class UserEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_ns.expect(user_create_model)
     @user_ns.marshal_with(user_msg_model)
     @user_ns.response(400, "Bad request, invalid data.")
     @user_ns.response(404, "User not found")
     @user_ns.response(500, "Internal Server Error")
     def patch(self, user_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         if current_user["role"] != "admin":
             logger.warning(
                 f"Несанкционированный запрос на редактирование пользователя user_id={
@@ -435,6 +495,19 @@ class UserEdit(Resource):
                 "Обновление данных пользователя в базе...",
                 extra={"login": current_user.get("login")},
             )
+            target_user = db.get_by_id(user_id)
+            if not target_user:
+                logger.warning(
+                    f"Пользователь user_id={user_id} не найден при редактировании",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "User not found"}, 404
+            if _forbid_api_key_admin_target(target_user):
+                logger.warning(
+                    "API key cannot modify admin user",
+                    extra={"login": current_user.get("login")},
+                )
+                return {"msg": "Forbidden"}, 403
             updated = db.update(
                 record_id=user_id,
                 login=login,
@@ -472,12 +545,12 @@ class UserEdit(Resource):
 
 @user_ns.route("/all")
 class UserAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_ns.expect(user_filter_parser)
     @user_ns.marshal_with(user_all_response)
     @user_ns.response(500, "Internal Server Error")
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Запрос на получение списка пользователей.",
             extra={"login": current_user.get("login")},

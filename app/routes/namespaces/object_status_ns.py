@@ -1,8 +1,9 @@
 import json
 import logging
+from typing import Any
 
 from flask import g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 
@@ -15,13 +16,26 @@ from app.routes.models.object_status_models import (
 from app.schemas.object_status_schemas import ObjectStatusFilterSchema
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 object_status_ns = Namespace(
     "object_statuses", description="Object Status management operations"
@@ -33,12 +47,12 @@ object_status_ns.models[object_status_model.name] = object_status_model
 
 @object_status_ns.route("/all")
 class ObjectStatusAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @object_status_ns.expect(object_status_filter_parser)
     @object_status_ns.marshal_with(object_status_all_response)
     @object_status_ns.response(500, "Internal Server Error")
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Request to fetch all object statuses.", extra={"login": current_user}
         )

@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -20,13 +21,26 @@ from app.routes.models.city_models import (
 from app.schemas.city_schemas import CityCreateSchema, CityEditSchema, CityFilterSchema
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 city_ns = Namespace("cities", description="City management operations")
 
@@ -39,12 +53,12 @@ city_ns.models[city_model.name] = city_model
 
 @city_ns.route("/add")
 class CityAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @city_ns.expect(city_create_model)
     @city_ns.marshal_with(city_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to add new city", extra={"login": current_user})
 
         schema = CityCreateSchema()
@@ -87,10 +101,10 @@ class CityAdd(Resource):
 
 @city_ns.route("/<string:city_id>/view")
 class CityView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @city_ns.marshal_with(city_response)
     def get(self, city_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(f"Request to view city: {city_id}", extra={"login": current_user})
 
         try:
@@ -116,11 +130,11 @@ class CityView(Resource):
 
 @city_ns.route("/<string:city_id>/delete/soft")
 class CitySoftDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @city_ns.marshal_with(city_msg_model)
     def patch(self, city_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to soft delete city: {city_id}", extra={"login": current_user}
         )
@@ -154,11 +168,11 @@ class CitySoftDelete(Resource):
 
 @city_ns.route("/<string:city_id>/delete/hard")
 class CityHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @city_ns.marshal_with(city_msg_model)
     def delete(self, city_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete city: {city_id}", extra={"login": current_user}
         )
@@ -198,12 +212,12 @@ class CityHardDelete(Resource):
 
 @city_ns.route("/<string:city_id>/edit")
 class CityEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @city_ns.expect(city_create_model)
     @city_ns.marshal_with(city_msg_model)
     def patch(self, city_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(f"Request to edit city: {city_id}", extra={"login": current_user})
 
         schema = CityEditSchema()
@@ -269,11 +283,11 @@ class CityEdit(Resource):
 
 @city_ns.route("/all")
 class CityAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @city_ns.expect(city_filter_parser)
     @city_ns.marshal_with(city_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to fetch all cities", extra={"login": current_user})
 
         schema = CityFilterSchema()

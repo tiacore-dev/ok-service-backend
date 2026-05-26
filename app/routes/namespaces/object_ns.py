@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -24,13 +25,26 @@ from app.schemas.object_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 object_ns = Namespace("objects", description="Objects management operations")
 
@@ -44,11 +58,11 @@ object_ns.models[object_model.name] = object_model
 
 @object_ns.route("/add")
 class ObjectAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @object_ns.expect(object_create_model)
     @object_ns.marshal_with(object_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user["role"] != "admin":
             logger.warning(
@@ -98,10 +112,10 @@ class ObjectAdd(Resource):
 
 @object_ns.route("/<string:object_id>/view")
 class ObjectView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @object_ns.marshal_with(object_response)
     def get(self, object_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to view object: {object_id}", extra={"login": current_user}
         )
@@ -136,10 +150,10 @@ class ObjectView(Resource):
 
 @object_ns.route("/<string:object_id>/delete/soft")
 class ObjectSoftDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @object_ns.marshal_with(object_msg_model)
     def patch(self, object_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user["role"] != "admin":
             logger.warning(
@@ -179,10 +193,10 @@ class ObjectSoftDelete(Resource):
 
 @object_ns.route("/<string:object_id>/delete/hard")
 class ObjectHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @object_ns.marshal_with(object_msg_model)
     def delete(self, object_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user["role"] != "admin":
             logger.warning(
@@ -228,11 +242,11 @@ class ObjectHardDelete(Resource):
 
 @object_ns.route("/<string:object_id>/edit")
 class ObjectEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @object_ns.expect(object_create_model)
     @object_ns.marshal_with(object_msg_model)
     def patch(self, object_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.debug(f"Decoded JWT Identity: {current_user}")
         if current_user["role"] != "admin":
             logger.warning(
@@ -280,11 +294,11 @@ class ObjectEdit(Resource):
 
 @object_ns.route("/all")
 class ObjectAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @object_ns.expect(object_filter_parser)
     @object_ns.marshal_with(object_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to fetch all objects", extra={"login": current_user})
 
         schema = ObjectFilterSchema()

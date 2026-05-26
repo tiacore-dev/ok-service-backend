@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -20,13 +21,26 @@ from app.routes.models.work_models import (
 from app.schemas.work_schemas import WorkCreateSchema, WorkEditSchema, WorkFilterSchema
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 work_ns = Namespace("works", description="Works management operations")
 
@@ -40,12 +54,12 @@ work_ns.models[work_model.name] = work_model
 
 @work_ns.route("/add")
 class WorkAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_ns.expect(work_create_model)
     @work_ns.marshal_with(work_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to add new work", extra={"login": current_user})
         if current_user["role"] != "admin":
             logger.warning(
@@ -84,7 +98,7 @@ class WorkAdd(Resource):
 
 @work_ns.route("/<string:work_id>/view")
 class WorkView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @work_ns.marshal_with(work_response)
     def get(self, work_id):
         current_user = get_jwt_identity()
@@ -113,11 +127,11 @@ class WorkView(Resource):
 
 @work_ns.route("/<string:work_id>/delete/soft")
 class WorkSoftDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_ns.marshal_with(work_msg_model)
     def patch(self, work_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to soft delete work: {work_id}", extra={"login": current_user}
         )
@@ -151,11 +165,11 @@ class WorkSoftDelete(Resource):
 
 @work_ns.route("/<string:work_id>/delete/hard")
 class WorkHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_ns.marshal_with(work_msg_model)
     def delete(self, work_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete work: {work_id}", extra={"login": current_user}
         )
@@ -195,12 +209,12 @@ class WorkHardDelete(Resource):
 
 @work_ns.route("/<string:work_id>/edit")
 class WorkEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_ns.expect(work_create_model)
     @work_ns.marshal_with(work_msg_model)
     def patch(self, work_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(f"Request to edit work: {work_id}", extra={"login": current_user})
 
         schema = WorkEditSchema()
@@ -237,7 +251,7 @@ class WorkEdit(Resource):
 
 @work_ns.route("/all")
 class WorkAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @work_ns.expect(work_filter_parser)
     @work_ns.marshal_with(work_all_response)
     def get(self):

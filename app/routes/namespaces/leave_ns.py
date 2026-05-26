@@ -1,10 +1,11 @@
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -29,13 +30,26 @@ from app.schemas.leave_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 leave_ns = Namespace("leaves", description="Leaves management operations")
 
@@ -50,17 +64,17 @@ leave_ns.models[leave_reason_all_response.name] = leave_reason_all_response
 
 
 def _current_timestamp():
-    return int(datetime.utcnow().timestamp())
+    return int(datetime.now(timezone.utc).timestamp())
 
 
 @leave_ns.route("/add")
 class LeaveAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @leave_ns.expect(leave_edit_model)
     @leave_ns.marshal_with(leave_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to add new leave", extra={"login": current_user})
 
         schema = LeaveCreateSchema()
@@ -124,10 +138,10 @@ class LeaveAdd(Resource):
 
 @leave_ns.route("/<string:leave_id>/view")
 class LeaveView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @leave_ns.marshal_with(leave_response)
     def get(self, leave_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(f"Request to view leave: {leave_id}", extra={"login": current_user})
 
         try:
@@ -146,11 +160,11 @@ class LeaveView(Resource):
 
 @leave_ns.route("/<string:leave_id>/delete/soft")
 class LeaveSoftDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @leave_ns.marshal_with(leave_msg_model)
     def patch(self, leave_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to soft delete leave: {leave_id}", extra={"login": current_user}
         )
@@ -179,11 +193,11 @@ class LeaveSoftDelete(Resource):
 
 @leave_ns.route("/<string:leave_id>/delete/hard")
 class LeaveHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @leave_ns.marshal_with(leave_msg_model)
     def delete(self, leave_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete leave: {leave_id}", extra={"login": current_user}
         )
@@ -215,12 +229,12 @@ class LeaveHardDelete(Resource):
 
 @leave_ns.route("/<string:leave_id>/edit")
 class LeaveEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @leave_ns.expect(leave_create_model)
     @leave_ns.marshal_with(leave_msg_model)
     def patch(self, leave_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(f"Request to edit leave: {leave_id}", extra={"login": current_user})
 
         schema = LeaveEditSchema()
@@ -288,11 +302,11 @@ class LeaveEdit(Resource):
 
 @leave_ns.route("/all")
 class LeaveAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @leave_ns.expect(leave_filter_parser)
     @leave_ns.marshal_with(leave_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to fetch all leaves", extra={"login": current_user})
 
         schema = LeaveFilterSchema()
@@ -334,10 +348,10 @@ class LeaveAll(Resource):
 
 @leave_ns.route("/reasons/all")
 class LeaveReasons(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @leave_ns.marshal_with(leave_reason_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to fetch leave reasons", extra={"login": current_user})
 
         reasons = [

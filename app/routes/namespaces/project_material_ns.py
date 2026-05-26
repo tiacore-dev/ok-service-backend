@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -24,13 +25,26 @@ from app.schemas.project_material_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 project_material_ns = Namespace(
     "project_materials", description="Project materials management operations"
@@ -49,12 +63,12 @@ project_material_ns.models[project_material_model.name] = project_material_model
 
 @project_material_ns.route("/add")
 class ProjectMaterialAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @project_material_ns.expect(project_material_create_model)
     @project_material_ns.marshal_with(project_material_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Request to add new project material", extra={"login": current_user}
         )
@@ -90,7 +104,7 @@ class ProjectMaterialAdd(Resource):
 
 @project_material_ns.route("/<string:project_material_id>/view")
 class ProjectMaterialView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_material_ns.marshal_with(project_material_response)
     def get(self, project_material_id):
         current_user = get_jwt_identity()
@@ -128,11 +142,11 @@ class ProjectMaterialView(Resource):
 
 @project_material_ns.route("/<string:project_material_id>/delete/hard")
 class ProjectMaterialHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @project_material_ns.marshal_with(project_material_msg_model)
     def delete(self, project_material_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete project material: {project_material_id}",
             extra={"login": current_user},
@@ -182,12 +196,12 @@ class ProjectMaterialHardDelete(Resource):
 
 @project_material_ns.route("/<string:project_material_id>/edit")
 class ProjectMaterialEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @project_material_ns.expect(project_material_create_model)
     @project_material_ns.marshal_with(project_material_msg_model)
     def patch(self, project_material_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to edit project material: {project_material_id}",
             extra={"login": current_user},
@@ -232,7 +246,7 @@ class ProjectMaterialEdit(Resource):
 
 @project_material_ns.route("/all")
 class ProjectMaterialAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_material_ns.expect(project_material_filter_parser)
     @project_material_ns.marshal_with(project_material_all_response)
     def get(self):

@@ -1,10 +1,11 @@
 # Namespace for ProjectSchedules
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -25,13 +26,26 @@ from app.schemas.project_schedule_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 project_schedule_ns = Namespace(
     "project_schedules", description="Project schedules management operations"
@@ -51,12 +65,12 @@ project_schedule_ns.models[project_schedule_model.name] = project_schedule_model
 
 @project_schedule_ns.route("/add")
 class ProjectScheduleAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_schedule_ns.expect(project_schedule_create_model)
     @project_schedule_ns.marshal_with(project_schedule_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Request to add new project schedule", extra={"login": current_user}
         )
@@ -110,10 +124,10 @@ class ProjectScheduleAdd(Resource):
 
 @project_schedule_ns.route("/<string:schedule_id>/view")
 class ProjectScheduleView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_schedule_ns.marshal_with(project_schedule_response)
     def get(self, schedule_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to view project schedule: {schedule_id}",
             extra={"login": current_user},
@@ -143,11 +157,11 @@ class ProjectScheduleView(Resource):
 
 @project_schedule_ns.route("/<string:schedule_id>/delete/hard")
 class ProjectScheduleHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_schedule_ns.marshal_with(project_schedule_msg_model)
     def delete(self, schedule_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete project schedule: {schedule_id}",
             extra={"login": current_user},
@@ -199,12 +213,12 @@ class ProjectScheduleHardDelete(Resource):
 
 @project_schedule_ns.route("/<string:schedule_id>/edit")
 class ProjectScheduleEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_schedule_ns.expect(project_schedule_create_model)
     @project_schedule_ns.marshal_with(project_schedule_msg_model)
     def patch(self, schedule_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to edit project schedule: {schedule_id}",
             extra={"login": current_user},
@@ -256,11 +270,11 @@ class ProjectScheduleEdit(Resource):
 
 @project_schedule_ns.route("/all")
 class ProjectScheduleAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_schedule_ns.expect(project_schedule_filter_parser)
     @project_schedule_ns.marshal_with(project_schedule_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Request to fetch all project schedules", extra={"login": current_user}
         )

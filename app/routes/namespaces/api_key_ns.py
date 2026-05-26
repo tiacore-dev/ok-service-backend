@@ -18,9 +18,9 @@ from app.routes.models.api_key_models import (
     api_key_msg_model,
     api_key_response,
     key_permission_relation_all_response,
+    key_permission_relation_bulk_create_model,
     key_permission_relation_bulk_delete_model,
     key_permission_relation_bulk_delete_response,
-    key_permission_relation_bulk_create_model,
     key_permission_relation_bulk_response,
     key_permission_relation_create_model,
     key_permission_relation_filter_parser,
@@ -33,8 +33,8 @@ from app.routes.models.api_key_models import (
 )
 from app.schemas.api_key_schemas import ApiKeyFilterSchema, ApiKeyGenerateSchema
 from app.schemas.key_permission_type_relation_schemas import (
-    KeyPermissionTypeRelationBulkDeleteSchema,
     KeyPermissionTypeRelationBulkCreateSchema,
+    KeyPermissionTypeRelationBulkDeleteSchema,
     KeyPermissionTypeRelationCreateSchema,
     PermissionTypeFilterSchema,
 )

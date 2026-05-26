@@ -1,10 +1,11 @@
 # Namespace for ShiftReports
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -26,13 +27,26 @@ from app.schemas.shift_report_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 shift_report_ns = Namespace(
     "shift_reports", description="Shift reports management operations"
@@ -50,11 +64,11 @@ shift_report_ns.models[shift_report_all_response.name] = shift_report_all_respon
 
 @shift_report_ns.route("/add")
 class ShiftReportAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_ns.expect(shift_report_create_model)
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to add new shift report", extra={"login": current_user})
 
         schema = ShiftReportCreateSchema()
@@ -99,7 +113,7 @@ class ShiftReportAdd(Resource):
 
 @shift_report_ns.route("/<string:report_id>/view")
 class ShiftReportView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_ns.marshal_with(shift_report_response)
     def get(self, report_id):
         current_user = get_jwt_identity()
@@ -131,10 +145,10 @@ class ShiftReportView(Resource):
 
 @shift_report_ns.route("/<string:report_id>/delete/soft")
 class ShiftReportSoftDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to soft delete shift report: {report_id}",
             extra={"login": current_user},
@@ -186,10 +200,10 @@ class ShiftReportSoftDelete(Resource):
 
 @shift_report_ns.route("/<string:report_id>/delete/hard")
 class ShiftReportHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def delete(self, report_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete shift report: {report_id}",
             extra={"login": current_user},
@@ -243,11 +257,11 @@ class ShiftReportHardDelete(Resource):
 
 @shift_report_ns.route("/<string:report_id>/edit")
 class ShiftReportEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_ns.expect(shift_report_create_model)
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to edit shift report: {report_id}", extra={"login": current_user}
         )
@@ -341,11 +355,11 @@ class ShiftReportEdit(Resource):
 
 @shift_report_ns.route("/all")
 class ShiftReportAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @shift_report_ns.expect(shift_report_filter_parser)
     @shift_report_ns.marshal_with(shift_report_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to fetch all shift reports", extra={"login": current_user})
 
         # Валидация query-параметров через Marshmallow

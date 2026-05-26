@@ -1,8 +1,9 @@
 import json
 import logging
+from typing import Any
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -23,13 +24,26 @@ from app.schemas.work_category_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 work_category_ns = Namespace(
     "work_categories", description="Work category management operations"
@@ -44,12 +58,12 @@ work_category_ns.models[work_category_model.name] = work_category_model
 
 @work_category_ns.route("/add")
 class WorkCategoryAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_category_ns.expect(work_category_create_model)
     @work_category_ns.marshal_with(work_category_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to add new work category.", extra={"login": current_user})
         schema = WorkCategoryCreateSchema()
         try:
@@ -97,10 +111,10 @@ class WorkCategoryAdd(Resource):
 
 @work_category_ns.route("/<string:work_category_id>/view")
 class WorkCategoryView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @work_category_ns.marshal_with(work_category_response)
     def get(self, work_category_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to view work category: {work_category_id}",
             extra={"login": current_user},
@@ -131,11 +145,11 @@ class WorkCategoryView(Resource):
 
 @work_category_ns.route("/<string:work_category_id>/delete/soft")
 class WorkCategoryDeleteSoft(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_category_ns.marshal_with(work_category_msg_model)
     def patch(self, work_category_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to soft delete work category: {work_category_id}",
             extra={"login": current_user},
@@ -167,11 +181,11 @@ class WorkCategoryDeleteSoft(Resource):
 
 @work_category_ns.route("/<string:work_category_id>/delete/hard")
 class WorkCategoryDeleteHard(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_category_ns.marshal_with(work_category_msg_model)
     def delete(self, work_category_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete work category: {work_category_id}",
             extra={"login": current_user},
@@ -212,12 +226,12 @@ class WorkCategoryDeleteHard(Resource):
 
 @work_category_ns.route("/<string:work_category_id>/edit")
 class WorkCategoryEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @admin_required
     @work_category_ns.expect(work_category_create_model)
     @work_category_ns.marshal_with(work_category_msg_model)
     def patch(self, work_category_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to edit work category: {work_category_id}",
             extra={"login": current_user},
@@ -266,7 +280,7 @@ class WorkCategoryEdit(Resource):
 
 @work_category_ns.route("/all")
 class WorkCategoryAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @work_category_ns.expect(work_category_filter_parser)
     @work_category_ns.marshal_with(work_category_all_response)
     def get(self):

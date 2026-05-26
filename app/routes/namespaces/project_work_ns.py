@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Any
 from uuid import UUID
 
 from flask import abort, g, request
-from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
@@ -25,13 +26,26 @@ from app.schemas.project_work_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
-jwt_required = api_key_or_jwt_required
 
 
 def get_jwt_identity():
     if getattr(g, "auth_via_api_key", False):
         return getattr(g, "api_key_identity_json", None)
     return _get_jwt_identity()
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
 
 project_work_ns = Namespace(
     "project_works", description="Project Works management operations"
@@ -48,12 +62,12 @@ project_work_ns.models[project_work_msg_many_model.name] = project_work_msg_many
 
 @project_work_ns.route("/add/many")
 class ProjectWorkAddBulk(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_work_ns.expect([project_work_create_model])
     @project_work_ns.marshal_with(project_work_msg_many_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             "Request to add multiple project works", extra={"login": current_user}
         )
@@ -127,12 +141,12 @@ class ProjectWorkAddBulk(Resource):
 
 @project_work_ns.route("/add")
 class ProjectWorkAdd(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_work_ns.expect(project_work_create_model)
     @project_work_ns.marshal_with(project_work_msg_model)
     def post(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to add new project work", extra={"login": current_user})
 
         schema = ProjectWorkCreateSchema()
@@ -186,10 +200,10 @@ class ProjectWorkAdd(Resource):
 
 @project_work_ns.route("/<string:project_work_id>/view")
 class ProjectWorkView(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_work_ns.marshal_with(project_work_response)
     def get(self, project_work_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to view project work: {project_work_id}",
             extra={"login": current_user},
@@ -220,11 +234,11 @@ class ProjectWorkView(Resource):
 
 @project_work_ns.route("/<string:project_work_id>/delete/soft")
 class ProjectWorkSoftDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to soft delete project work: {project_work_id}",
             extra={"login": current_user},
@@ -282,11 +296,11 @@ class ProjectWorkSoftDelete(Resource):
 
 @project_work_ns.route("/<string:project_work_id>/delete/hard")
 class ProjectWorkHardDelete(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_work_ns.marshal_with(project_work_msg_model)
     def delete(self, project_work_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to hard delete project work: {project_work_id}",
             extra={"login": current_user},
@@ -352,12 +366,12 @@ class ProjectWorkHardDelete(Resource):
 
 @project_work_ns.route("/<string:project_work_id>/edit")
 class ProjectWorkEdit(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @user_forbidden
     @project_work_ns.expect(project_work_create_model)
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info(
             f"Request to edit project work: {project_work_id}",
             extra={"login": current_user},
@@ -424,11 +438,11 @@ class ProjectWorkEdit(Resource):
 
 @project_work_ns.route("/all")
 class ProjectWorkAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @project_work_ns.expect(project_work_filter_parser)
     @project_work_ns.marshal_with(project_work_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to fetch all project works", extra={"login": current_user})
 
         schema = ProjectWorkFilterSchema()
