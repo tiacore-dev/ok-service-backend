@@ -6,7 +6,7 @@ from functools import wraps
 from flask import g, request
 from flask_jwt_extended import verify_jwt_in_request
 
-from app.database.db_globals import Session
+from app.database import db_globals
 from app.database.models import (
     ApiKeys,
     KeyPermissionTypeRelations,
@@ -15,6 +15,13 @@ from app.database.models import (
 )
 
 logger = logging.getLogger("ok_service")
+
+
+def _get_db_session():
+    session_factory = db_globals.Session
+    if session_factory is None:
+        raise RuntimeError("Database session is not initialized")
+    return session_factory()
 
 
 def _normalize_rule(rule: str) -> str:
@@ -42,7 +49,7 @@ def api_key_or_jwt_required(func):
         if not permission_description:
             return {"msg": "Forbidden"}, 403
 
-        session = Session()
+        session = _get_db_session()
         try:
             api_key = session.query(ApiKeys).filter_by(token=raw_api_key).first()
             if not api_key:
