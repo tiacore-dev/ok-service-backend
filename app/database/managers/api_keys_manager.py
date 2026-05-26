@@ -37,7 +37,17 @@ class ApiKeysManager(BaseDBManager):
             sort_by=sort_by,
             sort_order=sort_order,
         )
-        return [record.to_public_dict() for record in records]
+        # BaseDBManager.get_all_filtered returns dictionaries via to_dict().
+        # Convert them to the public representation by dropping secret fields.
+        return [
+            {
+                "api_key_id": record.get("api_key_id"),
+                "name": record.get("name"),
+                "expires_at": record.get("expires_at"),
+                "created_at": record.get("created_at"),
+            }
+            for record in records
+        ]
 
     def _generate_unique_token(self, session):
         for _ in range(10):
