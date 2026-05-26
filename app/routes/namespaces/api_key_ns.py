@@ -18,6 +18,8 @@ from app.routes.models.api_key_models import (
     api_key_msg_model,
     api_key_response,
     key_permission_relation_all_response,
+    key_permission_relation_bulk_delete_model,
+    key_permission_relation_bulk_delete_response,
     key_permission_relation_bulk_create_model,
     key_permission_relation_bulk_response,
     key_permission_relation_create_model,
@@ -31,6 +33,7 @@ from app.routes.models.api_key_models import (
 )
 from app.schemas.api_key_schemas import ApiKeyFilterSchema, ApiKeyGenerateSchema
 from app.schemas.key_permission_type_relation_schemas import (
+    KeyPermissionTypeRelationBulkDeleteSchema,
     KeyPermissionTypeRelationBulkCreateSchema,
     KeyPermissionTypeRelationCreateSchema,
     PermissionTypeFilterSchema,
@@ -52,6 +55,9 @@ api_key_ns.models[key_permission_relation_create_model.name] = (
 api_key_ns.models[key_permission_relation_bulk_create_model.name] = (
     key_permission_relation_bulk_create_model
 )
+api_key_ns.models[key_permission_relation_bulk_delete_model.name] = (
+    key_permission_relation_bulk_delete_model
+)
 api_key_ns.models[key_permission_relation_response.name] = (
     key_permission_relation_response
 )
@@ -64,6 +70,9 @@ api_key_ns.models[key_permission_relation_all_response.name] = (
 )
 api_key_ns.models[key_permission_relation_bulk_response.name] = (
     key_permission_relation_bulk_response
+)
+api_key_ns.models[key_permission_relation_bulk_delete_response.name] = (
+    key_permission_relation_bulk_delete_response
 )
 api_key_ns.models[permission_type_model.name] = permission_type_model
 api_key_ns.models[permission_type_all_response.name] = permission_type_all_response
@@ -363,6 +372,42 @@ class KeyPermissionRelationDelete(Resource):
         except Exception as e:
             logger.error(f"Error deleting relation: {e}", extra={"login": current_user})
             return {"msg": f"Error deleting relation: {e}"}, 500
+
+
+@api_key_ns.route("/permissions/delete/many")
+class KeyPermissionRelationDeleteMany(Resource):
+    @jwt_required()
+    @admin_required
+    @api_key_ns.expect(key_permission_relation_bulk_delete_model)
+    @api_key_ns.marshal_with(key_permission_relation_bulk_delete_response)
+    def delete(self):
+        current_user = json.loads(get_jwt_identity())
+        schema = KeyPermissionTypeRelationBulkDeleteSchema()
+        try:
+            data = schema.load(request.json)  # type: ignore
+            relation_ids = [UUID(value) for value in data["relation_ids"]]  # type: ignore
+        except ValidationError as err:
+            return {"error": err.messages}, 400
+        except ValueError:
+            return {"msg": "Invalid UUID format"}, 400
+
+        try:
+            from app.database.managers.key_permission_type_relations_manager import (
+                KeyPermissionTypeRelationsManager,
+            )
+
+            db = KeyPermissionTypeRelationsManager()
+            deleted_ids = db.delete_many(relation_ids=relation_ids)
+            return {
+                "msg": "Relations deleted successfully",
+                "deleted_ids": deleted_ids,
+                "deleted_count": len(deleted_ids),
+            }, 200
+        except Exception as e:
+            logger.error(
+                f"Error deleting relations in bulk: {e}", extra={"login": current_user}
+            )
+            return {"msg": f"Error deleting relations in bulk: {e}"}, 500
 
 
 @api_key_ns.route("/permission-types/all")

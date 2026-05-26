@@ -29,6 +29,18 @@ class KeyPermissionTypeRelationBulkCreateSchema(Schema):
     )
 
 
+class KeyPermissionTypeRelationBulkDeleteSchema(Schema):
+    class Meta:
+        unknown = "exclude"
+
+    relation_ids = fields.List(
+        fields.String(required=True),
+        required=True,
+        validate=validate.Length(min=1),
+        error_messages={"required": "Field 'relation_ids' is required."},
+    )
+
+
 class PermissionTypeFilterSchema(Schema):
     class Meta:
         unknown = "exclude"

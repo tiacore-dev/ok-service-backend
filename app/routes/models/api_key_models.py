@@ -2,6 +2,7 @@ from flask_restx import Model, fields, reqparse
 
 from app.schemas.api_key_schemas import ApiKeyGenerateSchema
 from app.schemas.key_permission_type_relation_schemas import (
+    KeyPermissionTypeRelationBulkDeleteSchema,
     KeyPermissionTypeRelationBulkCreateSchema,
     KeyPermissionTypeRelationCreateSchema,
 )
@@ -13,6 +14,9 @@ key_permission_relation_create_model = generate_swagger_model(
 )
 key_permission_relation_bulk_create_model = generate_swagger_model(
     KeyPermissionTypeRelationBulkCreateSchema(), "KeyPermissionTypeRelationBulkCreate"
+)
+key_permission_relation_bulk_delete_model = generate_swagger_model(
+    KeyPermissionTypeRelationBulkDeleteSchema(), "KeyPermissionTypeRelationBulkDelete"
 )
 
 api_key_model = Model(
@@ -119,6 +123,15 @@ key_permission_relation_bulk_response = Model(
         "relations": fields.List(
             fields.Nested(key_permission_relation_model), description="Created relations"
         ),
+    },
+)
+
+key_permission_relation_bulk_delete_response = Model(
+    "KeyPermissionTypeRelationBulkDeleteResponse",
+    {
+        "msg": fields.String(required=True, description="Response message"),
+        "deleted_ids": fields.List(fields.String, description="Deleted relation IDs"),
+        "deleted_count": fields.Integer(required=True, description="Deleted relations count"),
     },
 )
 

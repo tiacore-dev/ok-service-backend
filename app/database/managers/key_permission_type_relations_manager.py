@@ -19,6 +19,15 @@ class KeyPermissionTypeRelationsManager(BaseDBManager):
                 created.append(relation.to_dict())
         return created
 
+    def delete_many(self, relation_ids):
+        with self.session_scope() as session:
+            relations = (
+                session.query(self.model).filter(self.model.id.in_(relation_ids)).all()
+            )
+            for relation in relations:
+                session.delete(relation)
+            return [str(relation.id) for relation in relations]
+
     def get_permission_types_all(
         self, offset=0, limit=None, sort_by="code", sort_order="asc"
     ):
