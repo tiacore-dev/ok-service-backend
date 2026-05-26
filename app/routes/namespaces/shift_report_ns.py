@@ -3,12 +3,13 @@ import json
 import logging
 from uuid import UUID
 
-from flask import abort, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask import abort, g, request
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from app.decorators import api_key_or_jwt_required
 from app.routes.models.shift_report_models import (
     shift_report_all_response,
     shift_report_create_model,
@@ -25,6 +26,13 @@ from app.schemas.shift_report_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
+jwt_required = api_key_or_jwt_required
+
+
+def get_jwt_identity():
+    if getattr(g, "auth_via_api_key", False):
+        return getattr(g, "api_key_identity_json", None)
+    return _get_jwt_identity()
 
 shift_report_ns = Namespace(
     "shift_reports", description="Shift reports management operations"

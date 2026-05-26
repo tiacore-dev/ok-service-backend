@@ -29,7 +29,13 @@ authorizations = {
         "in": "header",
         "name": "Authorization",
         "description": "Добавьте JWT-токен в формате: Bearer <jwt_token>",
-    }
+    },
+    "API-Key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "API-Key",
+        "description": "Передайте API ключ в заголовке API-Key",
+    },
 }
 
 
@@ -116,7 +122,12 @@ def create_app(config_name="development"):
     ma.init_app(app)
 
     # Инициализация API
-    api = Api(app, doc="/swagger", security="Bearer", authorizations=authorizations)
+    api = Api(
+        app,
+        doc="/swagger",
+        security=[{"Bearer": []}, {"API-Key": []}],
+        authorizations=authorizations,
+    )
     # Регистрация маршрутов
     register_namespaces(api)
 

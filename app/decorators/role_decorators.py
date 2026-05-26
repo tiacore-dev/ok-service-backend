@@ -2,6 +2,7 @@ import json
 import logging
 from functools import wraps
 
+from flask import g
 from flask_jwt_extended import get_jwt_identity
 
 logger = logging.getLogger("ok_service")
@@ -12,6 +13,8 @@ def admin_required(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
+        if getattr(g, "auth_via_api_key", False):
+            return func(*args, **kwargs)
         current_user = json.loads(get_jwt_identity())
         if current_user.get("role") != "admin":
             logger.warning(

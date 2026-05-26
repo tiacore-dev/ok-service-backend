@@ -3,14 +3,14 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from flask import abort, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask import abort, g, request
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from app.database.models.leaves import AbsenceReason
-from app.decorators import admin_required
+from app.decorators import admin_required, api_key_or_jwt_required
 from app.routes.models.leave_models import (
     leave_all_response,
     leave_create_model,
@@ -29,6 +29,13 @@ from app.schemas.leave_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
+jwt_required = api_key_or_jwt_required
+
+
+def get_jwt_identity():
+    if getattr(g, "auth_via_api_key", False):
+        return getattr(g, "api_key_identity_json", None)
+    return _get_jwt_identity()
 
 leave_ns = Namespace("leaves", description="Leaves management operations")
 

@@ -2,13 +2,13 @@ import json
 import logging
 from uuid import UUID
 
-from flask import abort, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask import abort, g, request
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from app.decorators import user_forbidden
+from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.routes.models.project_models import (
     project_all_response,
     project_create_model,
@@ -26,6 +26,13 @@ from app.schemas.project_schemas import (
 )
 
 logger = logging.getLogger("ok_service")
+jwt_required = api_key_or_jwt_required
+
+
+def get_jwt_identity():
+    if getattr(g, "auth_via_api_key", False):
+        return getattr(g, "api_key_identity_json", None)
+    return _get_jwt_identity()
 
 project_ns = Namespace("projects", description="Projects management operations")
 
