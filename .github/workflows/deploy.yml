@@ -3,6 +3,7 @@ name: CI/CD to Server
 on:
   push:
     branches: [ master, dev, stage ]
+  workflow_dispatch:
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/ok-service-backend
