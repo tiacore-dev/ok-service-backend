@@ -3,9 +3,11 @@ from marshmallow import Schema
 from marshmallow import fields as ma_fields
 
 # 🔹 Глобальный реестр моделей, чтобы не дублировать
+
 registered_models = {}
 
 # 🔹 Фиксированный маппинг типов
+
 type_mapping = {
     ma_fields.String: fields.String,
     ma_fields.Integer: fields.Integer,
