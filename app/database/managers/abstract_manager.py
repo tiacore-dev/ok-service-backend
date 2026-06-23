@@ -8,7 +8,7 @@ from sqlalchemy import asc, desc, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.database.db_globals import Session
+from app.database import db_globals
 
 logger = logging.getLogger("ok_service")
 
@@ -35,7 +35,10 @@ class BaseDBManager(ABC):
             yield self._external_session
             return
 
-        session = Session()
+        session_factory = db_globals.Session
+        if session_factory is None:
+            raise RuntimeError("Database session is not initialized")
+        session = session_factory()
         try:
             # logger.debug("Начало сессии", extra={"login": "database"})
             yield session

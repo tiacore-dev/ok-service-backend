@@ -1,7 +1,9 @@
 from uuid import uuid4
-from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, UUID
+
+from sqlalchemy import Column, DateTime, String, Text, UUID
+
 from app.database.db_setup import Base
+from app.database.time_utils import utc_now
 
 
 class Logs(Base):
@@ -13,7 +15,7 @@ class Logs(Base):
     # Действие, которое было выполнено
     action = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)  # Сообщение лога
-    timestamp = Column(DateTime, default=datetime.utcnow)  # Дата и время
+    timestamp = Column(DateTime(timezone=True), default=utc_now)  # Дата и время
 
     def __repr__(self):
         return f"<Logs(log_id={self.log_id}, login={self.login}, action={self.action}, timestamp={self.timestamp})>"

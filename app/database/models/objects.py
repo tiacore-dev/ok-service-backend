@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import UUID, BigInteger, Boolean, Column, Float, ForeignKey, String
@@ -6,6 +5,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
 from app.database.db_setup import Base
+from app.database.time_utils import utc_epoch_seconds
 
 
 class Objects(Base):
@@ -30,7 +30,7 @@ class Objects(Base):
     ltd = Column(Float, nullable=True)
     created_at = Column(
         BigInteger,
-        default=lambda: int(datetime.utcnow().timestamp()),
+        default=utc_epoch_seconds,
         server_default=text("EXTRACT(EPOCH FROM NOW())"),
     )
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)

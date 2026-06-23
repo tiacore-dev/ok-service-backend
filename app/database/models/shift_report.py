@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -16,6 +15,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
 from app.database.db_setup import Base
+from app.database.time_utils import utc_epoch_seconds
 
 # Создаем SEQUENCE (он должен быть заранее в БД)
 shift_reports_number_seq = Sequence("shift_reports_number_seq", start=1, increment=1)
@@ -41,7 +41,7 @@ class ShiftReports(Base):
     signed = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         BigInteger,
-        default=lambda: int(datetime.utcnow().timestamp()),
+        default=utc_epoch_seconds,
         server_default=text("EXTRACT(EPOCH FROM NOW())"),
         nullable=False,
     )

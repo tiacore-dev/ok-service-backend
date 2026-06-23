@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -17,6 +16,7 @@ from sqlalchemy.sql import text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.database.db_setup import Base
+from app.database.time_utils import utc_epoch_seconds
 
 
 class Users(Base):
@@ -43,7 +43,7 @@ class Users(Base):
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
     created_at = Column(
         BigInteger,
-        default=lambda: int(datetime.utcnow().timestamp()),
+        default=utc_epoch_seconds,
         server_default=text("EXTRACT(EPOCH FROM NOW())"),
         nullable=False,
     )

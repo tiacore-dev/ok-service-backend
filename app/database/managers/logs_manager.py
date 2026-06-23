@@ -1,16 +1,22 @@
 
 from datetime import timedelta, datetime
 from app.database.models.logs import Logs
-from app.database.db_globals import Session
+from app.database import db_globals
 
 
 class LogManager():
     def __init__(self):
-        self.Session = Session
+        pass
+
+    def _get_session_factory(self):
+        session_factory = db_globals.Session
+        if session_factory is None:
+            raise RuntimeError("Database session is not initialized")
+        return session_factory
 
     def add_logs(self, login, action, message):
         """Добавление лога."""
-        session = self.Session()
+        session = self._get_session_factory()()
         try:
             new_record = Logs(login=login, action=action,
                               message=message)  # Создаем объект Logs
@@ -25,7 +31,7 @@ class LogManager():
 
     def get_logs_by_date(self, date, offset=0, limit=10):
         """Получение логов по дате."""
-        session = self.Session()
+        session = self._get_session_factory()()
         try:
             return session.query(Logs).filter(Logs.timestamp >= date, Logs.timestamp < date + timedelta(days=1)).offset(offset).limit(limit).all()
         except Exception:
@@ -36,7 +42,7 @@ class LogManager():
 
     def filter_by_date(self, user_id=None, date=None, offset=0, limit=10):
         """Фильтрация логов по дате и ID пользователя."""
-        session = self.Session()
+        session = self._get_session_factory()()
         try:
             query = session.query(Logs)
             if user_id:
@@ -55,7 +61,7 @@ class LogManager():
 
     def get_logs(self, user_id=None, date=None, offset=0, limit=10):
         """Получение логов с фильтрацией и пагинацией."""
-        session = self.Session()
+        session = self._get_session_factory()()
         try:
             query = session.query(Logs)
 

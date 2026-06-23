@@ -1,10 +1,11 @@
 from flask import Flask
 from flask_restx import Api
 
+from app.web import register_namespaces as register_web_namespaces
+
 from .account_route import account_bp
 from .namespaces.api_key_ns import api_key_ns
 from .namespaces.city_ns import city_ns
-from .namespaces.leave_ns import leave_ns
 from .namespaces.login_ns import login_ns
 from .namespaces.material_ns import material_ns
 from .namespaces.object_ns import object_ns
@@ -36,7 +37,6 @@ def register_namespaces(api: Api):
     api.add_namespace(api_key_ns)
     api.add_namespace(user_ns)
     api.add_namespace(city_ns)
-    api.add_namespace(leave_ns)
     api.add_namespace(object_status_ns)
     api.add_namespace(work_category_ns)
     api.add_namespace(object_ns)
@@ -54,3 +54,4 @@ def register_namespaces(api: Api):
     api.add_namespace(shift_report_details_ns)
     api.add_namespace(subscription_ns)
     api.add_namespace(template_ns)
+    register_web_namespaces(api)
