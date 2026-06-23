@@ -241,7 +241,7 @@ class ProjectMaterialHardDelete(Resource):
 class ProjectMaterialEdit(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @project_material_ns.expect(project_material_edit_model)
+    @project_material_ns.expect(project_material_edit_model, validate=False)
     @project_material_ns.marshal_with(project_material_msg_model)
     def patch(self, project_material_id):
         current_user = _get_current_user()

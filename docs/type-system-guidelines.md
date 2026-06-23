@@ -17,6 +17,7 @@
 - `require_mapping(...)` и `to_plain_dict(...)` для нормализации `request`-payload;
 - `required_uuid(...)` и `optional_uuid(...)` для UUID-конверсий;
 - `get_required_uuid(...)`, `get_optional_uuid(...)` для безопасного доступа к UUID-полям на границе;
+- `get_optional_str_list(...)`, `get_optional_uuid_list(...)` для query string и других list-like значений;
 - `get_optional_str(...)`, `get_optional_int(...)`, `get_optional_float(...)`, `get_optional_decimal(...)`, `get_optional_bool(...)` для безопасного доступа к optional полям;
 - `get_required_str(...)`, `get_required_int(...)`, `get_required_float(...)`, `get_required_decimal(...)` для обязательных scalar-полей;
 - `has_field(...)` для отличения отсутствующего ключа от явного `null` в edit-пейлоадах.
@@ -39,8 +40,9 @@
 4. Для query string использовать `request.args.to_dict()`, а не работать с `ImmutableMultiDict` напрямую.
 5. Не индексировать `TypedDict` по необязательным ключам.
 6. Для необязательных значений использовать helper-функции вида `get_optional_uuid(...)`, `get_optional_int(...)`, `get_optional_float(...)`, `get_optional_bool(...)`.
-7. Для edit-payloads использовать `has_field(...)`, если важно отличить отсутствующий ключ от `null`.
-8. `cast(...)` использовать только после runtime-проверки, когда тип уже подтвержден, но проверка не видна анализатору.
+7. Для list-like query params использовать `get_optional_str_list(...)` или `get_optional_uuid_list(...)`, а не собирать список вручную в каждом роутере.
+8. Для edit-payloads использовать `has_field(...)`, если важно отличить отсутствующий ключ от `null`.
+9. `cast(...)` использовать только после runtime-проверки, когда тип уже подтвержден, но проверка не видна анализатору.
 
 ## Правила для DTO
 

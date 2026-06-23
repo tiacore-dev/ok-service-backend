@@ -263,7 +263,7 @@ class WorkPriceHardDelete(Resource):
 class WorkPriceEdit(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @work_price_ns.expect(work_price_edit_model)
+    @work_price_ns.expect(work_price_edit_model, validate=False)
     @work_price_ns.marshal_with(work_price_msg_model)
     def patch(self, work_price_id):
         current_user = _get_current_user()

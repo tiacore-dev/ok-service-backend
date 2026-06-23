@@ -18,6 +18,7 @@ from app.database.models import (
     WorkMaterialRelations,
     WorkPrices,
 )
+from app.domain.shift_reports import ShiftReportConflictError
 
 logger = logging.getLogger("ok_service")
 
@@ -25,9 +26,50 @@ logger = logging.getLogger("ok_service")
 class ShiftManager(BaseDBManager):
     def _convert_to_uuid(self, value):
         """Приводит строку к UUID, если это ещё не UUID"""
+        if isinstance(value, UUID):
+            return value
         if isinstance(value, str):
             return UUID(value)
         return value
+
+    def _has_shift_window_changes(self, data):
+        """Проверяет, затрагивает ли изменение временное окно смены."""
+        return any(
+            key in data and data.get(key) is not None
+            for key in ("user", "date", "date_start", "date_end")
+        )
+
+    def _check_leave_conflict(
+        self,
+        session,
+        user_id,
+        *,
+        date=None,
+        date_start=None,
+        date_end=None,
+        message="User has a leave during the requested date",
+    ):
+        """Проверяет пересечение с отпуском/отсутствием."""
+        if user_id is None:
+            return
+
+        window_start = date_start or date
+        window_end = date_end or date
+        if window_start is None or window_end is None:
+            return
+
+        leave_conflict = (
+            session.query(Leaves)
+            .filter(
+                Leaves.user_id == self._convert_to_uuid(user_id),
+                Leaves.deleted.is_(False),
+                Leaves.start_date <= window_end,
+                Leaves.end_date >= window_start,
+            )
+            .first()
+        )
+        if leave_conflict:
+            raise ShiftReportConflictError(message)
 
     def count_summ(self, work_id, shift_report_id, session=None):
         """Подсчитывает сумму работы с учётом сменных условий"""
@@ -53,10 +95,13 @@ class ShiftManager(BaseDBManager):
             .first()
         )
 
-        user = session.query(Users).filter(Users.user_id == shift_report.user).first()
-
         if not shift_report:
             logger.warning(f"ShiftReport {shift_report_id} не найден")
+            return Decimal(0)
+
+        user = session.query(Users).filter(Users.user_id == shift_report.user).first()
+        if not user:
+            logger.warning(f"User {shift_report.user} не найден")
             return Decimal(0)
 
         work_price = (
@@ -88,6 +133,16 @@ class ShiftReportsManager(ShiftManager):
     def model(self):
         return ShiftReports
 
+    def get_project_ids_by_leader(self, user_id):
+        """Возвращает список project_id, где пользователь указан руководителем."""
+        with self.session_scope() as session:
+            records = (
+                session.query(Projects.project_id)
+                .filter(Projects.project_leader == self._convert_to_uuid(user_id))
+                .all()
+            )
+            return [str(project_id) for (project_id,) in records]
+
     def get_total_sum_by_shift_report(self, shift_report_id):
         """Возвращает сумму всех `summ` из shift_report_details для shift_report_id"""
         with self.session_scope() as session:
@@ -108,11 +163,11 @@ class ShiftReportsManager(ShiftManager):
 
         shift_report_data = {
             "shift_report_id": uuid4(),
-            "user": UUID(data["user"]),
+            "user": self._convert_to_uuid(data["user"]),
             "date": data["date"],
             "date_start": data.get("date_start"),
             "date_end": data.get("date_end"),
-            "project": UUID(data["project"]),
+            "project": self._convert_to_uuid(data["project"]),
             "lng_start": data.get("lng_start"),
             "ltd_start": data.get("ltd_start"),
             "lng_end": data.get("lng_end"),
@@ -120,7 +175,7 @@ class ShiftReportsManager(ShiftManager):
             "distance_start": data.get("distance_start"),
             "distance_end": data.get("distance_end"),
             "signed": data.get("signed", False),  # По умолчанию False
-            "created_by": created_by,
+            "created_by": self._convert_to_uuid(created_by),
             "extreme_conditions": data.get("extreme_conditions", False),
             "night_shift": data.get("night_shift", False),
             "comment": data.get("comment"),
@@ -132,22 +187,13 @@ class ShiftReportsManager(ShiftManager):
 
         with self.session_scope() as session:
             try:
-                leave_start = (
-                    shift_report_data["date_start"] or shift_report_data["date"]
+                self._check_leave_conflict(
+                    session,
+                    shift_report_data["user"],
+                    date=shift_report_data["date"],
+                    date_start=shift_report_data["date_start"],
+                    date_end=shift_report_data["date_end"],
                 )
-                leave_end = shift_report_data["date_end"] or shift_report_data["date"]
-                leave_conflict = (
-                    session.query(Leaves)
-                    .filter(
-                        Leaves.user_id == shift_report_data["user"],
-                        Leaves.deleted.is_(False),
-                        Leaves.start_date <= leave_end,
-                        Leaves.end_date >= leave_start,
-                    )
-                    .first()
-                )
-                if leave_conflict:
-                    raise ValueError("User has a leave during the requested date")
 
                 # 1. Создаем `shift_report`
                 new_report = ShiftReports(**shift_report_data)
@@ -160,18 +206,18 @@ class ShiftReportsManager(ShiftManager):
                     for detail in shift_report_details_data:
                         new_detail = ShiftReportDetails(
                             shift_report=new_report.shift_report_id,
-                            work=UUID(detail["work"]),
+                            work=self._convert_to_uuid(detail["work"]),
                             quantity=detail["quantity"],
                             summ=(
                                 self.count_summ(
-                                    UUID(detail["work"]),
+                                    self._convert_to_uuid(detail["work"]),
                                     new_report.shift_report_id,
                                     session,
                                 )
                             )
                             * Decimal(detail["quantity"]),
-                            created_by=created_by,
-                            project_work=UUID(detail["project_work"]),
+                            created_by=self._convert_to_uuid(created_by),
+                            project_work=self._convert_to_uuid(detail["project_work"]),
                         )
                         details.append(new_detail)
 
@@ -192,9 +238,42 @@ class ShiftReportsManager(ShiftManager):
             except SQLAlchemyError as e:
                 session.rollback()
                 raise e  # Выбрасываем исключение выше, чтобы обработать в API
+            except ShiftReportConflictError:
+                session.rollback()
+                raise
             except ValueError:
                 session.rollback()
                 raise
+
+    def update_shift_report(self, record_id, **data):
+        try:
+            with self.session_scope() as session:
+                record = (
+                    session.query(ShiftReports)
+                    .filter(ShiftReports.shift_report_id == record_id)
+                    .first()
+                )
+                if not record:
+                    return None
+
+                if self._has_shift_window_changes(data):
+                    user = data.get("user") or record.user
+                    self._check_leave_conflict(
+                        session,
+                        user,
+                        date=data.get("date") or record.date,
+                        date_start=data.get("date_start") or record.date_start,
+                        date_end=data.get("date_end") or record.date_end,
+                        message="Shift date intersects with existing leave",
+                    )
+
+                for field, value in data.items():
+                    if value is not None:
+                        setattr(record, field, value)
+                session.commit()
+                return record.to_dict()
+        except ShiftReportConflictError:
+            raise
 
     def get_project_leader(self, project):
         """Получение руководителя проекта по project"""
@@ -495,15 +574,17 @@ class ShiftReportsDetailsManager(ShiftManager):
         try:
             with self.session_scope() as session:
                 summ = self.count_summ(
-                    UUID(data["work"]), UUID(data["shift_report"]), session
+                    self._convert_to_uuid(data["work"]),
+                    self._convert_to_uuid(data["shift_report"]),
+                    session,
                 )
                 new_record = ShiftReportDetails(
-                    shift_report=data["shift_report"],
-                    work=data["work"],
+                    shift_report=self._convert_to_uuid(data["shift_report"]),
+                    work=self._convert_to_uuid(data["work"]),
                     quantity=data["quantity"],
                     summ=summ * Decimal(data["quantity"]),
-                    created_by=created_by,
-                    project_work=data["project_work"],
+                    created_by=self._convert_to_uuid(created_by),
+                    project_work=self._convert_to_uuid(data["project_work"]),
                 )
                 session.add(new_record)
                 try:
@@ -630,11 +711,13 @@ class ShiftReportsDetailsManager(ShiftManager):
                     )
                     return None
 
-                # Обновляем данные
-                # Оставляем текущее значение, если work не передан
-                detail.work = data.get("work", detail.work)
-                detail.quantity = data.get("quantity", detail.quantity)
-                detail.project_work = data.get("project_work", detail.project_work)
+                # Обновляем только явно переданные поля, чтобы не затирать обязательные FK `None`
+                if data.get("work") is not None:
+                    detail.work = data["work"]
+                if data.get("quantity") is not None:
+                    detail.quantity = data["quantity"]
+                if data.get("project_work") is not None:
+                    detail.project_work = data["project_work"]
 
                 # Пересчёт суммы
                 detail.summ = self.update_summ(
@@ -656,7 +739,7 @@ class ShiftReportsDetailsManager(ShiftManager):
                     }"
                 )
 
-                return detail
+                return detail.to_dict()
 
         except Exception as e:
             logger.error(
@@ -680,7 +763,8 @@ class ShiftReportsDetailsManager(ShiftManager):
                     ShiftReportMaterials.shift_report_detail == record.shift_report_detail_id
                 ).delete(synchronize_session=False)
                 session.delete(record)
-                return record
+                session.flush()
+                return record.to_dict()
         except Exception as e:
             logger.error(
                 f"Error deleting shift_report_detail {record_id}: {e}",

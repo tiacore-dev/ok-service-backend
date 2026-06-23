@@ -42,6 +42,36 @@ def get_required_uuid(payload: Mapping[str, Any], key: str, message: str) -> UUI
     return required_uuid(payload.get(key), message)
 
 
+def get_optional_str_list(payload: Mapping[str, Any], key: str) -> list[str] | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if isinstance(value, list):
+        raw_values = value
+    elif isinstance(value, str):
+        raw_values = value.split(",")
+    else:
+        raw_values = [value]
+    normalized: list[str] = []
+    for item in raw_values:
+        if isinstance(item, str) and "," in item:
+            parts = item.split(",")
+        else:
+            parts = [item]
+        for part in parts:
+            text = str(part).strip()
+            if text:
+                normalized.append(text)
+    return normalized
+
+
+def get_optional_uuid_list(payload: Mapping[str, Any], key: str) -> list[UUID] | None:
+    values = get_optional_str_list(payload, key)
+    if values is None:
+        return None
+    return [UUID(item) for item in values]
+
+
 def get_optional_str(payload: Mapping[str, Any], key: str) -> str | None:
     value = payload.get(key)
     if value is None:

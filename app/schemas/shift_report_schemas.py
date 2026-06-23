@@ -29,9 +29,7 @@ class ShiftReportDetailSchema(Schema):
         required=True, error_messages={"required": "Field 'quantity' is required."}
     )
 
-    summ = fields.Float(
-        required=True, error_messages={"required": "Field 'summ' is required."}
-    )
+    summ = fields.Float(required=False)
 
     project_work = fields.String(
         required=True,

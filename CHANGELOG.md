@@ -41,3 +41,25 @@
 - Для legacy `PATCH`-эндпоинтов в namespaces `users`, `cities`, `works`, `projects`, `objects`, `materials`, `work_categories`, `work_material_relations`, `shift_reports` и `shift_report_materials` добавлены отдельные `edit`-модели и переведён swagger-контракт с `create_model` на `edit_model`.
 - Ослаблена доменная валидация `project_works`: количество теперь допускает ноль, чтобы исторические записи из БД не падали при просмотре и удалении.
 - Исправлен `ProjectWorksManager`: `update` и `delete` теперь возвращают `to_dict()` внутри активной сессии, чтобы `project_works` не отдавали detached ORM-объекты и не ломали `edit`/`soft delete` 500-ми.
+- Начат общий bounded context `shift_reports`: добавлены доменные сущности `ShiftReport` и `ShiftReportDetail`, use-case контракты и SQLAlchemy-адаптер поверх текущих менеджеров.
+- В `ShiftReportsDetailsManager` исправлены `update_shift_report_details` и `delete`, чтобы они возвращали `to_dict()` внутри сессии и не отдавали detached ORM-объекты.
+- Для `shift_reports` и `shift_report_details` разнесены DTO для вложенного создания и standalone создания деталей, чтобы репозиторий сам проставлял `shift_report`, а роутер не тащил лишний контракт.
+- Расширен общий helper-слой типизации `app/web/_typing.py`: добавлены helper-ы для list-like query params (`get_optional_str_list`, `get_optional_uuid_list`) и обновлены правила их использования.
+- Для вложенной `ShiftReportDetailSchema` поле `summ` сделано вычисляемым на сервере, чтобы create-пayload не требовал значение, которое клиент не должен передавать.
+- RESTX-валидация на edit-роутах отключена в пользу marshmallow-валидации, чтобы убрать pre-handler `422` и держать контракт в одном месте.
+- Удалены старые legacy namespace-файлы `shift_report_ns.py` и `shift_report_detail_ns.py`, чтобы `shift_reports` обслуживался только через новый `web`-слой.
+- В `ShiftReportsManager` добавлена нормализация UUID на границе и защита `count_summ` от отсутствующей `shift_report`/`user`, чтобы create-flow не падал `500`.
+- Глобальный `RESTX_VALIDATE` убран, а `validate=False` оставлен точечно на проблемных `expect`, чтобы не отключать RESTX-проверки шире необходимого.
+- В `shift_reports` добавлен доменный `409 Conflict` для пересечения со `leave`, а update-сценарий теперь проверяет этот конфликт так же, как create.
+- Исправлен маппер `shift_report_detail_dict_to_entity`, который должен читать вложенную форму `to_dict()` и не падать на `project_work`/`shift_report`.
+- В `docs/type-system-guidelines.md` и `docs/access-control-rules.md` зафиксированы правила для helper-слоя типизации, `TypedDict`-границ и переноса ownership-проверок из роутера в use-case/domain policy.
+- В `ShiftReportsManager` отделена проверка leave-конфликта от soft delete: update теперь проверяет пересечение только для изменений временного окна, а soft delete больше не падает на `None` в датах.
+- Для `shift_reports` разнесены сообщения доменного конфликта: create сохраняет прежний текст, а edit возвращает `Shift date intersects with existing leave`, как ожидают тесты.
+- Для `shift_report_details` update теперь не затирает обязательные FK значениями `None`, а response-mapper снова отдаёт вложенную форму `shift_report`/`project_work`, которую ждут тесты.
+- Доменная модель `ShiftReportDetail` расширена дополнительными metadata-полями для web-response, чтобы не терять `shift_report.user_id` и `shift_report.date` при проходе через use-case слой.
+- В `shift_reports` добавлены явные типы для query-string нормализации и `get_project_ids_by_leader` в `ShiftReportsManager`, чтобы убрать новые Pylance-ошибки на `list[str]` и отсутствующий метод.
+- В `shift_report_details` роутере убраны прямые индексирования `request.json` и `dict[...]`-доступы к optional payload; вход теперь нормализуется через локальные typed-variables.
+- В `shift_report_details` роутере `schema.load(...)` теперь явно приводится к `dict[str, Any]`, чтобы Pylance не размечал `get(...)` и индексирование как работу с `Unknown`.
+- В тестовом `FakeRepository` для `shift_reports` use-case добавлены недостающие методы `ShiftReportRepository`, чтобы мок соответствовал протоколу без `type: ignore`.
+- В тестовом `FakeRepository` уточнены типы `create_shift_report_detail` и `detail_result`, чтобы мок возвращал `ShiftReportDetail`, а не `object | None`.
+- В `ARCHITECTURE.md` добавлен сквозной контракт типизации: нормализация на границах слоёв, запрет на протаскивание `Any/Unknown`, правила для `cast`, `None` и тестовых `Protocol`-моков.

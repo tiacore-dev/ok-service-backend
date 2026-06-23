@@ -278,7 +278,7 @@ class LeaveHardDelete(Resource):
 class LeaveEdit(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @leave_ns.expect(leave_edit_model)
+    @leave_ns.expect(leave_edit_model, validate=False)
     @leave_ns.marshal_with(leave_msg_model)
     def patch(self, leave_id):
         current_user = _get_current_user()

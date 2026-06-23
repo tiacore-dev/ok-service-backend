@@ -336,7 +336,7 @@ class ProjectWorkHardDelete(Resource):
 class ProjectWorkEdit(Resource):
     @api_key_or_jwt_required
     @user_forbidden
-    @project_work_ns.expect(project_work_edit_model)
+    @project_work_ns.expect(project_work_edit_model, validate=False)
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
         current_user = _get_current_user()
