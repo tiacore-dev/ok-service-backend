@@ -54,7 +54,7 @@ project_work_filter_parser.add_argument(
     'offset', type=int, default=0, help="Offset for pagination"
 )
 project_work_filter_parser.add_argument(
-    'limit', type=int, default=10, help="Limit for pagination"
+    'limit', type=int, default=1000, help="Limit for pagination"
 )
 project_work_filter_parser.add_argument(
     'sort_by', type=str, required=False, help='Field for sorting'

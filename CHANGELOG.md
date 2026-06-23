@@ -34,3 +34,7 @@
 - Добавлен отдельный документ с правилами построения моделей и swagger-контрактов: create/edit/response/filter модели теперь описаны отдельно.
 - Добавлен отдельный документ по правам доступа, ownership и тестовому gate перед следующими срезами миграции.
 - В `docs/clean-architecture-transition.md` зафиксирован тестовый gate: новый срез нельзя продолжать без проверок domain/use-case, route contract и прав доступа.
+- Начат вертикальный срез для `project_works`: выделены `domain`, `use-case`, `adapters` и `web`, а старый `project_work_ns` удалён.
+- Для `project_works` добавлены unit-тесты на доменную валидацию и сценарии create/update/delete без БД.
+- В `project_works` вынесены правила ownership и signed-state в use-case, а bulk/create/list/edit/delete переведены на новый web-слой.
+- Расширен общий web-helper-контур: добавлен `get_optional_float(...)` и `get_required_float(...)` для числовых query/body полей.

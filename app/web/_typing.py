@@ -56,6 +56,13 @@ def get_optional_int(payload: Mapping[str, Any], key: str) -> int | None:
     return int(value)
 
 
+def get_optional_float(payload: Mapping[str, Any], key: str) -> float | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    return float(value)
+
+
 def get_optional_decimal(payload: Mapping[str, Any], key: str) -> Decimal | None:
     value = payload.get(key)
     if value is None:
@@ -83,6 +90,13 @@ def get_required_str(payload: Mapping[str, Any], key: str, message: str) -> str:
 
 def get_required_int(payload: Mapping[str, Any], key: str, message: str) -> int:
     value = get_optional_int(payload, key)
+    if value is None:
+        raise ValueError(message)
+    return value
+
+
+def get_required_float(payload: Mapping[str, Any], key: str, message: str) -> float:
+    value = get_optional_float(payload, key)
     if value is None:
         raise ValueError(message)
     return value

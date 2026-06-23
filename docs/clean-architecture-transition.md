@@ -148,6 +148,16 @@ app/
 - те же правила типизации на границах `request` и `marshmallow`;
 - тот же приём с отдельным `edit`-model и `TypedDict` для безопасного доступа к optional полям.
 
+### Следующий за ним: `project_works`
+
+`project_works` лучше переводить следующим, потому что там уже видны все проблемные паттерны сразу:
+
+- create / bulk create / view / edit / soft delete / hard delete / list;
+- ownership-check по `project-leader`;
+- принудительное отключение `signed` для лидера;
+- синхронизация `project_materials` при создании, обновлении и удалении работ;
+- отдельные правила для edit-модели, чтобы `PATCH` не валился из-за create-контракта.
+
 ### Этап 2. Перенести бизнес-правила из web в use-case
 
 Что переносим первым:
