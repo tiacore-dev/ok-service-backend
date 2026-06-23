@@ -13,6 +13,7 @@ from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.routes.models.project_work_models import (
     project_work_all_response,
     project_work_create_model,
+    project_work_edit_model,
     project_work_filter_parser,
     project_work_model,
     project_work_msg_many_model,
@@ -53,6 +54,7 @@ project_work_ns = Namespace(
 
 # Инициализация моделей
 project_work_ns.models[project_work_create_model.name] = project_work_create_model
+project_work_ns.models[project_work_edit_model.name] = project_work_edit_model
 project_work_ns.models[project_work_msg_model.name] = project_work_msg_model
 project_work_ns.models[project_work_response.name] = project_work_response
 project_work_ns.models[project_work_all_response.name] = project_work_all_response
@@ -368,7 +370,7 @@ class ProjectWorkHardDelete(Resource):
 class ProjectWorkEdit(Resource):
     @api_key_or_jwt_required
     @user_forbidden
-    @project_work_ns.expect(project_work_create_model)
+    @project_work_ns.expect(project_work_edit_model)
     @project_work_ns.marshal_with(project_work_msg_model)
     def patch(self, project_work_id):
         current_user = _get_current_user()

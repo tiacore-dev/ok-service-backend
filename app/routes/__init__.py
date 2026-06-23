@@ -10,7 +10,6 @@ from .namespaces.login_ns import login_ns
 from .namespaces.material_ns import material_ns
 from .namespaces.object_ns import object_ns
 from .namespaces.object_status_ns import object_status_ns
-from .namespaces.project_material_ns import project_material_ns
 from .namespaces.project_ns import project_ns
 from .namespaces.project_schedule_ns import project_schedule_ns
 from .namespaces.project_work_ns import project_work_ns
@@ -43,7 +42,6 @@ def register_namespaces(api: Api):
     api.add_namespace(work_ns)
     api.add_namespace(material_ns)
     api.add_namespace(work_material_relation_ns)
-    api.add_namespace(project_material_ns)
     api.add_namespace(shift_report_material_ns)
     api.add_namespace(project_work_ns)
     api.add_namespace(project_schedule_ns)

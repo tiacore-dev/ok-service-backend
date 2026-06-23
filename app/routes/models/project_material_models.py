@@ -1,10 +1,17 @@
 from flask_restx import Model, fields, reqparse
 
-from app.schemas.project_material_schemas import ProjectMaterialCreateSchema
+from app.schemas.project_material_schemas import (
+    ProjectMaterialCreateSchema,
+    ProjectMaterialEditSchema,
+)
 from app.utils.helpers import generate_swagger_model
 
 project_material_create_model = generate_swagger_model(
     ProjectMaterialCreateSchema(), "ProjectMaterialCreate"
+)
+
+project_material_edit_model = generate_swagger_model(
+    ProjectMaterialEditSchema(), "ProjectMaterialEdit"
 )
 
 project_material_model = Model(
@@ -56,7 +63,7 @@ project_material_filter_parser.add_argument(
     "offset", type=int, default=0, help="Offset for pagination"
 )
 project_material_filter_parser.add_argument(
-    "limit", type=int, default=10, help="Limit for pagination"
+    "limit", type=int, default=1000, help="Limit for pagination"
 )
 project_material_filter_parser.add_argument(
     "project", type=str, required=False, help="Filter by project ID"

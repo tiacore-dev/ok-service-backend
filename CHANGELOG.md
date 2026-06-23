@@ -27,3 +27,10 @@
 - Начат полный вертикальный срез для `work_prices`: выделены `domain`, `use-case`, `adapters` и `web`, а старый `work_price_ns` удалён.
 - Для `work_prices` добавлены unit-тесты на доменную валидацию и сценарии create/update без БД.
 - В `app/web/work_prices/routes.py` добавлены явные `TypedDict`/`cast` на границах `marshmallow.load()`, чтобы убрать предупреждения Pylance по `Unknown`/`None`.
+- Начат вертикальный срез для `project_materials`: выделены `domain`, `use-case`, `adapters` и `web`, а старый `project_material_ns` удалён.
+- Для `project_materials` добавлены unit-тесты на доменную валидацию и сценарии create/update без БД.
+- Расширен общий helper-слой типизации в `app/web/_typing.py`: добавлены helper-ы для required/optional UUID, `Decimal`, scalar-полей и проверки присутствия ключа в `TypedDict`.
+- Обновлены правила типизации в `docs/type-system-guidelines.md`, чтобы новые web-слои опирались на общий helper-контур и не дублировали локальные проверки optional-полей.
+- Добавлен отдельный документ с правилами построения моделей и swagger-контрактов: create/edit/response/filter модели теперь описаны отдельно.
+- Добавлен отдельный документ по правам доступа, ownership и тестовому gate перед следующими срезами миграции.
+- В `docs/clean-architecture-transition.md` зафиксирован тестовый gate: новый срез нельзя продолжать без проверок domain/use-case, route contract и прав доступа.
