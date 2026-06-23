@@ -2,11 +2,15 @@ from flask_restx import Model, fields, reqparse
 
 from app.schemas.work_material_relation_schemas import (
     WorkMaterialRelationCreateSchema,
+    WorkMaterialRelationEditSchema,
 )
 from app.utils.helpers import generate_swagger_model
 
 work_material_relation_create_model = generate_swagger_model(
     WorkMaterialRelationCreateSchema(), "WorkMaterialRelationCreate"
+)
+work_material_relation_edit_model = generate_swagger_model(
+    WorkMaterialRelationEditSchema(), "WorkMaterialRelationEdit"
 )
 
 work_material_relation_model = Model(

@@ -14,6 +14,7 @@ from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.routes.models.project_schedule_models import (
     project_schedule_all_response,
     project_schedule_create_model,
+    project_schedule_edit_model,
     project_schedule_filter_parser,
     project_schedule_model,
     project_schedule_msg_model,
@@ -55,6 +56,7 @@ project_schedule_ns = Namespace(
 project_schedule_ns.models[project_schedule_create_model.name] = (
     project_schedule_create_model
 )
+project_schedule_ns.models[project_schedule_edit_model.name] = project_schedule_edit_model
 project_schedule_ns.models[project_schedule_msg_model.name] = project_schedule_msg_model
 project_schedule_ns.models[project_schedule_response.name] = project_schedule_response
 project_schedule_ns.models[project_schedule_all_response.name] = (
@@ -215,7 +217,7 @@ class ProjectScheduleHardDelete(Resource):
 class ProjectScheduleEdit(Resource):
     @api_key_or_jwt_required
     @user_forbidden
-    @project_schedule_ns.expect(project_schedule_create_model)
+    @project_schedule_ns.expect(project_schedule_edit_model)
     @project_schedule_ns.marshal_with(project_schedule_msg_model)
     def patch(self, schedule_id):
         current_user = _get_current_user()

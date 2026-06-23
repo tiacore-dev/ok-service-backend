@@ -1,5 +1,5 @@
 from flask_restx import Model, fields, reqparse
-from app.schemas.work_schemas import WorkCreateSchema
+from app.schemas.work_schemas import WorkCreateSchema, WorkEditSchema
 from app.utils.helpers import generate_swagger_model
 from app.routes.models.work_category_models import work_category_model
 from app.routes.models.work_price_models import work_price_model
@@ -7,6 +7,7 @@ from app.routes.models.work_price_models import work_price_model
 # Модель для создания проекта
 work_create_model = generate_swagger_model(
     WorkCreateSchema(), "WorkCreate")
+work_edit_model = generate_swagger_model(WorkEditSchema(), "WorkEdit")
 
 
 # Модель для объекта работы

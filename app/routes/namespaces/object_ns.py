@@ -13,6 +13,7 @@ from app.decorators import api_key_or_jwt_required
 from app.routes.models.object_models import (
     object_all_response,
     object_create_model,
+    object_edit_model,
     object_filter_parser,
     object_model,
     object_msg_model,
@@ -50,6 +51,7 @@ object_ns = Namespace("objects", description="Objects management operations")
 
 # Инициализация моделей
 object_ns.models[object_create_model.name] = object_create_model
+object_ns.models[object_edit_model.name] = object_edit_model
 object_ns.models[object_msg_model.name] = object_msg_model
 object_ns.models[object_response.name] = object_response
 object_ns.models[object_all_response.name] = object_all_response
@@ -243,7 +245,7 @@ class ObjectHardDelete(Resource):
 @object_ns.route("/<string:object_id>/edit")
 class ObjectEdit(Resource):
     @api_key_or_jwt_required
-    @object_ns.expect(object_create_model)
+    @object_ns.expect(object_edit_model)
     @object_ns.marshal_with(object_msg_model)
     def patch(self, object_id):
         current_user = _get_current_user()

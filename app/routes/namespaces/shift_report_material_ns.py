@@ -13,6 +13,7 @@ from app.decorators import api_key_or_jwt_required
 from app.routes.models.shift_report_material_models import (
     shift_report_material_all_response,
     shift_report_material_create_model,
+    shift_report_material_edit_model,
     shift_report_material_filter_parser,
     shift_report_material_model,
     shift_report_material_msg_model,
@@ -78,6 +79,9 @@ def _check_shift_report_access(current_user, shift_report_id):
 
 shift_report_material_ns.models[shift_report_material_create_model.name] = (
     shift_report_material_create_model
+)
+shift_report_material_ns.models[shift_report_material_edit_model.name] = (
+    shift_report_material_edit_model
 )
 shift_report_material_ns.models[shift_report_material_msg_model.name] = (
     shift_report_material_msg_model
@@ -259,7 +263,7 @@ class ShiftReportMaterialHardDelete(Resource):
 @shift_report_material_ns.route("/<string:shift_report_material_id>/edit")
 class ShiftReportMaterialEdit(Resource):
     @api_key_or_jwt_required
-    @shift_report_material_ns.expect(shift_report_material_create_model)
+    @shift_report_material_ns.expect(shift_report_material_edit_model)
     @shift_report_material_ns.marshal_with(shift_report_material_msg_model)
     def patch(self, shift_report_material_id):
         current_user = _get_current_user()

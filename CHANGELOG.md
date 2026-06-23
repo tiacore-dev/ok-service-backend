@@ -38,3 +38,6 @@
 - Для `project_works` добавлены unit-тесты на доменную валидацию и сценарии create/update/delete без БД.
 - В `project_works` вынесены правила ownership и signed-state в use-case, а bulk/create/list/edit/delete переведены на новый web-слой.
 - Расширен общий web-helper-контур: добавлен `get_optional_float(...)` и `get_required_float(...)` для числовых query/body полей.
+- Для legacy `PATCH`-эндпоинтов в namespaces `users`, `cities`, `works`, `projects`, `objects`, `materials`, `work_categories`, `work_material_relations`, `shift_reports` и `shift_report_materials` добавлены отдельные `edit`-модели и переведён swagger-контракт с `create_model` на `edit_model`.
+- Ослаблена доменная валидация `project_works`: количество теперь допускает ноль, чтобы исторические записи из БД не падали при просмотре и удалении.
+- Исправлен `ProjectWorksManager`: `update` и `delete` теперь возвращают `to_dict()` внутри активной сессии, чтобы `project_works` не отдавали detached ORM-объекты и не ломали `edit`/`soft delete` 500-ми.

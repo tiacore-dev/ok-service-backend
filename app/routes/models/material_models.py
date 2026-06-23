@@ -1,11 +1,12 @@
 from flask_restx import Model, fields, reqparse
 
-from app.schemas.material_schemas import MaterialCreateSchema
+from app.schemas.material_schemas import MaterialCreateSchema, MaterialEditSchema
 from app.utils.helpers import generate_swagger_model
 
 material_create_model = generate_swagger_model(
     MaterialCreateSchema(), "MaterialCreate"
 )
+material_edit_model = generate_swagger_model(MaterialEditSchema(), "MaterialEdit")
 
 material_model = Model(
     "Material",

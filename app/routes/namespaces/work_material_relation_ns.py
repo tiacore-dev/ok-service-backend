@@ -13,6 +13,7 @@ from app.decorators import admin_required, api_key_or_jwt_required
 from app.routes.models.work_material_relation_models import (
     work_material_relation_all_response,
     work_material_relation_create_model,
+    work_material_relation_edit_model,
     work_material_relation_filter_parser,
     work_material_relation_model,
     work_material_relation_msg_model,
@@ -53,6 +54,9 @@ work_material_relation_ns = Namespace(
 
 work_material_relation_ns.models[work_material_relation_create_model.name] = (
     work_material_relation_create_model
+)
+work_material_relation_ns.models[work_material_relation_edit_model.name] = (
+    work_material_relation_edit_model
 )
 work_material_relation_ns.models[work_material_relation_msg_model.name] = (
     work_material_relation_msg_model
@@ -214,7 +218,7 @@ class WorkMaterialRelationHardDelete(Resource):
 class WorkMaterialRelationEdit(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @work_material_relation_ns.expect(work_material_relation_create_model)
+    @work_material_relation_ns.expect(work_material_relation_edit_model)
     @work_material_relation_ns.marshal_with(work_material_relation_msg_model)
     def patch(self, relation_id):
         current_user = _get_current_user()

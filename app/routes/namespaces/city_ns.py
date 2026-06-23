@@ -13,6 +13,7 @@ from app.decorators import admin_required, api_key_or_jwt_required
 from app.routes.models.city_models import (
     city_all_response,
     city_create_model,
+    city_edit_model,
     city_filter_parser,
     city_model,
     city_msg_model,
@@ -45,6 +46,7 @@ def _get_current_user() -> dict[str, Any]:
 city_ns = Namespace("cities", description="City management operations")
 
 city_ns.models[city_create_model.name] = city_create_model
+city_ns.models[city_edit_model.name] = city_edit_model
 city_ns.models[city_msg_model.name] = city_msg_model
 city_ns.models[city_response.name] = city_response
 city_ns.models[city_all_response.name] = city_all_response
@@ -214,7 +216,7 @@ class CityHardDelete(Resource):
 class CityEdit(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @city_ns.expect(city_create_model)
+    @city_ns.expect(city_edit_model)
     @city_ns.marshal_with(city_msg_model)
     def patch(self, city_id):
         current_user = _get_current_user()

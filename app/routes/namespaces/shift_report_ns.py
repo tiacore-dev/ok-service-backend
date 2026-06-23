@@ -15,6 +15,7 @@ from app.routes.models.shift_report_models import (
     shift_report_all_response,
     shift_report_create_model,
     shift_report_detail_model,
+    shift_report_edit_model,
     shift_report_filter_parser,
     shift_report_model,
     shift_report_msg_model,
@@ -57,6 +58,7 @@ shift_report_ns = Namespace(
 shift_report_ns.models[shift_report_model.name] = shift_report_model
 shift_report_ns.models[shift_report_detail_model.name] = shift_report_detail_model
 shift_report_ns.models[shift_report_create_model.name] = shift_report_create_model
+shift_report_ns.models[shift_report_edit_model.name] = shift_report_edit_model
 shift_report_ns.models[shift_report_msg_model.name] = shift_report_msg_model
 shift_report_ns.models[shift_report_response.name] = shift_report_response
 shift_report_ns.models[shift_report_all_response.name] = shift_report_all_response
@@ -258,7 +260,7 @@ class ShiftReportHardDelete(Resource):
 @shift_report_ns.route("/<string:report_id>/edit")
 class ShiftReportEdit(Resource):
     @api_key_or_jwt_required
-    @shift_report_ns.expect(shift_report_create_model)
+    @shift_report_ns.expect(shift_report_edit_model)
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
         current_user = _get_current_user()

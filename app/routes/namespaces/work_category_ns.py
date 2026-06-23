@@ -12,6 +12,7 @@ from app.decorators import admin_required, api_key_or_jwt_required
 from app.routes.models.work_category_models import (
     work_category_all_response,
     work_category_create_model,
+    work_category_edit_model,
     work_category_filter_parser,
     work_category_model,
     work_category_msg_model,
@@ -50,6 +51,7 @@ work_category_ns = Namespace(
 )
 
 work_category_ns.models[work_category_create_model.name] = work_category_create_model
+work_category_ns.models[work_category_edit_model.name] = work_category_edit_model
 work_category_ns.models[work_category_msg_model.name] = work_category_msg_model
 work_category_ns.models[work_category_response.name] = work_category_response
 work_category_ns.models[work_category_all_response.name] = work_category_all_response
@@ -228,7 +230,7 @@ class WorkCategoryDeleteHard(Resource):
 class WorkCategoryEdit(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @work_category_ns.expect(work_category_create_model)
+    @work_category_ns.expect(work_category_edit_model)
     @work_category_ns.marshal_with(work_category_msg_model)
     def patch(self, work_category_id):
         current_user = _get_current_user()

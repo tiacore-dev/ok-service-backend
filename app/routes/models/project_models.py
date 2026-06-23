@@ -1,10 +1,11 @@
 from flask_restx import Model, fields, reqparse
-from app.schemas.project_schemas import ProjectCreateSchema
+from app.schemas.project_schemas import ProjectCreateSchema, ProjectEditSchema
 from app.utils.helpers import generate_swagger_model
 
 # Модель для создания проекта
 project_create_model = generate_swagger_model(
     ProjectCreateSchema(), "ProjectCreate")
+project_edit_model = generate_swagger_model(ProjectEditSchema(), "ProjectEdit")
 
 
 # Модель для проекта с вложенными данными

@@ -1,10 +1,16 @@
 from flask_restx import Model, fields, reqparse
 
-from app.schemas.shift_report_material_schemas import ShiftReportMaterialCreateSchema
+from app.schemas.shift_report_material_schemas import (
+    ShiftReportMaterialCreateSchema,
+    ShiftReportMaterialEditSchema,
+)
 from app.utils.helpers import generate_swagger_model
 
 shift_report_material_create_model = generate_swagger_model(
     ShiftReportMaterialCreateSchema(), "ShiftReportMaterialCreate"
+)
+shift_report_material_edit_model = generate_swagger_model(
+    ShiftReportMaterialEditSchema(), "ShiftReportMaterialEdit"
 )
 
 shift_report_material_model = Model(

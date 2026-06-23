@@ -4,6 +4,7 @@ from flask_restx import Model, fields, reqparse
 from app.schemas.shift_report_schemas import (
     ShiftReportCreateSchema,
     ShiftReportDetailSchema,
+    ShiftReportEditSchema,
 )
 from app.utils.helpers import generate_swagger_model
 
@@ -17,6 +18,9 @@ shift_report_detail_model = generate_swagger_model(
 # 3. Теперь создаем `ShiftReportCreate`, где `ShiftReportDetail` вложен
 shift_report_create_model = generate_swagger_model(
     ShiftReportCreateSchema(), "ShiftReportCreate"
+)
+shift_report_edit_model = generate_swagger_model(
+    ShiftReportEditSchema(), "ShiftReportEdit"
 )
 
 

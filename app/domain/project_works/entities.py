@@ -24,8 +24,8 @@ class ProjectWork:
         object.__setattr__(self, "created_at", int(self.created_at))
         if self.summ is not None:
             object.__setattr__(self, "summ", Decimal(str(self.summ)))
-        if self.quantity <= 0:
-            raise ProjectWorkValidationError("Project work quantity must be positive.")
+        if self.quantity < 0:
+            raise ProjectWorkValidationError("Project work quantity must be non-negative.")
         object.__setattr__(self, "signed", bool(self.signed))
 
     def with_updates(self, **changes) -> "ProjectWork":

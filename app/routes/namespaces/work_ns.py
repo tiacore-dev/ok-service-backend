@@ -13,6 +13,7 @@ from app.decorators import admin_required, api_key_or_jwt_required
 from app.routes.models.work_models import (
     work_all_response,
     work_create_model,
+    work_edit_model,
     work_filter_parser,
     work_model,
     work_msg_model,
@@ -46,6 +47,7 @@ work_ns = Namespace("works", description="Works management operations")
 
 # Инициализация моделей
 work_ns.models[work_create_model.name] = work_create_model
+work_ns.models[work_edit_model.name] = work_edit_model
 work_ns.models[work_msg_model.name] = work_msg_model
 work_ns.models[work_response.name] = work_response
 work_ns.models[work_all_response.name] = work_all_response
@@ -211,7 +213,7 @@ class WorkHardDelete(Resource):
 class WorkEdit(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @work_ns.expect(work_create_model)
+    @work_ns.expect(work_edit_model)
     @work_ns.marshal_with(work_msg_model)
     def patch(self, work_id):
         current_user = _get_current_user()

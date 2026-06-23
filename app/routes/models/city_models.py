@@ -1,9 +1,10 @@
 from flask_restx import Model, fields, reqparse
 
-from app.schemas.city_schemas import CityCreateSchema
+from app.schemas.city_schemas import CityCreateSchema, CityEditSchema
 from app.utils.helpers import generate_swagger_model
 
 city_create_model = generate_swagger_model(CityCreateSchema(), "CityCreate")
+city_edit_model = generate_swagger_model(CityEditSchema(), "CityEdit")
 
 city_model = Model(
     "City",

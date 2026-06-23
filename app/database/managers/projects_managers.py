@@ -486,7 +486,7 @@ class ProjectWorksManager(BaseDBManager):
 
             session.flush()
             self._sync_project_materials(session, record, record.created_by)
-            return record
+            return record.to_dict()
 
     def delete(self, record_id):
         with self.session_scope() as session:
@@ -502,7 +502,8 @@ class ProjectWorksManager(BaseDBManager):
                 ProjectMaterials.project_work == record.project_work_id
             ).delete(synchronize_session=False)
             session.delete(record)
-            return record
+            session.flush()
+            return record.to_dict()
 
     def get_work_ids_by_project_leader(self, user_id):
         """

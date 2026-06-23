@@ -13,6 +13,7 @@ from app.decorators import admin_required, api_key_or_jwt_required
 from app.routes.models.material_models import (
     material_all_response,
     material_create_model,
+    material_edit_model,
     material_filter_parser,
     material_model,
     material_msg_model,
@@ -49,6 +50,7 @@ def _get_current_user() -> dict[str, Any]:
 material_ns = Namespace("materials", description="Materials management operations")
 
 material_ns.models[material_create_model.name] = material_create_model
+material_ns.models[material_edit_model.name] = material_edit_model
 material_ns.models[material_msg_model.name] = material_msg_model
 material_ns.models[material_response.name] = material_response
 material_ns.models[material_all_response.name] = material_all_response
@@ -208,7 +210,7 @@ class MaterialHardDelete(Resource):
 class MaterialEdit(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @material_ns.expect(material_create_model)
+    @material_ns.expect(material_edit_model)
     @material_ns.marshal_with(material_msg_model)
     def patch(self, material_id):
         current_user = _get_current_user()

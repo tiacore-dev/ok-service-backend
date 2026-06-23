@@ -1,10 +1,11 @@
 from flask_restx import Model, fields, reqparse
 
-from app.schemas.user_schemas import UserCreateSchema
+from app.schemas.user_schemas import UserCreateSchema, UserEditSchema
 from app.utils.helpers import generate_swagger_model
 
 # Модель для создания проекта
 user_create_model = generate_swagger_model(UserCreateSchema(), "UserCreate")
+user_edit_model = generate_swagger_model(UserEditSchema(), "UserEdit")
 
 
 user_model = Model(

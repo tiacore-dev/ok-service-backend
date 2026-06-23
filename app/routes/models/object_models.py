@@ -1,9 +1,10 @@
 from flask_restx import Model, fields, reqparse
 
-from app.schemas.object_schemas import ObjectCreateSchema
+from app.schemas.object_schemas import ObjectCreateSchema, ObjectEditSchema
 from app.utils.helpers import generate_swagger_model
 
 object_create_model = generate_swagger_model(ObjectCreateSchema(), "ObjectCreate")
+object_edit_model = generate_swagger_model(ObjectEditSchema(), "ObjectEdit")
 
 
 object_model = Model(

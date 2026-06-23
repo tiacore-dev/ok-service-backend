@@ -1,11 +1,17 @@
 # Models for project schedules namespace
 from flask_restx import Model, fields, reqparse
-from app.schemas.project_schedule_schemas import ProjectScheduleCreateSchema
+from app.schemas.project_schedule_schemas import (
+    ProjectScheduleCreateSchema,
+    ProjectScheduleEditSchema,
+)
 from app.utils.helpers import generate_swagger_model
 
 # Модель для создания проекта
 project_schedule_create_model = generate_swagger_model(
     ProjectScheduleCreateSchema(), "ProjectScheduleCreate")
+
+project_schedule_edit_model = generate_swagger_model(
+    ProjectScheduleEditSchema(), "ProjectScheduleEdit")
 
 
 project_schedule_model = Model('ProjectSchedule', {

@@ -13,6 +13,7 @@ from app.decorators import api_key_or_jwt_required
 from app.routes.models.user_models import (
     user_all_response,
     user_create_model,
+    user_edit_model,
     user_filter_parser,
     user_model,
     user_msg_model,
@@ -53,6 +54,7 @@ def _forbid_api_key_admin_target(user: dict[str, Any] | None) -> bool:
 user_ns = Namespace("users", description="User management operations")
 
 user_ns.models[user_create_model.name] = user_create_model
+user_ns.models[user_edit_model.name] = user_edit_model
 user_ns.models[user_msg_model.name] = user_msg_model
 user_ns.models[user_all_response.name] = user_all_response
 user_ns.models[user_response.name] = user_response
@@ -424,7 +426,7 @@ class UserDeleteHard(Resource):
 @user_ns.route("/<string:user_id>/edit")
 class UserEdit(Resource):
     @api_key_or_jwt_required
-    @user_ns.expect(user_create_model)
+    @user_ns.expect(user_edit_model)
     @user_ns.marshal_with(user_msg_model)
     @user_ns.response(400, "Bad request, invalid data.")
     @user_ns.response(404, "User not found")
