@@ -24,3 +24,5 @@
 - Поля `created_at` и `timestamp` в моделях БД переведены на единый UTC-helper, чтобы убрать предупреждения `datetime.utcnow()` и не дублировать локальные `lambda`.
 - Обновлены модели `app/database/db_setup.py` и marshmallow-схемы: `declarative_base()` переведён на актуальный импорт, `missing` заменён на `load_default`, а описания полей перенесены в `metadata`.
 - Добавлен `pytest.ini` с точечным фильтром на внешний warning `flask_restx` про deprecated `jsonschema.RefResolver`, чтобы не засорять вывод тестов предупреждениями из `site-packages`.
+- Начат полный вертикальный срез для `work_prices`: выделены `domain`, `use-case`, `adapters` и `web`, а старый `work_price_ns` удалён.
+- Для `work_prices` добавлены unit-тесты на доменную валидацию и сценарии create/update без БД.

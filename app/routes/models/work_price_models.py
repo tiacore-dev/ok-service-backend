@@ -1,10 +1,13 @@
 from flask_restx import Model, fields, reqparse
-from app.schemas.work_price_schemas import WorkPriceCreateSchema
+from app.schemas.work_price_schemas import WorkPriceCreateSchema, WorkPriceEditSchema
 from app.utils.helpers import generate_swagger_model
 
 # Модель для создания проекта
 work_price_create_model = generate_swagger_model(
     WorkPriceCreateSchema(), "WorkPriceCreate")
+
+work_price_edit_model = generate_swagger_model(
+    WorkPriceEditSchema(), "WorkPriceEdit")
 
 # Модель для объекта цены работы
 work_price_model = Model('WorkPrice', {
@@ -41,7 +44,7 @@ work_price_filter_parser.add_argument(
     'offset', type=int, default=0, help="Offset for pagination"
 )
 work_price_filter_parser.add_argument(
-    'limit', type=int, default=10, help="Limit for pagination"
+    'limit', type=int, default=1000, help="Limit for pagination"
 )
 work_price_filter_parser.add_argument(
     'work', type=str,  help="Work ID"
@@ -51,6 +54,12 @@ work_price_filter_parser.add_argument(
 )
 work_price_filter_parser.add_argument(
     'price', type=float, required=False, help="Price filter"
+)
+work_price_filter_parser.add_argument(
+    'created_by', type=str, required=False, help="Creator filter"
+)
+work_price_filter_parser.add_argument(
+    'created_at', type=int, required=False, help="Created at filter"
 )
 
 work_price_filter_parser.add_argument(

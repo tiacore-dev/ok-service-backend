@@ -210,7 +210,7 @@ class BaseDBManager(ABC):
                         record,
                         extra={"login": "database"},
                     )
-                    return record
+                    return record.to_dict()
                 else:
                     logger.warning(
                         "Record not found for update: %s",
@@ -234,7 +234,18 @@ class BaseDBManager(ABC):
                 "Deleting record with ID: %s", record_id, extra={"login": "database"}
             )
             with self.session_scope() as session:
-                record = self.get_record_by_id(record_id)
+                primary_key = inspect(self.model).primary_key  # type: ignore
+                if not primary_key:
+                    raise ValueError(
+                        f"No primary key found for model {self.model.__name__}"  # type: ignore
+                    )
+
+                primary_key_name = primary_key[0].name
+                record = (
+                    session.query(self.model)
+                    .filter(getattr(self.model, primary_key_name) == record_id)
+                    .first()
+                )
                 if record:
                     session.delete(record)
                     logger.info(

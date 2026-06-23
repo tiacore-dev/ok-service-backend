@@ -37,6 +37,8 @@ class WorkPriceFilterSchema(Schema):
     work = fields.String(required=False)
     category = fields.Int(required=False)
     price = fields.Float(required=False)
+    created_by = fields.String(required=False)
+    created_at = fields.Int(required=False)
     deleted = fields.Boolean(required=False)
     sort_by = fields.String(required=False)
     sort_order = fields.String(required=False, validate=validate.OneOf(
