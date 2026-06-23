@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal
-from typing import Any
+from typing import Any, TypedDict, cast
 from uuid import UUID
 
 from flask import g, request
@@ -53,13 +53,41 @@ from app.web._typing import (
 
 logger = logging.getLogger("ok_service")
 
-work_price_ns = Namespace("work_prices", description="Work Prices management operations")
+work_price_ns = Namespace(
+    "work_prices", description="Work Prices management operations"
+)
 
 work_price_ns.models[work_price_create_model.name] = work_price_create_model
 work_price_ns.models[work_price_msg_model.name] = work_price_msg_model
 work_price_ns.models[work_price_response.name] = work_price_response
 work_price_ns.models[work_price_all_response.name] = work_price_all_response
 work_price_ns.models[work_price_model.name] = work_price_model
+
+
+class WorkPriceCreatePayload(TypedDict):
+    work: str
+    category: int
+    price: Decimal | float | int
+
+
+class WorkPriceEditPayload(TypedDict, total=False):
+    work: str
+    category: int
+    price: Decimal | float | int
+    deleted: bool
+
+
+class WorkPriceFilterPayload(TypedDict, total=False):
+    offset: int
+    limit: int
+    work: str
+    category: int
+    price: Decimal | float | int
+    created_by: str
+    created_at: int
+    deleted: bool
+    sort_by: str
+    sort_order: str
 
 
 def get_jwt_identity():
@@ -121,7 +149,7 @@ class WorkPriceAdd(Resource):
             raw_payload = to_plain_dict(
                 request.get_json(silent=True), "Request body is required"
             )
-            data = schema.load(raw_payload)
+            data = cast(WorkPriceCreatePayload, schema.load(raw_payload))
             command = CreateWorkPriceCommand(
                 work=required_uuid(data["work"], "Work is required"),
                 category=int(data["category"]),
@@ -139,7 +167,9 @@ class WorkPriceAdd(Resource):
                 "work_price_id": str(work_price.work_price_id),
             }, 200
         except Exception as error:
-            logger.error(f"Error adding work price: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error adding work price: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -187,12 +217,15 @@ class WorkPriceSoftDelete(Resource):
                 )
             )
             return {
-                "msg": f"Work price {work_price.work_price_id} soft deleted successfully",
+                "msg": f"Work price {
+                    work_price.work_price_id
+                } soft deleted successfully",
                 "work_price_id": str(work_price.work_price_id),
             }, 200
         except Exception as error:
             logger.error(
-                f"Error soft deleting work price: {error}", extra={"login": current_user}
+                f"Error soft deleting work price: {error}",
+                extra={"login": current_user},
             )
             return _map_error(error)
 
@@ -220,7 +253,8 @@ class WorkPriceHardDelete(Resource):
             }, 200
         except Exception as error:
             logger.error(
-                f"Error hard deleting work price: {error}", extra={"login": current_user}
+                f"Error hard deleting work price: {error}",
+                extra={"login": current_user},
             )
             return _map_error(error)
 
@@ -243,13 +277,16 @@ class WorkPriceEdit(Resource):
             raw_payload = to_plain_dict(
                 request.get_json(silent=True), "Request body is required"
             )
-            data = schema.load(raw_payload)
+            data = cast(WorkPriceEditPayload, schema.load(raw_payload))
+            price_value = data.get("price")
             work_price = UpdateWorkPriceUseCase(repository=_repository()).execute(
                 UpdateWorkPriceCommand(
                     work_price_id=_parse_work_price_id(work_price_id),
                     work=optional_uuid(data.get("work")),
                     category=get_optional_int(data, "category"),
-                    price=Decimal(str(data["price"])) if data.get("price") is not None else None,
+                    price=Decimal(str(price_value))
+                    if price_value is not None
+                    else None,
                     deleted=get_optional_bool(data, "deleted"),
                 )
             )
@@ -276,7 +313,8 @@ class WorkPriceAll(Resource):
         schema = WorkPriceFilterSchema()
         try:
             raw_args = to_plain_dict(request.args, "Request query is required")
-            args = schema.load(raw_args)
+            args = cast(WorkPriceFilterPayload, schema.load(raw_args))
+            price_value = args.get("price")
             query = WorkPriceListQuery(
                 offset=get_optional_int(args, "offset") or 0,
                 limit=get_optional_int(args, "limit"),
@@ -284,7 +322,7 @@ class WorkPriceAll(Resource):
                 sort_order=get_optional_str(args, "sort_order") or "desc",
                 work=optional_uuid(args.get("work")),
                 category=get_optional_int(args, "category"),
-                price=Decimal(str(args["price"])) if args.get("price") is not None else None,
+                price=Decimal(str(price_value)) if price_value is not None else None,
                 created_by=optional_uuid(args.get("created_by")),
                 created_at=get_optional_int(args, "created_at"),
                 deleted=get_optional_bool(args, "deleted"),
@@ -292,7 +330,9 @@ class WorkPriceAll(Resource):
             work_prices = ListWorkPricesUseCase(repository=_repository()).execute(query)
             return {
                 "msg": "Work prices found successfully",
-                "work_prices": [work_price_entity_to_response(item) for item in work_prices],
+                "work_prices": [
+                    work_price_entity_to_response(item) for item in work_prices
+                ],
             }, 200
         except Exception as error:
             logger.error(

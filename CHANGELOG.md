@@ -26,3 +26,4 @@
 - Добавлен `pytest.ini` с точечным фильтром на внешний warning `flask_restx` про deprecated `jsonschema.RefResolver`, чтобы не засорять вывод тестов предупреждениями из `site-packages`.
 - Начат полный вертикальный срез для `work_prices`: выделены `domain`, `use-case`, `adapters` и `web`, а старый `work_price_ns` удалён.
 - Для `work_prices` добавлены unit-тесты на доменную валидацию и сценарии create/update без БД.
+- В `app/web/work_prices/routes.py` добавлены явные `TypedDict`/`cast` на границах `marshmallow.load()`, чтобы убрать предупреждения Pylance по `Unknown`/`None`.
