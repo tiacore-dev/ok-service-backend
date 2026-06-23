@@ -7,31 +7,31 @@ class RoleFilterSchema(Schema):
 
     offset = fields.Int(
         required=False,
-        missing=0,
+        load_default=0,
         validate=validate.Range(min=0, error="Offset must be non-negative."),
-        description="Смещение для пагинации."
+        metadata={"description": "Смещение для пагинации."},
     )
     limit = fields.Int(
         required=False,
-        missing=1000,
+        load_default=1000,
         validate=validate.Range(min=1, error="Limit must be at least 1."),
-        description="Лимит записей."
+        metadata={"description": "Лимит записей."},
     )
     sort_by = fields.String(
         required=False,
-        description="Поле для сортировки."
+        metadata={"description": "Поле для сортировки."},
     )
     sort_order = fields.String(
         required=False,
         validate=validate.OneOf(
             ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."),
-        description="Порядок сортировки."
+        metadata={"description": "Порядок сортировки."},
     )
     role_id = fields.String(
         required=False,
-        description="Фильтр по идентификатору роли."
+        metadata={"description": "Фильтр по идентификатору роли."},
     )
     name = fields.String(
         required=False,
-        description="Фильтр по названию роли."
+        metadata={"description": "Фильтр по названию роли."},
     )

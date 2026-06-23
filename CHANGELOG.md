@@ -22,3 +22,5 @@
 - Исправлена ранняя инициализация `Session` в менеджерах: `BaseDBManager` и `LogManager` теперь берут `db_globals.Session` лениво, чтобы `set_db_globals(...)` не оставался незамеченным.
 - Добавлен общий helper `app/database/time_utils.py` для timezone-aware UTC-времени и переведены модели на него вместо `datetime.utcnow()`.
 - Поля `created_at` и `timestamp` в моделях БД переведены на единый UTC-helper, чтобы убрать предупреждения `datetime.utcnow()` и не дублировать локальные `lambda`.
+- Обновлены модели `app/database/db_setup.py` и marshmallow-схемы: `declarative_base()` переведён на актуальный импорт, `missing` заменён на `load_default`, а описания полей перенесены в `metadata`.
+- Добавлен `pytest.ini` с точечным фильтром на внешний warning `flask_restx` про deprecated `jsonschema.RefResolver`, чтобы не засорять вывод тестов предупреждениями из `site-packages`.

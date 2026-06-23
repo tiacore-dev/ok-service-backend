@@ -78,8 +78,8 @@ class LeaveFilterSchema(Schema):
     class Meta:
         unknown = "exclude"
 
-    offset = fields.Int(required=False, missing=0)
-    limit = fields.Int(required=False, missing=1000)
+    offset = fields.Int(required=False, load_default=0)
+    limit = fields.Int(required=False, load_default=1000)
     sort_by = fields.String(required=False)
     sort_order = fields.String(required=False, validate=validate.OneOf(["asc", "desc"]))
     user = fields.String(required=False)

@@ -23,9 +23,9 @@ class SubscriptionGetSchema(Schema):
     endpoint = fields.String(required=False)
     keys = fields.Dict(required=False)
     user = fields.String(required=False)
-    offset = fields.Int(required=False, missing=0, validate=validate.Range(
+    offset = fields.Int(required=False, load_default=0, validate=validate.Range(
         min=0, error="Offset must be non-negative."))
-    limit = fields.Int(required=False, missing=1000, validate=validate.Range(
+    limit = fields.Int(required=False, load_default=1000, validate=validate.Range(
         min=1, error="Limit must be at least 1."))
     sort_by = fields.String(required=False)
     sort_order = fields.String(required=False, validate=validate.OneOf(

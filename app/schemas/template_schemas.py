@@ -10,7 +10,7 @@ class TemplateGenerateSchema(Schema):
     name = fields.String(
         required=True, error_messages={"required": "Field 'name' is required."}
     )
-    is_pdf = fields.Boolean(missing=False)
+    is_pdf = fields.Boolean(load_default=False)
     document_data = fields.Dict(required=True)
 
     @validates_schema

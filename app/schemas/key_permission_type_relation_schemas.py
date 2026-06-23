@@ -47,12 +47,12 @@ class PermissionTypeFilterSchema(Schema):
 
     offset = fields.Int(
         required=False,
-        missing=0,
+        load_default=0,
         validate=validate.Range(min=0, error="Offset must be non-negative."),
     )
     limit = fields.Int(
         required=False,
-        missing=1000,
+        load_default=1000,
         validate=validate.Range(min=1, error="Limit must be at least 1."),
     )
     sort_by = fields.String(required=False)

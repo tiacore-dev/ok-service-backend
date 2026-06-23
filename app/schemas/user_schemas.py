@@ -30,7 +30,7 @@ class UserEditSchema(Schema):
 
     login = fields.String(required=False, allow_none=True)
     password = fields.String(required=False, allow_none=True)
-    name = fields.String(vrequired=False, allow_none=True)
+    name = fields.String(required=False, allow_none=True)
     role = fields.String(required=False, allow_none=True,
                          validate=[validate_role_exists])
     category = fields.Int(required=False, allow_none=True, validate=validate.OneOf(
@@ -45,9 +45,9 @@ class UserFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
 
-    offset = fields.Int(required=False, missing=0, validate=validate.Range(
+    offset = fields.Int(required=False, load_default=0, validate=validate.Range(
         min=0, error="Offset must be non-negative."))
-    limit = fields.Int(required=False, missing=1000, validate=validate.Range(
+    limit = fields.Int(required=False, load_default=1000, validate=validate.Range(
         min=1, error="Limit must be at least 1."))
     sort_by = fields.String(required=False)
     sort_order = fields.String(required=False, validate=validate.OneOf(
