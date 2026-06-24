@@ -4,6 +4,8 @@
 
 ### Добавлено
 
+- Убран прямой импорт `app.database.time_utils` из `use_cases`: общий UTC-helper перенесён в `app/use_cases/time_utils.py`, чтобы слой сценариев больше не зависел от `app.database`.
+- Перенесён `template` в `app/web`: добавлены domain/use-case/adapters/web-слои для `/templates/generate`, а legacy namespace и модель удалены из `app/routes`.
 - Уточнён контракт users-маппера: `UserRecordDict` теперь типизирует форму `UserManager.to_dict()`, чтобы убрать Pylance warnings на UUID/числовых полях.
 - Исправлен `POST /users/add`: adapter больше не опирается на неинициализированный `user_id` из `UserManager.add_user()` и читает созданного пользователя по логину после коммита.
 - Перенесён `users` в `app/web`: добавлены domain/use-case/adapters/web-слои, а legacy namespace `app/routes/namespaces/user_ns.py` удалён из маршрутизаторов.

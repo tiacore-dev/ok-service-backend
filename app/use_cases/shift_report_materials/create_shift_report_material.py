@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from app.database.time_utils import utc_epoch_seconds
 from app.domain.shift_report_materials import ShiftReportMaterial
 
 from .dto import CreateShiftReportMaterialCommand
 from .ports import ShiftReportMaterialRepository
+from ..time_utils import utc_epoch_seconds
 
 
 @dataclass(slots=True)

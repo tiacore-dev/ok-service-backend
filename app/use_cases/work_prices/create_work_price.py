@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from app.database.time_utils import utc_epoch_seconds
 from app.domain.work_prices import WorkPrice, validate_work_price_category
 
 from .dto import CreateWorkPriceCommand
 from .ports import WorkPriceRepository
+from ..time_utils import utc_epoch_seconds
 
 
 @dataclass(slots=True)

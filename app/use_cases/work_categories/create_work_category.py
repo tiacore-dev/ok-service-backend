@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from app.database.time_utils import utc_epoch_seconds
 from app.domain.work_categories import WorkCategory
 
 from .dto import CreateWorkCategoryCommand
 from .ports import WorkCategoryRepository
+from ..time_utils import utc_epoch_seconds
 
 
 @dataclass(slots=True)

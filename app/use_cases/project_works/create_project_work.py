@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from app.database.time_utils import utc_epoch_seconds
 from app.domain.project_works import ProjectWork, ProjectWorkForbiddenError
 
 from .dto import BulkCreateProjectWorksCommand, CreateProjectWorkCommand, ProjectWorkActor
 from .ports import ProjectWorkRepository
+from ..time_utils import utc_epoch_seconds
 
 
 def _owned_project_ids(repository: ProjectWorkRepository, actor: ProjectWorkActor) -> set:

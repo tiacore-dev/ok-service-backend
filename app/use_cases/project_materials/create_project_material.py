@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from app.database.time_utils import utc_epoch_seconds
 from app.domain.project_materials import ProjectMaterial
 
 from .dto import CreateProjectMaterialCommand
 from .ports import ProjectMaterialRepository
+from ..time_utils import utc_epoch_seconds
 
 
 @dataclass(slots=True)
