@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import json
 import logging
+from typing import TypedDict, cast
 
-from flask import jsonify, request
+from flask import request
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -11,23 +14,29 @@ from flask_jwt_extended import (
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 
-from app.routes.models.login_models import (
-    hello_model,
-    login_model,
-    refresh_model,
-    response_auth,
-)
+from app.database.managers.user_manager import UserManager
+from app.web._typing import to_plain_dict
+
+from .models import hello_model, login_model, refresh_model, response_auth
 from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
 
 logger = logging.getLogger("ok_service")
 
 login_ns = Namespace("auth", description="Authentication related operations")
 
-
 login_ns.models[login_model.name] = login_model
 login_ns.models[refresh_model.name] = refresh_model
 login_ns.models[response_auth.name] = response_auth
 login_ns.models[hello_model.name] = hello_model
+
+
+class LoginPayload(TypedDict):
+    login: str
+    password: str
+
+
+class RefreshPayload(TypedDict):
+    refresh_token: str
 
 
 @login_ns.route("/health")
@@ -41,18 +50,22 @@ class AuthLogin(Resource):
     @login_ns.expect(login_model)
     @login_ns.marshal_with(response_auth)
     def post(self):
-        from app.database.managers.user_manager import UserManager
-
         db = UserManager()
         schema = LoginSchema()
         try:
-            # Валидация входных данных
-            data = schema.load(request.json)  # type: ignore
+            data = cast(
+                LoginPayload,
+                schema.load(to_plain_dict(request.json, "Request body is required")),
+            )
         except ValidationError as err:
             logger.error(f"Validation error during login: {err.messages}")
             return {"error": err.messages}, 400
-        login = data.get("login", None)  # type: ignore
-        password = str(data.get("password", None))  # type: ignore
+        except ValueError as err:
+            logger.error(f"Value error during login: {err}")
+            return {"msg": str(err)}, 400
+
+        login = data["login"]
+        password = data["password"]
 
         logger.info("Login attempt", extra={"login": login})
 
@@ -71,8 +84,11 @@ class AuthLogin(Resource):
             )
             return {"msg": "User not found"}, 404
         if user.get("deleted") is True:
-            logger.warning("Authentication blocked: user is deleted", extra={"login": login})
+            logger.warning(
+                "Authentication blocked: user is deleted", extra={"login": login}
+            )
             return {"msg": "User is deleted"}, 401
+
         identity = json.dumps(
             {"user_id": user["user_id"], "role": user["role"], "login": login}
         )
@@ -95,19 +111,25 @@ class AuthRefresh(Resource):
     def post(self):
         schema = RefreshTokenSchema()
         try:
-            # Валидация входных данных
-            data = schema.load(request.json)  # type: ignore
+            data = cast(
+                RefreshPayload,
+                schema.load(to_plain_dict(request.json, "Request body is required")),
+            )
         except ValidationError as err:
             logger.error(f"Validation error during refresh: {err.messages}")
             return {"error": err.messages}, 400
-        refresh_token = data.get("refresh_token", None)  # type: ignore
+        except ValueError as err:
+            logger.error(f"Value error during refresh: {err}")
+            return {"msg": str(err)}, 400
+
+        refresh_token = data["refresh_token"]
         logger.debug(
             "Refresh token request received", extra={"refresh_token": refresh_token}
         )
 
         if not refresh_token:
             logger.error("Missing refresh token in request")
-            return jsonify({"msg": "Missing refresh token"}), 400
+            return {"msg": "Missing refresh token"}, 400
 
         try:
             verify_jwt_in_request(refresh=True, locations=["json"])
@@ -117,7 +139,7 @@ class AuthRefresh(Resource):
                 f"Refresh token verification failed: {str(e)}",
                 extra={"refresh_token": refresh_token},
             )
-            return jsonify({"msg": str(e)}), 401
+            return {"msg": str(e)}, 401
 
         current_user = get_jwt_identity()
         logger.debug(

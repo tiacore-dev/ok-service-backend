@@ -4,6 +4,7 @@
 
 ### Добавлено
 
+- Перенесён `auth` в `app/web`: добавлены web-модели и namespace для `/auth/health`, `/auth/login` и `/auth/refresh`, старые файлы из `app/routes` удалены, добавлены тесты на login и refresh.
 - Перенесён `api-key` в `app/web`: добавлены web-модели и namespace для `/api-key/*`, старые файлы из `app/routes` удалены, добавлены тесты на создание ключа, основные ручки модуля и негативные сценарии.
 - Перенесён `project_schedules` в `app/web`: выделены domain/use-case/adapters/web-слои, сохранён контракт `/project_schedules/*`, а legacy namespace и модели удалены из `app/routes`.
 - Перенесены `objects` и `object_statuses` в `app/web`: выделены domain/use-case/adapters/web-слои, сохранены ручки `/objects/*` и `/object_statuses/all`, а legacy namespace и модели удалены из `app/routes`.
