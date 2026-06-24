@@ -138,7 +138,7 @@ def _map_error(error: Exception):
 class WorkPriceAdd(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @work_price_ns.expect(work_price_create_model)
+    @work_price_ns.expect(work_price_create_model, validate=False)
     @work_price_ns.marshal_with(work_price_msg_model)
     def post(self):
         current_user = _get_current_user()

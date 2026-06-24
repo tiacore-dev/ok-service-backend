@@ -10,6 +10,8 @@
 - В план миграции добавлен первый практический срез на `leaves` как пример разложения по слоям.
 - Исправлен контракт `POST /leaves/add`: RESTX-валидация отключена точечно на `expect(...)`, чтобы запросы доходили до use-case и конфликт со сменой возвращался как `409`, а не `422`.
 - Приведён `DELETE /users/<user_id>/delete/hard` к общему шаблону hard-delete маршрутов: добавлен `admin_required` и нормализован `user_id` в ответе как строка.
+- В `work_prices` выровнен контракт `POST /work_prices/add`: RESTX-валидация отключена точечно на `expect(...)`, чтобы новый web-слой не отрезал запросы до marshmallow/use-case.
+- Начат вертикальный срез для `work_categories`: выделены `domain`, `use-case`, `adapters` и `web`, а legacy `work_category_ns` и `work_ns` удалены из `app/routes/namespaces`.
 - Добавлен начальный `domain`-слой для `leaves`: сущность `Leave`, enum `AbsenceReason`, доменные ошибки и правила периода.
 - Добавлен начальный `use-case`-слой для `leaves`: порты, DTO и сценарии create/get/update/delete/list.
 - Добавлены `adapters` и `web`-слои для `leaves`, а регистрация namespace перенесена через `app/web`.
