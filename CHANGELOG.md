@@ -4,6 +4,7 @@
 
 ### Добавлено
 
+- Перенесён `api-key` в `app/web`: добавлены web-модели и namespace для `/api-key/*`, старые файлы из `app/routes` удалены, добавлены тесты на создание ключа, основные ручки модуля и негативные сценарии.
 - Перенесён `project_schedules` в `app/web`: выделены domain/use-case/adapters/web-слои, сохранён контракт `/project_schedules/*`, а legacy namespace и модели удалены из `app/routes`.
 - Перенесены `objects` и `object_statuses` в `app/web`: выделены domain/use-case/adapters/web-слои, сохранены ручки `/objects/*` и `/object_statuses/all`, а legacy namespace и модели удалены из `app/routes`.
 - Перенесён `projects` в `app/web`: выделены domain/use-case/adapters/web-слои, сохранён контракт `/projects/*`, а legacy namespace и модели удалены из `app/routes`.

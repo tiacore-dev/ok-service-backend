@@ -9,7 +9,15 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from app.decorators import admin_required
-from app.routes.models.api_key_models import (
+from app.schemas.api_key_schemas import ApiKeyFilterSchema, ApiKeyGenerateSchema
+from app.schemas.key_permission_type_relation_schemas import (
+    KeyPermissionTypeRelationBulkCreateSchema,
+    KeyPermissionTypeRelationBulkDeleteSchema,
+    KeyPermissionTypeRelationCreateSchema,
+    PermissionTypeFilterSchema,
+)
+
+from .models import (
     api_key_all_response,
     api_key_filter_parser,
     api_key_generate_model,
@@ -30,13 +38,6 @@ from app.routes.models.api_key_models import (
     permission_type_all_response,
     permission_type_filter_parser,
     permission_type_model,
-)
-from app.schemas.api_key_schemas import ApiKeyFilterSchema, ApiKeyGenerateSchema
-from app.schemas.key_permission_type_relation_schemas import (
-    KeyPermissionTypeRelationBulkCreateSchema,
-    KeyPermissionTypeRelationBulkDeleteSchema,
-    KeyPermissionTypeRelationCreateSchema,
-    PermissionTypeFilterSchema,
 )
 
 logger = logging.getLogger("ok_service")
@@ -422,7 +423,7 @@ class PermissionTypeAll(Resource):
         try:
             args = schema.load(request.args)
         except ValidationError as err:
-            return {"error": err.messages}, 400
+            return {"msg": f"Invalid permission type filter: {err.messages}"}, 400
 
         try:
             from app.database.managers.key_permission_type_relations_manager import (

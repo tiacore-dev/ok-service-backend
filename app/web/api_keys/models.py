@@ -58,7 +58,9 @@ api_key_all_response = Model(
     "ApiKeyAllResponse",
     {
         "msg": fields.String(required=True, description="Response message"),
-        "api_keys": fields.List(fields.Nested(api_key_model), description="List of API keys"),
+        "api_keys": fields.List(
+            fields.Nested(api_key_model), description="List of API keys"
+        ),
     },
 )
 
@@ -86,7 +88,9 @@ key_permission_relation_model = Model(
     {
         "id": fields.String(required=True, description="Relation ID"),
         "api_key_id": fields.String(required=True, description="API key ID"),
-        "permission_type_id": fields.String(required=True, description="Permission type ID"),
+        "permission_type_id": fields.String(
+            required=True, description="Permission type ID"
+        ),
     },
 )
 
@@ -94,7 +98,9 @@ key_permission_relation_response = Model(
     "KeyPermissionTypeRelationResponse",
     {
         "msg": fields.String(required=True, description="Response message"),
-        "relation": fields.Nested(key_permission_relation_model, description="Relation data"),
+        "relation": fields.Nested(
+            key_permission_relation_model, description="Relation data"
+        ),
     },
 )
 
@@ -131,13 +137,28 @@ key_permission_relation_bulk_delete_response = Model(
     {
         "msg": fields.String(required=True, description="Response message"),
         "deleted_ids": fields.List(fields.String, description="Deleted relation IDs"),
-        "deleted_count": fields.Integer(required=True, description="Deleted relations count"),
+        "deleted_count": fields.Integer(
+            required=True, description="Deleted relations count"
+        ),
     },
 )
 
 api_key_filter_parser = reqparse.RequestParser()
 api_key_filter_parser.add_argument(
     "offset", type=int, required=False, default=0, help="Offset for pagination"
+)
+api_key_filter_parser.add_argument(
+    "limit", type=int, required=False, default=10, help="Limit for pagination"
+)
+api_key_filter_parser.add_argument(
+    "sort_by", type=str, required=False, help="Field for sorting"
+)
+api_key_filter_parser.add_argument(
+    "sort_order",
+    type=str,
+    required=False,
+    choices=["asc", "desc"],
+    help="Sort order",
 )
 
 permission_type_filter_parser = reqparse.RequestParser()
@@ -180,17 +201,4 @@ key_permission_relation_filter_parser.add_argument(
 )
 key_permission_relation_filter_parser.add_argument(
     "permission_type_id", type=str, required=False, help="Filter by permission type ID"
-)
-api_key_filter_parser.add_argument(
-    "limit", type=int, required=False, default=10, help="Limit for pagination"
-)
-api_key_filter_parser.add_argument(
-    "sort_by", type=str, required=False, help="Field for sorting"
-)
-api_key_filter_parser.add_argument(
-    "sort_order",
-    type=str,
-    required=False,
-    choices=["asc", "desc"],
-    help="Sort order",
 )
