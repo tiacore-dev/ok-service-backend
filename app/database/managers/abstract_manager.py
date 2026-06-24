@@ -2,6 +2,7 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import asc, desc, inspect
@@ -403,7 +404,12 @@ class BaseDBManager(ABC):
             raise
 
     def get_all_filtered(
-        self, offset=0, limit=None, sort_by="created_at", sort_order="desc", **filters
+        self,
+        offset: int = 0,
+        limit: int | None = None,
+        sort_by: str | None = "created_at",
+        sort_order: str = "desc",
+        **filters: Any,
     ):
         logger.debug(
             "get_all_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
@@ -423,8 +429,9 @@ class BaseDBManager(ABC):
                         isinstance(value, str) and len(value) == 36 and "-" in value
                     ):
                         query = query.filter(column == value)
+                        normalized_value = value if isinstance(value, uuid.UUID) else UUID(value)
                         logger.debug(
-                            f"Применяем точный UUID-фильтр: {key} = {UUID(value)}",  # type: ignore
+                            f"Применяем точный UUID-фильтр: {key} = {normalized_value}",
                             extra={"login": "database"},
                         )
 

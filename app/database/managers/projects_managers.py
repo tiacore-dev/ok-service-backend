@@ -1,6 +1,7 @@
 import logging
 import uuid
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import and_, asc, desc
@@ -31,7 +32,13 @@ class ProjectsManager(BaseDBManager):
         return Projects
 
     def get_all_filtered_with_status(
-        self, user, offset=0, limit=None, sort_by=None, sort_order="asc", **filters
+        self,
+        user: dict[str, Any],
+        offset: int = 0,
+        limit: int | None = None,
+        sort_by: str | None = None,
+        sort_order: str = "asc",
+        **filters: Any,
     ):
         logger.debug(
             "get_all_filtered_with_status вызывается с фильтрацией, "
@@ -399,11 +406,12 @@ class ProjectSchedulesManager(BaseDBManager):
         """
         Возвращает ID всех ProjectWorks, где пользователь является project_leader.
         """
+        leader_id = user_id if isinstance(user_id, UUID) else UUID(str(user_id))
         with self.session_scope() as session:
             schedule_ids = (
                 session.query(ProjectSchedules.project_schedule_id)
                 .join(Projects, ProjectSchedules.project == Projects.project_id)
-                .filter(Projects.project_leader == UUID(user_id))
+                .filter(Projects.project_leader == leader_id)
                 .all()
             )
 
@@ -509,11 +517,12 @@ class ProjectWorksManager(BaseDBManager):
         """
         Возвращает ID всех ProjectWorks, где пользователь является project_leader.
         """
+        leader_id = user_id if isinstance(user_id, UUID) else UUID(str(user_id))
         with self.session_scope() as session:
             work_ids = (
                 session.query(ProjectWorks.project_work_id)
                 .join(Projects, ProjectWorks.project == Projects.project_id)
-                .filter(Projects.project_leader == UUID(user_id))
+                .filter(Projects.project_leader == leader_id)
                 .all()
             )
 
