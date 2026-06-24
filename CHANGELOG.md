@@ -4,6 +4,7 @@
 
 ### Добавлено
 
+- Перенесены `objects` и `object_statuses` в `app/web`: выделены domain/use-case/adapters/web-слои, сохранены ручки `/objects/*` и `/object_statuses/all`, а legacy namespace и модели удалены из `app/routes`.
 - Перенесён `projects` в `app/web`: выделены domain/use-case/adapters/web-слои, сохранён контракт `/projects/*`, а legacy namespace и модели удалены из `app/routes`.
 - Перенесён `cities` в `app/web`: добавлены domain/use-case/adapters/web-слои для CRUD и `/cities/all`, а legacy namespace и модели удалены из `app/routes`.
 - Убран прямой импорт `app.database.time_utils` из `use_cases`: общий UTC-helper перенесён в `app/use_cases/time_utils.py`, чтобы слой сценариев больше не зависел от `app.database`.

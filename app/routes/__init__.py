@@ -6,8 +6,6 @@ from app.web import register_namespaces as register_web_namespaces
 from .account_route import account_bp
 from .namespaces.api_key_ns import api_key_ns
 from .namespaces.login_ns import login_ns
-from .namespaces.object_ns import object_ns
-from .namespaces.object_status_ns import object_status_ns
 from .namespaces.project_schedule_ns import project_schedule_ns
 from .namespaces.role_ns import role_ns
 from .namespaces.subscrtiption_ns import subscription_ns
@@ -21,8 +19,6 @@ def register_routes(app: Flask):
 def register_namespaces(api: Api):
     api.add_namespace(login_ns)
     api.add_namespace(api_key_ns)
-    api.add_namespace(object_status_ns)
-    api.add_namespace(object_ns)
     api.add_namespace(project_schedule_ns)
     api.add_namespace(role_ns)
     api.add_namespace(subscription_ns)

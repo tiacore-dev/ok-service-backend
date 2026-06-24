@@ -18,17 +18,14 @@ object_model = Model(
         ),
         "city": fields.String(required=False, description="City of the object"),
         "status": fields.String(required=False, description="Status of the object"),
-        "manager": fields.String(required=True, description="Manager of the object"),
+        "manager": fields.String(required=False, description="Manager of the object"),
         "lng": fields.Float(required=False, description="Longitude of the object"),
         "ltd": fields.Float(required=False, description="Latitude of the object"),
-        "created_at": fields.String(
-            required=True, description="Time object was created at"
-        ),
-        "created_by": fields.String(required=True, description="Creator of object"),
+        "created_at": fields.Integer(required=True, description="Time object was created at"),
+        "created_by": fields.String(required=False, description="Creator of object"),
         "deleted": fields.Boolean(required=True, description="Deletion status"),
     },
 )
-
 
 object_msg_model = Model(
     "ObjectMessage",
@@ -50,22 +47,14 @@ object_all_response = Model(
     "ObjectAllResponse",
     {
         "msg": fields.String(required=True, description="Response message"),
-        "objects": fields.List(
-            fields.Nested(object_model), description="List of objects"
-        ),
+        "objects": fields.List(fields.Nested(object_model), description="List of objects"),
     },
 )
 
 object_filter_parser = reqparse.RequestParser()
-object_filter_parser.add_argument(
-    "offset", type=int, default=0, help="Offset for pagination"
-)
-object_filter_parser.add_argument(
-    "limit", type=int, default=10, help="Limit for pagination"
-)
-object_filter_parser.add_argument(
-    "sort_by", type=str, required=False, help="Поле для сортировки"
-)
+object_filter_parser.add_argument("offset", type=int, default=0, help="Offset for pagination")
+object_filter_parser.add_argument("limit", type=int, default=10, help="Limit for pagination")
+object_filter_parser.add_argument("sort_by", type=str, required=False, help="Поле для сортировки")
 object_filter_parser.add_argument(
     "sort_order",
     type=str,
@@ -73,26 +62,13 @@ object_filter_parser.add_argument(
     choices=["asc", "desc"],
     help="Порядок сортировки",
 )
-object_filter_parser.add_argument("name", type=str, help="Filter by name")
-object_filter_parser.add_argument(
-    "deleted",
-    # Интерпретация значения как логического
-    type=lambda x: x.lower() in ["true", "1"],
-    required=False,
-    help="Флаг для фильтрации по удаленным отчетам",
-)
-object_filter_parser.add_argument(
-    "address", type=str, required=False, help="Filter by address"
-)
-object_filter_parser.add_argument(
-    "status", type=str, required=False, help="Filter by object status"
-)
-object_filter_parser.add_argument(
-    "city", type=str, required=False, help="Filter by city"
-)
-object_filter_parser.add_argument(
-    "lng", type=float, required=False, help="Filter by longitude"
-)
-object_filter_parser.add_argument(
-    "ltd", type=float, required=False, help="Filter by latitude"
-)
+object_filter_parser.add_argument("name", type=str, required=False, help="Filter by name")
+object_filter_parser.add_argument("address", type=str, required=False, help="Filter by address")
+object_filter_parser.add_argument("status", type=str, required=False, help="Filter by object status")
+object_filter_parser.add_argument("manager", type=str, required=False, help="Filter by manager ID")
+object_filter_parser.add_argument("deleted", type=lambda x: x.lower() in ["true", "1"], required=False, help="Флаг для фильтрации по удаленным объектам")
+object_filter_parser.add_argument("city", type=str, required=False, help="Filter by city")
+object_filter_parser.add_argument("lng", type=float, required=False, help="Filter by longitude")
+object_filter_parser.add_argument("ltd", type=float, required=False, help="Filter by latitude")
+object_filter_parser.add_argument("created_by", type=str, required=False, help="Filter by creator ID")
+object_filter_parser.add_argument("created_at", type=int, required=False, help="Filter by created at timestamp")

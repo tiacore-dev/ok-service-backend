@@ -68,3 +68,5 @@ class ObjectFilterSchema(Schema):
     city = fields.String(required=False)
     lng = fields.Float(required=False)
     ltd = fields.Float(required=False)
+    created_by = fields.String(required=False)
+    created_at = fields.Int(required=False)
