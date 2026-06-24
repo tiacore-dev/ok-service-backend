@@ -14,7 +14,6 @@ from .namespaces.project_schedule_ns import project_schedule_ns
 from .namespaces.role_ns import role_ns
 from .namespaces.subscrtiption_ns import subscription_ns
 from .namespaces.template_ns import template_ns
-from .namespaces.user_ns import user_ns
 
 
 def register_routes(app: Flask):
@@ -25,7 +24,6 @@ def register_routes(app: Flask):
 def register_namespaces(api: Api):
     api.add_namespace(login_ns)
     api.add_namespace(api_key_ns)
-    api.add_namespace(user_ns)
     api.add_namespace(city_ns)
     api.add_namespace(object_status_ns)
     api.add_namespace(object_ns)

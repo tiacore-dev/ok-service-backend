@@ -4,6 +4,9 @@
 
 ### Добавлено
 
+- Уточнён контракт users-маппера: `UserRecordDict` теперь типизирует форму `UserManager.to_dict()`, чтобы убрать Pylance warnings на UUID/числовых полях.
+- Исправлен `POST /users/add`: adapter больше не опирается на неинициализированный `user_id` из `UserManager.add_user()` и читает созданного пользователя по логину после коммита.
+- Перенесён `users` в `app/web`: добавлены domain/use-case/adapters/web-слои, а legacy namespace `app/routes/namespaces/user_ns.py` удалён из маршрутизаторов.
 - Уточнены типы в use-case для `materials` и `shift_report_materials`, а в unit-тестах убраны обращения к optional-полю репозитория, чтобы не было Pylance warnings по `object | None`.
 - Перенесены `materials` и `shift_report_materials` в `app/web`: добавлены domain/use-case/adapters/web-слои, а legacy namespace-файлы удалены из `app/routes/namespaces`.
 - Удалён legacy namespace `app/routes/namespaces/work_material_relation_ns.py`; активный транспорт для `work_material_relations` остаётся только в `app/web/work_material_relations/routes.py`.
