@@ -4,6 +4,7 @@
 
 ### Добавлено
 
+- Добавлен базовый CRUD для `positions`: выделены `domain/use-case/adapters/web`-слои, подключен namespace `/positions/*`, добавлены тесты на доменную логику и HTTP-контракт, а ORM-модель `Poitions` приведена к корректному имени `Positions`.
 - Ослаблена типизация `app/web/subscriptions`: убраны Pylance-ошибки вокруг `pywebpush` и ключа VAPID, при этом контракт `/subscriptions/*` сохранён.
 - Перенесены `roles` и `subscriptions` в `app/web`: web namespace'ы и модели для `/roles/all`, `/subscriptions/*` теперь живут в новом слое, старые файлы из `app/routes` удалены, добавлены тесты для subscriptions.
 - Перенесён `auth` в `app/web`: добавлены web-модели и namespace для `/auth/health`, `/auth/login` и `/auth/refresh`, старые файлы из `app/routes` удалены, добавлены тесты на login и refresh.

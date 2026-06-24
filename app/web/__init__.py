@@ -1,25 +1,26 @@
 from flask_restx import Api
 
-from .auth.routes import login_ns
-from .roles.routes import role_ns
-from .subscriptions.routes import subscription_ns
-from .leaves.routes import leave_ns
 from .api_keys.routes import api_key_ns
+from .auth.routes import login_ns
 from .cities.routes import city_ns
-from .objects.routes import object_ns
-from .object_statuses.routes import object_status_ns
-from .project_schedules.routes import project_schedule_ns
-from .projects.routes import project_ns
-from .users.routes import user_ns
-from .shift_reports.routes import shift_report_details_ns, shift_report_ns
-from .project_materials.routes import project_material_ns
+from .leaves.routes import leave_ns
 from .materials.routes import material_ns
+from .object_statuses.routes import object_status_ns
+from .objects.routes import object_ns
+from .positions.routes import position_ns
+from .project_materials.routes import project_material_ns
+from .project_schedules.routes import project_schedule_ns
 from .project_works.routes import project_work_ns
+from .projects.routes import project_ns
+from .roles.routes import role_ns
+from .shift_report_materials.routes import shift_report_material_ns
+from .shift_reports.routes import shift_report_details_ns, shift_report_ns
+from .subscriptions.routes import subscription_ns
 from .template_generation.routes import template_ns
+from .users.routes import user_ns
 from .work_categories.routes import work_category_ns
 from .work_material_relations.routes import work_material_relation_ns
 from .work_prices.routes import work_price_ns
-from .shift_report_materials.routes import shift_report_material_ns
 from .works.routes import work_ns
 
 
@@ -32,6 +33,7 @@ def register_namespaces(api: Api):
     api.add_namespace(city_ns)
     api.add_namespace(object_ns)
     api.add_namespace(object_status_ns)
+    api.add_namespace(position_ns)
     api.add_namespace(project_schedule_ns)
     api.add_namespace(project_ns)
     api.add_namespace(user_ns)

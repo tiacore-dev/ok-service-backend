@@ -14,6 +14,7 @@ from .project_materials import ProjectMaterials as ProjectMaterials
 from .project_schedule import ProjectSchedules as ProjectSchedules
 from .project_works import ProjectWorks as ProjectWorks
 from .projects import Projects as Projects
+from .position import Positions as Positions
 from .roles import Roles as Roles
 from .shift_report import ShiftReports as ShiftReports
 from .shift_report_details import ShiftReportDetails as ShiftReportDetails
