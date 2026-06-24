@@ -158,7 +158,7 @@ def _parse_reason(value: str | None) -> AbsenceReason | None:
 class LeaveAdd(Resource):
     @api_key_or_jwt_required
     @admin_required
-    @leave_ns.expect(leave_create_model)
+    @leave_ns.expect(leave_create_model, validate=False)
     @leave_ns.marshal_with(leave_msg_model)
     def post(self):
         current_user = _get_current_user()

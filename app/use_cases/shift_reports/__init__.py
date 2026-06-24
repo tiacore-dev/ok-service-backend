@@ -7,6 +7,7 @@ from .dto import (
     CreateShiftReportDetailCommand,
     CreateShiftReportDetailPayload,
     ShiftReportActor,
+    ShiftReportListQuery,
     UpdateShiftReportCommand,
     UpdateShiftReportDetailCommand,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "ListShiftReportDetailsUseCase",
     "ListShiftReportsUseCase",
     "ShiftReportActor",
+    "ShiftReportListQuery",
     "ShiftReportRepository",
     "SoftDeleteShiftReportUseCase",
     "UpdateShiftReportCommand",
@@ -38,4 +40,3 @@ __all__ = [
     "UpdateShiftReportDetailUseCase",
     "UpdateShiftReportUseCase",
 ]
-

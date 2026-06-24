@@ -39,6 +39,33 @@ class CreateShiftReportCommand:
 
 
 @dataclass(frozen=True, slots=True)
+class ShiftReportListQuery:
+    offset: int = 0
+    limit: int | None = 1000
+    sort_by: str = "created_at"
+    sort_order: str = "desc"
+    user: list[UUID] | None = None
+    date_from: int | None = None
+    date_to: int | None = None
+    date_start_from: int | None = None
+    date_start_to: int | None = None
+    date_end_from: int | None = None
+    date_end_to: int | None = None
+    project: list[UUID] | None = None
+    lng_start: float | None = None
+    ltd_start: float | None = None
+    lng_end: float | None = None
+    ltd_end: float | None = None
+    distance_start: float | None = None
+    distance_end: float | None = None
+    night_shift: bool | None = None
+    extreme_conditions: bool | None = None
+    signed: bool | None = None
+    deleted: bool | None = None
+    comment: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class UpdateShiftReportCommand:
     shift_report_id: UUID
     user: UUID | None = None

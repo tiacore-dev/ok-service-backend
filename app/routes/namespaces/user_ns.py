@@ -9,7 +9,7 @@ from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from app.decorators import api_key_or_jwt_required
+from app.decorators import admin_required, api_key_or_jwt_required
 from app.routes.models.user_models import (
     user_all_response,
     user_create_model,
@@ -344,6 +344,7 @@ class UserRestore(Resource):
 @user_ns.route("/<string:user_id>/delete/hard")
 class UserDeleteHard(Resource):
     @api_key_or_jwt_required
+    @admin_required
     @user_ns.marshal_with(user_msg_model)
     @user_ns.response(404, "User not found")
     @user_ns.response(500, "Internal Server Error")
@@ -409,7 +410,7 @@ class UserDeleteHard(Resource):
             )
             return {
                 "msg": f"User {user_id} hard deleted successfully",
-                "user_id": user_id,
+                "user_id": str(user_id),
             }, 200
         except IntegrityError:
             abort(409, description="Cannot delete user: dependent data exists.")

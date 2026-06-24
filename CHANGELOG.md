@@ -8,6 +8,8 @@
 - Добавлен `ARCHITECTURE.md` с целевым разрезом `domain / use-case / adapters / web` и правилами зависимостей.
 - Добавлен `docs/clean-architecture-transition.md` с поэтапным планом переезда от текущих роутеров и менеджеров к чистой архитектуре.
 - В план миграции добавлен первый практический срез на `leaves` как пример разложения по слоям.
+- Исправлен контракт `POST /leaves/add`: RESTX-валидация отключена точечно на `expect(...)`, чтобы запросы доходили до use-case и конфликт со сменой возвращался как `409`, а не `422`.
+- Приведён `DELETE /users/<user_id>/delete/hard` к общему шаблону hard-delete маршрутов: добавлен `admin_required` и нормализован `user_id` в ответе как строка.
 - Добавлен начальный `domain`-слой для `leaves`: сущность `Leave`, enum `AbsenceReason`, доменные ошибки и правила периода.
 - Добавлен начальный `use-case`-слой для `leaves`: порты, DTO и сценарии create/get/update/delete/list.
 - Добавлены `adapters` и `web`-слои для `leaves`, а регистрация namespace перенесена через `app/web`.
@@ -25,6 +27,7 @@
 - Обновлены модели `app/database/db_setup.py` и marshmallow-схемы: `declarative_base()` переведён на актуальный импорт, `missing` заменён на `load_default`, а описания полей перенесены в `metadata`.
 - Добавлен `pytest.ini` с точечным фильтром на внешний warning `flask_restx` про deprecated `jsonschema.RefResolver`, чтобы не засорять вывод тестов предупреждениями из `site-packages`.
 - Начат полный вертикальный срез для `work_prices`: выделены `domain`, `use-case`, `adapters` и `web`, а старый `work_price_ns` удалён.
+- Исправлен `GET /shift_reports/all`: отсутствие query-параметров `user` и `project` больше не превращается в пустой список фильтров, поэтому пользователь снова видит свои отчёты, а админ - все доступные записи.
 - Для `work_prices` добавлены unit-тесты на доменную валидацию и сценарии create/update без БД.
 - В `app/web/work_prices/routes.py` добавлены явные `TypedDict`/`cast` на границах `marshmallow.load()`, чтобы убрать предупреждения Pylance по `Unknown`/`None`.
 - Начат вертикальный срез для `project_materials`: выделены `domain`, `use-case`, `adapters` и `web`, а старый `project_material_ns` удалён.
@@ -42,6 +45,8 @@
 - Ослаблена доменная валидация `project_works`: количество теперь допускает ноль, чтобы исторические записи из БД не падали при просмотре и удалении.
 - Исправлен `ProjectWorksManager`: `update` и `delete` теперь возвращают `to_dict()` внутри активной сессии, чтобы `project_works` не отдавали detached ORM-объекты и не ломали `edit`/`soft delete` 500-ми.
 - Начат общий bounded context `shift_reports`: добавлены доменные сущности `ShiftReport` и `ShiftReportDetail`, use-case контракты и SQLAlchemy-адаптер поверх текущих менеджеров.
+- Дочищен `shift_reports`: ролевые правила для create/update/list перенесены в `use-case`, а `web`-слой оставлен только для транспорта и helper-ов типизации.
+- Начат вертикальный срез для `works`: выделены `domain`, `use-case`, `adapters` и `web`, а legacy `work_ns` переведён в shim.
 - В `ShiftReportsDetailsManager` исправлены `update_shift_report_details` и `delete`, чтобы они возвращали `to_dict()` внутри сессии и не отдавали detached ORM-объекты.
 - Для `shift_reports` и `shift_report_details` разнесены DTO для вложенного создания и standalone создания деталей, чтобы репозиторий сам проставлял `shift_report`, а роутер не тащил лишний контракт.
 - Расширен общий helper-слой типизации `app/web/_typing.py`: добавлены helper-ы для list-like query params (`get_optional_str_list`, `get_optional_uuid_list`) и обновлены правила их использования.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from app.domain.shift_reports import ShiftReport, ShiftReportForbiddenError, ShiftReportNotFoundError
 
@@ -20,8 +20,9 @@ class UpdateShiftReportUseCase:
             raise ShiftReportForbiddenError("User cannot edit not his shift report")
         if actor.role == "user" and current.signed is True:
             raise ShiftReportForbiddenError("User cannot edit signed shift report")
+        if actor.role == "user":
+            command = replace(command, user=actor.user_id)
         updated = self.repository.update_shift_report(command)
         if updated is None:
             raise ShiftReportNotFoundError("Shift report not found")
         return updated
-

@@ -69,6 +69,7 @@ from app.use_cases.shift_reports import (
     GetShiftReportUseCase,
     ListShiftReportDetailsUseCase,
     ListShiftReportsUseCase,
+    ShiftReportListQuery,
     ShiftReportActor,
     SoftDeleteShiftReportUseCase,
     UpdateShiftReportCommand,
@@ -206,6 +207,34 @@ def _parse_uuid(value: str) -> UUID:
         raise ValueError("Invalid UUID format") from exc
 
 
+def _build_list_query(data: dict[str, Any]) -> ShiftReportListQuery:
+    return ShiftReportListQuery(
+        offset=get_optional_int(data, "offset") or 0,
+        limit=get_optional_int(data, "limit"),
+        sort_by=get_optional_str(data, "sort_by") or "created_at",
+        sort_order=get_optional_str(data, "sort_order") or "desc",
+        user=get_optional_uuid_list(data, "user"),
+        date_from=get_optional_int(data, "date_from"),
+        date_to=get_optional_int(data, "date_to"),
+        date_start_from=get_optional_int(data, "date_start_from"),
+        date_start_to=get_optional_int(data, "date_start_to"),
+        date_end_from=get_optional_int(data, "date_end_from"),
+        date_end_to=get_optional_int(data, "date_end_to"),
+        project=get_optional_uuid_list(data, "project"),
+        lng_start=get_optional_float(data, "lng_start"),
+        ltd_start=get_optional_float(data, "ltd_start"),
+        lng_end=get_optional_float(data, "lng_end"),
+        ltd_end=get_optional_float(data, "ltd_end"),
+        distance_start=get_optional_float(data, "distance_start"),
+        distance_end=get_optional_float(data, "distance_end"),
+        night_shift=get_optional_bool(data, "night_shift"),
+        extreme_conditions=get_optional_bool(data, "extreme_conditions"),
+        signed=get_optional_bool(data, "signed"),
+        deleted=get_optional_bool(data, "deleted"),
+        comment=get_optional_str(data, "comment"),
+    )
+
+
 def _map_error(error: Exception):
     if isinstance(error, ShiftReportNotFoundError):
         return {"msg": str(error)}, 404
@@ -239,9 +268,6 @@ class ShiftReportAdd(Resource):
                 request.get_json(silent=True), "Request body is required"
             )
             data = cast(ShiftReportCreatePayload, schema.load(raw_payload))
-            if current_user.get("role") == "user":
-                data["user"] = str(current_user["user_id"])
-                data["signed"] = False
             details = data.get("details") or []
             command = CreateShiftReportCommand(
                 user=get_required_uuid(data, "user", "User is required"),
@@ -261,10 +287,8 @@ class ShiftReportAdd(Resource):
                 comment=data.get("comment"),
                 details=[
                     CreateShiftReportDetailCommand(
-                        project_work=_parse_uuid(item["project_work"])
-                        if item.get("project_work") is not None
-                        else None,
-                        work=_parse_uuid(item["work"]),
+                        project_work=get_optional_uuid(item, "project_work"),
+                        work=get_required_uuid(item, "work", "Work is required"),
                         quantity=item["quantity"],
                     )
                     for item in details
@@ -357,8 +381,6 @@ class ShiftReportEdit(Resource):
         try:
             raw_payload = to_plain_dict(request.get_json(silent=True), "Request body is required")
             data = cast(ShiftReportEditPayload, schema.load(raw_payload))
-            if current_user.get("role") == "user":
-                data["user"] = str(current_user["user_id"])
             updated = UpdateShiftReportUseCase(repository=_repository()).execute(
                 UpdateShiftReportCommand(
                     shift_report_id=_parse_uuid(report_id),
@@ -400,57 +422,26 @@ class ShiftReportAll(Resource):
         logger.info("Request to fetch all shift reports", extra={"login": current_user})
         schema = ShiftReportFilterSchema()
         raw_args: dict[str, Any] = request.args.to_dict()
-        user_args = get_optional_uuid_list({"user": request.args.getlist("user")}, "user")
-        project_args = get_optional_uuid_list({"project": request.args.getlist("project")}, "project")
-        if user_args is not None:
-            raw_args["user"] = [str(item) for item in user_args]
-        if project_args is not None:
-            raw_args["project"] = [str(item) for item in project_args]
+        if "user" in request.args:
+            user_args = get_optional_uuid_list(
+                {"user": request.args.getlist("user")}, "user"
+            )
+            if user_args is not None:
+                raw_args["user"] = [str(item) for item in user_args]
+        if "project" in request.args:
+            project_args = get_optional_uuid_list(
+                {"project": request.args.getlist("project")}, "project"
+            )
+            if project_args is not None:
+                raw_args["project"] = [str(item) for item in project_args]
         try:
             args = cast(dict[str, Any], schema.load(raw_args))
         except ValidationError as err:
             return {"msg": "Validation error", "detail": err.messages}, 400
-
-        user_values = args.get("user")
-        project_values = args.get("project")
-        filters = {
-            "user": [UUID(item) for item in user_values] if user_values else None,
-            "date_from": args.get("date_from"),
-            "date_to": args.get("date_to"),
-            "project": [UUID(item) for item in project_values] if project_values else None,
-            "lng_start": args.get("lng_start"),
-            "ltd_start": args.get("ltd_start"),
-            "lng_end": args.get("lng_end"),
-            "ltd_end": args.get("ltd_end"),
-            "distance_start": args.get("distance_start"),
-            "distance_end": args.get("distance_end"),
-            "created_by": args.get("created_by"),
-            "created_at": args.get("created_at"),
-            "signed": args.get("signed", None),
-            "deleted": args.get("deleted", None),
-            "comment": args.get("comment"),
-        }
-        if current_user.get("role") == "user":
-            filters["user"] = [UUID(str(current_user["user_id"]))]
-        if current_user.get("role") == "project-leader":
-            repository = _repository()
-            project_ids = repository.get_project_ids_by_leader(
-                UUID(str(current_user["user_id"]))
-            )
-            if not filters["project"]:
-                if not project_ids:
-                    return {"msg": "No shift reports found", "shift_reports": []}, 200
-                filters["project"] = project_ids
-            elif any(item not in project_ids for item in filters["project"]):
-                return {"msg": "Forbidden"}, 403
-
         try:
             total_count, reports = ListShiftReportsUseCase(repository=_repository()).execute(
-                offset=args.get("offset", 0),
-                limit=args.get("limit", 10),
-                sort_by=args.get("sort_by"),
-                sort_order=args.get("sort_order", "desc"),
-                **filters,
+                _build_list_query(args),
+                _actor(current_user),
             )
             response_reports = []
             repository = _repository()
@@ -487,16 +478,13 @@ class ShiftReportDetailsAddBulk(Resource):
             use_case = CreateShiftReportDetailUseCase(repository=_repository())
             detail_ids = []
             for item in data_list:
-                shift_report_value = item.get("shift_report")
-                project_work_value = item.get("project_work")
-                work_value = item.get("work")
                 detail = use_case.execute(
                     CreateShiftReportDetailPayload(
-                        shift_report=_parse_uuid(str(shift_report_value)),
-                        project_work=_parse_uuid(str(project_work_value))
-                        if project_work_value is not None
-                        else None,
-                        work=_parse_uuid(str(work_value)),
+                        shift_report=get_required_uuid(
+                            item, "shift_report", "Shift report is required"
+                        ),
+                        project_work=get_optional_uuid(item, "project_work"),
+                        work=get_required_uuid(item, "work", "Work is required"),
                         quantity=item["quantity"],
                         created_by=get_required_uuid(
                             current_user, "user_id", "Current user id is required"
@@ -527,18 +515,17 @@ class ShiftReportDetailsAdd(Resource):
         try:
             raw_payload = to_plain_dict(request.get_json(silent=True), "Request body is required")
             data = cast(dict[str, Any], schema.load(raw_payload))
-            shift_report_value = data.get("shift_report")
-            project_work_value = data.get("project_work")
-            work_value = data.get("work")
             detail = CreateShiftReportDetailUseCase(repository=_repository()).execute(
                 CreateShiftReportDetailPayload(
-                    shift_report=_parse_uuid(str(shift_report_value)),
-                    project_work=_parse_uuid(str(project_work_value))
-                    if project_work_value is not None
-                    else None,
-                    work=_parse_uuid(str(work_value)),
+                    shift_report=get_required_uuid(
+                        data, "shift_report", "Shift report is required"
+                    ),
+                    project_work=get_optional_uuid(data, "project_work"),
+                    work=get_required_uuid(data, "work", "Work is required"),
                     quantity=data["quantity"],
-                    created_by=get_required_uuid(current_user, "user_id", "Current user id is required"),
+                    created_by=get_required_uuid(
+                        current_user, "user_id", "Current user id is required"
+                    ),
                 )
             )
             return {
