@@ -4,6 +4,8 @@
 
 ### Добавлено
 
+- Ослаблена типизация `app/web/subscriptions`: убраны Pylance-ошибки вокруг `pywebpush` и ключа VAPID, при этом контракт `/subscriptions/*` сохранён.
+- Перенесены `roles` и `subscriptions` в `app/web`: web namespace'ы и модели для `/roles/all`, `/subscriptions/*` теперь живут в новом слое, старые файлы из `app/routes` удалены, добавлены тесты для subscriptions.
 - Перенесён `auth` в `app/web`: добавлены web-модели и namespace для `/auth/health`, `/auth/login` и `/auth/refresh`, старые файлы из `app/routes` удалены, добавлены тесты на login и refresh.
 - Перенесён `api-key` в `app/web`: добавлены web-модели и namespace для `/api-key/*`, старые файлы из `app/routes` удалены, добавлены тесты на создание ключа, основные ручки модуля и негативные сценарии.
 - Перенесён `project_schedules` в `app/web`: выделены domain/use-case/adapters/web-слои, сохранён контракт `/project_schedules/*`, а legacy namespace и модели удалены из `app/routes`.

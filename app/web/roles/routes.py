@@ -6,12 +6,9 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 
-from app.routes.models.role_models import (
-    role_all_response,
-    role_filter_parser,
-    role_model,
-)
 from app.schemas.role_schemas import RoleFilterSchema
+
+from .models import role_all_response, role_filter_parser, role_model
 
 logger = logging.getLogger("ok_service")
 
@@ -50,9 +47,7 @@ class RoleAll(Resource):
         }
 
         logger.debug(
-            f"Fetching roles with filters: {filters}, offset={offset}, limit={
-                limit
-            }, sort_by={sort_by}, sort_order={sort_order}",
+            f"Fetching roles with filters: {filters}, offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}",
             extra={"login": current_user},
         )
 

@@ -1,6 +1,8 @@
 from flask_restx import Api
 
 from .auth.routes import login_ns
+from .roles.routes import role_ns
+from .subscriptions.routes import subscription_ns
 from .leaves.routes import leave_ns
 from .api_keys.routes import api_key_ns
 from .cities.routes import city_ns
@@ -23,6 +25,8 @@ from .works.routes import work_ns
 
 def register_namespaces(api: Api):
     api.add_namespace(login_ns)
+    api.add_namespace(role_ns)
+    api.add_namespace(subscription_ns)
     api.add_namespace(api_key_ns)
     api.add_namespace(leave_ns)
     api.add_namespace(city_ns)
