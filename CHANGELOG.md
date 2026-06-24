@@ -4,6 +4,9 @@
 
 ### Добавлено
 
+- Уточнены типы в use-case для `materials` и `shift_report_materials`, а в unit-тестах убраны обращения к optional-полю репозитория, чтобы не было Pylance warnings по `object | None`.
+- Перенесены `materials` и `shift_report_materials` в `app/web`: добавлены domain/use-case/adapters/web-слои, а legacy namespace-файлы удалены из `app/routes/namespaces`.
+- Удалён legacy namespace `app/routes/namespaces/work_material_relation_ns.py`; активный транспорт для `work_material_relations` остаётся только в `app/web/work_material_relations/routes.py`.
 - Укреплен парсинг JWT identity в `app/decorators/role_decorators.py`, чтобы `admin_required` и `user_forbidden` принимали как JSON-строку, так и уже распарсенный dict.
 - Приведены пакетные re-export'ы в `app/database/__init__.py`, `app/database/models/__init__.py` и `app/decorators/__init__.py` к явному alias-формату, чтобы убрать `F401` на публичных импортах.
 - Добавлен `README.md` как входная точка в документацию проекта.
