@@ -8,6 +8,19 @@ from flask_jwt_extended import get_jwt_identity
 logger = logging.getLogger("ok_service")
 
 
+def _get_current_user() -> dict:
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
 def admin_required(func):
     """Декоратор для проверки, что текущий пользователь — администратор."""
 
@@ -15,7 +28,7 @@ def admin_required(func):
     def wrapper(*args, **kwargs):
         if getattr(g, "auth_via_api_key", False):
             return func(*args, **kwargs)
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         if current_user.get("role") != "admin":
             logger.warning(
                 "Несанкционированный доступ: требуется администратор.",
@@ -32,7 +45,7 @@ def user_forbidden(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         if current_user.get("role") == "user":
             logger.warning(
                 "Несанкционированный доступ: недостаточно прав.",

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import UUID
 
-from app.domain.work_prices import WorkPrice, WorkPriceNotFoundError, validate_work_price_category
+from app.domain.work_prices import (
+    WorkPrice,
+    WorkPriceNotFoundError,
+    validate_work_price_category,
+)
 
 from .dto import UpdateWorkPriceCommand
 from .ports import WorkPriceRepository

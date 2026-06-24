@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from app.adapters._typing import require_uuid, to_uuid
+from app.adapters._typing import require_uuid
 from app.domain.project_works import ProjectWork
 
 

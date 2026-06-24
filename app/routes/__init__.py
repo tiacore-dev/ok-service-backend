@@ -17,7 +17,6 @@ from .namespaces.shift_report_material_ns import shift_report_material_ns
 from .namespaces.subscrtiption_ns import subscription_ns
 from .namespaces.template_ns import template_ns
 from .namespaces.user_ns import user_ns
-from .namespaces.work_material_relation_ns import work_material_relation_ns
 
 
 def register_routes(app: Flask):
@@ -34,7 +33,6 @@ def register_namespaces(api: Api):
     api.add_namespace(object_ns)
     api.add_namespace(project_ns)
     api.add_namespace(material_ns)
-    api.add_namespace(work_material_relation_ns)
     api.add_namespace(shift_report_material_ns)
     api.add_namespace(project_schedule_ns)
     api.add_namespace(role_ns)

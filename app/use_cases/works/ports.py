@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.domain.works import Work
 
-from .dto import CreateWorkCommand, UpdateWorkCommand, WorkListQuery
+from .dto import WorkListQuery
 
 
 class WorkRepository(Protocol):

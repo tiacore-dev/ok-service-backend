@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-from decimal import Decimal
 from typing import Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
@@ -54,7 +53,6 @@ from app.use_cases.project_works import (
 from app.web._typing import (
     get_optional_bool,
     get_optional_decimal,
-    get_optional_float,
     get_optional_int,
     get_optional_str,
     get_optional_uuid,

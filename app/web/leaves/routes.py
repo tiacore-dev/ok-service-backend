@@ -24,7 +24,6 @@ from app.web._typing import (
     get_optional_int,
     get_optional_str,
     optional_uuid,
-    require_mapping,
     required_uuid,
     to_plain_dict,
 )

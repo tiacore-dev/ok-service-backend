@@ -18,15 +18,6 @@ def init_db(database_url, config_name):
         )
         session_factory = sessionmaker(bind=engine)  # Для тестов
         Session = scoped_session(session_factory)  # Для тестов
-        from app.database.models import (  # pylint: disable=unused-import
-            ApiKeys,
-            KeyPermissionTypeRelations,
-            Logs,
-            ObjectStatuses,
-            PermissionTypes,
-            Roles,
-            Users,
-        )
         Base.metadata.create_all(engine)
         # Создание всех таблиц
 

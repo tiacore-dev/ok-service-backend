@@ -5,12 +5,6 @@ from typing import Any
 from uuid import UUID
 
 from app.domain.shift_reports import ShiftReport, ShiftReportDetail
-from app.use_cases.shift_reports.dto import (
-    CreateShiftReportCommand,
-    CreateShiftReportDetailPayload,
-    UpdateShiftReportCommand,
-    UpdateShiftReportDetailCommand,
-)
 
 
 def _uuid_value(payload: dict[str, Any], key: str) -> UUID:

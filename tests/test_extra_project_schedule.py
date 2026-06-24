@@ -1,6 +1,5 @@
-from uuid import UUID
 
-# ✅ Жёсткое удаление
+# Жёсткое удаление
 
 
 def test_project_leader_can_hard_delete_own_schedule(client, jwt_token_leader, seed_project_schedule_own):
