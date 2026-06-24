@@ -2,6 +2,7 @@ from flask_restx import Api
 
 from .leaves.routes import leave_ns
 from .cities.routes import city_ns
+from .projects.routes import project_ns
 from .users.routes import user_ns
 from .shift_reports.routes import shift_report_details_ns, shift_report_ns
 from .project_materials.routes import project_material_ns
@@ -18,6 +19,7 @@ from .works.routes import work_ns
 def register_namespaces(api: Api):
     api.add_namespace(leave_ns)
     api.add_namespace(city_ns)
+    api.add_namespace(project_ns)
     api.add_namespace(user_ns)
     api.add_namespace(shift_report_ns)
     api.add_namespace(shift_report_details_ns)

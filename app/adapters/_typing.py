@@ -9,7 +9,10 @@ def to_uuid(value: Any) -> UUID | None:
         return None
     if isinstance(value, UUID):
         return value
-    return UUID(str(value))
+    value_str = str(value).strip()
+    if not value_str or value_str.lower() in {"none", "null"}:
+        return None
+    return UUID(value_str)
 
 
 def require_uuid(value: Any, field_name: str) -> UUID:
@@ -27,4 +30,3 @@ def normalize_result(result: Any) -> dict[str, Any] | None:
     if hasattr(result, "to_dict"):
         return result.to_dict()
     return result
-

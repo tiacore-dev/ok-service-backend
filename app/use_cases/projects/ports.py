@@ -1,0 +1,24 @@
+from __future__ import annotations
+
+from typing import Protocol
+from uuid import UUID
+
+from app.domain.projects import Project
+
+from .dto import ProjectActor, ProjectListQuery, ProjectStatsMap
+
+
+class ProjectRepository(Protocol):
+    def create_project(self, project: Project) -> Project: ...
+
+    def get_project(self, project_id: UUID) -> Project | None: ...
+
+    def update_project(self, project: Project) -> Project | None: ...
+
+    def delete_project(self, project_id: UUID) -> bool: ...
+
+    def list_projects(self, query: ProjectListQuery, actor: ProjectActor) -> list[Project]: ...
+
+    def get_project_stats(self, project_id: UUID) -> ProjectStatsMap: ...
+
+    def get_project_stats_by_materials(self, project_id: UUID) -> ProjectStatsMap: ...
