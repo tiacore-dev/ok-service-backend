@@ -11,7 +11,7 @@ city_model = Model(
     {
         "city_id": fields.String(required=True, description="ID города"),
         "name": fields.String(required=True, description="Название города"),
-        "created_by": fields.String(required=True, description="Автор создания"),
+        "created_by": fields.String(required=False, description="Автор создания"),
         "created_at": fields.Integer(required=True, description="Дата создания"),
         "deleted": fields.Boolean(required=True, description="Признак удаления"),
     },

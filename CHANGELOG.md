@@ -4,6 +4,7 @@
 
 ### Добавлено
 
+- Перенесён `cities` в `app/web`: добавлены domain/use-case/adapters/web-слои для CRUD и `/cities/all`, а legacy namespace и модели удалены из `app/routes`.
 - Убран прямой импорт `app.database.time_utils` из `use_cases`: общий UTC-helper перенесён в `app/use_cases/time_utils.py`, чтобы слой сценариев больше не зависел от `app.database`.
 - Перенесён `template` в `app/web`: добавлены domain/use-case/adapters/web-слои для `/templates/generate`, а legacy namespace и модель удалены из `app/routes`.
 - Уточнён контракт users-маппера: `UserRecordDict` теперь типизирует форму `UserManager.to_dict()`, чтобы убрать Pylance warnings на UUID/числовых полях.
