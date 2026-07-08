@@ -58,6 +58,7 @@ work_price_ns = Namespace(
 )
 
 work_price_ns.models[work_price_create_model.name] = work_price_create_model
+work_price_ns.models[work_price_edit_model.name] = work_price_edit_model
 work_price_ns.models[work_price_msg_model.name] = work_price_msg_model
 work_price_ns.models[work_price_response.name] = work_price_response
 work_price_ns.models[work_price_all_response.name] = work_price_all_response
