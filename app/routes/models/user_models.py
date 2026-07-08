@@ -17,6 +17,8 @@ user_model = Model(
         "role": fields.String(required=True, description="Роль пользователя."),
         "category": fields.Integer(required=False, description="Категория."),
         "city": fields.String(required=False, description="Город пользователя."),
+        "position": fields.String(required=False, description="Должность пользователя."),
+        "is_active": fields.Boolean(required=True, description="Активен ли пользователь."),
         "created_at": fields.Integer(
             required=True, description="Date user was created at"
         ),
@@ -63,7 +65,7 @@ user_filter_parser.add_argument(
     "offset", type=int, required=False, default=0, help="Смещение для пагинации"
 )
 user_filter_parser.add_argument(
-    "limit", type=int, required=False, default=10, help="Лимит записей"
+    "limit", type=int, required=False, default=1000, help="Лимит записей"
 )
 user_filter_parser.add_argument(
     "sort_by", type=str, required=False, help="Поле для сортировки"
@@ -87,6 +89,15 @@ user_filter_parser.add_argument(
 )
 user_filter_parser.add_argument(
     "city", type=str, required=False, help="Фильтр по городу"
+)
+user_filter_parser.add_argument(
+    "position", type=str, required=False, help="Фильтр по должности"
+)
+user_filter_parser.add_argument(
+    "is_active",
+    type=lambda x: x.lower() in ["true", "1"],
+    required=False,
+    help="Фильтр по активности",
 )
 user_filter_parser.add_argument(
     "deleted",

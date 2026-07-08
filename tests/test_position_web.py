@@ -1,5 +1,7 @@
 from uuid import UUID, uuid4
 
+from app.database.models import KeyPermissionTypeRelations, PermissionTypes
+
 
 def _seed_position(db_session, seed_admin, name="Fixture Position"):
     from app.database.models import Positions
@@ -12,6 +14,63 @@ def _seed_position(db_session, seed_admin, name="Fixture Position"):
     db_session.add(position)
     db_session.commit()
     return position.to_dict()
+
+
+def _create_api_key_with_position_permissions(client, jwt_token_admin, db_session):
+    headers = {"Authorization": f"Bearer {jwt_token_admin}"}
+    api_key_name = f"positions-api-key-{uuid4().hex[:12]}"
+    response = client.post(
+        "/api-key/generate",
+        headers=headers,
+        json={"name": api_key_name, "expires_at": 1_893_456_000},
+    )
+    assert response.status_code == 200
+    body = response.get_json()
+
+    descriptions = [
+        "POST /positions/add",
+        "GET /positions/all",
+        "GET /positions/{position_id}/view",
+        "PATCH /positions/{position_id}/edit",
+        "DELETE /positions/{position_id}/delete/hard",
+    ]
+    permission_types = []
+    for code, description in zip(
+        [
+            "positions-create",
+            "positions-list",
+            "positions-view",
+            "positions-edit",
+            "positions-delete-hard",
+        ],
+        descriptions,
+        strict=True,
+    ):
+        permission = (
+            db_session.query(PermissionTypes).filter_by(description=description).one_or_none()
+        )
+        if permission is None:
+            permission = PermissionTypes(
+                permission_type_id=uuid4(),
+                code=code,
+                description=description,
+            )
+            db_session.add(permission)
+            db_session.flush()
+        permission_types.append(permission)
+    db_session.add_all(
+        [
+            KeyPermissionTypeRelations(
+                id=uuid4(),
+                api_key_id=UUID(body["api_key_id"]),
+                permission_type_id=permission.permission_type_id,
+            )
+            for permission in permission_types
+        ]
+    )
+    db_session.commit()
+
+    return {"API-Key": body["token"]}
 
 
 def test_add_position(client, jwt_token_admin, seed_admin, db_session):
@@ -107,3 +166,46 @@ def test_get_all_positions(client, jwt_token, seed_admin, db_session):
     assert response.json["msg"] == "Positions found successfully"
     assert "positions" in response.json
     assert any(item["position_id"] == position["position_id"] for item in response.json["positions"])
+
+
+def test_positions_crud_works_with_api_key(client, jwt_token_admin, seed_admin, db_session):
+    headers = _create_api_key_with_position_permissions(
+        client, jwt_token_admin, db_session
+    )
+    position_name = f"ApiKey Position {uuid4().hex[:6]}"
+
+    create_response = client.post(
+        "/positions/add",
+        json={"name": position_name},
+        headers=headers,
+    )
+    assert create_response.status_code == 200
+    position_id = create_response.json["position_id"]
+
+    view_response = client.get(
+        f"/positions/{position_id}/view",
+        headers=headers,
+    )
+    assert view_response.status_code == 200
+    assert view_response.json["position"]["name"] == position_name
+
+    edit_name = f"{position_name} Updated"
+    edit_response = client.patch(
+        f"/positions/{position_id}/edit",
+        json={"name": edit_name},
+        headers=headers,
+    )
+    assert edit_response.status_code == 200
+
+    list_response = client.get("/positions/all", headers=headers)
+    assert list_response.status_code == 200
+    assert any(
+        item["position_id"] == position_id and item["name"] == edit_name
+        for item in list_response.json["positions"]
+    )
+
+    delete_response = client.delete(
+        f"/positions/{position_id}/delete/hard",
+        headers=headers,
+    )
+    assert delete_response.status_code == 200

@@ -23,6 +23,8 @@ class UserRepository(Protocol):
         role: str | None = None,
         category: int | None = None,
         city: UUID | None = None,
+        position: UUID | None = None,
+        is_active: bool | None = None,
         deleted: bool | None = None,
     ) -> User | None: ...
 

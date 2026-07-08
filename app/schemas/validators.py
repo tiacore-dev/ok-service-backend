@@ -159,6 +159,26 @@ def validate_city_exists(city_id_str):
     return city_id_str
 
 
+def validate_position_exists(position_id_str):
+    """Проверяет, существует ли запись в positions по position_id (UUID)."""
+    if not position_id_str:
+        return None
+
+    try:
+        position_id = UUID(position_id_str)
+    except ValueError as exc:
+        raise ValidationError("Invalid UUID format") from exc
+
+    from app.database.managers.positions_manager import PositionsManager
+
+    db = PositionsManager()
+    position = db.get_record_by_id(position_id)
+    if not position:
+        raise ValidationError(f"Position with id={position_id} does not exist")
+
+    return position_id_str
+
+
 def validate_shift_report_exists(shift_report_id_str):
     """Проверяет, существует ли запись в shift_reportModel по shift_report_id (UUID)."""
     if not shift_report_id_str:

@@ -30,6 +30,16 @@ class Users(Base):
     name = Column(String, nullable=False)
     role = Column(String, ForeignKey("roles.role_id"), nullable=False)
     category = Column(Integer, nullable=False, default=0)
+    position_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "positions.position_id",
+            name="users_position_id_fkey",
+            use_alter=True,
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
     city_id = Column(
         UUID(as_uuid=True),
         ForeignKey(
@@ -41,6 +51,9 @@ class Users(Base):
         nullable=True,
     )
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    is_active = Column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
     created_at = Column(
         BigInteger,
         default=utc_epoch_seconds,
@@ -101,9 +114,7 @@ class Users(Base):
         "WorkPrices", back_populates="work_price_creator"
     )
     created_works = relationship("Works", back_populates="work_creator")
-    created_materials = relationship(
-        "Materials", back_populates="material_creator"
-    )
+    created_materials = relationship("Materials", back_populates="material_creator")
     created_work_material_relations = relationship(
         "WorkMaterialRelations", back_populates="work_material_relation_creator"
     )
@@ -115,6 +126,14 @@ class Users(Base):
     )
     created_cities = relationship(
         "Cities", back_populates="creator", foreign_keys="[Cities.created_by]"
+    )
+    created_positions = relationship(
+        "Positions",
+        back_populates="position_creator",
+        foreign_keys="[Positions.created_by]",
+    )
+    position = relationship(
+        "Positions", back_populates="users", foreign_keys=[position_id]
     )
     city = relationship("Cities", back_populates="users", foreign_keys=[city_id])
     leaves = relationship(
@@ -151,8 +170,10 @@ class Users(Base):
             "login": self.login,
             "name": self.name,
             "role": self.role,
-            "category": self.category if self.category else None,  # type: ignore
+            "category": self.category if self.category is not None else None,  # type: ignore
             "city": str(self.city_id) if self.city_id else None,  # type: ignore
+            "position": str(self.position_id) if self.position_id else None,  # type: ignore
+            "is_active": self.is_active,
             "created_by": str(self.created_by),
             "created_at": self.created_at,
             "deleted": self.deleted,

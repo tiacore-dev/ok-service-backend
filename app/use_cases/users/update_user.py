@@ -24,6 +24,8 @@ class UpdateUserUseCase:
             and command.role is None
             and command.category is None
             and command.city is None
+            and command.position is None
+            and command.is_active is None
             and command.deleted is None
         ):
             return current
@@ -36,6 +38,8 @@ class UpdateUserUseCase:
             role=command.role,
             category=command.category,
             city=command.city,
+            position=command.position,
+            is_active=command.is_active,
             deleted=command.deleted,
         )
         if result is None:

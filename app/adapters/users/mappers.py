@@ -13,6 +13,8 @@ class UserRecordDict(TypedDict):
     role: str
     category: int | None
     city: str | None
+    position: str | None
+    is_active: bool
     created_by: str
     created_at: int
     deleted: bool
@@ -28,6 +30,8 @@ def user_dict_to_entity(data: UserRecordDict) -> User:
         role=data["role"],
         category=data["category"] if data["category"] is not None else 0,
         city=city,
+        position=UUID(data["position"]) if data["position"] is not None else None,
+        is_active=bool(data["is_active"]),
         created_by=UUID(data["created_by"]),
         created_at=data["created_at"],
         deleted=data["deleted"],
@@ -40,8 +44,10 @@ def user_entity_to_response(user: User) -> dict[str, object]:
         "login": user.login,
         "name": user.name,
         "role": user.role,
-        "category": user.category if user.category else None,
+        "category": user.category if user.category is not None else None,
         "city": str(user.city) if user.city else None,
+        "position": str(user.position) if user.position else None,
+        "is_active": user.is_active,
         "created_by": str(user.created_by),
         "created_at": user.created_at,
         "deleted": user.deleted,

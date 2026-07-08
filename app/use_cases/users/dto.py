@@ -13,6 +13,8 @@ class CreateUserCommand:
     category: int | None
     city: UUID
     created_by: UUID
+    position: UUID | None = None
+    is_active: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +26,8 @@ class UpdateUserCommand:
     role: str | None = None
     category: int | None = None
     city: UUID | None = None
+    position: UUID | None = None
+    is_active: bool | None = None
     deleted: bool | None = None
 
 
@@ -38,4 +42,6 @@ class UserListQuery:
     role: str | None = None
     category: int | None = None
     city: UUID | None = None
+    position: UUID | None = None
+    is_active: bool | None = None
     deleted: bool | None = None

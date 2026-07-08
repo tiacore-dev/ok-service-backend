@@ -1,27 +1,44 @@
 from marshmallow import Schema, fields, validate
 
-from app.schemas.validators import validate_city_exists, validate_role_exists
+from app.schemas.validators import (
+    validate_city_exists,
+    validate_position_exists,
+    validate_role_exists,
+)
 
 
 class UserCreateSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
 
-    login = fields.String(required=True, error_messages={
-                          "required": "Field 'login' is required."})
-    password = fields.String(required=True, error_messages={
-                             "required": "Field 'password' is required."})
-    name = fields.String(required=True, error_messages={
-                         "required": "Field 'name' is required."})
-    role = fields.String(required=True, error_messages={
-                         "required": "Field 'role' is required."}, validate=[validate_role_exists])
-    category = fields.Int(required=False, validate=validate.OneOf(
-        [0, 1, 2, 3, 4]))  # Опциональное поле
+    login = fields.String(
+        required=True, error_messages={"required": "Field 'login' is required."}
+    )
+    password = fields.String(
+        required=True, error_messages={"required": "Field 'password' is required."}
+    )
+    name = fields.String(
+        required=True, error_messages={"required": "Field 'name' is required."}
+    )
+    role = fields.String(
+        required=True,
+        error_messages={"required": "Field 'role' is required."},
+        validate=[validate_role_exists],
+    )
+    category = fields.Int(
+        required=False, validate=validate.OneOf([0, 1, 2, 3, 4])
+    )  # Опциональное поле
     city = fields.String(
         required=True,
         validate=[validate_city_exists],
         error_messages={"required": "Field 'city' is required."},
     )
+    position = fields.String(
+        required=False,
+        allow_none=True,
+        validate=[validate_position_exists],
+    )
+    is_active = fields.Boolean(required=False, load_default=True)
 
 
 class UserEditSchema(Schema):
@@ -31,30 +48,48 @@ class UserEditSchema(Schema):
     login = fields.String(required=False, allow_none=True)
     password = fields.String(required=False, allow_none=True)
     name = fields.String(required=False, allow_none=True)
-    role = fields.String(required=False, allow_none=True,
-                         validate=[validate_role_exists])
-    category = fields.Int(required=False, allow_none=True, validate=validate.OneOf(
-        [0, 1, 2, 3, 4]))
+    role = fields.String(
+        required=False, allow_none=True, validate=[validate_role_exists]
+    )
+    category = fields.Int(
+        required=False, allow_none=True, validate=validate.OneOf([0, 1, 2, 3, 4])
+    )
     deleted = fields.Boolean(required=False, allow_none=True)
     city = fields.String(
         required=False, allow_none=True, validate=[validate_city_exists]
     )
+    position = fields.String(
+        required=False, allow_none=True, validate=[validate_position_exists]
+    )
+    is_active = fields.Boolean(required=False, allow_none=True)
 
 
 class UserFilterSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
 
-    offset = fields.Int(required=False, load_default=0, validate=validate.Range(
-        min=0, error="Offset must be non-negative."))
-    limit = fields.Int(required=False, load_default=1000, validate=validate.Range(
-        min=1, error="Limit must be at least 1."))
+    offset = fields.Int(
+        required=False,
+        load_default=0,
+        validate=validate.Range(min=0, error="Offset must be non-negative."),
+    )
+    limit = fields.Int(
+        required=False,
+        load_default=1000,
+        validate=validate.Range(min=1, error="Limit must be at least 1."),
+    )
     sort_by = fields.String(required=False)
-    sort_order = fields.String(required=False, validate=validate.OneOf(
-        ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))
+    sort_order = fields.String(
+        required=False,
+        validate=validate.OneOf(
+            ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."
+        ),
+    )
     login = fields.String(required=False)
     name = fields.String(required=False)
     role = fields.String(required=False)
     category = fields.Int(required=False)
     deleted = fields.Boolean(required=False)
     city = fields.String(required=False)
+    position = fields.String(required=False)
+    is_active = fields.Boolean(required=False)

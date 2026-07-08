@@ -23,8 +23,10 @@ class SQLAlchemyUserRepository(UserRepository):
             name=command.name,
             role=command.role,
             created_by=command.created_by,
-            category=command.category if command.category else None,
+            category=command.category if command.category is not None else 0,
             city=command.city,
+            position=command.position,
+            is_active=command.is_active,
         )
         with self.manager.session_scope() as session:
             record = (
@@ -52,6 +54,8 @@ class SQLAlchemyUserRepository(UserRepository):
         role: str | None = None,
         category: int | None = None,
         city: UUID | None = None,
+        position: UUID | None = None,
+        is_active: bool | None = None,
         deleted: bool | None = None,
     ) -> User | None:
         updated = self.manager.update(
@@ -61,6 +65,8 @@ class SQLAlchemyUserRepository(UserRepository):
             category=category,
             name=name,
             city_id=city,
+            position_id=position,
+            is_active=is_active,
             deleted=deleted,
         )
         if password is not None:
@@ -88,5 +94,7 @@ class SQLAlchemyUserRepository(UserRepository):
             category=query.category,
             deleted=query.deleted,
             city_id=query.city,
+            position_id=query.position,
+            is_active=query.is_active,
         )
         return [user_dict_to_entity(cast(UserRecordDict, item)) for item in records]

@@ -67,6 +67,8 @@ class UserCreatePayload(TypedDict):
     role: str
     city: str
     category: NotRequired[int | None]
+    position: NotRequired[str | None]
+    is_active: NotRequired[bool]
 
 
 class UserEditPayload(TypedDict, total=False):
@@ -77,6 +79,8 @@ class UserEditPayload(TypedDict, total=False):
     category: int | None
     deleted: bool
     city: str | None
+    position: str | None
+    is_active: bool | None
 
 
 class UserFilterPayload(TypedDict, total=False):
@@ -89,6 +93,8 @@ class UserFilterPayload(TypedDict, total=False):
     role: str
     category: int
     city: str
+    position: str
+    is_active: bool
     deleted: bool
 
 
@@ -124,9 +130,7 @@ def _parse_user_id(user_id: str) -> UUID:
 
 def _forbid_api_key_admin_target(user: dict[str, Any] | None) -> bool:
     return bool(
-        getattr(g, "auth_via_api_key", False)
-        and user
-        and user.get("role") == "admin"
+        getattr(g, "auth_via_api_key", False) and user and user.get("role") == "admin"
     )
 
 
@@ -158,6 +162,7 @@ class UserAdd(Resource):
                 request.get_json(silent=True), "Request body is required"
             )
             data = cast(UserCreatePayload, schema.load(raw_payload))
+            is_active = get_optional_bool(data, "is_active")
             user = CreateUserUseCase(repository=_repository()).execute(
                 CreateUserCommand(
                     login=data["login"],
@@ -169,6 +174,8 @@ class UserAdd(Resource):
                     created_by=get_required_uuid(
                         current_user, "user_id", "Current user id is required"
                     ),
+                    position=get_optional_uuid(data, "position"),
+                    is_active=True if is_active is None else is_active,
                 )
             )
             return {
@@ -238,7 +245,9 @@ class UserRestore(Resource):
     @user_ns.marshal_with(user_msg_model)
     def patch(self, user_id):
         current_user = _get_current_user()
-        logger.info(f"Request to restore user: {user_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to restore user: {user_id}", extra={"login": current_user}
+        )
         try:
             target = _repository().get_user(_parse_user_id(user_id))
             if target is None:
@@ -253,7 +262,9 @@ class UserRestore(Resource):
                 "user_id": str(user.user_id),
             }, 200
         except Exception as error:
-            logger.error(f"Error restoring user: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error restoring user: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -322,8 +333,10 @@ class UserEdit(Resource):
             category = get_optional_int(data, "category")
             deleted = get_optional_bool(data, "deleted")
             city = get_optional_uuid(data, "city")
+            position = get_optional_uuid(data, "position")
+            is_active = get_optional_bool(data, "is_active")
 
-            if not (login and name and role and city):
+            if not any(value is not None for value in data.values()):
                 return {"msg": "Bad request, invalid data."}, 400
 
             user = UpdateUserUseCase(repository=_repository()).execute(
@@ -335,6 +348,8 @@ class UserEdit(Resource):
                     role=role,
                     category=category,
                     city=city,
+                    position=position,
+                    is_active=is_active,
                     deleted=deleted,
                 )
             )
@@ -371,6 +386,8 @@ class UserAll(Resource):
                     role=get_optional_str(data, "role"),
                     category=get_optional_int(data, "category"),
                     city=get_optional_uuid(data, "city"),
+                    position=get_optional_uuid(data, "position"),
+                    is_active=get_optional_bool(data, "is_active"),
                     deleted=get_optional_bool(data, "deleted"),
                 )
             )

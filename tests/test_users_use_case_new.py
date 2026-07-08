@@ -21,6 +21,7 @@ class FakeRepository:
         self.created = None
         self.updated = None
         self.deleted = None
+        self.listed_query = None
 
     def create_user(self, command: CreateUserCommand) -> User | None:
         self.created = command
@@ -33,6 +34,8 @@ class FakeRepository:
             city=command.city,
             created_by=command.created_by,
             created_at=1,
+            position=command.position,
+            is_active=command.is_active,
             deleted=False,
         )
         return self.user
@@ -52,6 +55,8 @@ class FakeRepository:
             role=kwargs.get("role"),
             category=kwargs.get("category"),
             city=kwargs.get("city"),
+            position=kwargs.get("position"),
+            is_active=kwargs.get("is_active"),
             deleted=kwargs.get("deleted"),
         )
         return self.user
@@ -61,6 +66,7 @@ class FakeRepository:
         return self.user is not None and self.user.user_id == user_id
 
     def list_users(self, query: UserListQuery):
+        self.listed_query = query
         return [self.user] if self.user is not None else []
 
 
@@ -74,6 +80,8 @@ def test_create_user_use_case():
         category=1,
         city=uuid4(),
         created_by=uuid4(),
+        position=uuid4(),
+        is_active=False,
     )
 
     result = CreateUserUseCase(repository=repository).execute(command)
@@ -92,6 +100,8 @@ def test_update_user_use_case():
         city=uuid4(),
         created_by=uuid4(),
         created_at=1,
+        position=uuid4(),
+        is_active=True,
         deleted=False,
     )
     repository = FakeRepository(user=existing_user)
@@ -100,12 +110,16 @@ def test_update_user_use_case():
         UpdateUserCommand(
             user_id=existing_user.user_id,
             login="updated_user",
+            position=uuid4(),
+            is_active=False,
             deleted=True,
         )
     )
 
     assert result.login == "updated_user"
     assert result.deleted is True
+    assert result.position is not None
+    assert result.is_active is False
 
 
 def test_soft_delete_user_use_case():
@@ -118,6 +132,8 @@ def test_soft_delete_user_use_case():
         city=uuid4(),
         created_by=uuid4(),
         created_at=1,
+        position=uuid4(),
+        is_active=True,
         deleted=False,
     )
     repository = FakeRepository(user=existing_user)
@@ -139,6 +155,8 @@ def test_restore_user_use_case():
         city=uuid4(),
         created_by=uuid4(),
         created_at=1,
+        position=uuid4(),
+        is_active=True,
         deleted=True,
     )
     repository = FakeRepository(user=existing_user)
@@ -158,6 +176,8 @@ def test_delete_user_use_case():
         city=uuid4(),
         created_by=uuid4(),
         created_at=1,
+        position=uuid4(),
+        is_active=True,
         deleted=False,
     )
     repository = FakeRepository(user=existing_user)
@@ -182,7 +202,12 @@ def test_get_and_list_user_use_cases():
     repository = FakeRepository(user=existing_user)
 
     found = GetUserUseCase(repository=repository).execute(existing_user.user_id)
-    listed = ListUsersUseCase(repository=repository).execute(UserListQuery())
+    listed = ListUsersUseCase(repository=repository).execute(
+        UserListQuery(position=existing_user.position, is_active=True)
+    )
 
     assert found.user_id == existing_user.user_id
     assert listed[0].user_id == existing_user.user_id
+    assert repository.listed_query is not None
+    assert repository.listed_query.position == existing_user.position
+    assert repository.listed_query.is_active is True

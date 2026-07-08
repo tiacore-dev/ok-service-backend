@@ -39,6 +39,25 @@ def create_city_for_user(db_session, user, name=None):
     return city.to_dict()
 
 
+def create_position_for_user(db_session, user, name=None):
+    """
+    Helper to create a position for a given user and assign it.
+    """
+    from app.database.models import Positions
+
+    position = Positions(
+        position_id=uuid4(),
+        name=name or f"Position-{uuid4().hex[:8]}",
+        created_by=user.user_id,
+    )
+    db_session.add(position)
+    db_session.flush()
+    user.position_id = position.position_id
+    db_session.commit()
+    db_session.refresh(user)
+    return position.to_dict()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_database(test_app):
     """
@@ -66,6 +85,12 @@ def setup_database(test_app):
                 )
                 conn.exec_driver_sql(
                     "ALTER TABLE cities DROP CONSTRAINT IF EXISTS cities_created_by_fkey"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_position_id_fkey"
+                )
+                conn.exec_driver_sql(
+                    "ALTER TABLE positions DROP CONSTRAINT IF EXISTS positions_created_by_fkey"
                 )
         except Exception:  # pragma: no cover - cleanup best effort
             pass
@@ -166,6 +191,8 @@ def jwt_token(test_app, db_session):
 
         if not user.city_id:  # type: ignore
             create_city_for_user(db_session, user, name="AdminCity")
+        if not user.position_id:  # type: ignore
+            create_position_for_user(db_session, user, name="AdminPosition")
 
         # Генерация токена на основе реального пользователя
         token_data = {
@@ -247,8 +274,10 @@ def seed_user(db_session):
         user.set_password("qweasdzcx")
         db_session.add(user)
         db_session.commit()
-    if not user.city_id:  # type: ignore
-        create_city_for_user(db_session, user)
+        if not user.city_id:  # type: ignore
+            create_city_for_user(db_session, user)
+        if not user.position_id:  # type: ignore
+            create_position_for_user(db_session, user, name="UserPosition")
     return user.to_dict()
 
 
@@ -274,8 +303,10 @@ def seed_leader(db_session):
         user.set_password("qweasdzcx")
         db_session.add(user)
         db_session.commit()
-    if not user.city_id:  # type: ignore
-        create_city_for_user(db_session, user)
+        if not user.city_id:  # type: ignore
+            create_city_for_user(db_session, user)
+        if not user.position_id:  # type: ignore
+            create_position_for_user(db_session, user, name="LeaderPosition")
     return user.to_dict()
 
 

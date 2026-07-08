@@ -17,6 +17,8 @@ class User:
     created_by: UUID
     created_at: int
     deleted: bool
+    position: UUID | None = None
+    is_active: bool = True
 
     def __post_init__(self) -> None:
         if not str(self.login).strip():
@@ -25,6 +27,8 @@ class User:
             raise UserValidationError("User name is required.")
         if not str(self.role).strip():
             raise UserValidationError("User role is required.")
+        if not isinstance(self.is_active, bool):
+            raise UserValidationError("User active flag must be boolean.")
         if not isinstance(self.deleted, bool):
             raise UserValidationError("User deleted flag must be boolean.")
 
@@ -36,6 +40,8 @@ class User:
         role: str | None = None,
         category: int | None = None,
         city: UUID | None = None,
+        position: UUID | None = None,
+        is_active: bool | None = None,
         deleted: bool | None = None,
     ) -> User:
         return User(
@@ -48,4 +54,6 @@ class User:
             created_by=self.created_by,
             created_at=self.created_at,
             deleted=self.deleted if deleted is None else deleted,
+            position=self.position if position is None else position,
+            is_active=self.is_active if is_active is None else is_active,
         )

@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from sqlalchemy import UUID, BigInteger, Column, ForeignKey, String
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
 from app.database.db_setup import Base
@@ -20,7 +21,18 @@ class Positions(Base):
         default=utc_epoch_seconds,
         server_default=text("EXTRACT(EPOCH FROM NOW())"),
     )
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)
+    created_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    position_creator = relationship(
+        "Users", back_populates="created_positions", foreign_keys=[created_by]
+    )
+    users = relationship(
+        "Users", back_populates="position", foreign_keys="[Users.position_id]"
+    )
 
     def __repr__(self):
         return f"<Positions(position_id={self.position_id}, name={self.name} "
