@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
 from app.database.managers.projects_managers import ProjectsManager
-from app.domain.projects import Project
+from app.domain.projects import Project, ProjectValidationError
 from app.use_cases.projects.dto import ProjectActor, ProjectListQuery, ProjectStatsMap
 from app.use_cases.projects.ports import ProjectRepository
 
@@ -62,7 +63,17 @@ class SQLAlchemyProjectRepository(ProjectRepository):
             created_by=query.created_by,
             created_at=query.created_at,
         )
-        return [project_dict_to_entity(record) for record in records]
+        projects: list[Project] = []
+        for record in records:
+            try:
+                projects.append(project_dict_to_entity(record))
+            except ProjectValidationError as error:
+                logging.warning(
+                    "Skipping invalid project %s while listing projects: %s",
+                    record.get("project_id"),
+                    error,
+                )
+        return projects
 
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap:
         return self.manager.get_project_stats(project_id)

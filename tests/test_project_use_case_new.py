@@ -4,7 +4,8 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.domain.projects import Project, ProjectForbiddenError, ProjectNotFoundError
-from app.adapters.projects import project_dict_to_entity
+from app.adapters.projects import SQLAlchemyProjectRepository, project_dict_to_entity
+from app.database.managers.projects_managers import ProjectsManager
 from app.use_cases.projects import (
     CreateProjectCommand,
     CreateProjectUseCase,
@@ -193,3 +194,32 @@ def test_project_mapper_treats_string_none_as_missing_created_by():
 
     assert project.project_id == project_id
     assert project.created_by is None
+
+
+def test_project_repository_list_skips_invalid_legacy_records():
+    valid_project = _project()
+    valid_record = {
+        "project_id": str(valid_project.project_id),
+        "name": valid_project.name,
+        "object": str(valid_project.object),
+        "project_leader": str(valid_project.project_leader),
+        "night_shift_available": valid_project.night_shift_available,
+        "extreme_conditions_available": valid_project.extreme_conditions_available,
+        "created_by": str(valid_project.created_by),
+        "created_at": valid_project.created_at,
+        "deleted": valid_project.deleted,
+    }
+    invalid_record = {**valid_record, "project_id": str(uuid4()), "name": "   "}
+
+    class FakeProjectsManager(ProjectsManager):
+        def get_all_filtered_with_status(self, **_kwargs):
+            return [invalid_record, valid_record]
+
+    repository = SQLAlchemyProjectRepository(manager=FakeProjectsManager())
+
+    result = repository.list_projects(
+        ProjectListQuery(),
+        ProjectActor(role="admin", user_id=uuid4()),
+    )
+
+    assert result == [valid_project]

@@ -92,3 +92,4 @@
 - В тестовом `FakeRepository` для `shift_reports` use-case добавлены недостающие методы `ShiftReportRepository`, чтобы мок соответствовал протоколу без `type: ignore`.
 - В тестовом `FakeRepository` уточнены типы `create_shift_report_detail` и `detail_result`, чтобы мок возвращал `ShiftReportDetail`, а не `object | None`.
 - В `ARCHITECTURE.md` добавлен сквозной контракт типизации: нормализация на границах слоёв, запрет на протаскивание `Any/Unknown`, правила для `cast`, `None` и тестовых `Protocol`-моков.
+- Исправлен `GET /projects/all`: список больше не падает с `400 Project name is required` из-за отдельных legacy-записей с некорректным именем; такие записи пропускаются, при этом create/update/get-by-id сохраняют строгую доменную валидацию.
