@@ -13,12 +13,12 @@ from app.use_cases.shift_reports import (
     CreateShiftReportCommand,
     CreateShiftReportDetailPayload,
     CreateShiftReportDetailUseCase,
+    CreateShiftReportUseCase,
+    ListShiftReportsUseCase,
     ShiftReportActor,
     ShiftReportListQuery,
     UpdateShiftReportCommand,
     UpdateShiftReportUseCase,
-    CreateShiftReportUseCase,
-    ListShiftReportsUseCase,
 )
 
 
@@ -202,7 +202,7 @@ def test_list_shift_reports_for_user_forces_own_filter():
     use_case.execute(query, actor)
 
     assert repository.listed_filters is not None
-    assert repository.listed_filters["user"] is None
+    assert repository.listed_filters["user"] == [actor.user_id]
 
 
 def test_list_shift_reports_for_project_leader_without_projects_returns_empty():
