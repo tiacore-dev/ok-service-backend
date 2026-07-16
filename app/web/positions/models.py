@@ -12,7 +12,9 @@ position_model = Model(
         "position_id": fields.String(required=True, description="ID of position"),
         "name": fields.String(required=True, description="Position name"),
         "created_by": fields.String(required=False, description="Creator of position"),
-        "created_at": fields.Integer(required=True, description="Date position was created at"),
+        "created_at": fields.Integer(
+            required=True, description="Date position was created at"
+        ),
     },
 )
 
@@ -55,4 +57,6 @@ position_filter_parser.add_argument(
 position_filter_parser.add_argument(
     "sort_order", type=str, required=False, choices=["asc", "desc"], help="Sort order"
 )
-position_filter_parser.add_argument("name", type=str, required=False, help="Filter by position name")
+position_filter_parser.add_argument(
+    "name", type=str, required=False, help="Filter by position name"
+)

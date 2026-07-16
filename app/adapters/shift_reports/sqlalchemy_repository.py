@@ -18,8 +18,8 @@ from app.use_cases.shift_reports.dto import (
 from app.use_cases.shift_reports.ports import ShiftReportRepository
 
 from .mappers import (
-    shift_report_dict_to_entity,
     shift_report_detail_dict_to_entity,
+    shift_report_dict_to_entity,
 )
 
 
@@ -70,7 +70,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             return None
         return shift_report_dict_to_entity(record)
 
-    def update_shift_report(self, command: UpdateShiftReportCommand) -> ShiftReport | None:
+    def update_shift_report(
+        self, command: UpdateShiftReportCommand
+    ) -> ShiftReport | None:
         updated = self.reports_manager.update_shift_report(
             command.shift_report_id,
             user=command.user,
@@ -128,7 +130,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
     def get_shift_report_detail(
         self, shift_report_detail_id: UUID
     ) -> ShiftReportDetail | None:
-        record = normalize_result(self.details_manager.get_by_id(shift_report_detail_id))
+        record = normalize_result(
+            self.details_manager.get_by_id(shift_report_detail_id)
+        )
         if record is None:
             return None
         return shift_report_detail_dict_to_entity(record)

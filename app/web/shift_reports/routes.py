@@ -69,8 +69,8 @@ from app.use_cases.shift_reports import (
     GetShiftReportUseCase,
     ListShiftReportDetailsUseCase,
     ListShiftReportsUseCase,
-    ShiftReportListQuery,
     ShiftReportActor,
+    ShiftReportListQuery,
     SoftDeleteShiftReportUseCase,
     UpdateShiftReportCommand,
     UpdateShiftReportDetailCommand,
@@ -304,7 +304,9 @@ class ShiftReportAdd(Resource):
                 "shift_report_id": str(report.shift_report_id),
             }, 200
         except Exception as error:
-            logger.error(f"Error adding shift report: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error adding shift report: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -314,18 +316,25 @@ class ShiftReportView(Resource):
     @shift_report_ns.marshal_with(shift_report_response)
     def get(self, report_id):
         current_user = _get_current_user()
-        logger.info(f"Request to view shift report: {report_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to view shift report: {report_id}", extra={"login": current_user}
+        )
         try:
             report = GetShiftReportUseCase(repository=_repository()).execute(
                 _parse_uuid(report_id)
             )
             response = shift_report_entity_to_response(report)
-            response["shift_report_details_sum"] = _repository().get_total_sum_by_shift_report(
-                report.shift_report_id
+            response["shift_report_details_sum"] = (
+                _repository().get_total_sum_by_shift_report(report.shift_report_id)
             )
-            return {"msg": "Shift report found successfully", "shift_report": response}, 200
+            return {
+                "msg": "Shift report found successfully",
+                "shift_report": response,
+            }, 200
         except Exception as error:
-            logger.error(f"Error viewing shift report: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error viewing shift report: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -335,7 +344,10 @@ class ShiftReportSoftDelete(Resource):
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
         current_user = _get_current_user()
-        logger.info(f"Request to soft delete shift report: {report_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to soft delete shift report: {report_id}",
+            extra={"login": current_user},
+        )
         try:
             SoftDeleteShiftReportUseCase(repository=_repository()).execute(
                 _parse_uuid(report_id), _actor(current_user)
@@ -345,7 +357,10 @@ class ShiftReportSoftDelete(Resource):
                 "shift_report_id": report_id,
             }, 200
         except Exception as error:
-            logger.error(f"Error soft deleting shift report: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error soft deleting shift report: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)
 
 
@@ -355,7 +370,10 @@ class ShiftReportHardDelete(Resource):
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def delete(self, report_id):
         current_user = _get_current_user()
-        logger.info(f"Request to hard delete shift report: {report_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to hard delete shift report: {report_id}",
+            extra={"login": current_user},
+        )
         try:
             DeleteShiftReportUseCase(repository=_repository()).execute(
                 _parse_uuid(report_id), _actor(current_user)
@@ -365,7 +383,10 @@ class ShiftReportHardDelete(Resource):
                 "shift_report_id": report_id,
             }, 200
         except Exception as error:
-            logger.error(f"Error hard deleting shift report: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error hard deleting shift report: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)
 
 
@@ -376,10 +397,14 @@ class ShiftReportEdit(Resource):
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
         current_user = _get_current_user()
-        logger.info(f"Request to edit shift report: {report_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to edit shift report: {report_id}", extra={"login": current_user}
+        )
         schema = ShiftReportEditSchema()
         try:
-            raw_payload = to_plain_dict(request.get_json(silent=True), "Request body is required")
+            raw_payload = to_plain_dict(
+                request.get_json(silent=True), "Request body is required"
+            )
             data = cast(ShiftReportEditPayload, schema.load(raw_payload))
             updated = UpdateShiftReportUseCase(repository=_repository()).execute(
                 UpdateShiftReportCommand(
@@ -408,7 +433,9 @@ class ShiftReportEdit(Resource):
                 "shift_report_id": str(updated.shift_report_id),
             }, 200
         except Exception as error:
-            logger.error(f"Error editing shift report: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error editing shift report: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -439,7 +466,9 @@ class ShiftReportAll(Resource):
         except ValidationError as err:
             return {"msg": "Validation error", "detail": err.messages}, 400
         try:
-            total_count, reports = ListShiftReportsUseCase(repository=_repository()).execute(
+            total_count, reports = ListShiftReportsUseCase(
+                repository=_repository()
+            ).execute(
                 _build_list_query(args),
                 _actor(current_user),
             )
@@ -447,8 +476,8 @@ class ShiftReportAll(Resource):
             repository = _repository()
             for report in reports:
                 payload = shift_report_entity_to_response(report)
-                payload["shift_report_details_sum"] = repository.get_total_sum_by_shift_report(
-                    report.shift_report_id
+                payload["shift_report_details_sum"] = (
+                    repository.get_total_sum_by_shift_report(report.shift_report_id)
                 )
                 response_reports.append(payload)
             return {
@@ -457,7 +486,9 @@ class ShiftReportAll(Resource):
                 "total": total_count,
             }, 200
         except Exception as error:
-            logger.error(f"Error fetching shift reports: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error fetching shift reports: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -468,7 +499,10 @@ class ShiftReportDetailsAddBulk(Resource):
     @shift_report_details_ns.marshal_with(shift_report_details_many_msg_model)
     def post(self):
         current_user = _get_current_user()
-        logger.info("Request to add multiple shift report details", extra={"login": current_user})
+        logger.info(
+            "Request to add multiple shift report details",
+            extra={"login": current_user},
+        )
         schema = ShiftReportDetailsCreateSchema(many=True)
         try:
             raw_payload = request.get_json(silent=True)
@@ -498,7 +532,8 @@ class ShiftReportDetailsAddBulk(Resource):
             }, 200
         except Exception as error:
             logger.error(
-                f"Error adding shift report details: {error}", extra={"login": current_user}
+                f"Error adding shift report details: {error}",
+                extra={"login": current_user},
             )
             return _map_error(error)
 
@@ -510,10 +545,14 @@ class ShiftReportDetailsAdd(Resource):
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def post(self):
         current_user = _get_current_user()
-        logger.info("Request to add new shift report detail", extra={"login": current_user})
+        logger.info(
+            "Request to add new shift report detail", extra={"login": current_user}
+        )
         schema = ShiftReportDetailsCreateSchema()
         try:
-            raw_payload = to_plain_dict(request.get_json(silent=True), "Request body is required")
+            raw_payload = to_plain_dict(
+                request.get_json(silent=True), "Request body is required"
+            )
             data = cast(dict[str, Any], schema.load(raw_payload))
             detail = CreateShiftReportDetailUseCase(repository=_repository()).execute(
                 CreateShiftReportDetailPayload(
@@ -533,7 +572,10 @@ class ShiftReportDetailsAdd(Resource):
                 "shift_report_detail_id": str(detail.shift_report_detail_id),
             }, 200
         except Exception as error:
-            logger.error(f"Error adding shift report detail: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error adding shift report detail: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)
 
 
@@ -543,7 +585,10 @@ class ShiftReportDetailsView(Resource):
     @shift_report_details_ns.marshal_with(shift_report_details_response)
     def get(self, detail_id):
         current_user = _get_current_user()
-        logger.info(f"Request to view shift report detail: {detail_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to view shift report detail: {detail_id}",
+            extra={"login": current_user},
+        )
         try:
             detail = GetShiftReportDetailUseCase(repository=_repository()).execute(
                 _parse_uuid(detail_id)
@@ -553,7 +598,10 @@ class ShiftReportDetailsView(Resource):
                 "shift_report_detail": shift_report_detail_entity_to_response(detail),
             }, 200
         except Exception as error:
-            logger.error(f"Error viewing shift report detail: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error viewing shift report detail: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)
 
 
@@ -563,7 +611,10 @@ class ShiftReportDetailsDelete(Resource):
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def delete(self, detail_id):
         current_user = _get_current_user()
-        logger.info(f"Request to delete shift report detail: {detail_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to delete shift report detail: {detail_id}",
+            extra={"login": current_user},
+        )
         try:
             DeleteShiftReportDetailUseCase(repository=_repository()).execute(
                 _parse_uuid(detail_id)
@@ -573,7 +624,10 @@ class ShiftReportDetailsDelete(Resource):
                 "shift_report_detail_id": detail_id,
             }, 200
         except Exception as error:
-            logger.error(f"Error deleting shift report detail: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error deleting shift report detail: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)
 
 
@@ -584,10 +638,15 @@ class ShiftReportDetailsEdit(Resource):
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def patch(self, detail_id):
         current_user = _get_current_user()
-        logger.info(f"Request to edit shift report detail: {detail_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to edit shift report detail: {detail_id}",
+            extra={"login": current_user},
+        )
         schema = ShiftReportDetailsEditSchema()
         try:
-            raw_payload = to_plain_dict(request.get_json(silent=True), "Request body is required")
+            raw_payload = to_plain_dict(
+                request.get_json(silent=True), "Request body is required"
+            )
             data = cast(dict[str, Any], schema.load(raw_payload))
             shift_report_value = data.get("shift_report")
             project_work_value = data.get("project_work")
@@ -612,7 +671,10 @@ class ShiftReportDetailsEdit(Resource):
                 "shift_report_detail_id": str(updated.shift_report_detail_id),
             }, 200
         except Exception as error:
-            logger.error(f"Error editing shift report detail: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error editing shift report detail: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)
 
 
@@ -623,7 +685,9 @@ class ShiftReportDetailsAll(Resource):
     @shift_report_details_ns.marshal_with(shift_report_details_all_response)
     def get(self):
         current_user = _get_current_user()
-        logger.info("Request to fetch all shift report details", extra={"login": current_user})
+        logger.info(
+            "Request to fetch all shift report details", extra={"login": current_user}
+        )
         schema = ShiftReportDetailsFilterSchema()
         raw_args: dict[str, Any] = request.args.to_dict()
         project_work_args = get_optional_uuid_list(
@@ -645,7 +709,9 @@ class ShiftReportDetailsAll(Resource):
                 date_from=args.get("date_from"),
                 date_to=args.get("date_to"),
                 work=args.get("work"),
-                project_work=[_parse_uuid(item) for item in (args.get("project_work") or [])]
+                project_work=[
+                    _parse_uuid(item) for item in (args.get("project_work") or [])
+                ]
                 if args.get("project_work")
                 else None,
                 min_quantity=args.get("min_quantity"),
@@ -662,7 +728,10 @@ class ShiftReportDetailsAll(Resource):
                 ],
             }, 200
         except Exception as error:
-            logger.error(f"Error fetching shift report details: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error fetching shift report details: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)
 
 
@@ -674,7 +743,10 @@ class ShiftReportDetailsByReports(Resource):
     @shift_report_details_ns.marshal_with(shift_report_details_all_response)
     def post(self):
         current_user = _get_current_user()
-        logger.info("Request to fetch shift report details by shift report ids", extra={"login": current_user})
+        logger.info(
+            "Request to fetch shift report details by shift report ids",
+            extra={"login": current_user},
+        )
         schema = ShiftReportDetailsByReportsSchema()
         try:
             raw_payload = to_plain_dict(
@@ -693,5 +765,8 @@ class ShiftReportDetailsByReports(Resource):
                 "shift_report_details": details,
             }, 200
         except Exception as error:
-            logger.error(f"Error fetching shift report details: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error fetching shift report details: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)

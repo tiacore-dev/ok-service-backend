@@ -5,12 +5,13 @@ Revises: 755c46649157
 Create Date: 2026-05-20 14:55:00.000000
 
 """
-from typing import Sequence, Union
-import uuid
 
-from alembic import op
+import uuid
+from typing import Sequence, Union
+
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e1f4b8a9c2d1"
@@ -43,8 +44,14 @@ PERMISSIONS = [
     ("object-statuses-list", "GET /object_statuses/all"),
     ("work-categories-create", "POST /work_categories/add"),
     ("work-categories-list", "GET /work_categories/all"),
-    ("work-categories-delete-hard", "DELETE /work_categories/{work_category_id}/delete/hard"),
-    ("work-categories-delete-soft", "PATCH /work_categories/{work_category_id}/delete/soft"),
+    (
+        "work-categories-delete-hard",
+        "DELETE /work_categories/{work_category_id}/delete/hard",
+    ),
+    (
+        "work-categories-delete-soft",
+        "PATCH /work_categories/{work_category_id}/delete/soft",
+    ),
     ("work-categories-edit", "PATCH /work_categories/{work_category_id}/edit"),
     ("work-categories-view", "GET /work_categories/{work_category_id}/view"),
     ("objects-create", "POST /objects/add"),
@@ -59,7 +66,10 @@ PERMISSIONS = [
     ("projects-delete-soft", "PATCH /projects/{project_id}/delete/soft"),
     ("projects-edit", "PATCH /projects/{project_id}/edit"),
     ("projects-get-stat", "GET /projects/{project_id}/get-stat"),
-    ("projects-get-stat-by-project-materials", "GET /projects/{project_id}/get-stat-by-project-materials"),
+    (
+        "projects-get-stat-by-project-materials",
+        "GET /projects/{project_id}/get-stat-by-project-materials",
+    ),
     ("projects-view", "GET /projects/{project_id}/view"),
     ("works-create", "POST /works/add"),
     ("works-list", "GET /works/all"),
@@ -81,29 +91,53 @@ PERMISSIONS = [
     ("materials-view", "GET /materials/{material_id}/view"),
     ("work-material-relations-create", "POST /work_material_relations/add"),
     ("work-material-relations-list", "GET /work_material_relations/all"),
-    ("work-material-relations-delete-hard", "DELETE /work_material_relations/{relation_id}/delete/hard"),
-    ("work-material-relations-edit", "PATCH /work_material_relations/{relation_id}/edit"),
+    (
+        "work-material-relations-delete-hard",
+        "DELETE /work_material_relations/{relation_id}/delete/hard",
+    ),
+    (
+        "work-material-relations-edit",
+        "PATCH /work_material_relations/{relation_id}/edit",
+    ),
     ("work-material-relations-view", "GET /work_material_relations/{relation_id}/view"),
     ("project-materials-create", "POST /project_materials/add"),
     ("project-materials-list", "GET /project_materials/all"),
-    ("project-materials-delete-hard", "DELETE /project_materials/{project_material_id}/delete/hard"),
+    (
+        "project-materials-delete-hard",
+        "DELETE /project_materials/{project_material_id}/delete/hard",
+    ),
     ("project-materials-edit", "PATCH /project_materials/{project_material_id}/edit"),
     ("project-materials-view", "GET /project_materials/{project_material_id}/view"),
     ("shift-report-materials-create", "POST /shift_report_materials/add"),
     ("shift-report-materials-list", "GET /shift_report_materials/all"),
-    ("shift-report-materials-delete-hard", "DELETE /shift_report_materials/{shift_report_material_id}/delete/hard"),
-    ("shift-report-materials-edit", "PATCH /shift_report_materials/{shift_report_material_id}/edit"),
-    ("shift-report-materials-view", "GET /shift_report_materials/{shift_report_material_id}/view"),
+    (
+        "shift-report-materials-delete-hard",
+        "DELETE /shift_report_materials/{shift_report_material_id}/delete/hard",
+    ),
+    (
+        "shift-report-materials-edit",
+        "PATCH /shift_report_materials/{shift_report_material_id}/edit",
+    ),
+    (
+        "shift-report-materials-view",
+        "GET /shift_report_materials/{shift_report_material_id}/view",
+    ),
     ("project-works-create", "POST /project_works/add"),
     ("project-works-create-many", "POST /project_works/add/many"),
     ("project-works-list", "GET /project_works/all"),
-    ("project-works-delete-hard", "DELETE /project_works/{project_work_id}/delete/hard"),
+    (
+        "project-works-delete-hard",
+        "DELETE /project_works/{project_work_id}/delete/hard",
+    ),
     ("project-works-delete-soft", "PATCH /project_works/{project_work_id}/delete/soft"),
     ("project-works-edit", "PATCH /project_works/{project_work_id}/edit"),
     ("project-works-view", "GET /project_works/{project_work_id}/view"),
     ("project-schedules-create", "POST /project_schedules/add"),
     ("project-schedules-list", "GET /project_schedules/all"),
-    ("project-schedules-delete-hard", "DELETE /project_schedules/{schedule_id}/delete/hard"),
+    (
+        "project-schedules-delete-hard",
+        "DELETE /project_schedules/{schedule_id}/delete/hard",
+    ),
     ("project-schedules-edit", "PATCH /project_schedules/{schedule_id}/edit"),
     ("project-schedules-view", "GET /project_schedules/{schedule_id}/view"),
     ("shift-reports-create", "POST /shift_reports/add"),
@@ -115,8 +149,14 @@ PERMISSIONS = [
     ("shift-report-details-create", "POST /shift_report_details/add"),
     ("shift-report-details-create-many", "POST /shift_report_details/add/many"),
     ("shift-report-details-list", "GET /shift_report_details/all"),
-    ("shift-report-details-all-by-reports", "POST /shift_report_details/all-by-reports"),
-    ("shift-report-details-delete-hard", "DELETE /shift_report_details/{detail_id}/delete/hard"),
+    (
+        "shift-report-details-all-by-reports",
+        "POST /shift_report_details/all-by-reports",
+    ),
+    (
+        "shift-report-details-delete-hard",
+        "DELETE /shift_report_details/{detail_id}/delete/hard",
+    ),
     ("shift-report-details-edit", "PATCH /shift_report_details/{detail_id}/edit"),
     ("shift-report-details-view", "GET /shift_report_details/{detail_id}/view"),
 ]

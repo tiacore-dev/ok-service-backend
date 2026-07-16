@@ -456,15 +456,23 @@ class ShiftReportsDetailsManager(ShiftManager):
             joined_shift_reports = False
 
             # Фильтрация по дате смены (ShiftReports.date)
-            if filters.get("date_from") is not None or filters.get("date_to") is not None:
+            if (
+                filters.get("date_from") is not None
+                or filters.get("date_to") is not None
+            ):
                 query = query.join(
                     ShiftReports,
                     ShiftReports.shift_report_id == self.model.shift_report,
                 )
                 joined_shift_reports = True
-                if filters.get("date_from") is not None and filters.get("date_to") is not None:
+                if (
+                    filters.get("date_from") is not None
+                    and filters.get("date_to") is not None
+                ):
                     query = query.filter(
-                        ShiftReports.date.between(filters["date_from"], filters["date_to"])
+                        ShiftReports.date.between(
+                            filters["date_from"], filters["date_to"]
+                        )
                     )
                 elif filters.get("date_from") is not None:
                     query = query.filter(ShiftReports.date >= filters["date_from"])
@@ -729,9 +737,7 @@ class ShiftReportsDetailsManager(ShiftManager):
                     shift_report.user,
                 )
 
-                self._sync_shift_report_materials(
-                    session, detail, detail.created_by
-                )
+                self._sync_shift_report_materials(session, detail, detail.created_by)
                 session.commit()
                 logger.info(
                     f"[INFO] Обновлены данные для shift_report_detail {
@@ -760,7 +766,8 @@ class ShiftReportsDetailsManager(ShiftManager):
                     return None
 
                 session.query(ShiftReportMaterials).filter(
-                    ShiftReportMaterials.shift_report_detail == record.shift_report_detail_id
+                    ShiftReportMaterials.shift_report_detail
+                    == record.shift_report_detail_id
                 ).delete(synchronize_session=False)
                 session.delete(record)
                 session.flush()
