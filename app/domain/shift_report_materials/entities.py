@@ -7,6 +7,13 @@ from uuid import UUID
 from .errors import ShiftReportMaterialValidationError
 
 
+def validate_shift_report_material_quantity(quantity: Decimal) -> None:
+    if quantity <= 0:
+        raise ShiftReportMaterialValidationError(
+            "Shift report material quantity must be positive."
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class ShiftReportMaterial:
     shift_report_material_id: UUID
@@ -16,12 +23,6 @@ class ShiftReportMaterial:
     created_by: UUID
     created_at: int
     shift_report_detail: UUID | None = None
-
-    def __post_init__(self) -> None:
-        if self.quantity <= 0:
-            raise ShiftReportMaterialValidationError(
-                "Shift report material quantity must be positive."
-            )
 
     def with_updates(
         self,
@@ -38,7 +39,11 @@ class ShiftReportMaterial:
             quantity=self.quantity if quantity is None else quantity,
             created_by=self.created_by,
             created_at=self.created_at,
-            shift_report_detail=self.shift_report_detail
-            if shift_report_detail is None
-            else shift_report_detail,
+            shift_report_detail=(
+                self.shift_report_detail
+                if shift_report_detail is None
+                else shift_report_detail
+            ),
         )
+
+    from decimal import Decimal

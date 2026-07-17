@@ -1,4 +1,4 @@
-from .entities import ShiftReportMaterial
+from .entities import ShiftReportMaterial, validate_shift_report_material_quantity
 from .errors import (
     ShiftReportMaterialError,
     ShiftReportMaterialNotFoundError,
@@ -10,4 +10,5 @@ __all__ = [
     "ShiftReportMaterialError",
     "ShiftReportMaterialNotFoundError",
     "ShiftReportMaterialValidationError",
+    "validate_shift_report_material_quantity",
 ]

@@ -9,6 +9,14 @@ from app.schemas.validators import (
 )
 
 
+def validate_positive_quantity(value: float | None) -> None:
+    if value is None:
+        return
+
+    if value <= 0:
+        raise ValidationError("Field 'quantity' must be greater than 0.")
+
+
 def _validate_quantity_for_material(material_id_str, quantity):
     if not material_id_str or quantity is None:
         return
@@ -40,7 +48,7 @@ def _validate_quantity_for_material(material_id_str, quantity):
 
 class ShiftReportMaterialCreateSchema(Schema):
     class Meta:
-        unknown = "exclude"  # Исключать лишние поля
+        unknown = "exclude"
 
     shift_report = fields.String(
         required=True,
@@ -53,16 +61,21 @@ class ShiftReportMaterialCreateSchema(Schema):
         validate=[validate_material_exists],
     )
     quantity = fields.Float(
-        required=True, error_messages={"required": "Field 'quantity' is required."}
+        required=True,
+        validate=[validate_positive_quantity],
+        error_messages={"required": "Field 'quantity' is required."},
     )
     shift_report_detail = fields.String(
-        required=False, allow_none=True, validate=[validate_shift_report_detail_exists]
+        required=False,
+        allow_none=True,
+        validate=[validate_shift_report_detail_exists],
     )
 
     @validates_schema
     def validate_quantity(self, data, **kwargs):
         adjusted = _validate_quantity_for_material(
-            data.get("material"), data.get("quantity")
+            data.get("material"),
+            data.get("quantity"),
         )
         if adjusted is not None:
             data["quantity"] = adjusted
@@ -70,23 +83,34 @@ class ShiftReportMaterialCreateSchema(Schema):
 
 class ShiftReportMaterialEditSchema(Schema):
     class Meta:
-        unknown = "exclude"  # Исключать лишние поля
+        unknown = "exclude"
 
     shift_report = fields.String(
-        required=False, allow_none=True, validate=[validate_shift_report_exists]
+        required=False,
+        allow_none=True,
+        validate=[validate_shift_report_exists],
     )
     material = fields.String(
-        required=False, allow_none=True, validate=[validate_material_exists]
+        required=False,
+        allow_none=True,
+        validate=[validate_material_exists],
     )
-    quantity = fields.Float(required=False, allow_none=True)
+    quantity = fields.Float(
+        required=False,
+        allow_none=True,
+        validate=[validate_positive_quantity],
+    )
     shift_report_detail = fields.String(
-        required=False, allow_none=True, validate=[validate_shift_report_detail_exists]
+        required=False,
+        allow_none=True,
+        validate=[validate_shift_report_detail_exists],
     )
 
     @validates_schema
     def validate_quantity(self, data, **kwargs):
         adjusted = _validate_quantity_for_material(
-            data.get("material"), data.get("quantity")
+            data.get("material"),
+            data.get("quantity"),
         )
         if adjusted is not None:
             data["quantity"] = adjusted

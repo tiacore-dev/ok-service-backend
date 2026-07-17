@@ -25,7 +25,10 @@ class FakeRepository:
         return shift_report_material
 
     def get_shift_report_material(self, shift_report_material_id: UUID):
-        if self.material and self.material.shift_report_material_id == shift_report_material_id:
+        if (
+            self.material
+            and self.material.shift_report_material_id == shift_report_material_id
+        ):
             return self.material
         return None
 
@@ -37,7 +40,10 @@ class FakeRepository:
         return shift_report_material
 
     def delete_shift_report_material(self, shift_report_material_id: UUID) -> bool:
-        return self.material is not None and self.material.shift_report_material_id == shift_report_material_id
+        return (
+            self.material is not None
+            and self.material.shift_report_material_id == shift_report_material_id
+        )
 
     def list_shift_report_materials(
         self, query: ShiftReportMaterialListQuery

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from app.domain.shift_report_materials import (
     ShiftReportMaterial,
     ShiftReportMaterialNotFoundError,
+    validate_shift_report_material_quantity,
 )
 
 from .dto import UpdateShiftReportMaterialCommand
@@ -15,9 +16,7 @@ from .ports import ShiftReportMaterialRepository
 class UpdateShiftReportMaterialUseCase:
     repository: ShiftReportMaterialRepository
 
-    def execute(
-        self, command: UpdateShiftReportMaterialCommand
-    ) -> ShiftReportMaterial:
+    def execute(self, command: UpdateShiftReportMaterialCommand) -> ShiftReportMaterial:
         current = self.repository.get_shift_report_material(
             command.shift_report_material_id
         )
@@ -36,6 +35,9 @@ class UpdateShiftReportMaterialUseCase:
             and shift_report_detail is None
         ):
             return current
+
+        if command.quantity is not None:
+            validate_shift_report_material_quantity(command.quantity)
 
         updated = current.with_updates(
             shift_report=shift_report,
