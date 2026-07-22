@@ -1,7 +1,7 @@
 """Add audit fields to shift reports.
 
 Revision ID: 20260722_shift_report_audit
-Revises: b7c8d9e0f1a2
+Revises: 3f1a9c7d2b4e
 """
 
 from typing import Sequence, Union
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "20260722_shift_report_audit"
-down_revision: Union[str, None] = "b7c8d9e0f1a2"
+down_revision: Union[str, None] = "3f1a9c7d2b4e"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
