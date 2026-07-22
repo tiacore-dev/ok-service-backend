@@ -79,6 +79,7 @@ class ShiftReportDetail:
     created_at: int
     shift_report_user: UUID | None = None
     shift_report_date: int | None = None
+    shift_report_project: UUID | None = None
     project_work_name: str | None = None
 
     def __post_init__(self) -> None:

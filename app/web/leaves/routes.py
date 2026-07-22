@@ -17,16 +17,8 @@ from app.adapters.leaves import (
     leave_entity_to_list_item,
     leave_entity_to_response,
 )
-from app.domain.leaves import AbsenceReason, LeaveConflictError, LeaveNotFoundError
 from app.decorators import admin_required, api_key_or_jwt_required
-from app.web._typing import (
-    get_optional_bool,
-    get_optional_int,
-    get_optional_str,
-    optional_uuid,
-    required_uuid,
-    to_plain_dict,
-)
+from app.domain.leaves import AbsenceReason, LeaveConflictError, LeaveNotFoundError
 from app.routes.models.leave_models import (
     leave_all_response,
     leave_create_model,
@@ -54,6 +46,14 @@ from app.use_cases.leaves import (
     SoftDeleteLeaveUseCase,
     UpdateLeaveCommand,
     UpdateLeaveUseCase,
+)
+from app.web._typing import (
+    get_optional_bool,
+    get_optional_int,
+    get_optional_str,
+    optional_uuid,
+    required_uuid,
+    to_plain_dict,
 )
 
 logger = logging.getLogger("ok_service")
@@ -304,7 +304,10 @@ class LeaveEdit(Resource):
                 comment=get_optional_str(data, "comment"),
             )
             leave = UpdateLeaveUseCase(repository=_repository()).execute(command)
-            return {"msg": "Leave edited successfully", "leave_id": str(leave.leave_id)}, 200
+            return {
+                "msg": "Leave edited successfully",
+                "leave_id": str(leave.leave_id),
+            }, 200
         except Exception as error:
             logger.error(f"Error editing leave: {error}", extra={"login": current_user})
             return _map_error(error)

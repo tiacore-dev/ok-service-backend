@@ -207,6 +207,24 @@ def _parse_uuid(value: str) -> UUID:
         raise ValueError("Invalid UUID format") from exc
 
 
+def _detail_response_with_stats(detail, repository):
+    response = shift_report_detail_entity_to_response(detail)
+    project_work = response.get("project_work")
+    if not project_work or detail.shift_report_project is None:
+        return response
+    stats = repository.get_project_stats(detail.shift_report_project).get(str(detail.work), {})
+    planned = float(stats.get("project_work_quantity", 0) or 0)
+    actual = float(stats.get("shift_report_details_quantity", 0) or 0)
+    project_work.update(
+        project_work_quantity=planned,
+        shift_report_details_quantity=actual,
+        acceptance_status=(
+            "not_checked" if actual == 0 else "partial" if actual < planned else "accepted"
+        ),
+    )
+    return response
+
+
 def _build_list_query(data: dict[str, Any]) -> ShiftReportListQuery:
     return ShiftReportListQuery(
         offset=get_optional_int(data, "offset") or 0,
@@ -721,10 +739,11 @@ class ShiftReportDetailsAll(Resource):
                 created_by=args.get("created_by"),
                 created_at=args.get("created_at"),
             )
+            repository = _repository()
             return {
                 "msg": "Shift report details found successfully",
                 "shift_report_details": [
-                    shift_report_detail_entity_to_response(item) for item in details
+                    _detail_response_with_stats(item, repository) for item in details
                 ],
             }, 200
         except Exception as error:
@@ -754,12 +773,15 @@ class ShiftReportDetailsByReports(Resource):
             )
             data_list = cast(dict[str, Any], schema.load(raw_payload))
             report_ids = data_list.get("shift_report_ids") or []
-            use_case = ListShiftReportDetailsUseCase(repository=_repository())
+            repository = _repository()
+            use_case = ListShiftReportDetailsUseCase(repository=repository)
             details = []
             for report_id in report_ids:
                 matched = use_case.execute(shift_report=report_id)
                 if matched:
-                    details.append(shift_report_detail_entity_to_response(matched[0]))
+                    details.extend(
+                        _detail_response_with_stats(item, repository) for item in matched
+                    )
             return {
                 "msg": "Shift report details found successfully",
                 "shift_report_details": details,

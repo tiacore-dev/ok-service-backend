@@ -8,7 +8,6 @@ from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql import func
 
 from app.database.managers.abstract_manager import BaseDBManager
-from app.database.time_utils import utc_epoch_seconds
 from app.database.models import (
     Leaves,
     Projects,
@@ -19,6 +18,7 @@ from app.database.models import (
     WorkMaterialRelations,
     WorkPrices,
 )
+from app.database.time_utils import utc_epoch_seconds
 from app.domain.shift_reports import ShiftReportConflictError
 
 logger = logging.getLogger("ok_service")
@@ -336,7 +336,8 @@ class ShiftReportsManager(ShiftManager):
         """Фильтрация отчетов по сменам
         Цс поддержкой диапазона дат и сортировки по user/project.name."""
         logger.debug(
-            "get_shift_reports_filtered вызывается с фильтрацией, сортировкой и пагинацией.",
+            "get_shift_reports_filtered вызывается с фильтрацией, "
+            "сортировкой и пагинацией.",
             extra={"login": "database"},
         )
 
@@ -731,7 +732,8 @@ class ShiftReportsDetailsManager(ShiftManager):
                     )
                     return None
 
-                # Обновляем только явно переданные поля, чтобы не затирать обязательные FK `None`
+                # Обновляем только явно переданные поля,
+                # чтобы не затирать обязательные FK `None`
                 if data.get("work") is not None:
                     detail.work = data["work"]
                 if data.get("quantity") is not None:

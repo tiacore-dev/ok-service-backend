@@ -57,9 +57,11 @@ def shift_report_detail_dict_to_entity(payload: dict[str, Any]) -> ShiftReportDe
     shift_report = payload["shift_report"]
     shift_report_user = None
     shift_report_date = None
+    shift_report_project = None
     if isinstance(shift_report, dict):
         shift_report_user = shift_report.get("user_id")
         shift_report_date = shift_report.get("date")
+        shift_report_project = shift_report.get("project")
         shift_report = shift_report.get("id") or shift_report.get("shift_report_id")
     project_work = payload.get("project_work")
     project_work_name = None
@@ -80,6 +82,9 @@ def shift_report_detail_dict_to_entity(payload: dict[str, Any]) -> ShiftReportDe
         if shift_report_date is not None
         else None,
         project_work_name=project_work_name,
+        shift_report_project=(
+            UUID(str(shift_report_project)) if shift_report_project else None
+        ),
     )
 
 
@@ -92,6 +97,9 @@ def shift_report_detail_entity_to_response(entity: ShiftReportDetail) -> dict[st
             if entity.shift_report_user
             else None,
             "date": entity.shift_report_date,
+            "project": str(entity.shift_report_project)
+            if entity.shift_report_project
+            else None,
         },
         "project_work": (
             {

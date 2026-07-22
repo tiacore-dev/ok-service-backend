@@ -68,9 +68,11 @@ class ShiftReportDetails(Base):
         if self.shift_reports:
             shift_report["user_id"] = str(self.shift_reports.user)
             shift_report["date"] = self.shift_reports.date
+            shift_report["project"] = str(self.shift_reports.project)
         else:
             shift_report["user_id"] = None
             shift_report["date"] = None
+            shift_report["project"] = None
         return {
             "shift_report_detail_id": str(self.shift_report_detail_id),
             "project_work": project_work,

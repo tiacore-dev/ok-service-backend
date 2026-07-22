@@ -21,6 +21,11 @@ project_work_brief_model = Model(
     {
         "project_work_id": fields.String(required=True, description="Project work ID"),
         "name": fields.String(required=False, description="Project work name"),
+        "project_work_quantity": fields.Float(required=False),
+        "shift_report_details_quantity": fields.Float(required=False),
+        "acceptance_status": fields.String(
+            required=False, enum=["not_checked", "partial", "accepted"]
+        ),
     },
 )
 
@@ -30,6 +35,7 @@ shift_report_brief_model = Model(
         "id": fields.String(required=True, description="Shift report ID"),
         "user_id": fields.String(required=True, description="User ID"),
         "date": fields.Integer(required=True, description="Shift report date"),
+        "project": fields.String(required=False, allow_null=True),
     },
 )
 

@@ -94,3 +94,6 @@
 - В `ARCHITECTURE.md` добавлен сквозной контракт типизации: нормализация на границах слоёв, запрет на протаскивание `Any/Unknown`, правила для `cast`, `None` и тестовых `Protocol`-моков.
 - Исправлен `GET /projects/all`: список больше не падает с `400 Project name is required` из-за отдельных legacy-записей с некорректным именем; такие записи пропускаются, при этом create/update/get-by-id сохраняют строгую доменную валидацию.
 - В `shift_reports` добавлены nullable-поля аудита согласования и изменений (`signed_by`, `signed_at`, `updated_by`, `updated_at`) с автоматическим заполнением из JWT при PATCH и отображением `id`, `login`, `name` пользователя в GET.
+- В ответы `shift_report_details/all` и `all-by-reports` добавлена статистика `project_work` по существующему механизму `get_project_stats`: план, факт и статус `not_checked`/`partial`/`accepted`.
+- Добавлена документация правил расчёта статистики и `acceptance_status` для `shift_report_details`.
+- В документации уточнено, что расчёт `shift_report_details` основан на `GET /projects/{project_id}/get-stat`.

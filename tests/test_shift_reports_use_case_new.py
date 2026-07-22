@@ -57,6 +57,9 @@ class _FakeRepository:
     def get_total_sum_by_shift_report(self, shift_report_id):
         return 0
 
+    def get_project_stats(self, project_id):
+        return {}
+
     def get_shift_report_detail(self, shift_report_detail_id):
         return None
 

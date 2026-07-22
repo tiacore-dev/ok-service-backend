@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
+from app.database.managers.projects_managers import ProjectsManager
 from app.database.managers.shift_reports_managers import (
     ShiftReportsDetailsManager,
     ShiftReportsManager,
@@ -29,6 +30,7 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
     details_manager: ShiftReportsDetailsManager = field(
         default_factory=ShiftReportsDetailsManager
     )
+    projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
 
     def create_shift_report(self, command: CreateShiftReportCommand) -> ShiftReport:
         payload = {
@@ -112,6 +114,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
 
     def get_total_sum_by_shift_report(self, shift_report_id: UUID) -> int | float:
         return self.reports_manager.get_total_sum_by_shift_report(shift_report_id)
+
+    def get_project_stats(self, project_id: UUID) -> dict:
+        return self.projects_manager.get_project_stats(project_id)
 
     def create_shift_report_detail(
         self, command: CreateShiftReportDetailPayload
