@@ -46,6 +46,10 @@ class ShiftReports(Base):
         nullable=False,
     )
     created_by = Column(UUID, ForeignKey("users.user_id"), nullable=False)
+    signed_at = Column(BigInteger, nullable=True)
+    signed_by = Column(UUID, ForeignKey("users.user_id"), nullable=True)
+    updated_at = Column(BigInteger, nullable=True)
+    updated_by = Column(UUID, ForeignKey("users.user_id"), nullable=True)
     night_shift = Column(Boolean, nullable=False, default=False)
     extreme_conditions = Column(Boolean, nullable=False, default=False)
     deleted = Column(Boolean, nullable=False, default=False)
@@ -69,6 +73,12 @@ class ShiftReports(Base):
         "Users", back_populates="created_shift_reports", foreign_keys=[created_by]
     )
     users = relationship("Users", back_populates="shift_report", foreign_keys=[user])
+    signed_by_user = relationship(
+        "Users", back_populates="signed_shift_reports", foreign_keys=[signed_by]
+    )
+    updated_by_user = relationship(
+        "Users", back_populates="updated_shift_reports", foreign_keys=[updated_by]
+    )
 
     comment = Column(Text, nullable=True)
 
@@ -111,4 +121,16 @@ class ShiftReports(Base):
             "extreme_conditions": self.extreme_conditions,
             "number": self.number,
             "comment": self.comment,
+            "signed_at": self.signed_at,
+            "signed_by": self._user_info(self.signed_by_user, self.signed_by),
+            "updated_at": self.updated_at,
+            "updated_by": self._user_info(self.updated_by_user, self.updated_by),
         }
+
+    @staticmethod
+    def _user_info(user, user_id):
+        if user_id is None:
+            return None
+        if user is None:
+            return {"id": str(user_id)}
+        return {"id": str(user_id), "login": user.login, "name": user.name}

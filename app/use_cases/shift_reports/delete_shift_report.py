@@ -25,6 +25,7 @@ class SoftDeleteShiftReportUseCase:
             UpdateShiftReportCommand(
                 shift_report_id=shift_report_id,
                 deleted=True,
+                updated_by=actor.user_id,
             )
         )
         if updated is None:

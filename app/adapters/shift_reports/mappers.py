@@ -10,8 +10,10 @@ from app.domain.shift_reports import ShiftReport, ShiftReportDetail
 def _uuid_value(payload: dict[str, Any], key: str) -> UUID:
     value = payload[key]
     if isinstance(value, dict):
-        value = value.get("id") or value.get("shift_report_detail_id") or value.get(
-            "project_work_id"
+        value = (
+            value.get("id")
+            or value.get("shift_report_detail_id")
+            or value.get("project_work_id")
         )
     return UUID(str(value))
 
@@ -22,7 +24,9 @@ def shift_report_dict_to_entity(payload: dict[str, Any]) -> ShiftReport:
         user=UUID(str(payload["user"])),
         date=int(payload["date"]),
         date_start=(
-            int(payload["date_start"]) if payload.get("date_start") is not None else None
+            int(payload["date_start"])
+            if payload.get("date_start") is not None
+            else None
         ),
         date_end=(
             int(payload["date_end"]) if payload.get("date_end") is not None else None
@@ -42,6 +46,10 @@ def shift_report_dict_to_entity(payload: dict[str, Any]) -> ShiftReport:
         extreme_conditions=bool(payload.get("extreme_conditions", False)),
         number=int(payload["number"]),
         comment=payload.get("comment"),
+        signed_at=payload.get("signed_at"),
+        signed_by=payload.get("signed_by"),
+        updated_at=payload.get("updated_at"),
+        updated_by=payload.get("updated_by"),
     )
 
 
@@ -61,18 +69,16 @@ def shift_report_detail_dict_to_entity(payload: dict[str, Any]) -> ShiftReportDe
     return ShiftReportDetail(
         shift_report_detail_id=_uuid_value(payload, "shift_report_detail_id"),
         shift_report=UUID(str(shift_report)),
-        project_work=(
-            UUID(str(project_work))
-            if project_work is not None
-            else None
-        ),
+        project_work=(UUID(str(project_work)) if project_work is not None else None),
         work=_uuid_value(payload, "work"),
         quantity=Decimal(str(payload["quantity"])),
         summ=Decimal(str(payload["summ"])),
         created_by=_uuid_value(payload, "created_by"),
         created_at=int(payload["created_at"]),
         shift_report_user=UUID(str(shift_report_user)) if shift_report_user else None,
-        shift_report_date=int(shift_report_date) if shift_report_date is not None else None,
+        shift_report_date=int(shift_report_date)
+        if shift_report_date is not None
+        else None,
         project_work_name=project_work_name,
     )
 
@@ -82,7 +88,9 @@ def shift_report_detail_entity_to_response(entity: ShiftReportDetail) -> dict[st
         "shift_report_detail_id": str(entity.shift_report_detail_id),
         "shift_report": {
             "id": str(entity.shift_report),
-            "user_id": str(entity.shift_report_user) if entity.shift_report_user else None,
+            "user_id": str(entity.shift_report_user)
+            if entity.shift_report_user
+            else None,
             "date": entity.shift_report_date,
         },
         "project_work": (
@@ -123,4 +131,8 @@ def shift_report_entity_to_response(entity: ShiftReport) -> dict[str, Any]:
         "extreme_conditions": entity.extreme_conditions,
         "number": entity.number,
         "comment": entity.comment,
+        "signed_at": entity.signed_at,
+        "signed_by": entity.signed_by,
+        "updated_at": entity.updated_at,
+        "updated_by": entity.updated_by,
     }

@@ -151,7 +151,10 @@ def _check_shift_report_access(current_user: dict[str, Any], shift_report_id: st
     shift_report = shift_reports_manager.get_by_id(record_id=parsed_shift_report_id)
     if not shift_report:
         return {"msg": "Shift report not found"}, 404
-    if shift_report["user"] != current_user.get("user_id") or shift_report["signed"] is True:
+    if (
+        shift_report["user"] != current_user.get("user_id")
+        or shift_report["signed"] is True
+    ):
         return {"msg": "Forbidden"}, 403
     return None
 
@@ -200,7 +203,9 @@ class ShiftReportMaterialAdd(Resource):
             record = CreateShiftReportMaterialUseCase(repository=_repository()).execute(
                 CreateShiftReportMaterialCommand(
                     shift_report=shift_report_id,
-                    material=get_required_uuid(data, "material", "Material is required"),
+                    material=get_required_uuid(
+                        data, "material", "Material is required"
+                    ),
                     quantity=get_required_decimal(
                         data, "quantity", "Quantity is required"
                     ),
@@ -269,15 +274,17 @@ class ShiftReportMaterialHardDelete(Resource):
             )
             if access_error:
                 return access_error
-            deleted = DeleteShiftReportMaterialUseCase(repository=_repository()).execute(
-                _parse_shift_report_material_id(shift_report_material_id)
-            )
+            deleted = DeleteShiftReportMaterialUseCase(
+                repository=_repository()
+            ).execute(_parse_shift_report_material_id(shift_report_material_id))
             if not deleted:
                 raise ShiftReportMaterialNotFoundError(
                     "Shift report material not found"
                 )
             return {
-                "msg": f"Shift report material {shift_report_material_id} hard deleted successfully",
+                "msg": f"Shift report material {
+                    shift_report_material_id
+                } hard deleted successfully",
                 "shift_report_material_id": shift_report_material_id,
             }, 200
         except Exception as error:
@@ -312,7 +319,11 @@ class ShiftReportMaterialEdit(Resource):
             target_shift_report = get_optional_uuid(data, "shift_report")
             access_error = _check_shift_report_access(
                 current_user,
-                str(target_shift_report if target_shift_report is not None else current.shift_report),
+                str(
+                    target_shift_report
+                    if target_shift_report is not None
+                    else current.shift_report
+                ),
             )
             if access_error:
                 return access_error

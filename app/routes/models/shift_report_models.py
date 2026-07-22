@@ -70,6 +70,18 @@ shift_report_model = Model(
         "created_by": fields.String(
             required=True, description="Creator of shift report"
         ),
+        "signed_by": fields.Nested(Model("ShiftReportUser", {
+            "id": fields.String,
+            "login": fields.String,
+            "name": fields.String,
+        }), required=False, allow_null=True),
+        "signed_at": fields.Integer(required=False, allow_null=True),
+        "updated_by": fields.Nested(Model("ShiftReportUpdater", {
+            "id": fields.String,
+            "login": fields.String,
+            "name": fields.String,
+        }), required=False, allow_null=True),
+        "updated_at": fields.Integer(required=False, allow_null=True),
         "night_shift": fields.Boolean(required=True, description="Night shift"),
         "extreme_conditions": fields.Boolean(
             required=True, description="Extreme conditions"

@@ -95,6 +95,16 @@ class Users(Base):
         back_populates="shift_report_creator",
         foreign_keys="[ShiftReports.created_by]",
     )
+    signed_shift_reports = relationship(
+        "ShiftReports",
+        back_populates="signed_by_user",
+        foreign_keys="[ShiftReports.signed_by]",
+    )
+    updated_shift_reports = relationship(
+        "ShiftReports",
+        back_populates="updated_by_user",
+        foreign_keys="[ShiftReports.updated_by]",
+    )
 
     subscription = relationship("Subscriptions", back_populates="users")
 

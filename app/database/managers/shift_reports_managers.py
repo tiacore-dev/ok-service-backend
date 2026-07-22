@@ -8,6 +8,7 @@ from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql import func
 
 from app.database.managers.abstract_manager import BaseDBManager
+from app.database.time_utils import utc_epoch_seconds
 from app.database.models import (
     Leaves,
     Projects,
@@ -267,9 +268,20 @@ class ShiftReportsManager(ShiftManager):
                         message="Shift date intersects with existing leave",
                     )
 
+                signed_value = data.get("signed")
+                if signed_value is True:
+                    data["signed_at"] = utc_epoch_seconds()
+                    data["signed_by"] = data.get("updated_by")
+                elif signed_value is False:
+                    data["signed_at"] = None
+                    data["signed_by"] = None
+                data["updated_at"] = utc_epoch_seconds()
+
                 for field, value in data.items():
                     if value is not None:
                         setattr(record, field, value)
+                    elif field in {"signed_at", "signed_by"}:
+                        setattr(record, field, None)
                 session.commit()
                 return record.to_dict()
         except ShiftReportConflictError:

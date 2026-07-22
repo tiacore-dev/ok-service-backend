@@ -91,6 +91,7 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             extreme_conditions=command.extreme_conditions,
             deleted=command.deleted,
             comment=command.comment,
+            updated_by=command.updated_by,
         )
         record = normalize_result(updated)
         if record is None:

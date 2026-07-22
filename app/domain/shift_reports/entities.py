@@ -29,6 +29,10 @@ class ShiftReport:
     extreme_conditions: bool
     number: int
     comment: str | None = None
+    signed_at: int | None = None
+    signed_by: dict[str, str] | None = None
+    updated_at: int | None = None
+    updated_by: dict[str, str] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "date", int(self.date))

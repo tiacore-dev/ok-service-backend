@@ -139,6 +139,25 @@ def test_soft_delete_shift_report_marks_deleted():
     assert updated.deleted is True
 
 
+def test_update_shift_report_sets_audit_user_from_actor():
+    report = _report()
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+    captured = {}
+
+    def update(command):
+        captured["updated_by"] = command.updated_by
+        return report
+
+    repository.update_shift_report = update
+    use_case.execute(
+        UpdateShiftReportCommand(shift_report_id=report.shift_report_id), actor
+    )
+
+    assert captured["updated_by"] == actor.user_id
+
+
 def test_create_shift_report_detail_calls_repository():
     report = _report()
     repository = _FakeRepository(current=report, detail_result=_detail(report))
