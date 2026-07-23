@@ -99,3 +99,5 @@
 - В документации уточнено, что расчёт `shift_report_details` основан на `GET /projects/{project_id}/get-stat`.
 - Исправлена генерация Swagger-схемы: вложенные модели пользователей `ShiftReportUser` и `ShiftReportUpdater` теперь зарегистрированы в namespace `shift_reports`.
 - В `GET /project_works/{project_work_id}/view` добавлены `project_work_quantity` и `shift_report_details_quantity` по правилам `get_project_stats`.
+- Для `shift_reports` добавлены `PATCH /{id}/start` и `PATCH /{id}/finish`; время и координаты теперь фиксируются отдельными операциями, а поля старта/завершения убраны из основного PATCH.
+- Обновлён устаревший тест редактирования `shift_report`: координаты больше не изменяются через основной PATCH и проверяются как неизменённые.

@@ -7,6 +7,7 @@ from .dto import (
     CreateShiftReportDetailCommand,
     CreateShiftReportDetailPayload,
     ShiftReportActor,
+    ShiftReportTimeCommand,
     ShiftReportListQuery,
     UpdateShiftReportCommand,
     UpdateShiftReportDetailCommand,
@@ -18,6 +19,7 @@ from .list_shift_reports import ListShiftReportsUseCase
 from .ports import ShiftReportRepository
 from .update_shift_report import UpdateShiftReportUseCase
 from .update_shift_report_detail import UpdateShiftReportDetailUseCase
+from .update_shift_report_time import UpdateShiftReportTimeUseCase
 
 __all__ = [
     "CreateShiftReportCommand",
@@ -32,6 +34,7 @@ __all__ = [
     "ListShiftReportDetailsUseCase",
     "ListShiftReportsUseCase",
     "ShiftReportActor",
+    "ShiftReportTimeCommand",
     "ShiftReportListQuery",
     "ShiftReportRepository",
     "SoftDeleteShiftReportUseCase",
@@ -39,4 +42,5 @@ __all__ = [
     "UpdateShiftReportDetailCommand",
     "UpdateShiftReportDetailUseCase",
     "UpdateShiftReportUseCase",
+    "UpdateShiftReportTimeUseCase",
 ]

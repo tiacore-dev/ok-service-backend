@@ -180,10 +180,6 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
     data = {
         "date": 20240103,
         "signed": True,
-        "lng_start": 40.0,
-        "ltd_start": 50.0,
-        "lng_end": 41.0,
-        "ltd_end": 51.0,
         "distance_start": 22.0,
         "distance_end": 24.0,
         "comment": "Updated comment",
@@ -215,10 +211,10 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
             assert report.date_start == seed_shift_report["date_start"]
             assert report.date_end == seed_shift_report["date_end"]
             assert report.signed is True
-            assert report.lng_start == 40.0
-            assert report.ltd_start == 50.0
-            assert report.lng_end == 41.0
-            assert report.ltd_end == 51.0
+            assert report.lng_start == seed_shift_report["lng_start"]
+            assert report.ltd_start == seed_shift_report["ltd_start"]
+            assert report.lng_end == seed_shift_report["lng_end"]
+            assert report.ltd_end == seed_shift_report["ltd_end"]
             assert report.distance_start == 22.0
             assert report.distance_end == 24.0
             assert report.comment == "Updated comment"

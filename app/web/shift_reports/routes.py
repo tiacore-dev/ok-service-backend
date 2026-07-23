@@ -7,7 +7,7 @@ from uuid import UUID
 
 from flask import g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
@@ -72,12 +72,14 @@ from app.use_cases.shift_reports import (
     ListShiftReportDetailsUseCase,
     ListShiftReportsUseCase,
     ShiftReportActor,
+    ShiftReportTimeCommand,
     ShiftReportListQuery,
     SoftDeleteShiftReportUseCase,
     UpdateShiftReportCommand,
     UpdateShiftReportDetailCommand,
     UpdateShiftReportDetailUseCase,
     UpdateShiftReportUseCase,
+    UpdateShiftReportTimeUseCase,
 )
 from app.web._typing import (
     get_optional_bool,
@@ -158,13 +160,7 @@ class ShiftReportCreatePayload(TypedDict):
 class ShiftReportEditPayload(TypedDict, total=False):
     user: str
     date: int
-    date_start: int | None
-    date_end: int | None
     project: str
-    lng_start: float | None
-    ltd_start: float | None
-    lng_end: float | None
-    ltd_end: float | None
     distance_start: float | None
     distance_end: float | None
     signed: bool
@@ -412,6 +408,49 @@ class ShiftReportHardDelete(Resource):
             return _map_error(error)
 
 
+def _update_shift_report_time(report_id: str, current_user: dict[str, Any], *, finish: bool):
+    raw_payload = to_plain_dict(request.get_json(silent=True), "Request body is required")
+    if not isinstance(raw_payload.get("lng"), (int, float)) or isinstance(raw_payload.get("lng"), bool):
+        raise ValueError("Field 'lng' must be a number")
+    if not isinstance(raw_payload.get("ltd"), (int, float)) or isinstance(raw_payload.get("ltd"), bool):
+        raise ValueError("Field 'ltd' must be a number")
+    command = ShiftReportTimeCommand(
+        shift_report_id=_parse_uuid(report_id),
+        actor_id=UUID(str(current_user["user_id"])),
+        lng=float(raw_payload["lng"]),
+        ltd=float(raw_payload["ltd"]),
+    )
+    use_case = UpdateShiftReportTimeUseCase(repository=_repository())
+    updated = use_case.finish(command, _actor(current_user)) if finish else use_case.start(command, _actor(current_user))
+    return {"msg": "Shift report updated successfully", "shift_report_id": str(updated.shift_report_id)}, 200
+
+
+@shift_report_ns.route("/<string:report_id>/start")
+class ShiftReportStart(Resource):
+    @api_key_or_jwt_required
+    @shift_report_ns.expect({"lng": fields.Float(required=True), "ltd": fields.Float(required=True)}, validate=False)
+    @shift_report_ns.marshal_with(shift_report_msg_model)
+    def patch(self, report_id):
+        current_user = _get_current_user()
+        try:
+            return _update_shift_report_time(report_id, current_user, finish=False)
+        except Exception as error:
+            return _map_error(error)
+
+
+@shift_report_ns.route("/<string:report_id>/finish")
+class ShiftReportFinish(Resource):
+    @api_key_or_jwt_required
+    @shift_report_ns.expect({"lng": fields.Float(required=True), "ltd": fields.Float(required=True)}, validate=False)
+    @shift_report_ns.marshal_with(shift_report_msg_model)
+    def patch(self, report_id):
+        current_user = _get_current_user()
+        try:
+            return _update_shift_report_time(report_id, current_user, finish=True)
+        except Exception as error:
+            return _map_error(error)
+
+
 @shift_report_ns.route("/<string:report_id>/edit")
 class ShiftReportEdit(Resource):
     @api_key_or_jwt_required
@@ -433,13 +472,7 @@ class ShiftReportEdit(Resource):
                     shift_report_id=_parse_uuid(report_id),
                     user=get_optional_uuid(data, "user"),
                     date=get_optional_int(data, "date"),
-                    date_start=get_optional_int(data, "date_start"),
-                    date_end=get_optional_int(data, "date_end"),
                     project=get_optional_uuid(data, "project"),
-                    lng_start=get_optional_float(data, "lng_start"),
-                    ltd_start=get_optional_float(data, "ltd_start"),
-                    lng_end=get_optional_float(data, "lng_end"),
-                    ltd_end=get_optional_float(data, "ltd_end"),
                     distance_start=get_optional_float(data, "distance_start"),
                     distance_end=get_optional_float(data, "distance_end"),
                     signed=get_optional_bool(data, "signed"),

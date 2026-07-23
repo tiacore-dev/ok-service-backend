@@ -53,8 +53,6 @@ class ShiftReportCreateSchema(Schema):
     date = fields.Int(
         required=True, error_messages={"required": "Field 'date' is required."}
     )
-    date_start = fields.Int(required=False, allow_none=True)
-    date_end = fields.Int(required=False, allow_none=True)
 
     project = fields.String(
         required=True,
@@ -62,10 +60,13 @@ class ShiftReportCreateSchema(Schema):
         validate=[validate_project_exists],
     )
 
+    date_start = fields.Int(required=False, allow_none=True)
+    date_end = fields.Int(required=False, allow_none=True)
     lng_start = fields.Float(required=False, allow_none=True)
     ltd_start = fields.Float(required=False, allow_none=True)
     lng_end = fields.Float(required=False, allow_none=True)
     ltd_end = fields.Float(required=False, allow_none=True)
+
     distance_start = fields.Float(required=False, allow_none=True)
     distance_end = fields.Float(required=False, allow_none=True)
 
@@ -116,15 +117,9 @@ class ShiftReportEditSchema(Schema):
         required=False, allow_none=True, validate=[validate_user_exists]
     )
     date = fields.Int(required=False, allow_none=True)
-    date_start = fields.Int(required=False, allow_none=True)
-    date_end = fields.Int(required=False, allow_none=True)
     project = fields.String(
         required=False, allow_none=True, validate=[validate_project_exists]
     )
-    lng_start = fields.Float(required=False, allow_none=True)
-    ltd_start = fields.Float(required=False, allow_none=True)
-    lng_end = fields.Float(required=False, allow_none=True)
-    ltd_end = fields.Float(required=False, allow_none=True)
     distance_start = fields.Float(required=False, allow_none=True)
     distance_end = fields.Float(required=False, allow_none=True)
     signed = fields.Boolean(required=False, allow_none=True)

@@ -88,6 +88,14 @@ class UpdateShiftReportCommand:
 
 
 @dataclass(frozen=True, slots=True)
+class ShiftReportTimeCommand:
+    shift_report_id: UUID
+    actor_id: UUID
+    lng: float
+    ltd: float
+
+
+@dataclass(frozen=True, slots=True)
 class CreateShiftReportDetailPayload:
     shift_report: UUID
     project_work: UUID | None

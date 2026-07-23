@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from uuid import UUID
+
+from app.database.time_utils import utc_epoch_seconds
+from app.domain.shift_reports import ShiftReport, ShiftReportConflictError, ShiftReportForbiddenError, ShiftReportNotFoundError
+
+from .dto import ShiftReportActor, ShiftReportTimeCommand, UpdateShiftReportCommand
+from .ports import ShiftReportRepository
+
+
+@dataclass(slots=True)
+class UpdateShiftReportTimeUseCase:
+    repository: ShiftReportRepository
+
+    def start(self, command: ShiftReportTimeCommand, actor: ShiftReportActor) -> ShiftReport:
+        current = self._get_allowed(command.shift_report_id, actor)
+        if current.date_start is not None:
+            raise ShiftReportConflictError("Shift report has already been started")
+        return self._update(command, date_start=utc_epoch_seconds(), lng_start=command.lng, ltd_start=command.ltd)
+
+    def finish(self, command: ShiftReportTimeCommand, actor: ShiftReportActor) -> ShiftReport:
+        current = self._get_allowed(command.shift_report_id, actor)
+        if current.date_start is None:
+            raise ShiftReportConflictError("Shift report has not been started")
+        if current.date_end is not None:
+            raise ShiftReportConflictError("Shift report has already been finished")
+        return self._update(command, date_end=utc_epoch_seconds(), lng_end=command.lng, ltd_end=command.ltd)
+
+    def _get_allowed(self, report_id: UUID, actor: ShiftReportActor) -> ShiftReport:
+        current = self.repository.get_shift_report(report_id)
+        if current is None:
+            raise ShiftReportNotFoundError("Shift report not found")
+        if current.deleted:
+            raise ShiftReportConflictError("Deleted shift report cannot be changed")
+        if actor.role == "user" and current.user != actor.user_id:
+            raise ShiftReportForbiddenError("User cannot edit not his shift report")
+        if actor.role == "user" and current.signed:
+            raise ShiftReportForbiddenError("User cannot edit signed shift report")
+        return current
+
+    def _update(self, command: ShiftReportTimeCommand, **changes) -> ShiftReport:
+        updated = self.repository.update_shift_report(
+            UpdateShiftReportCommand(
+                shift_report_id=command.shift_report_id,
+                updated_by=command.actor_id,
+                **changes,
+            )
+        )
+        if updated is None:
+            raise ShiftReportNotFoundError("Shift report not found")
+        return updated

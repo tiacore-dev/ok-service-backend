@@ -19,6 +19,8 @@ from app.use_cases.shift_reports import (
     ShiftReportListQuery,
     UpdateShiftReportCommand,
     UpdateShiftReportUseCase,
+    UpdateShiftReportTimeUseCase,
+    ShiftReportTimeCommand,
 )
 
 
@@ -34,7 +36,12 @@ class _FakeRepository:
         return self.current if shift_report_id == self.current.shift_report_id else None
 
     def update_shift_report(self, command):
-        return self.current.with_updates(deleted=bool(command.deleted))
+        changes = {}
+        for field in ("deleted", "date_start", "date_end", "lng_start", "ltd_start", "lng_end", "ltd_end"):
+            value = getattr(command, field, None)
+            if value is not None:
+                changes[field] = value
+        return self.current.with_updates(**changes)
 
     def delete_shift_report(self, shift_report_id):
         return shift_report_id == self.current.shift_report_id
@@ -159,6 +166,32 @@ def test_update_shift_report_sets_audit_user_from_actor():
     )
 
     assert captured["updated_by"] == actor.user_id
+
+
+def test_shift_report_time_use_case_rejects_finish_before_start():
+    report = _report()
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportTimeUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+
+    with pytest.raises(Exception, match="has not been started"):
+        use_case.finish(
+            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            actor,
+        )
+
+
+def test_shift_report_time_use_case_rejects_second_start():
+    report = _report().with_updates(date_start=1)
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportTimeUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+
+    with pytest.raises(Exception, match="already been started"):
+        use_case.start(
+            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            actor,
+        )
 
 
 def test_create_shift_report_detail_calls_repository():
