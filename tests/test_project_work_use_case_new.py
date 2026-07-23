@@ -59,6 +59,9 @@ class FakeProjectWorkRepository:
     def get_project_ids_by_leader(self, user_id):
         return self.owned_projects
 
+    def get_project_stats(self, project_id):
+        return {}
+
 
 def _actor(role="admin"):
     return ProjectWorkActor(role=role, user_id=uuid4())

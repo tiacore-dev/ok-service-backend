@@ -78,3 +78,6 @@ class SQLAlchemyProjectWorkRepository(ProjectWorkRepository):
     def get_project_ids_by_leader(self, user_id: UUID) -> list[UUID]:
         projects = self.projects_manager.get_projects_by_leader(user_id)
         return [UUID(project["project_id"]) for project in projects]
+
+    def get_project_stats(self, project_id: UUID) -> dict:
+        return self.projects_manager.get_project_stats(project_id)

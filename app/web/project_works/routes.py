@@ -258,12 +258,18 @@ class ProjectWorkView(Resource):
             extra={"login": current_user},
         )
         try:
-            project_work = GetProjectWorkUseCase(repository=_repository()).execute(
+            repository = _repository()
+            project_work = GetProjectWorkUseCase(repository=repository).execute(
                 _parse_project_work_id(project_work_id)
             )
+            response = project_work_entity_to_response(project_work)
+            stats = repository.get_project_stats(project_work.project)
+            work_stats = stats.get(str(project_work.work), {})
+            response["project_work_quantity"] = float(work_stats.get("project_work_quantity", 0) or 0)
+            response["shift_report_details_quantity"] = float(work_stats.get("shift_report_details_quantity", 0) or 0)
             return {
                 "msg": "Project work found successfully",
-                "project_work": project_work_entity_to_response(project_work),
+                "project_work": response,
             }, 200
         except Exception as error:
             logger.error(

@@ -69,6 +69,8 @@ def test_view_project_work(client, jwt_token_leader, seed_project_work_own, seed
     assert project_work_data["summ"] == seed_project_work_own["summ"]
     assert project_work_data["signed"] == seed_project_work_own["signed"]
     assert project_work_data["project_work_name"] == seed_project_work_own["project_work_name"]
+    assert "project_work_quantity" in project_work_data
+    assert "shift_report_details_quantity" in project_work_data
 
     assert project_work_data["work"] == seed_work["work_id"]
 

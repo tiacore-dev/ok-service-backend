@@ -4,6 +4,7 @@
 
 - `GET /shift_report_details/all`;
 - `POST /shift_report_details/all-by-reports`.
+- `GET /project_works/{project_work_id}/view` возвращает те же два значения статистики.
 
 ## Исходный метод статистики
 
