@@ -23,6 +23,24 @@ shift_report_edit_model = generate_swagger_model(
     ShiftReportEditSchema(), "ShiftReportEdit"
 )
 
+shift_report_user_model = Model(
+    "ShiftReportUser",
+    {
+        "id": fields.String(required=True),
+        "login": fields.String(required=False),
+        "name": fields.String(required=False),
+    },
+)
+
+shift_report_updater_model = Model(
+    "ShiftReportUpdater",
+    {
+        "id": fields.String(required=True),
+        "login": fields.String(required=False),
+        "name": fields.String(required=False),
+    },
+)
+
 
 shift_report_model = Model(
     "ShiftReport",
@@ -70,17 +88,13 @@ shift_report_model = Model(
         "created_by": fields.String(
             required=True, description="Creator of shift report"
         ),
-        "signed_by": fields.Nested(Model("ShiftReportUser", {
-            "id": fields.String,
-            "login": fields.String,
-            "name": fields.String,
-        }), required=False, allow_null=True),
+        "signed_by": fields.Nested(
+            shift_report_user_model, required=False, allow_null=True
+        ),
         "signed_at": fields.Integer(required=False, allow_null=True),
-        "updated_by": fields.Nested(Model("ShiftReportUpdater", {
-            "id": fields.String,
-            "login": fields.String,
-            "name": fields.String,
-        }), required=False, allow_null=True),
+        "updated_by": fields.Nested(
+            shift_report_updater_model, required=False, allow_null=True
+        ),
         "updated_at": fields.Integer(required=False, allow_null=True),
         "night_shift": fields.Boolean(required=True, description="Night shift"),
         "extreme_conditions": fields.Boolean(

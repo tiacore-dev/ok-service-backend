@@ -45,6 +45,8 @@ from app.routes.models.shift_report_models import (
     shift_report_model,
     shift_report_msg_model,
     shift_report_response,
+    shift_report_updater_model,
+    shift_report_user_model,
 )
 from app.schemas.shift_report_detail_schemas import (
     ShiftReportDetailsByReportsSchema,
@@ -98,6 +100,8 @@ shift_report_details_ns = Namespace(
 )
 
 shift_report_ns.models[shift_report_model.name] = shift_report_model
+shift_report_ns.models[shift_report_user_model.name] = shift_report_user_model
+shift_report_ns.models[shift_report_updater_model.name] = shift_report_updater_model
 shift_report_ns.models[shift_report_detail_model.name] = shift_report_detail_model
 shift_report_ns.models[shift_report_create_model.name] = shift_report_create_model
 shift_report_ns.models[shift_report_edit_model.name] = shift_report_edit_model

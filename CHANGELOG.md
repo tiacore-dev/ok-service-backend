@@ -97,3 +97,4 @@
 - В ответы `shift_report_details/all` и `all-by-reports` добавлена статистика `project_work` по существующему механизму `get_project_stats`: план, факт и статус `not_checked`/`partial`/`accepted`.
 - Добавлена документация правил расчёта статистики и `acceptance_status` для `shift_report_details`.
 - В документации уточнено, что расчёт `shift_report_details` основан на `GET /projects/{project_id}/get-stat`.
+- Исправлена генерация Swagger-схемы: вложенные модели пользователей `ShiftReportUser` и `ShiftReportUpdater` теперь зарегистрированы в namespace `shift_reports`.
