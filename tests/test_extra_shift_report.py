@@ -5,9 +5,9 @@ from app.database.models import ShiftReports
 
 # ✅ Тест создания Shift Report
 def test_create_shift_report(
-    client, jwt_token_user, db_session, seed_user, seed_project, seed_admin
+    client, jwt_token_admin, db_session, seed_project, seed_admin
 ):
-    headers = {"Authorization": f"Bearer {jwt_token_user}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin}"}
     data = {
         "user": seed_admin["user_id"],
         "date": 20240102,
@@ -25,7 +25,8 @@ def test_create_shift_report(
     report = db_session.query(ShiftReports).filter_by(shift_report_id=report_id).first()
 
     assert report is not None
-    assert str(report.user) == seed_user["user_id"]  # Должен быть его user_id
+    assert str(report.user) == seed_admin["user_id"]
+    assert str(report.created_by) == seed_admin["user_id"]
     assert report.date_start == 20240102
     assert report.date_end == 20240102
 
