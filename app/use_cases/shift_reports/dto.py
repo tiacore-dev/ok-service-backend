@@ -36,6 +36,7 @@ class CreateShiftReportCommand:
     extreme_conditions: bool = False
     comment: str | None = None
     details: list[CreateShiftReportDetailCommand] | None = None
+    created_by: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)

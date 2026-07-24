@@ -59,7 +59,7 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             ],
         }
         created = self.reports_manager.add_shift_report_with_details(
-            payload, created_by=command.user
+            payload, created_by=command.created_by or command.user
         )
         record = normalize_result(created)
         if record is None:

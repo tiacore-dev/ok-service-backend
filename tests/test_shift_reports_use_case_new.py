@@ -209,7 +209,7 @@ def test_create_shift_report_detail_calls_repository():
     assert use_case.execute(payload) is repository.detail_result
 
 
-def test_create_shift_report_for_user_forces_actor_identity():
+def test_create_shift_report_for_user_is_forbidden():
     report = _report()
     repository = _FakeRepository(current=report)
     use_case = CreateShiftReportUseCase(repository=repository)
@@ -221,11 +221,9 @@ def test_create_shift_report_for_user_forces_actor_identity():
         signed=True,
     )
 
-    use_case.execute(command, actor)
-
-    assert repository.created_command is not None
-    assert repository.created_command.user == actor.user_id
-    assert repository.created_command.signed is False
+    with pytest.raises(ShiftReportForbiddenError, match="cannot create"):
+        use_case.execute(command, actor)
+    assert repository.created_command is None
 
 
 def test_create_shift_report_for_admin_keeps_payload_user():
@@ -245,6 +243,7 @@ def test_create_shift_report_for_admin_keeps_payload_user():
     assert repository.created_command is not None
     assert repository.created_command.user == command.user
     assert repository.created_command.signed is True
+    assert repository.created_command.created_by == actor.user_id
 
 
 def test_list_shift_reports_for_user_forces_own_filter():

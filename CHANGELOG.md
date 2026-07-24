@@ -101,3 +101,5 @@
 - В `GET /project_works/{project_work_id}/view` добавлены `project_work_quantity` и `shift_report_details_quantity` по правилам `get_project_stats`.
 - Для `shift_reports` добавлены `PATCH /{id}/start` и `PATCH /{id}/finish`; время и координаты теперь фиксируются отдельными операциями, а поля старта/завершения убраны из основного PATCH.
 - Обновлён устаревший тест редактирования `shift_report`: координаты больше не изменяются через основной PATCH и проверяются как неизменённые.
+- Восстановлено старое поведение создания `shift_reports`: `created_by` всегда заполняется из JWT/API key, а роль `user` по-прежнему не может подменить поле `user`.
+- Для `shift_reports` добавлено правило доступа: роль `user` не может создавать сменные отчёты; `created_by` при создании остаётся пользователем из JWT/API key.
