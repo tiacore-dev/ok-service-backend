@@ -3,11 +3,13 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
+import app.use_cases.shift_reports.update_shift_report_time as shift_report_time_module
 
 from app.domain.shift_reports import (
     ShiftReport,
     ShiftReportDetail,
     ShiftReportForbiddenError,
+    ShiftReportValidationError,
 )
 from app.use_cases.shift_reports import (
     CreateShiftReportCommand,
@@ -188,6 +190,38 @@ def test_shift_report_time_use_case_rejects_second_start():
     actor = ShiftReportActor(role="admin", user_id=uuid4())
 
     with pytest.raises(Exception, match="already been started"):
+        use_case.start(
+            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            actor,
+        )
+
+
+def test_shift_report_time_use_case_uses_current_epoch_for_start(monkeypatch):
+    report = _report()
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportTimeUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+    expected_timestamp = 1_800_000_000
+
+    monkeypatch.setattr(
+        shift_report_time_module, "utc_epoch_seconds", lambda: expected_timestamp
+    )
+
+    updated = use_case.start(
+        ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+        actor,
+    )
+
+    assert updated.date_start == expected_timestamp
+
+
+def test_shift_report_time_use_case_rejects_start_when_end_already_exists():
+    report = _report().with_updates(date_end=1)
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportTimeUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+
+    with pytest.raises(Exception, match="end time"):
         use_case.start(
             ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
             actor,

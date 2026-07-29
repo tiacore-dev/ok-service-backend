@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.adapters.shift_reports.mappers import shift_report_dict_to_entity
 from app.domain.shift_reports import (
     ShiftReport,
     ShiftReportDetail,
@@ -48,3 +49,21 @@ def test_shift_report_detail_rejects_negative_quantity():
             created_at=1,
         )
 
+
+def test_shift_report_mapper_reads_legacy_inconsistent_time_range():
+    payload = {
+        "shift_report_id": uuid4(),
+        "user": uuid4(),
+        "date": 1,
+        "date_start": 1_800_000_000,
+        "date_end": 1_700_000_000,
+        "project": uuid4(),
+        "created_by": uuid4(),
+        "created_at": 1,
+        "number": 1,
+    }
+
+    report = shift_report_dict_to_entity(payload)
+
+    assert report.date_start == 1_800_000_000
+    assert report.date_end == 1_700_000_000

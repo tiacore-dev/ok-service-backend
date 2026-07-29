@@ -18,7 +18,16 @@ class UpdateShiftReportTimeUseCase:
         current = self._get_allowed(command.shift_report_id, actor)
         if current.date_start is not None:
             raise ShiftReportConflictError("Shift report has already been started")
-        return self._update(command, date_start=utc_epoch_seconds(), lng_start=command.lng, ltd_start=command.ltd)
+        if current.date_end is not None:
+            raise ShiftReportConflictError(
+                "Shift report has an end time but has not been started"
+            )
+        return self._update(
+            command,
+            date_start=utc_epoch_seconds(),
+            lng_start=command.lng,
+            ltd_start=command.ltd,
+        )
 
     def finish(self, command: ShiftReportTimeCommand, actor: ShiftReportActor) -> ShiftReport:
         current = self._get_allowed(command.shift_report_id, actor)
@@ -26,7 +35,17 @@ class UpdateShiftReportTimeUseCase:
             raise ShiftReportConflictError("Shift report has not been started")
         if current.date_end is not None:
             raise ShiftReportConflictError("Shift report has already been finished")
-        return self._update(command, date_end=utc_epoch_seconds(), lng_end=command.lng, ltd_end=command.ltd)
+        timestamp = utc_epoch_seconds()
+        if timestamp < current.date_start:
+            raise ShiftReportConflictError(
+                "Shift report start time is in the future"
+            )
+        return self._update(
+            command,
+            date_end=timestamp,
+            lng_end=command.lng,
+            ltd_end=command.ltd,
+        )
 
     def _get_allowed(self, report_id: UUID, actor: ShiftReportActor) -> ShiftReport:
         current = self.repository.get_shift_report(report_id)

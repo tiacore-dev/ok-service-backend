@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from app.domain.shift_reports import ShiftReport, ShiftReportForbiddenError
+from app.domain.shift_reports import (
+    ShiftReport,
+    ShiftReportForbiddenError,
+    ShiftReportValidationError,
+)
 
 from .dto import CreateShiftReportCommand, ShiftReportActor
 from .ports import ShiftReportRepository
@@ -17,5 +21,13 @@ class CreateShiftReportUseCase:
     ) -> ShiftReport:
         if actor.role == "user":
             raise ShiftReportForbiddenError("User cannot create shift report")
+        if (
+            command.date_start is not None
+            and command.date_end is not None
+            and command.date_end < command.date_start
+        ):
+            raise ShiftReportValidationError(
+                "Shift report date_end must be greater than or equal to date_start."
+            )
         command = replace(command, created_by=actor.user_id)
         return self.repository.create_shift_report(command)

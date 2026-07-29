@@ -54,15 +54,6 @@ class ShiftReport:
             raise ShiftReportValidationError(
                 "Shift report date_end must be a positive Unix timestamp."
             )
-        if (
-            self.date_start is not None
-            and self.date_end is not None
-            and int(self.date_end) < int(self.date_start)
-        ):
-            raise ShiftReportValidationError(
-                "Shift report date_end must be greater than or equal to date_start."
-            )
-
     def with_updates(self, **changes) -> "ShiftReport":
         return replace(self, **changes)
 
