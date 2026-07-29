@@ -120,6 +120,12 @@ class ShiftReportEditSchema(Schema):
     project = fields.String(
         required=False, allow_none=True, validate=[validate_project_exists]
     )
+    date_start = fields.Int(required=False, allow_none=True)
+    date_end = fields.Int(required=False, allow_none=True)
+    lng_start = fields.Float(required=False, allow_none=True)
+    ltd_start = fields.Float(required=False, allow_none=True)
+    lng_end = fields.Float(required=False, allow_none=True)
+    ltd_end = fields.Float(required=False, allow_none=True)
     distance_start = fields.Float(required=False, allow_none=True)
     distance_end = fields.Float(required=False, allow_none=True)
     signed = fields.Boolean(required=False, allow_none=True)

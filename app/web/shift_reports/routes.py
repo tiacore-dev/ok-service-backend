@@ -160,7 +160,13 @@ class ShiftReportCreatePayload(TypedDict):
 class ShiftReportEditPayload(TypedDict, total=False):
     user: str
     date: int
+    date_start: int | None
+    date_end: int | None
     project: str
+    lng_start: float | None
+    ltd_start: float | None
+    lng_end: float | None
+    ltd_end: float | None
     distance_start: float | None
     distance_end: float | None
     signed: bool
@@ -472,7 +478,13 @@ class ShiftReportEdit(Resource):
                     shift_report_id=_parse_uuid(report_id),
                     user=get_optional_uuid(data, "user"),
                     date=get_optional_int(data, "date"),
+                    date_start=get_optional_int(data, "date_start"),
+                    date_end=get_optional_int(data, "date_end"),
                     project=get_optional_uuid(data, "project"),
+                    lng_start=get_optional_float(data, "lng_start"),
+                    ltd_start=get_optional_float(data, "ltd_start"),
+                    lng_end=get_optional_float(data, "lng_end"),
+                    ltd_end=get_optional_float(data, "ltd_end"),
                     distance_start=get_optional_float(data, "distance_start"),
                     distance_end=get_optional_float(data, "distance_end"),
                     signed=get_optional_bool(data, "signed"),

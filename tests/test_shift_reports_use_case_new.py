@@ -170,6 +170,33 @@ def test_update_shift_report_sets_audit_user_from_actor():
     assert captured["updated_by"] == actor.user_id
 
 
+def test_update_shift_report_allows_manual_lifecycle_correction():
+    report = _report()
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+
+    updated = use_case.execute(
+        UpdateShiftReportCommand(
+            shift_report_id=report.shift_report_id,
+            date_start=1_800_000_000_000,
+            date_end=1_800_000_003_000,
+            lng_start=82.9,
+            ltd_start=55.0,
+            lng_end=82.91,
+            ltd_end=55.01,
+        ),
+        actor,
+    )
+
+    assert updated.date_start == 1_800_000_000_000
+    assert updated.date_end == 1_800_000_003_000
+    assert updated.lng_start == 82.9
+    assert updated.ltd_start == 55.0
+    assert updated.lng_end == 82.91
+    assert updated.ltd_end == 55.01
+
+
 def test_shift_report_time_use_case_rejects_finish_before_start():
     report = _report()
     repository = _FakeRepository(current=report)
@@ -204,7 +231,9 @@ def test_shift_report_time_use_case_uses_current_epoch_for_start(monkeypatch):
     expected_timestamp = 1_800_000_000
 
     monkeypatch.setattr(
-        shift_report_time_module, "utc_epoch_seconds", lambda: expected_timestamp
+        shift_report_time_module,
+        "utc_epoch_milliseconds",
+        lambda: expected_timestamp,
     )
 
     updated = use_case.start(

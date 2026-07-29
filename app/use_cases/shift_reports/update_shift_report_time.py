@@ -3,8 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.database.time_utils import utc_epoch_seconds
-from app.domain.shift_reports import ShiftReport, ShiftReportConflictError, ShiftReportForbiddenError, ShiftReportNotFoundError
+from app.database.time_utils import utc_epoch_milliseconds
+from app.domain.shift_reports import (
+    ShiftReport,
+    ShiftReportConflictError,
+    ShiftReportForbiddenError,
+    ShiftReportNotFoundError,
+)
 
 from .dto import ShiftReportActor, ShiftReportTimeCommand, UpdateShiftReportCommand
 from .ports import ShiftReportRepository
@@ -14,7 +19,9 @@ from .ports import ShiftReportRepository
 class UpdateShiftReportTimeUseCase:
     repository: ShiftReportRepository
 
-    def start(self, command: ShiftReportTimeCommand, actor: ShiftReportActor) -> ShiftReport:
+    def start(
+        self, command: ShiftReportTimeCommand, actor: ShiftReportActor
+    ) -> ShiftReport:
         current = self._get_allowed(command.shift_report_id, actor)
         if current.date_start is not None:
             raise ShiftReportConflictError("Shift report has already been started")
@@ -24,22 +31,22 @@ class UpdateShiftReportTimeUseCase:
             )
         return self._update(
             command,
-            date_start=utc_epoch_seconds(),
+            date_start=utc_epoch_milliseconds(),
             lng_start=command.lng,
             ltd_start=command.ltd,
         )
 
-    def finish(self, command: ShiftReportTimeCommand, actor: ShiftReportActor) -> ShiftReport:
+    def finish(
+        self, command: ShiftReportTimeCommand, actor: ShiftReportActor
+    ) -> ShiftReport:
         current = self._get_allowed(command.shift_report_id, actor)
         if current.date_start is None:
             raise ShiftReportConflictError("Shift report has not been started")
         if current.date_end is not None:
             raise ShiftReportConflictError("Shift report has already been finished")
-        timestamp = utc_epoch_seconds()
+        timestamp = utc_epoch_milliseconds()
         if timestamp < current.date_start:
-            raise ShiftReportConflictError(
-                "Shift report start time is in the future"
-            )
+            raise ShiftReportConflictError("Shift report start time is in the future")
         return self._update(
             command,
             date_end=timestamp,

@@ -68,9 +68,9 @@
 - `PATCH /shift_reports/{shift_report_id}/start` — принимает `lng` и `ltd`, записывает `date_start`, `lng_start`, `ltd_start`;
 - `PATCH /shift_reports/{shift_report_id}/finish` — принимает `lng` и `ltd`, записывает `date_end`, `lng_end`, `ltd_end`.
 
-Время записывается как Unix timestamp через общий `utc_epoch_seconds()`. Это абсолютный момент времени; при отображении его следует интерпретировать в часовом поясе `Asia/Novosibirsk`.
+Время записывается как Unix timestamp в миллисекундах через `utc_epoch_milliseconds()`. Это абсолютный момент времени; при отображении его следует интерпретировать в часовом поясе `Asia/Novosibirsk`.
 
-Повторный `start`, `finish` до `start` и повторный `finish` возвращают `409`. Координаты должны присутствовать и быть числами; ошибки входных данных возвращают `400`. Поля времени и координат больше не принимаются основным `PATCH /shift_reports/{shift_report_id}/edit`.
+Повторный `start`, `finish` до `start` и повторный `finish` возвращают `409`. Координаты должны присутствовать и быть числами; ошибки входных данных возвращают `400`. Основной `PATCH /shift_reports/{shift_report_id}/edit` также принимает `date_start`, `date_end`, `lng_start`, `ltd_start`, `lng_end` и `ltd_end` для ручного исправления.
 
 ## Создание сменного отчёта
 

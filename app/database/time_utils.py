@@ -9,3 +9,7 @@ def utc_now() -> datetime:
 
 def utc_epoch_seconds() -> int:
     return int(utc_now().timestamp())
+
+
+def utc_epoch_milliseconds() -> int:
+    return int(utc_now().timestamp() * 1000)
