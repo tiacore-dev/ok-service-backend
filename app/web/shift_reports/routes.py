@@ -778,7 +778,9 @@ class ShiftReportDetailsEdit(Resource):
 class ShiftReportDetailsAll(Resource):
     @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_filter_parser)
-    @shift_report_details_ns.marshal_with(shift_report_details_all_response)
+    @shift_report_details_ns.response(
+        200, "Shift report details found successfully", shift_report_details_all_response
+    )
     def get(self):
         current_user = _get_current_user()
         logger.info(
@@ -840,7 +842,9 @@ class ShiftReportDetailsByReports(Resource):
     @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_by_report_ids, validate=False)
     @shift_report_details_ns.doc(consumes=["application/json"])
-    @shift_report_details_ns.marshal_with(shift_report_details_all_response)
+    @shift_report_details_ns.response(
+        200, "Shift report details found successfully", shift_report_details_all_response
+    )
     def post(self):
         current_user = _get_current_user()
         logger.info(
