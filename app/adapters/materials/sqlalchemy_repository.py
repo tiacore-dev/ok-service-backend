@@ -33,7 +33,7 @@ class SQLAlchemyMaterialRepository(MaterialRepository):
         updated = self.manager.update(
             record_id=material.material_id,
             name=material.name,
-            measurement_unit=material.measurement_unit,
+            measurement_unit=material_entity_to_create_payload(material)["measurement_unit"],
             deleted=material.deleted,
         )
         record = normalize_result(updated)

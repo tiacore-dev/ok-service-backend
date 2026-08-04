@@ -30,11 +30,12 @@ class SQLAlchemyWorkRepository(WorkRepository):
         return work_dict_to_entity(record)
 
     def update_work(self, work: Work) -> Work | None:
+        payload = work_entity_to_create_payload(work)
         updated = self.manager.update(
             record_id=work.work_id,
             name=work.name,
-            category=work_entity_to_create_payload(work)["category"],
-            measurement_unit=work.measurement_unit,
+            category=payload["category"],
+            measurement_unit=payload["measurement_unit"],
             deleted=work.deleted,
         )
         record = normalize_result(updated)
@@ -53,6 +54,7 @@ class SQLAlchemyWorkRepository(WorkRepository):
             sort_by=query.sort_by,
             sort_order=query.sort_order,
             name=query.name,
+            measurement_unit=query.measurement_unit,
             deleted=query.deleted,
         )
         return [work_dict_to_entity(record) for record in records]

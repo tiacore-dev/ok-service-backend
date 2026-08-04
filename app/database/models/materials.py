@@ -15,7 +15,9 @@ class Materials(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False
     )
     name = Column(String, nullable=False)
-    measurement_unit = Column(String, nullable=True)
+    measurement_unit = Column(
+        UUID(as_uuid=True), ForeignKey("measurement_units.measurement_unit_id"), nullable=True
+    )
 
     created_at = Column(
         BigInteger,
@@ -26,6 +28,9 @@ class Materials(Base):
     deleted = Column(Boolean, nullable=False, default=False)
     material_creator = relationship(
         "Users", back_populates="created_materials", foreign_keys=[created_by]
+    )
+    measurement_unit_ref = relationship(
+        "MeasurementUnits", back_populates="materials", lazy="joined"
     )
     work_materials = relationship(
         "WorkMaterialRelations", back_populates="materials"
@@ -44,7 +49,9 @@ class Materials(Base):
         return {
             "material_id": str(self.material_id),
             "name": self.name,
-            "measurement_unit": self.measurement_unit,
+            "measurement_unit": self.measurement_unit_ref.to_dict()
+            if self.measurement_unit_ref
+            else None,
             "created_at": self.created_at,
             "created_by": str(self.created_by),
             "deleted": self.deleted,

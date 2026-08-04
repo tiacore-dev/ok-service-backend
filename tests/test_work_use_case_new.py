@@ -53,7 +53,7 @@ def _work() -> Work:
         work_id=uuid4(),
         name="Test Work",
         category=None,
-        measurement_unit="pcs",
+        measurement_unit=uuid4(),
         created_at=1,
         created_by=uuid4(),
         deleted=False,
@@ -65,7 +65,7 @@ def test_create_work_persists_new_entity():
     command = CreateWorkCommand(
         name="New Work",
         category=None,
-        measurement_unit="pcs",
+        measurement_unit=uuid4(),
         created_by=uuid4(),
     )
 

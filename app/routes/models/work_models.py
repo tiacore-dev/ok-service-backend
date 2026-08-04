@@ -3,6 +3,7 @@ from app.schemas.work_schemas import WorkCreateSchema, WorkEditSchema
 from app.utils.helpers import generate_swagger_model
 from app.routes.models.work_category_models import work_category_model
 from app.routes.models.work_price_models import work_price_model
+from app.routes.models.measurement_unit_models import measurement_unit_model
 
 # Модель для создания проекта
 work_create_model = generate_swagger_model(
@@ -15,7 +16,7 @@ work_model = Model('Work', {
     "work_id": fields.String(required=True, description="ID of the work"),
     "name": fields.String(required=True, description="Name of the work"),
     "category": fields.Nested(work_category_model, description="Work category data"),
-    "measurement_unit": fields.String(required=False, description="Measurement unit of the work"),
+    "measurement_unit": fields.Nested(measurement_unit_model, required=False, allow_none=True),
     "created_at": fields.Integer(required=True, description="Date work was created at"),
     "created_by": fields.String(required=True, description="Creator of work"),
     "deleted": fields.Boolean(required=True, description="Deletion status"),
@@ -49,6 +50,7 @@ work_filter_parser.add_argument(
     'limit', type=int, default=10, help="Limit for pagination"
 )
 work_filter_parser.add_argument('name', type=str, help="Filter by name")
+work_filter_parser.add_argument('measurement_unit', type=str, help="Filter by measurement unit ID")
 work_filter_parser.add_argument(
     'deleted', type=lambda x: x.lower() in ['true', '1'], help="Filter by deletion status")
 work_filter_parser.add_argument(

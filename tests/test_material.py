@@ -1,7 +1,8 @@
-def test_add_material(client, jwt_token, db_session):
+def test_add_material(client, jwt_token, db_session, seed_measurement_units):
     from app.database.models import Materials
 
-    data = {"name": "New Material", "measurement_unit": "pcs"}
+    unit_id = seed_measurement_units["м"]["measurement_unit_id"]
+    data = {"name": "New Material", "measurement_unit": unit_id}
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/materials/add", json=data, headers=headers)
 
@@ -12,7 +13,7 @@ def test_add_material(client, jwt_token, db_session):
     assert material is not None
     assert str(material.material_id) == response.json["material_id"]
     assert material.name == "New Material"
-    assert material.measurement_unit == "pcs"
+    assert str(material.measurement_unit) == unit_id
 
 
 def test_view_material(client, jwt_token, seed_material):
@@ -28,7 +29,7 @@ def test_view_material(client, jwt_token, seed_material):
     material_data = response.json["material"]
     assert material_data["material_id"] == seed_material["material_id"]
     assert material_data["name"] == seed_material["name"]
-    assert material_data["measurement_unit"] == seed_material["measurement_unit"]
+    assert material_data["measurement_unit"]["name"] == "м"
 
 
 def test_soft_delete_material(client, jwt_token, seed_material, db_session):
@@ -76,10 +77,10 @@ def test_hard_delete_material(client, jwt_token, seed_material, db_session):
     assert material is None
 
 
-def test_edit_material(client, jwt_token, seed_material, db_session):
+def test_edit_material(client, jwt_token, seed_material, db_session, seed_measurement_units):
     from app.database.models import Materials
 
-    data = {"name": "Updated Material", "measurement_unit": "liters"}
+    data = {"name": "Updated Material", "measurement_unit": seed_measurement_units["шт."]["measurement_unit_id"]}
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
         f"/materials/{str(seed_material['material_id'])}/edit",
@@ -97,7 +98,7 @@ def test_edit_material(client, jwt_token, seed_material, db_session):
     )
     assert material is not None
     assert material.name == "Updated Material"
-    assert material.measurement_unit == "liters"
+    assert str(material.measurement_unit) == seed_measurement_units["шт."]["measurement_unit_id"]
 
 
 def test_get_all_materials(client, jwt_token, seed_material):

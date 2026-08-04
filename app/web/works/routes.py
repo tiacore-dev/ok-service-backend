@@ -62,13 +62,13 @@ work_ns.models[work_model.name] = work_model
 class WorkCreatePayload(TypedDict):
     name: str
     category: str | None
-    measurement_unit: str | None
+    measurement_unit: UUID | None
 
 
 class WorkEditPayload(TypedDict, total=False):
     name: str
     category: str | None
-    measurement_unit: str | None
+    measurement_unit: UUID | None
     deleted: bool
 
 
@@ -78,6 +78,7 @@ class WorkFilterPayload(TypedDict, total=False):
     name: str
     deleted: bool
     sort_by: str
+    measurement_unit: UUID
     sort_order: str
 
 
@@ -144,7 +145,7 @@ class WorkAdd(Resource):
                 CreateWorkCommand(
                     name=data["name"],
                     category=get_optional_uuid(data, "category"),
-                    measurement_unit=get_optional_str(data, "measurement_unit"),
+                    measurement_unit=get_optional_uuid(data, "measurement_unit"),
                     created_by=get_required_uuid(
                         current_user, "user_id", "Current user id is required"
                     ),
@@ -255,7 +256,7 @@ class WorkEdit(Resource):
                     work_id=_parse_work_id(work_id),
                     name=get_optional_str(data, "name"),
                     category=get_optional_uuid(data, "category"),
-                    measurement_unit=get_optional_str(data, "measurement_unit"),
+                    measurement_unit=get_optional_uuid(data, "measurement_unit"),
                     deleted=get_optional_bool(data, "deleted"),
                 )
             )
@@ -286,6 +287,7 @@ class WorkAll(Resource):
                 sort_by=get_optional_str(args, "sort_by") or "created_at",
                 sort_order=get_optional_str(args, "sort_order") or "asc",
                 name=get_optional_str(args, "name"),
+                measurement_unit=get_optional_uuid(args, "measurement_unit"),
                 deleted=get_optional_bool(args, "deleted"),
             )
             works = ListWorksUseCase(repository=_repository()).execute(query)

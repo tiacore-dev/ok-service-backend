@@ -45,6 +45,7 @@ from app.web._typing import (
     get_optional_bool,
     get_optional_int,
     get_optional_str,
+    get_optional_uuid,
     get_required_uuid,
     to_plain_dict,
 )
@@ -63,12 +64,12 @@ material_ns.models[material_model.name] = material_model
 
 class MaterialCreatePayload(TypedDict):
     name: str
-    measurement_unit: NotRequired[str | None]
+    measurement_unit: NotRequired[UUID | None]
 
 
 class MaterialEditPayload(TypedDict, total=False):
     name: str
-    measurement_unit: NotRequired[str | None]
+    measurement_unit: NotRequired[UUID | None]
     deleted: bool
 
 
@@ -78,7 +79,7 @@ class MaterialFilterPayload(TypedDict, total=False):
     sort_by: str
     sort_order: str
     name: str
-    measurement_unit: str
+    measurement_unit: UUID
     deleted: bool
 
 
@@ -145,7 +146,7 @@ class MaterialAdd(Resource):
             material = CreateMaterialUseCase(repository=_repository()).execute(
                 CreateMaterialCommand(
                     name=data["name"],
-                    measurement_unit=get_optional_str(data, "measurement_unit"),
+                    measurement_unit=get_optional_uuid(data, "measurement_unit"),
                     created_by=get_required_uuid(
                         current_user, "user_id", "Current user id is required"
                     ),
@@ -255,7 +256,7 @@ class MaterialEdit(Resource):
                 UpdateMaterialCommand(
                     material_id=_parse_material_id(material_id),
                     name=get_optional_str(data, "name"),
-                    measurement_unit=get_optional_str(data, "measurement_unit"),
+                    measurement_unit=get_optional_uuid(data, "measurement_unit"),
                     deleted=get_optional_bool(data, "deleted"),
                 )
             )
@@ -287,7 +288,7 @@ class MaterialAll(Resource):
                 sort_by=get_optional_str(args, "sort_by") or "created_at",
                 sort_order=get_optional_str(args, "sort_order") or "desc",
                 name=get_optional_str(args, "name"),
-                measurement_unit=get_optional_str(args, "measurement_unit"),
+                measurement_unit=get_optional_uuid(args, "measurement_unit"),
                 deleted=get_optional_bool(args, "deleted"),
             )
             materials = ListMaterialsUseCase(repository=_repository()).execute(query)

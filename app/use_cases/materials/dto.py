@@ -8,14 +8,14 @@ from uuid import UUID
 class CreateMaterialCommand:
     name: str
     created_by: UUID
-    measurement_unit: str | None = None
+    measurement_unit: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class UpdateMaterialCommand:
     material_id: UUID
     name: str | None = None
-    measurement_unit: str | None = None
+    measurement_unit: UUID | None = None
     deleted: bool | None = None
 
 
@@ -26,5 +26,5 @@ class MaterialListQuery:
     sort_by: str = "created_at"
     sort_order: str = "desc"
     name: str | None = None
-    measurement_unit: str | None = None
+    measurement_unit: UUID | None = None
     deleted: bool | None = None

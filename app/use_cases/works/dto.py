@@ -8,7 +8,7 @@ from uuid import UUID
 class CreateWorkCommand:
     name: str
     category: UUID | None
-    measurement_unit: str | None
+    measurement_unit: UUID | None
     created_by: UUID
 
 
@@ -17,7 +17,7 @@ class UpdateWorkCommand:
     work_id: UUID
     name: str | None = None
     category: UUID | None = None
-    measurement_unit: str | None = None
+    measurement_unit: UUID | None = None
     deleted: bool | None = None
 
 
@@ -28,4 +28,5 @@ class WorkListQuery:
     sort_by: str = "created_at"
     sort_order: str = "asc"
     name: str | None = None
+    measurement_unit: UUID | None = None
     deleted: bool | None = None

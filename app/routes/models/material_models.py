@@ -2,6 +2,7 @@ from flask_restx import Model, fields, reqparse
 
 from app.schemas.material_schemas import MaterialCreateSchema, MaterialEditSchema
 from app.utils.helpers import generate_swagger_model
+from app.routes.models.measurement_unit_models import measurement_unit_model
 
 material_create_model = generate_swagger_model(
     MaterialCreateSchema(), "MaterialCreate"
@@ -13,9 +14,7 @@ material_model = Model(
     {
         "material_id": fields.String(required=True, description="ID of the material"),
         "name": fields.String(required=True, description="Name of the material"),
-        "measurement_unit": fields.String(
-            required=False, description="Measurement unit of the material"
-        ),
+        "measurement_unit": fields.Nested(measurement_unit_model, required=False, allow_none=True),
         "created_at": fields.Integer(required=True, description="Created at timestamp"),
         "created_by": fields.String(required=True, description="Creator of material"),
         "deleted": fields.Boolean(required=True, description="Deletion status"),

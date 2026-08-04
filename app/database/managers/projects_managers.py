@@ -447,7 +447,7 @@ class ProjectWorksManager(BaseDBManager):
             quantity = Decimal(project_work.quantity) * Decimal(relation.quantity)
             material = relation.materials
             if material and material.measurement_unit:
-                unit = str(material.measurement_unit).strip().lower()
+                unit = str(material.measurement_unit_ref.name).strip().lower()
                 if unit == "шт.":
                     quantity = Decimal(int(quantity))
 

@@ -11,7 +11,7 @@ def works_manager(db_session):
 
 
 @pytest.fixture
-def seed_work(db_session, seed_work_category, seed_user):
+def seed_work(db_session, seed_work_category, seed_user, seed_measurement_units):
     """
     Добавляет тестовую работу в базу перед тестом.
     """
@@ -21,7 +21,7 @@ def seed_work(db_session, seed_work_category, seed_user):
         work_id=uuid4(),
         name="Test Work",
         category=seed_work_category["work_category_id"],
-        measurement_unit="Unit",
+        measurement_unit=UUID(seed_measurement_units["м"]["measurement_unit_id"]),
         created_by=UUID(seed_user["user_id"]),
         deleted=False,
     )
@@ -30,7 +30,7 @@ def seed_work(db_session, seed_work_category, seed_user):
     return work.to_dict()
 
 
-def test_add_work(client, jwt_token, seed_work_category, db_session):
+def test_add_work(client, jwt_token, seed_work_category, db_session, seed_measurement_units):
     """
     Тест на добавление новой работы через API с проверкой базы данных.
     """
@@ -39,7 +39,7 @@ def test_add_work(client, jwt_token, seed_work_category, db_session):
     data = {
         "name": "New Work",
         "category": seed_work_category["work_category_id"],
-        "measurement_unit": "New Unit",
+        "measurement_unit": seed_measurement_units["м"]["measurement_unit_id"],
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/works/add", json=data, headers=headers)
@@ -53,7 +53,7 @@ def test_add_work(client, jwt_token, seed_work_category, db_session):
     assert str(work.work_id) == response.json["work_id"]
     assert work.name == "New Work"
     assert str(work.category) == seed_work_category["work_category_id"]
-    assert work.measurement_unit == "New Unit"
+    assert str(work.measurement_unit) == seed_measurement_units["м"]["measurement_unit_id"]
 
 
 def test_view_work(client, jwt_token, seed_work):
@@ -71,7 +71,7 @@ def test_view_work(client, jwt_token, seed_work):
     work_data = response.json["work"]
     assert work_data["work_id"] == seed_work["work_id"]
     assert work_data["name"] == seed_work["name"]
-    assert work_data["measurement_unit"] == seed_work["measurement_unit"]
+    assert work_data["measurement_unit"]["name"] == "м"
 
 
 def test_soft_delete_work(client, jwt_token, seed_work, db_session):
@@ -117,13 +117,13 @@ def test_hard_delete_work(client, jwt_token, seed_work, db_session):
     assert work is None
 
 
-def test_edit_work(client, jwt_token, seed_work, db_session):
+def test_edit_work(client, jwt_token, seed_work, db_session, seed_measurement_units):
     """
     Тест на редактирование данных работы через API с проверкой изменений в базе данных.
     """
     from app.database.models import Works
 
-    data = {"name": "Updated Work", "measurement_unit": "Updated Unit"}
+    data = {"name": "Updated Work", "measurement_unit": seed_measurement_units["шт."]["measurement_unit_id"]}
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
         f"/works/{str(seed_work['work_id'])}/edit", json=data, headers=headers
@@ -136,7 +136,7 @@ def test_edit_work(client, jwt_token, seed_work, db_session):
     work = db_session.query(Works).filter_by(work_id=seed_work["work_id"]).first()
     assert work is not None
     assert work.name == "Updated Work"
-    assert work.measurement_unit == "Updated Unit"
+    assert str(work.measurement_unit) == seed_measurement_units["шт."]["measurement_unit_id"]
 
 
 def test_get_all_works(client, jwt_token, seed_work):

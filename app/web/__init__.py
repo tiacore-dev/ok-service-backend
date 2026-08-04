@@ -5,6 +5,7 @@ from .auth.routes import login_ns
 from .cities.routes import city_ns
 from .leaves.routes import leave_ns
 from .materials.routes import material_ns
+from .measurement_units.routes import measurement_unit_ns
 from .object_statuses.routes import object_status_ns
 from .objects.routes import object_ns
 from .positions.routes import position_ns
@@ -41,6 +42,7 @@ def register_namespaces(api: Api):
     api.add_namespace(shift_report_details_ns)
     api.add_namespace(project_material_ns)
     api.add_namespace(material_ns)
+    api.add_namespace(measurement_unit_ns)
     api.add_namespace(project_work_ns)
     api.add_namespace(work_category_ns)
     api.add_namespace(work_material_relation_ns)

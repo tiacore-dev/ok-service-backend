@@ -7,6 +7,7 @@ from .leaves import AbsenceReason as AbsenceReason
 from .leaves import Leaves as Leaves
 from .logs import Logs as Logs
 from .materials import Materials as Materials
+from .measurement_units import MeasurementUnits as MeasurementUnits
 from .object_statuses import ObjectStatuses as ObjectStatuses
 from .objects import Objects as Objects
 from .permission_types import PermissionTypes as PermissionTypes

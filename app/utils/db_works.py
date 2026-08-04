@@ -3,6 +3,7 @@ import pandas as pd
 
 def put_to_db(data, admin_id):
     from app.database.managers.works_managers import (
+        MeasurementUnitsManager,
         WorkCategoriesManager,
         WorkPricesManager,
         WorksManager,
@@ -11,6 +12,10 @@ def put_to_db(data, admin_id):
     work_manager = WorksManager()
     category_manager = WorkCategoriesManager()
     price_manager = WorkPricesManager()
+    unit_manager = MeasurementUnitsManager()
+    piece_unit = unit_manager.filter_one_by_dict(name="шт.")
+    if piece_unit is None:
+        raise RuntimeError("Measurement unit 'шт.' is not configured")
     for work in data:
         if not category_manager.exists(name=work["work_category"]):
             category = category_manager.add(
@@ -22,7 +27,7 @@ def put_to_db(data, admin_id):
             name=work["work"],
             created_by=admin_id,
             category=category["work_category_id"],  # type: ignore
-            measurement_unit="шт.",
+            measurement_unit=piece_unit["measurement_unit_id"],
         )
         for i in range(1, 5):
             price = work.get(f"price_{i}")  # Берем цену

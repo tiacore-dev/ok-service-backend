@@ -12,7 +12,7 @@ class Work:
     work_id: UUID
     name: str
     category: dict[str, Any] | None
-    measurement_unit: str | None
+    measurement_unit: dict[str, Any] | UUID | None
     created_at: int
     created_by: UUID
     deleted: bool

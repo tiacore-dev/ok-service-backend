@@ -42,7 +42,7 @@ def test_create_material_use_case():
     repository = FakeRepository()
     command = CreateMaterialCommand(
         name="Sand",
-        measurement_unit="kg",
+        measurement_unit=uuid4(),
         created_by=uuid4(),
     )
 
@@ -56,7 +56,7 @@ def test_update_material_use_case():
     existing_material = Material(
         material_id=uuid4(),
         name="Sand",
-        measurement_unit="kg",
+        measurement_unit=uuid4(),
         created_by=uuid4(),
         created_at=1,
     )

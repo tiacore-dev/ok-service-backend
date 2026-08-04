@@ -18,7 +18,9 @@ class Works(Base):
     category = Column(
         UUID, ForeignKey("work_categories.work_category_id"), nullable=True
     )
-    measurement_unit = Column(String, nullable=True)
+    measurement_unit = Column(
+        UUID(as_uuid=True), ForeignKey("measurement_units.measurement_unit_id"), nullable=True
+    )
     created_at = Column(
         BigInteger,
         default=utc_epoch_seconds,
@@ -30,6 +32,9 @@ class Works(Base):
 
     work_category = relationship(
         "WorkCategories", back_populates="works", lazy="joined"
+    )
+    measurement_unit_ref = relationship(
+        "MeasurementUnits", back_populates="works", lazy="joined"
     )
     work_price = relationship("WorkPrices", back_populates="works")
     project_work = relationship("ProjectWorks", back_populates="works")
@@ -52,7 +57,9 @@ class Works(Base):
             "work_id": str(self.work_id),
             "name": self.name,
             "category": self.work_category.to_dict() if self.work_category else None,
-            "measurement_unit": self.measurement_unit,
+            "measurement_unit": self.measurement_unit_ref.to_dict()
+            if self.measurement_unit_ref
+            else None,
             "created_by": str(self.created_by),
             "created_at": self.created_at,
             "deleted": self.deleted,

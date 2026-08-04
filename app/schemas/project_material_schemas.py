@@ -25,7 +25,8 @@ def _validate_quantity_for_material(material_id_str, quantity):
     if not material or not material.get("measurement_unit"):
         return
 
-    unit = str(material.get("measurement_unit")).strip().lower()
+    unit_data = material.get("measurement_unit")
+    unit = str(unit_data.get("name") if isinstance(unit_data, dict) else unit_data).strip().lower()
     if unit == "шт.":
         rounded = int(float(quantity))
         if rounded <= 0:

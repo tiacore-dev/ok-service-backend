@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
 from .errors import MaterialValidationError
@@ -10,7 +11,7 @@ from .errors import MaterialValidationError
 class Material:
     material_id: UUID
     name: str
-    measurement_unit: str | None
+    measurement_unit: dict[str, Any] | UUID | None
     created_by: UUID
     created_at: int
     deleted: bool = False
@@ -25,7 +26,7 @@ class Material:
         self,
         *,
         name: str | None = None,
-        measurement_unit: str | None = None,
+        measurement_unit: dict[str, Any] | UUID | None = None,
         deleted: bool | None = None,
     ) -> Material:
         return Material(

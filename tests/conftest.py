@@ -393,14 +393,28 @@ def seed_work_category(db_session, seed_user):
 
 
 @pytest.fixture
-def seed_work(db_session, seed_work_category, seed_user):
+def seed_measurement_units(db_session):
+    from app.database.models import MeasurementUnits
+
+    result = {}
+    for name in ("м", "шт.", "0.1 м (10 см)"):
+        item = MeasurementUnits(name=name)
+        db_session.add(item)
+        db_session.flush()
+        result[name] = item.to_dict()
+    db_session.commit()
+    return result
+
+
+@pytest.fixture
+def seed_work(db_session, seed_work_category, seed_user, seed_measurement_units):
     from app.database.models import Works
 
     work = Works(
         work_id=uuid4(),
         name="Test Work",
         category=UUID(seed_work_category["work_category_id"]),
-        measurement_unit="units",
+        measurement_unit=UUID(seed_measurement_units["м"]["measurement_unit_id"]),
         created_by=seed_user["user_id"],
         deleted=False,
     )
@@ -430,13 +444,13 @@ def seed_work_price(db_session, seed_work, seed_user):
 
 
 @pytest.fixture
-def seed_material(db_session, seed_user):
+def seed_material(db_session, seed_user, seed_measurement_units):
     from app.database.models import Materials
 
     material = Materials(
         material_id=uuid4(),
         name="Test Material",
-        measurement_unit="kg",
+        measurement_unit=UUID(seed_measurement_units["м"]["measurement_unit_id"]),
         created_by=seed_user["user_id"],
         deleted=False,
     )
@@ -462,13 +476,13 @@ def seed_work_material_relation(db_session, seed_work, seed_material, seed_user)
 
 
 @pytest.fixture
-def seed_material_pcs(db_session, seed_user):
+def seed_material_pcs(db_session, seed_user, seed_measurement_units):
     from app.database.models import Materials
 
     material = Materials(
         material_id=uuid4(),
         name="Test Material Pcs",
-        measurement_unit="шт.",
+        measurement_unit=UUID(seed_measurement_units["шт."]["measurement_unit_id"]),
         created_by=seed_user["user_id"],
         deleted=False,
     )

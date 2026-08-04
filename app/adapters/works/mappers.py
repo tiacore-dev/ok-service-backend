@@ -6,6 +6,12 @@ from app.adapters._typing import require_uuid, to_uuid
 from app.domain.works import Work
 
 
+def _measurement_unit_id(value: Any):
+    if isinstance(value, dict):
+        return require_uuid(value.get("measurement_unit_id"), "measurement_unit_id")
+    return value
+
+
 def work_dict_to_entity(payload: dict[str, Any]) -> Work:
     return Work(
         work_id=require_uuid(payload["work_id"], "work_id"),
@@ -28,7 +34,7 @@ def work_entity_to_create_payload(work: Work) -> dict[str, Any]:
         "work_id": work.work_id,
         "name": work.name,
         "category": category_id,
-        "measurement_unit": work.measurement_unit,
+        "measurement_unit": _measurement_unit_id(work.measurement_unit),
         "created_by": work.created_by,
         "created_at": work.created_at,
         "deleted": work.deleted,

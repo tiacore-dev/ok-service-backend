@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, desc
-from app.database.models import Works, WorkPrices, WorkCategories
+from app.database.models import Works, WorkPrices, WorkCategories, MeasurementUnits
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
 
@@ -70,3 +70,10 @@ class WorkCategoriesManager(BaseDBManager):
     @property
     def model(self):
         return WorkCategories
+
+
+class MeasurementUnitsManager(BaseDBManager):
+
+    @property
+    def model(self):
+        return MeasurementUnits
