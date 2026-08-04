@@ -42,3 +42,25 @@ def work_price_entity_to_response(work_price: WorkPrice) -> dict[str, Any]:
         "deleted": work_price.deleted,
     }
 
+
+def work_price_dict_to_response(payload: dict[str, Any]) -> dict[str, Any]:
+    """Serialize a stored row without validating legacy nullable columns.
+
+    Work-price writes are validated by the input schema and domain entity. Reads
+    must remain available for historical rows created before those constraints
+    were enforced, so missing category/price values are returned as null.
+    """
+    price = payload.get("price")
+    return {
+        "work_price_id": str(payload["work_price_id"]),
+        "work": str(payload["work"]) if payload.get("work") is not None else None,
+        "category": payload.get("category"),
+        "price": float(price) if price is not None else None,
+        "created_by": (
+            str(payload["created_by"])
+            if payload.get("created_by") is not None
+            else None
+        ),
+        "created_at": payload.get("created_at"),
+        "deleted": payload.get("deleted", False),
+    }

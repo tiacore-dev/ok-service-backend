@@ -29,6 +29,9 @@ class SQLAlchemyWorkPriceRepository(WorkPriceRepository):
             return None
         return work_price_dict_to_entity(record)
 
+    def get_work_price_record(self, work_price_id: UUID) -> dict[str, object] | None:
+        return normalize_result(self.manager.get_by_id(work_price_id))
+
     def update_work_price(self, work_price: WorkPrice) -> WorkPrice | None:
         updated = self.manager.update(
             record_id=work_price.work_price_id,
@@ -60,3 +63,20 @@ class SQLAlchemyWorkPriceRepository(WorkPriceRepository):
             deleted=query.deleted,
         )
         return [work_price_dict_to_entity(record) for record in records]
+
+    def list_work_price_records(
+        self, query: WorkPriceListQuery
+    ) -> list[dict[str, object]]:
+        records = self.manager.get_all_filtered(
+            offset=query.offset,
+            limit=query.limit,
+            sort_by=query.sort_by,
+            sort_order=query.sort_order,
+            work=query.work,
+            category=query.category,
+            price=query.price,
+            created_by=query.created_by,
+            created_at=query.created_at,
+            deleted=query.deleted,
+        )
+        return records

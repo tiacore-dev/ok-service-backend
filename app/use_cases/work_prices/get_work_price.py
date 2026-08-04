@@ -13,7 +13,7 @@ class GetWorkPriceUseCase:
     repository: WorkPriceRepository
 
     def execute(self, work_price_id: UUID):
-        work_price = self.repository.get_work_price(work_price_id)
-        if work_price is None:
+        record = self.repository.get_work_price_record(work_price_id)
+        if record is None:
             raise WorkPriceNotFoundError("Work price not found")
-        return work_price
+        return record

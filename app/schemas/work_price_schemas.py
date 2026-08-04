@@ -20,9 +20,9 @@ class WorkPriceEditSchema(Schema):
 
     work = fields.String(required=False, allow_none=True,
                          validate=[validate_work_exists])
-    category = fields.Int(required=False, allow_none=True,
+    category = fields.Int(required=False, allow_none=False,
                           validate=validate.OneOf([0, 1, 2, 3, 4]))
-    price = fields.Float(required=False, allow_none=True)
+    price = fields.Float(required=False, allow_none=False)
     deleted = fields.Boolean(required=False, allow_none=True)
 
 

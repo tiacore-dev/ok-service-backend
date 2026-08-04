@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.adapters.work_prices import (
     SQLAlchemyWorkPriceRepository,
-    work_price_entity_to_response,
+    work_price_dict_to_response,
 )
 from app.decorators import admin_required, api_key_or_jwt_required
 from app.domain.work_prices import WorkPriceNotFoundError, WorkPriceValidationError
@@ -190,7 +190,7 @@ class WorkPriceView(Resource):
             )
             return {
                 "msg": "Work price found successfully",
-                "work_price": work_price_entity_to_response(work_price),
+                "work_price": work_price_dict_to_response(work_price),
             }, 200
         except Exception as error:
             logger.error(
@@ -332,7 +332,7 @@ class WorkPriceAll(Resource):
             return {
                 "msg": "Work prices found successfully",
                 "work_prices": [
-                    work_price_entity_to_response(item) for item in work_prices
+                    work_price_dict_to_response(item) for item in work_prices
                 ],
             }, 200
         except Exception as error:

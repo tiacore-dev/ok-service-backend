@@ -11,4 +11,4 @@ class ListWorkPricesUseCase:
     repository: WorkPriceRepository
 
     def execute(self, query: WorkPriceListQuery):
-        return self.repository.list_work_prices(query)
+        return self.repository.list_work_price_records(query)

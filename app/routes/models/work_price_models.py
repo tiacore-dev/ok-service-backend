@@ -12,12 +12,12 @@ work_price_edit_model = generate_swagger_model(
 # Модель для объекта цены работы
 work_price_model = Model('WorkPrice', {
     "work_price_id": fields.String(required=True, description="ID of the work price"),
-    "work": fields.String(required=True, description="Associated work data"),
-    "category": fields.Integer(required=True, description="Category of the work price"),
-    "price": fields.Float(required=True, description="Price of the work"),
-    "created_at": fields.Integer(required=True, description="Date work price was created at"),
-    "created_by": fields.String(required=True, description="Creator of work price"),
-    "deleted": fields.Boolean(required=True, description="Deletion status")
+    "work": fields.String(description="Associated work data"),
+    "category": fields.Integer(description="Category of the work price"),
+    "price": fields.Float(description="Price of the work"),
+    "created_at": fields.Integer(description="Date work price was created at"),
+    "created_by": fields.String(description="Creator of work price"),
+    "deleted": fields.Boolean(description="Deletion status")
 })
 
 # Модель для сообщений
