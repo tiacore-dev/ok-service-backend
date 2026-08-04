@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from app.domain.shift_reports import ShiftReport, ShiftReportForbiddenError, ShiftReportNotFoundError
+from app.domain.shift_reports import (
+    ShiftReport,
+    ShiftReportForbiddenError,
+    ShiftReportNotFoundError,
+)
 
 from .dto import ShiftReportActor, UpdateShiftReportCommand
 from .ports import ShiftReportRepository
@@ -12,7 +16,11 @@ from .ports import ShiftReportRepository
 class UpdateShiftReportUseCase:
     repository: ShiftReportRepository
 
-    def execute(self, command: UpdateShiftReportCommand, actor: ShiftReportActor) -> ShiftReport:
+    def execute(
+        self, command: UpdateShiftReportCommand, actor: ShiftReportActor
+    ) -> ShiftReport:
+        if actor.role == "user" and command.deleted is True:
+            raise ShiftReportForbiddenError("User cannot delete shift report")
         current = self.repository.get_shift_report(command.shift_report_id)
         if current is None:
             raise ShiftReportNotFoundError("Shift report not found")

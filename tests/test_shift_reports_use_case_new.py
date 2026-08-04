@@ -16,6 +16,7 @@ from app.use_cases.shift_reports import (
     CreateShiftReportDetailPayload,
     CreateShiftReportDetailUseCase,
     CreateShiftReportUseCase,
+    DeleteShiftReportUseCase,
     ListShiftReportsUseCase,
     ShiftReportActor,
     ShiftReportListQuery,
@@ -23,6 +24,7 @@ from app.use_cases.shift_reports import (
     UpdateShiftReportUseCase,
     UpdateShiftReportTimeUseCase,
     ShiftReportTimeCommand,
+    SoftDeleteShiftReportUseCase,
 )
 
 
@@ -130,6 +132,32 @@ def test_update_shift_report_forbids_foreign_user():
 
     with pytest.raises(ShiftReportForbiddenError):
         use_case.execute(
+            UpdateShiftReportCommand(
+                shift_report_id=report.shift_report_id, deleted=True
+            ),
+            actor,
+        )
+
+
+@pytest.mark.parametrize(
+    "use_case_class", [SoftDeleteShiftReportUseCase, DeleteShiftReportUseCase]
+)
+def test_user_cannot_delete_shift_report(use_case_class):
+    report = _report()
+    repository = _FakeRepository(current=report)
+    actor = ShiftReportActor(role="user", user_id=report.user)
+
+    with pytest.raises(ShiftReportForbiddenError, match="cannot delete"):
+        use_case_class(repository=repository).execute(report.shift_report_id, actor)
+
+
+def test_user_cannot_delete_shift_report_through_edit():
+    report = _report()
+    repository = _FakeRepository(current=report)
+    actor = ShiftReportActor(role="user", user_id=report.user)
+
+    with pytest.raises(ShiftReportForbiddenError, match="cannot delete"):
+        UpdateShiftReportUseCase(repository=repository).execute(
             UpdateShiftReportCommand(
                 shift_report_id=report.shift_report_id, deleted=True
             ),

@@ -4,6 +4,8 @@
 
 ### Добавлено
 
+- Уточнены права роли `user` для `shift_reports`: пользователи не могут создавать, мягко удалять или жестко удалять сменные отчеты, включая обход через `PATCH .../edit` с `deleted=true`.
+
 - Для `positions` добавлены permission types для JWT/API-key доступа ко всему базовому CRUD (`add`, `all`, `view`, `edit`, `delete/hard`) и тест на работу `positions` через `API-Key`.
 - В `users` добавлены необязательный FK на `positions` и поле `is_active`: обновлены доменная модель, use-case DTO, web-схемы, swagger-модели, репозиторий, фикстуры тестов и добавлена миграция `positions` + `users.position_id`/`users.is_active`.
 - Добавлен базовый CRUD для `positions`: выделены `domain/use-case/adapters/web`-слои, подключен namespace `/positions/*`, добавлены тесты на доменную логику и HTTP-контракт, а ORM-модель `Poitions` приведена к корректному имени `Positions`.

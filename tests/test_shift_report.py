@@ -109,11 +109,11 @@ def test_view_shift_report(
     assert response.json["shift_report"]["comment"] == seed_shift_report["comment"]
 
 
-def test_soft_delete_shift_report(client, jwt_token, seed_shift_report):
+def test_soft_delete_shift_report(client, jwt_token_admin, seed_shift_report):
     """
     Test soft deleting a shift report via API.
     """
-    headers = {"Authorization": f"Bearer {jwt_token}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin}"}
     response = client.patch(
         f"/shift_reports/{str(seed_shift_report['shift_report_id'])}/delete/soft",
         headers=headers,
@@ -145,11 +145,13 @@ def test_soft_delete_shift_report(client, jwt_token, seed_shift_report):
             session.close()
 
 
-def test_hard_delete_shift_report(client, jwt_token, seed_shift_report, db_session):
+def test_hard_delete_shift_report(
+    client, jwt_token_admin, seed_shift_report, db_session
+):
     """
     Test hard deleting a shift report.
     """
-    headers = {"Authorization": f"Bearer {jwt_token}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin}"}
     response = client.delete(
         f"/shift_reports/{str(seed_shift_report['shift_report_id'])}/delete/hard",
         headers=headers,

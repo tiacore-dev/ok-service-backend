@@ -90,9 +90,9 @@ def test_edit_shift_report(
 
 # ✅ Тест мягкого удаления
 def test_soft_delete_shift_report(
-    client, jwt_token_user, db_session, seed_shift_report
+    client, jwt_token_admin, db_session, seed_shift_report
 ):
-    headers = {"Authorization": f"Bearer {jwt_token_user}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin}"}
 
     response = client.patch(
         f"/shift_reports/{seed_shift_report['shift_report_id']}/delete/soft",
@@ -126,6 +126,45 @@ def test_hard_delete_shift_report(
         .first()
     )
     assert report is None
+
+
+def test_user_cannot_delete_shift_report(client, jwt_token_user, seed_shift_report):
+    headers = {"Authorization": f"Bearer {jwt_token_user}"}
+    report_url = f"/shift_reports/{seed_shift_report['shift_report_id']}"
+
+    soft_response = client.patch(f"{report_url}/delete/soft", headers=headers)
+    hard_response = client.delete(f"{report_url}/delete/hard", headers=headers)
+
+    assert soft_response.status_code == 403
+    assert hard_response.status_code == 403
+
+
+def test_user_cannot_delete_shift_report_through_edit(
+    client, jwt_token_user, seed_shift_report
+):
+    response = client.patch(
+        f"/shift_reports/{seed_shift_report['shift_report_id']}/edit",
+        json={"deleted": True},
+        headers={"Authorization": f"Bearer {jwt_token_user}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_user_cannot_create_shift_report(
+    client, jwt_token_user, seed_user, seed_project
+):
+    response = client.post(
+        "/shift_reports/add",
+        json={
+            "user": seed_user["user_id"],
+            "date": 20990101,
+            "project": seed_project["project_id"],
+        },
+        headers={"Authorization": f"Bearer {jwt_token_user}"},
+    )
+
+    assert response.status_code == 403
 
 
 # ✅ Тест получения всех отчётов (user → только свои, admin → все)
