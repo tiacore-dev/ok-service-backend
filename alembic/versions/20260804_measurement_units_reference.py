@@ -5,9 +5,11 @@ Revises: 20260722_shift_report_audit
 """
 
 from typing import Sequence, Union
+from uuid import UUID as PythonUUID
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql.elements import TextClause
 
 from alembic import op
 
@@ -16,9 +18,17 @@ down_revision: Union[str, None] = "20260722_shift_report_audit"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-METER_ID = "00000000-0000-0000-0000-000000000001"
-PIECE_ID = "00000000-0000-0000-0000-000000000002"
-TENTH_METER_ID = "00000000-0000-0000-0000-000000000003"
+METER_ID = PythonUUID("00000000-0000-0000-0000-000000000001")
+PIECE_ID = PythonUUID("00000000-0000-0000-0000-000000000002")
+TENTH_METER_ID = PythonUUID("00000000-0000-0000-0000-000000000003")
+
+
+def _unit_bindparams(statement: TextClause) -> TextClause:
+    return statement.bindparams(
+        sa.bindparam("meter", value=METER_ID, type_=UUID(as_uuid=True)),
+        sa.bindparam("piece", value=PIECE_ID, type_=UUID(as_uuid=True)),
+        sa.bindparam("tenth_meter", value=TENTH_METER_ID, type_=UUID(as_uuid=True)),
+    )
 
 
 def upgrade() -> None:
@@ -42,7 +52,7 @@ def upgrade() -> None:
         ),
     )
     op.execute(
-        sa.text(
+        _unit_bindparams(sa.text(
             """
             INSERT INTO measurement_units (measurement_unit_id, name)
             VALUES
@@ -50,7 +60,7 @@ def upgrade() -> None:
                 (:piece, 'шт.'),
                 (:tenth_meter, '0.1 м (10 см)')
             """
-        ).bindparams(meter=METER_ID, piece=PIECE_ID, tenth_meter=TENTH_METER_ID)
+        ))
     )
 
     for table in ("works", "materials"):
@@ -58,7 +68,7 @@ def upgrade() -> None:
             table, sa.Column("measurement_unit_id", UUID(as_uuid=True), nullable=True)
         )
         op.execute(
-            sa.text(
+            _unit_bindparams(sa.text(
                 f"""
                 UPDATE {table}
                 SET measurement_unit_id = CASE trim(measurement_unit)
@@ -70,7 +80,7 @@ def upgrade() -> None:
                 END
                 WHERE measurement_unit IS NOT NULL
                 """
-            ).bindparams(meter=METER_ID, piece=PIECE_ID, tenth_meter=TENTH_METER_ID)
+            ))
         )
         op.execute(
             sa.text(
