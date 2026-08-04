@@ -88,7 +88,12 @@ shift_report_details_by_report_ids = Model(
     {
         "shift_report_ids": fields.List(
             fields.String(), description="List of shift reports to fetch details"
-        )
+        ),
+        "with_stat": fields.Boolean(
+            required=False,
+            default=False,
+            description="Include project work statistics in each detail",
+        ),
     },
 )
 
@@ -160,4 +165,11 @@ shift_report_details_filter_parser.add_argument(
 )
 shift_report_details_filter_parser.add_argument(
     "created_at", type=int, required=False, help="Filter by created at timestamp"
+)
+shift_report_details_filter_parser.add_argument(
+    "with_stat",
+    type=bool,
+    required=False,
+    default=False,
+    help="Include project work statistics in each detail",
 )

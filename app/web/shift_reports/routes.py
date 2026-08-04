@@ -72,14 +72,14 @@ from app.use_cases.shift_reports import (
     ListShiftReportDetailsUseCase,
     ListShiftReportsUseCase,
     ShiftReportActor,
-    ShiftReportTimeCommand,
     ShiftReportListQuery,
+    ShiftReportTimeCommand,
     SoftDeleteShiftReportUseCase,
     UpdateShiftReportCommand,
     UpdateShiftReportDetailCommand,
     UpdateShiftReportDetailUseCase,
-    UpdateShiftReportUseCase,
     UpdateShiftReportTimeUseCase,
+    UpdateShiftReportUseCase,
 )
 from app.web._typing import (
     get_optional_bool,
@@ -213,19 +213,27 @@ def _parse_uuid(value: str) -> UUID:
         raise ValueError("Invalid UUID format") from exc
 
 
-def _detail_response_with_stats(detail, repository):
+def _detail_response_with_stats(detail, repository, with_stat: bool = False):
     response = shift_report_detail_entity_to_response(detail)
+    if not with_stat:
+        return response
     project_work = response.get("project_work")
     if not project_work or detail.shift_report_project is None:
         return response
-    stats = repository.get_project_stats(detail.shift_report_project).get(str(detail.work), {})
+    stats = repository.get_project_stats(detail.shift_report_project).get(
+        str(detail.work), {}
+    )
     planned = float(stats.get("project_work_quantity", 0) or 0)
     actual = float(stats.get("shift_report_details_quantity", 0) or 0)
     project_work.update(
         project_work_quantity=planned,
         shift_report_details_quantity=actual,
         acceptance_status=(
-            "not_checked" if actual == 0 else "partial" if actual < planned else "accepted"
+            "not_checked"
+            if actual == 0
+            else "partial"
+            if actual < planned
+            else "accepted"
         ),
     )
     return response
@@ -414,11 +422,19 @@ class ShiftReportHardDelete(Resource):
             return _map_error(error)
 
 
-def _update_shift_report_time(report_id: str, current_user: dict[str, Any], *, finish: bool):
-    raw_payload = to_plain_dict(request.get_json(silent=True), "Request body is required")
-    if not isinstance(raw_payload.get("lng"), (int, float)) or isinstance(raw_payload.get("lng"), bool):
+def _update_shift_report_time(
+    report_id: str, current_user: dict[str, Any], *, finish: bool
+):
+    raw_payload = to_plain_dict(
+        request.get_json(silent=True), "Request body is required"
+    )
+    if not isinstance(raw_payload.get("lng"), (int, float)) or isinstance(
+        raw_payload.get("lng"), bool
+    ):
         raise ValueError("Field 'lng' must be a number")
-    if not isinstance(raw_payload.get("ltd"), (int, float)) or isinstance(raw_payload.get("ltd"), bool):
+    if not isinstance(raw_payload.get("ltd"), (int, float)) or isinstance(
+        raw_payload.get("ltd"), bool
+    ):
         raise ValueError("Field 'ltd' must be a number")
     command = ShiftReportTimeCommand(
         shift_report_id=_parse_uuid(report_id),
@@ -427,14 +443,24 @@ def _update_shift_report_time(report_id: str, current_user: dict[str, Any], *, f
         ltd=float(raw_payload["ltd"]),
     )
     use_case = UpdateShiftReportTimeUseCase(repository=_repository())
-    updated = use_case.finish(command, _actor(current_user)) if finish else use_case.start(command, _actor(current_user))
-    return {"msg": "Shift report updated successfully", "shift_report_id": str(updated.shift_report_id)}, 200
+    updated = (
+        use_case.finish(command, _actor(current_user))
+        if finish
+        else use_case.start(command, _actor(current_user))
+    )
+    return {
+        "msg": "Shift report updated successfully",
+        "shift_report_id": str(updated.shift_report_id),
+    }, 200
 
 
 @shift_report_ns.route("/<string:report_id>/start")
 class ShiftReportStart(Resource):
     @api_key_or_jwt_required
-    @shift_report_ns.expect({"lng": fields.Float(required=True), "ltd": fields.Float(required=True)}, validate=False)
+    @shift_report_ns.expect(
+        {"lng": fields.Float(required=True), "ltd": fields.Float(required=True)},
+        validate=False,
+    )
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
         current_user = _get_current_user()
@@ -447,7 +473,10 @@ class ShiftReportStart(Resource):
 @shift_report_ns.route("/<string:report_id>/finish")
 class ShiftReportFinish(Resource):
     @api_key_or_jwt_required
-    @shift_report_ns.expect({"lng": fields.Float(required=True), "ltd": fields.Float(required=True)}, validate=False)
+    @shift_report_ns.expect(
+        {"lng": fields.Float(required=True), "ltd": fields.Float(required=True)},
+        validate=False,
+    )
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def patch(self, report_id):
         current_user = _get_current_user()
@@ -792,7 +821,10 @@ class ShiftReportDetailsAll(Resource):
             return {
                 "msg": "Shift report details found successfully",
                 "shift_report_details": [
-                    _detail_response_with_stats(item, repository) for item in details
+                    _detail_response_with_stats(
+                        item, repository, with_stat=args.get("with_stat", False)
+                    )
+                    for item in details
                 ],
             }, 200
         except Exception as error:
@@ -829,7 +861,12 @@ class ShiftReportDetailsByReports(Resource):
                 matched = use_case.execute(shift_report=report_id)
                 if matched:
                     details.extend(
-                        _detail_response_with_stats(item, repository) for item in matched
+                        _detail_response_with_stats(
+                            item,
+                            repository,
+                            with_stat=data_list.get("with_stat", False),
+                        )
+                        for item in matched
                     )
             return {
                 "msg": "Shift report details found successfully",

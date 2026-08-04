@@ -52,6 +52,7 @@ class ShiftReportDetailsByReportsSchema(Schema):
         unknown = "exclude"
 
     shift_report_ids = fields.List(fields.UUID(), required=False, allow_none=True)
+    with_stat = fields.Boolean(required=False, load_default=False)
 
     @validates("shift_report_ids")
     def validate_shift_report_ids_exist(self, value):
@@ -91,6 +92,7 @@ class ShiftReportDetailsFilterSchema(Schema):
     max_summ = fields.Float(required=False)
     created_by = fields.String(required=False)
     created_at = fields.Int(required=False)
+    with_stat = fields.Boolean(required=False, load_default=False)
 
     @pre_load
     def split_project_work_filters(self, data, **kwargs):

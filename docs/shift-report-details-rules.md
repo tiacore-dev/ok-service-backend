@@ -61,6 +61,14 @@
 
 Эти поля являются response-only: клиент не передаёт их при создании или редактировании деталей.
 
+## Управление расчётом статистики
+
+Методы `GET /shift_report_details/all` и `POST /shift_report_details/all-by-reports`
+принимают параметр `with_stat` типа `bool`. При `with_stat=true` для деталей с
+заполненным `project_work` вычисляются и возвращаются `project_work_quantity`,
+`shift_report_details_quantity` и `acceptance_status`. При `with_stat=false` или
+если параметр не передан, эти поля не вычисляются и не возвращаются.
+
 ## Фиксация времени смены
 
 Время смены фиксируется отдельными endpoint’ами:

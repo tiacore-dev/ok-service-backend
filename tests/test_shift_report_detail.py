@@ -204,6 +204,48 @@ def test_get_all_shift_report_details_with_filters(
                seed_shift_report_detail['shift_report_detail_id'] for detail in details)
 
 
+@pytest.mark.parametrize("with_stat", [None, False])
+def test_get_all_shift_report_details_without_stats(
+    client, jwt_token, seed_shift_report_detail, with_stat
+):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    query_string = {} if with_stat is None else {"with_stat": str(with_stat).lower()}
+    response = client.get(
+        "/shift_report_details/all", query_string=query_string, headers=headers
+    )
+
+    assert response.status_code == 200
+    detail = next(
+        item
+        for item in response.json["shift_report_details"]
+        if item["shift_report_detail_id"]
+        == seed_shift_report_detail["shift_report_detail_id"]
+    )
+    assert "project_work_quantity" not in detail["project_work"]
+    assert "shift_report_details_quantity" not in detail["project_work"]
+    assert "acceptance_status" not in detail["project_work"]
+
+
+def test_get_all_shift_report_details_with_stats(
+    client, jwt_token, seed_shift_report_detail
+):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    response = client.get(
+        "/shift_report_details/all", query_string={"with_stat": "true"}, headers=headers
+    )
+
+    assert response.status_code == 200
+    detail = next(
+        item
+        for item in response.json["shift_report_details"]
+        if item["shift_report_detail_id"]
+        == seed_shift_report_detail["shift_report_detail_id"]
+    )
+    assert {"project_work_quantity", "shift_report_details_quantity", "acceptance_status"} <= (
+        detail["project_work"].keys()
+    )
+
+
 def test_post_all_shift_report_details_by_ids(client, jwt_token, seed_shift_reports, seed_shift_report, seed_shift_report_detail):
     headers = {"Authorization": f"Bearer {jwt_token}"}
     shift_report_ids = [r["shift_report_id"] for r in seed_shift_reports]
@@ -226,3 +268,34 @@ def test_post_all_shift_report_details_by_ids(client, jwt_token, seed_shift_repo
     assert any(
         detail["shift_report"]["id"] in shift_report_ids for detail in details
     )
+
+
+@pytest.mark.parametrize("with_stat", [None, False, True])
+def test_post_all_shift_report_details_with_stat_flag(
+    client, jwt_token, seed_shift_report, seed_shift_report_detail, with_stat
+):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    payload = {"shift_report_ids": [seed_shift_report["shift_report_id"]]}
+    if with_stat is not None:
+        payload["with_stat"] = with_stat
+
+    response = client.post(
+        "/shift_report_details/all-by-reports", json=payload, headers=headers
+    )
+
+    assert response.status_code == 200
+    detail = next(
+        item
+        for item in response.json["shift_report_details"]
+        if item["shift_report_detail_id"]
+        == seed_shift_report_detail["shift_report_detail_id"]
+    )
+    stat_fields = {
+        "project_work_quantity",
+        "shift_report_details_quantity",
+        "acceptance_status",
+    }
+    if with_stat is True:
+        assert stat_fields <= detail["project_work"].keys()
+    else:
+        assert stat_fields.isdisjoint(detail["project_work"])
