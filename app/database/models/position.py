@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
 from app.database.db_setup import Base
-from app.database.time_utils import utc_epoch_seconds
+from app.database.time_utils import utc_epoch_milliseconds
 
 
 class Positions(Base):
@@ -18,8 +18,8 @@ class Positions(Base):
 
     created_at = Column(
         BigInteger,
-        default=utc_epoch_seconds,
-        server_default=text("EXTRACT(EPOCH FROM NOW())"),
+        default=utc_epoch_milliseconds,
+        server_default=text("CAST(EXTRACT(EPOCH FROM NOW()) * 1000 AS BIGINT)"),
     )
     created_by = Column(
         UUID(as_uuid=True),

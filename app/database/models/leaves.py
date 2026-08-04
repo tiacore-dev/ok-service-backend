@@ -14,7 +14,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
 from app.database.db_setup import Base
-from app.database.time_utils import utc_epoch_seconds
+from app.database.time_utils import utc_epoch_milliseconds
 
 
 class AbsenceReason(PyEnum):
@@ -54,8 +54,8 @@ class Leaves(Base):
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
     created_at = Column(
         BigInteger,
-        default=utc_epoch_seconds,
-        server_default=text("EXTRACT(EPOCH FROM NOW())"),
+        default=utc_epoch_milliseconds,
+        server_default=text("CAST(EXTRACT(EPOCH FROM NOW()) * 1000 AS BIGINT)"),
         nullable=False,
     )
     updated_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)

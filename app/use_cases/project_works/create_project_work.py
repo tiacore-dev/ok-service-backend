@@ -7,7 +7,7 @@ from app.domain.project_works import ProjectWork, ProjectWorkForbiddenError
 
 from .dto import BulkCreateProjectWorksCommand, CreateProjectWorkCommand, ProjectWorkActor
 from .ports import ProjectWorkRepository
-from ..time_utils import utc_epoch_seconds
+from ..time_utils import utc_epoch_milliseconds
 
 
 def _owned_project_ids(repository: ProjectWorkRepository, actor: ProjectWorkActor) -> set:
@@ -45,7 +45,7 @@ class CreateProjectWorkUseCase:
             quantity=command.quantity,
             summ=command.summ,
             created_by=command.created_by or actor.user_id,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             signed=False if actor.role == "project-leader" else bool(command.signed),
         )
         return self.repository.create_project_work(project_work)
@@ -75,7 +75,7 @@ class BulkCreateProjectWorksUseCase:
                 quantity=item.quantity,
                 summ=item.summ,
                 created_by=item.created_by or actor.user_id,
-                created_at=utc_epoch_seconds(),
+                created_at=utc_epoch_milliseconds(),
                 signed=False if actor.role == "project-leader" else bool(item.signed),
             )
             for item in command.project_works

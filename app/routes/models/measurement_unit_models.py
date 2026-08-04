@@ -7,7 +7,7 @@ measurement_unit_edit_model = generate_swagger_model(MeasurementUnitEditSchema()
 measurement_unit_model = Model("MeasurementUnit", {
     "measurement_unit_id": fields.String(required=True),
     "name": fields.String(required=True),
-    "created_at": fields.Integer(required=True),
+    "created_at": fields.Integer(required=True, description="Unix epoch milliseconds"),
     "created_by": fields.String(required=False, allow_none=True),
 })
 measurement_unit_msg_model = Model("MeasurementUnitMessage", {

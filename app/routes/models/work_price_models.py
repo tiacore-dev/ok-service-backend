@@ -15,7 +15,7 @@ work_price_model = Model('WorkPrice', {
     "work": fields.String(description="Associated work data"),
     "category": fields.Integer(description="Category of the work price"),
     "price": fields.Float(description="Price of the work"),
-    "created_at": fields.Integer(description="Date work price was created at"),
+    "created_at": fields.Integer(description="Unix epoch milliseconds: price creation time"),
     "created_by": fields.String(description="Creator of work price"),
     "deleted": fields.Boolean(description="Deletion status")
 })
@@ -59,7 +59,7 @@ work_price_filter_parser.add_argument(
     'created_by', type=str, required=False, help="Creator filter"
 )
 work_price_filter_parser.add_argument(
-    'created_at', type=int, required=False, help="Created at filter"
+    'created_at', type=int, required=False, help="Unix epoch milliseconds filter"
 )
 
 work_price_filter_parser.add_argument(

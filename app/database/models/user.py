@@ -16,7 +16,7 @@ from sqlalchemy.sql import text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.database.db_setup import Base
-from app.database.time_utils import utc_epoch_seconds
+from app.database.time_utils import utc_epoch_milliseconds
 
 
 class Users(Base):
@@ -56,8 +56,8 @@ class Users(Base):
     )
     created_at = Column(
         BigInteger,
-        default=utc_epoch_seconds,
-        server_default=text("EXTRACT(EPOCH FROM NOW())"),
+        default=utc_epoch_milliseconds,
+        server_default=text("CAST(EXTRACT(EPOCH FROM NOW()) * 1000 AS BIGINT)"),
         nullable=False,
     )
     deleted = Column(Boolean, nullable=False, default=False)

@@ -23,10 +23,10 @@ project_schedule_model = Model(
         "work": fields.String(required=True, description="Work details"),
         "quantity": fields.Float(required=True, description="Quantity of work"),
         "created_at": fields.Integer(
-            required=True, description="Date project schedule was created at"
+            required=True, description="Unix epoch milliseconds: schedule creation time"
         ),
         "created_by": fields.String(required=True, description="Creator of project schedule"),
-        "date": fields.Integer(required=False, description="Scheduled date"),
+        "date": fields.Integer(required=False, description="Scheduled date as Unix epoch milliseconds"),
     },
 )
 
@@ -73,4 +73,4 @@ project_schedule_filter_parser.add_argument("work", type=str, help="Filter by wo
 project_schedule_filter_parser.add_argument(
     "project", type=str, help="Filter by project ID"
 )
-project_schedule_filter_parser.add_argument("date", type=int, help="Filter by date")
+project_schedule_filter_parser.add_argument("date", type=int, help="Filter by Unix epoch milliseconds")

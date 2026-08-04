@@ -7,7 +7,7 @@ from app.domain.cities import City, CityAlreadyExistsError
 
 from .dto import CreateCityCommand
 from .ports import CityRepository
-from ..time_utils import utc_epoch_seconds
+from ..time_utils import utc_epoch_milliseconds
 
 
 @dataclass(slots=True)
@@ -21,7 +21,7 @@ class CreateCityUseCase:
             city_id=uuid4(),
             name=command.name,
             created_by=command.created_by,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             deleted=False,
         )
         return self.repository.create_city(city)

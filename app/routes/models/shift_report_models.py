@@ -49,12 +49,12 @@ shift_report_model = Model(
             required=True, description="ID of the shift report"
         ),
         "user": fields.String(required=True, description="User details"),
-        "date": fields.Integer(required=True, description="Report date"),
+        "date": fields.Integer(required=True, description="Report date as Unix epoch milliseconds"),
         "date_start": fields.Integer(
-            required=False, description="Shift start timestamp (nullable)"
+            required=False, description="Shift start Unix epoch milliseconds (nullable)"
         ),
         "date_end": fields.Integer(
-            required=False, description="Shift end timestamp (nullable)"
+            required=False, description="Shift end Unix epoch milliseconds (nullable)"
         ),
         "project": fields.String(required=True, description="Project details"),
         "project_name": fields.String(required=False, description="Project name"),
@@ -83,7 +83,7 @@ shift_report_model = Model(
         ),
         "number": fields.Integer(required=True, description="Number of shift report"),
         "created_at": fields.Integer(
-            required=True, description="Date shift report was created at"
+            required=True, description="Unix epoch milliseconds: report creation time"
         ),
         "created_by": fields.String(
             required=True, description="Creator of shift report"
@@ -91,11 +91,11 @@ shift_report_model = Model(
         "signed_by": fields.Nested(
             shift_report_user_model, required=False, allow_null=True
         ),
-        "signed_at": fields.Integer(required=False, allow_null=True),
+        "signed_at": fields.Integer(required=False, allow_null=True, description="Unix epoch milliseconds"),
         "updated_by": fields.Nested(
             shift_report_updater_model, required=False, allow_null=True
         ),
-        "updated_at": fields.Integer(required=False, allow_null=True),
+        "updated_at": fields.Integer(required=False, allow_null=True, description="Unix epoch milliseconds"),
         "night_shift": fields.Boolean(required=True, description="Night shift"),
         "extreme_conditions": fields.Boolean(
             required=True, description="Extreme conditions"
@@ -162,19 +162,19 @@ shift_report_filter_parser.add_argument(
     action="append",
     help="Filter by user IDs (can be passed multiple times or comma-separated)",
 )
-shift_report_filter_parser.add_argument("date_from", type=int, help="Filter by date")
-shift_report_filter_parser.add_argument("date_to", type=int, help="Filter by date")
+shift_report_filter_parser.add_argument("date_from", type=int, help="Filter by Unix epoch milliseconds")
+shift_report_filter_parser.add_argument("date_to", type=int, help="Filter by Unix epoch milliseconds")
 shift_report_filter_parser.add_argument(
-    "date_start_from", type=int, required=False, help="Filter by shift start (from)"
+    "date_start_from", type=int, required=False, help="Filter by shift start Unix epoch milliseconds (from)"
 )
 shift_report_filter_parser.add_argument(
-    "date_start_to", type=int, required=False, help="Filter by shift start (to)"
+    "date_start_to", type=int, required=False, help="Filter by shift start Unix epoch milliseconds (to)"
 )
 shift_report_filter_parser.add_argument(
-    "date_end_from", type=int, required=False, help="Filter by shift end (from)"
+    "date_end_from", type=int, required=False, help="Filter by shift end Unix epoch milliseconds (from)"
 )
 shift_report_filter_parser.add_argument(
-    "date_end_to", type=int, required=False, help="Filter by shift end (to)"
+    "date_end_to", type=int, required=False, help="Filter by shift end Unix epoch milliseconds (to)"
 )
 shift_report_filter_parser.add_argument(
     "project",

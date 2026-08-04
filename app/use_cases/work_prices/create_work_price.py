@@ -7,7 +7,7 @@ from app.domain.work_prices import WorkPrice, validate_work_price_category
 
 from .dto import CreateWorkPriceCommand
 from .ports import WorkPriceRepository
-from ..time_utils import utc_epoch_seconds
+from ..time_utils import utc_epoch_milliseconds
 
 
 @dataclass(slots=True)
@@ -22,7 +22,7 @@ class CreateWorkPriceUseCase:
             category=command.category,
             price=command.price,
             created_by=command.created_by,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             deleted=False,
         )
         return self.repository.create_work_price(work_price)

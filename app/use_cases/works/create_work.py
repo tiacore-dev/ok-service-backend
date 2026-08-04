@@ -7,7 +7,7 @@ from app.domain.works import Work
 
 from .dto import CreateWorkCommand
 from .ports import WorkRepository
-from ..time_utils import utc_epoch_seconds
+from ..time_utils import utc_epoch_milliseconds
 
 
 @dataclass(slots=True)
@@ -20,7 +20,7 @@ class CreateWorkUseCase:
             name=command.name,
             category={"work_category_id": str(command.category)} if command.category else None,
             measurement_unit=command.measurement_unit,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             created_by=command.created_by,
             deleted=False,
             work_prices=[],

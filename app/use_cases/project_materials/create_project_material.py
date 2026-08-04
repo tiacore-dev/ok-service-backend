@@ -7,7 +7,7 @@ from app.domain.project_materials import ProjectMaterial
 
 from .dto import CreateProjectMaterialCommand
 from .ports import ProjectMaterialRepository
-from ..time_utils import utc_epoch_seconds
+from ..time_utils import utc_epoch_milliseconds
 
 
 @dataclass(slots=True)
@@ -21,7 +21,7 @@ class CreateProjectMaterialUseCase:
             material=command.material,
             quantity=command.quantity,
             created_by=command.created_by,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             project_work=command.project_work,
         )
         return self.repository.create_project_material(project_material)

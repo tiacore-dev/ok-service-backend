@@ -18,7 +18,7 @@ from app.database.models import (
     WorkMaterialRelations,
     WorkPrices,
 )
-from app.database.time_utils import utc_epoch_seconds
+from app.database.time_utils import utc_epoch_milliseconds
 from app.domain.shift_reports import ShiftReportConflictError
 
 logger = logging.getLogger("ok_service")
@@ -270,12 +270,12 @@ class ShiftReportsManager(ShiftManager):
 
                 signed_value = data.get("signed")
                 if signed_value is True:
-                    data["signed_at"] = utc_epoch_seconds()
+                    data["signed_at"] = utc_epoch_milliseconds()
                     data["signed_by"] = data.get("updated_by")
                 elif signed_value is False:
                     data["signed_at"] = None
                     data["signed_by"] = None
-                data["updated_at"] = utc_epoch_seconds()
+                data["updated_at"] = utc_epoch_milliseconds()
 
                 for field, value in data.items():
                     if value is not None:

@@ -5,9 +5,9 @@ from uuid import uuid4
 
 from app.domain.materials import Material
 
+from ..time_utils import utc_epoch_milliseconds
 from .dto import CreateMaterialCommand
 from .ports import MaterialRepository
-from ..time_utils import utc_epoch_seconds
 
 
 @dataclass(slots=True)
@@ -20,7 +20,7 @@ class CreateMaterialUseCase:
             name=command.name,
             measurement_unit=command.measurement_unit,
             created_by=command.created_by,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             deleted=False,
         )
         return self.repository.create_material(material)

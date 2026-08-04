@@ -25,7 +25,7 @@ shift_report_material_model = Model(
         "shift_report_detail": fields.String(
             required=False, description="Shift report detail ID (optional)"
         ),
-        "created_at": fields.Integer(required=True, description="Created at timestamp"),
+        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds"),
         "created_by": fields.String(required=True, description="Creator of record"),
     },
 )

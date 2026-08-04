@@ -21,7 +21,7 @@ object_model = Model(
         "manager": fields.String(required=False, description="Manager of the object"),
         "lng": fields.Float(required=False, description="Longitude of the object"),
         "ltd": fields.Float(required=False, description="Latitude of the object"),
-        "created_at": fields.Integer(required=True, description="Time object was created at"),
+        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds: object creation time"),
         "created_by": fields.String(required=False, description="Creator of object"),
         "deleted": fields.Boolean(required=True, description="Deletion status"),
     },
@@ -71,4 +71,4 @@ object_filter_parser.add_argument("city", type=str, required=False, help="Filter
 object_filter_parser.add_argument("lng", type=float, required=False, help="Filter by longitude")
 object_filter_parser.add_argument("ltd", type=float, required=False, help="Filter by latitude")
 object_filter_parser.add_argument("created_by", type=str, required=False, help="Filter by creator ID")
-object_filter_parser.add_argument("created_at", type=int, required=False, help="Filter by created at timestamp")
+object_filter_parser.add_argument("created_at", type=int, required=False, help="Filter by Unix epoch milliseconds")

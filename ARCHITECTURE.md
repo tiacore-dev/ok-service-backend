@@ -123,10 +123,10 @@ Use-case слой не должен:
 Для всех моделей и инфраструктурных сущностей, которые пишут время создания/обновления, используется единый helper:
 
 - `app.database.time_utils.utc_now()` возвращает timezone-aware `datetime` в UTC;
-- `app.database.time_utils.utc_epoch_seconds()` возвращает epoch seconds, вычисленные из timezone-aware UTC datetime;
+- `app.database.time_utils.utc_epoch_milliseconds()` возвращает Unix epoch milliseconds, вычисленные из timezone-aware UTC datetime;
 - `datetime.utcnow()` в новом коде не используется;
 - если поле хранит SQL `DateTime`, оно должно быть timezone-aware;
-- если поле хранит epoch seconds, default должен идти через общий helper, а не через локальный `lambda`.
+- если поле хранит Unix epoch milliseconds, default должен идти через общий helper, а не через локальный `lambda`.
 
 Это нужно, чтобы убрать предупреждения о deprecated `utcnow()`, не размазывать одинаковую логику по моделям и держать поведение времени единообразным.
 

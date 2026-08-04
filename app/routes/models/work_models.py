@@ -17,7 +17,7 @@ work_model = Model('Work', {
     "name": fields.String(required=True, description="Name of the work"),
     "category": fields.Nested(work_category_model, description="Work category data"),
     "measurement_unit": fields.Nested(measurement_unit_model, required=False, allow_none=True),
-    "created_at": fields.Integer(required=True, description="Date work was created at"),
+    "created_at": fields.Integer(required=True, description="Unix epoch milliseconds: work creation time"),
     "created_by": fields.String(required=True, description="Creator of work"),
     "deleted": fields.Boolean(required=True, description="Deletion status"),
     "work_prices": fields.List(fields.Nested(work_price_model), required=False, description="List of prices")

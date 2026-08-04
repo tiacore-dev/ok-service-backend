@@ -20,7 +20,7 @@ user_model = Model(
         "position": fields.String(required=False, description="Должность пользователя."),
         "is_active": fields.Boolean(required=True, description="Активен ли пользователь."),
         "created_at": fields.Integer(
-            required=True, description="Date user was created at"
+            required=True, description="Unix epoch milliseconds: user creation time"
         ),
         "created_by": fields.String(required=True, description="Creator of user"),
         "deleted": fields.Boolean(required=True, description="Удален ли пользователь."),

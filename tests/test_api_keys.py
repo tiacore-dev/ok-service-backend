@@ -11,7 +11,7 @@ def _create_api_key(client, headers, api_key_name):
     response = client.post(
         "/api-key/generate",
         headers=headers,
-        json={"name": api_key_name, "expires_at": 1_893_456_000},
+        json={"name": api_key_name, "expires_at": 1_893_456_000_000},
     )
     assert response.status_code == 200
     return response.get_json()
@@ -22,7 +22,7 @@ def test_api_key_generate_endpoint_creates_api_key_and_public_views(
 ):
     headers = _auth_headers(jwt_token_admin)
     api_key_name = f"api-key-{uuid4().hex[:12]}"
-    expires_at = 1_893_456_000
+    expires_at = 1_893_456_000_000
 
     response = client.post(
         "/api-key/generate",
@@ -82,14 +82,14 @@ def test_api_key_generate_endpoint_rejects_duplicate_name(
     first_response = client.post(
         "/api-key/generate",
         headers=headers,
-        json={"name": api_key_name, "expires_at": 1_893_456_000},
+        json={"name": api_key_name, "expires_at": 1_893_456_000_000},
     )
     assert first_response.status_code == 200
 
     duplicate_response = client.post(
         "/api-key/generate",
         headers=headers,
-        json={"name": api_key_name, "expires_at": 1_893_456_001},
+        json={"name": api_key_name, "expires_at": 1_893_456_000_001},
     )
     assert duplicate_response.status_code == 409
     assert duplicate_response.get_json()["msg"] == "API key with this name already exists"

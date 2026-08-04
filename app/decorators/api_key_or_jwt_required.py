@@ -56,9 +56,9 @@ def api_key_or_jwt_required(func):
                 return {"msg": "Invalid API key"}, 403
 
             if api_key.expires_at is not None:
-                import time
+                from app.database.time_utils import utc_epoch_milliseconds
 
-                if int(time.time()) > int(api_key.expires_at):
+                if utc_epoch_milliseconds() > int(api_key.expires_at):
                     return {"msg": "API key expired"}, 403
 
             permission = (

@@ -7,7 +7,7 @@ from app.domain.work_categories import WorkCategory
 
 from .dto import CreateWorkCategoryCommand
 from .ports import WorkCategoryRepository
-from ..time_utils import utc_epoch_seconds
+from ..time_utils import utc_epoch_milliseconds
 
 
 @dataclass(slots=True)
@@ -19,7 +19,7 @@ class CreateWorkCategoryUseCase:
             work_category_id=uuid4(),
             name=command.name,
             created_by=command.created_by,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             deleted=False,
         )
         return self.repository.create_work_category(work_category)

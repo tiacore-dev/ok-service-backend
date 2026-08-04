@@ -256,7 +256,7 @@ def test_shift_report_time_use_case_uses_current_epoch_for_start(monkeypatch):
     repository = _FakeRepository(current=report)
     use_case = UpdateShiftReportTimeUseCase(repository=repository)
     actor = ShiftReportActor(role="admin", user_id=uuid4())
-    expected_timestamp = 1_800_000_000
+    expected_timestamp = 1_800_000_000_000
 
     monkeypatch.setattr(
         shift_report_time_module,

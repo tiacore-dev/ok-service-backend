@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from app.domain.positions import Position
-from app.use_cases.time_utils import utc_epoch_seconds
+from app.use_cases.time_utils import utc_epoch_milliseconds
 
 from .dto import CreatePositionCommand
 from .ports import PositionRepository
@@ -19,6 +19,6 @@ class CreatePositionUseCase:
             position_id=uuid4(),
             name=command.name,
             created_by=command.created_by,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
         )
         return self.repository.create_position(position)

@@ -8,7 +8,7 @@ from app.domain.shift_report_materials import (
     validate_shift_report_material_quantity,
 )
 
-from ..time_utils import utc_epoch_seconds
+from ..time_utils import utc_epoch_milliseconds
 from .dto import CreateShiftReportMaterialCommand
 from .ports import ShiftReportMaterialRepository
 
@@ -26,7 +26,7 @@ class CreateShiftReportMaterialUseCase:
             material=command.material,
             quantity=command.quantity,
             created_by=command.created_by,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             shift_report_detail=command.shift_report_detail,
         )
         return self.repository.create_shift_report_material(shift_report_material)

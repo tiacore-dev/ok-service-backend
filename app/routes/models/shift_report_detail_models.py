@@ -34,7 +34,7 @@ shift_report_brief_model = Model(
     {
         "id": fields.String(required=True, description="Shift report ID"),
         "user_id": fields.String(required=True, description="User ID"),
-        "date": fields.Integer(required=True, description="Shift report date"),
+        "date": fields.Integer(required=True, description="Shift report date as Unix epoch milliseconds"),
         "project": fields.String(required=False, allow_null=True),
     },
 )
@@ -54,7 +54,7 @@ shift_report_details_model = Model(
         "work": fields.String(required=True, description="Work details"),
         "quantity": fields.Float(required=True, description="Quantity of work"),
         "created_at": fields.Integer(
-            required=True, description="Date shift report detail was created at"
+            required=True, description="Unix epoch milliseconds: detail creation time"
         ),
         "created_by": fields.String(
             required=True, description="Creator of shift report detail"
@@ -134,10 +134,10 @@ shift_report_details_filter_parser.add_argument(
     "shift_report", type=str, help="Filter by shift report ID"
 )
 shift_report_details_filter_parser.add_argument(
-    "date_from", type=int, required=False, help="Filter by shift report date (from)"
+    "date_from", type=int, required=False, help="Filter by shift report date Unix epoch milliseconds (from)"
 )
 shift_report_details_filter_parser.add_argument(
-    "date_to", type=int, required=False, help="Filter by shift report date (to)"
+    "date_to", type=int, required=False, help="Filter by shift report date Unix epoch milliseconds (to)"
 )
 shift_report_details_filter_parser.add_argument(
     "project_work",
@@ -164,7 +164,7 @@ shift_report_details_filter_parser.add_argument(
     "created_by", type=str, required=False, help="Filter by creator ID"
 )
 shift_report_details_filter_parser.add_argument(
-    "created_at", type=int, required=False, help="Filter by created at timestamp"
+    "created_at", type=int, required=False, help="Filter by Unix epoch milliseconds"
 )
 shift_report_details_filter_parser.add_argument(
     "with_stat",

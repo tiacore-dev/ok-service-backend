@@ -2,7 +2,7 @@ from dataclasses import dataclass, replace
 from uuid import UUID, uuid4
 
 from app.domain.measurement_units import MeasurementUnit, MeasurementUnitNotFoundError
-from app.use_cases.time_utils import utc_epoch_seconds
+from app.use_cases.time_utils import utc_epoch_milliseconds
 
 from .dto import (
     CreateMeasurementUnitCommand,
@@ -16,7 +16,7 @@ from .dto import (
 class CreateMeasurementUnitUseCase:
     repository: MeasurementUnitRepository
     def execute(self, command: CreateMeasurementUnitCommand) -> MeasurementUnit:
-        return self.repository.create_measurement_unit(MeasurementUnit(uuid4(), command.name, utc_epoch_seconds(), command.created_by))
+        return self.repository.create_measurement_unit(MeasurementUnit(uuid4(), command.name, utc_epoch_milliseconds(), command.created_by))
 
 
 @dataclass(slots=True)

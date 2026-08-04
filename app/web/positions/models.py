@@ -13,7 +13,7 @@ position_model = Model(
         "name": fields.String(required=True, description="Position name"),
         "created_by": fields.String(required=False, description="Creator of position"),
         "created_at": fields.Integer(
-            required=True, description="Date position was created at"
+            required=True, description="Unix epoch milliseconds: position creation time"
         ),
     },
 )

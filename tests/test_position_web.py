@@ -22,7 +22,7 @@ def _create_api_key_with_position_permissions(client, jwt_token_admin, db_sessio
     response = client.post(
         "/api-key/generate",
         headers=headers,
-        json={"name": api_key_name, "expires_at": 1_893_456_000},
+        json={"name": api_key_name, "expires_at": 1_893_456_000_000},
     )
     assert response.status_code == 200
     body = response.get_json()

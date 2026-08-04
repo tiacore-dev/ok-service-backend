@@ -15,7 +15,7 @@ project_model = Model(
         "project_leader": fields.String(required=False, description="User data of the project leader"),
         "night_shift_available": fields.Boolean(required=True, description="If night shifts are available"),
         "extreme_conditions_available": fields.Boolean(required=True, description="If extreme conditions are available"),
-        "created_at": fields.Integer(required=True, description="Date project was created at"),
+        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds: project creation time"),
         "created_by": fields.String(required=True, description="Creator of project"),
         "deleted": fields.Boolean(required=True, description="Deletion status"),
     },
@@ -71,7 +71,7 @@ project_filter_parser.add_argument("object", type=str, required=False, help="Fil
 project_filter_parser.add_argument("project_leader", type=str, required=False, help="Filter by project leader ID")
 project_filter_parser.add_argument("created_by", type=str, required=False, help="Filter by creator ID")
 project_filter_parser.add_argument("name", type=str, help="Filter by name")
-project_filter_parser.add_argument("created_at", type=int, required=False, help="Filter by created at timestamp")
+project_filter_parser.add_argument("created_at", type=int, required=False, help="Filter by Unix epoch milliseconds")
 project_filter_parser.add_argument(
     "night_shift_available",
     type=lambda x: x.lower() in ["true", "1"],

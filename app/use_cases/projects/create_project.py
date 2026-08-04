@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from app.use_cases.time_utils import utc_epoch_seconds
+from app.use_cases.time_utils import utc_epoch_milliseconds
 from app.domain.projects import Project
 
 from .dto import CreateProjectCommand, ProjectActor
@@ -26,7 +26,7 @@ class CreateProjectUseCase:
             night_shift_available=command.night_shift_available,
             extreme_conditions_available=command.extreme_conditions_available,
             created_by=command.created_by or actor.user_id,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
             deleted=False,
         )
         return self.repository.create_project(project)

@@ -26,7 +26,7 @@ project_material_model = Model(
         "project_work": fields.String(
             required=False, description="Project work ID (optional)"
         ),
-        "created_at": fields.Integer(required=True, description="Created at timestamp"),
+        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds"),
         "created_by": fields.String(required=True, description="Creator of record"),
     },
 )

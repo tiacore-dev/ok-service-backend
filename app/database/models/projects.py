@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
 from app.database.db_setup import Base
-from app.database.time_utils import utc_epoch_seconds
+from app.database.time_utils import utc_epoch_milliseconds
 
 
 class Projects(Base):
@@ -21,8 +21,8 @@ class Projects(Base):
     extreme_conditions_available = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         BigInteger,
-        default=utc_epoch_seconds,
-        server_default=text("EXTRACT(EPOCH FROM NOW())"),
+        default=utc_epoch_milliseconds,
+        server_default=text("CAST(EXTRACT(EPOCH FROM NOW()) * 1000 AS BIGINT)"),
     )
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)
     deleted = Column(Boolean, nullable=False, default=False)

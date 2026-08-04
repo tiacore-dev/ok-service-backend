@@ -7,7 +7,7 @@ from app.domain.project_schedules import (
     ProjectSchedule,
     ProjectScheduleForbiddenError,
 )
-from app.use_cases.time_utils import utc_epoch_seconds
+from app.use_cases.time_utils import utc_epoch_milliseconds
 
 from .dto import CreateProjectScheduleCommand, ProjectScheduleActor
 from .ports import ProjectScheduleRepository
@@ -54,6 +54,6 @@ class CreateProjectScheduleUseCase:
             quantity=command.quantity,
             date=command.date,
             created_by=command.created_by or actor.user_id,
-            created_at=utc_epoch_seconds(),
+            created_at=utc_epoch_milliseconds(),
         )
         return self.repository.create_project_schedule(schedule)

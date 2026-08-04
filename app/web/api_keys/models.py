@@ -24,8 +24,8 @@ api_key_model = Model(
     {
         "api_key_id": fields.String(required=True, description="ID API key"),
         "name": fields.String(required=True, description="Name API key"),
-        "expires_at": fields.Integer(required=True, description="Expire timestamp"),
-        "created_at": fields.Integer(required=True, description="Created timestamp"),
+        "expires_at": fields.Integer(required=True, description="Unix epoch milliseconds"),
+        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds"),
     },
 )
 

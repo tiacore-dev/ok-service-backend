@@ -22,7 +22,7 @@ work_material_relation_model = Model(
         "work": fields.String(required=True, description="Work ID"),
         "material": fields.String(required=True, description="Material ID"),
         "quantity": fields.Float(required=True, description="Quantity of material"),
-        "created_at": fields.Integer(required=True, description="Created at timestamp"),
+        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds"),
         "created_by": fields.String(required=True, description="Creator of relation"),
     },
 )

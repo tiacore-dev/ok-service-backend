@@ -15,7 +15,7 @@ material_model = Model(
         "material_id": fields.String(required=True, description="ID of the material"),
         "name": fields.String(required=True, description="Name of the material"),
         "measurement_unit": fields.Nested(measurement_unit_model, required=False, allow_none=True),
-        "created_at": fields.Integer(required=True, description="Created at timestamp"),
+        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds"),
         "created_by": fields.String(required=True, description="Creator of material"),
         "deleted": fields.Boolean(required=True, description="Deletion status"),
     },
