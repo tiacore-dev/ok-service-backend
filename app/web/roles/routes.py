@@ -1,11 +1,12 @@
 import json
 import logging
 
-from flask import request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask import g, request
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 
+from app.decorators import api_key_or_jwt_required
 from app.schemas.role_schemas import RoleFilterSchema
 
 from .models import role_all_response, role_filter_parser, role_model
@@ -18,13 +19,30 @@ role_ns.models[role_all_response.name] = role_all_response
 role_ns.models[role_model.name] = role_model
 
 
+def _get_current_user():
+    identity = (
+        getattr(g, "api_key_identity_json", None)
+        if getattr(g, "auth_via_api_key", False)
+        else _get_jwt_identity()
+    )
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
 @role_ns.route("/all")
 class RoleAll(Resource):
-    @jwt_required()
+    @api_key_or_jwt_required
     @role_ns.expect(role_filter_parser)
     @role_ns.marshal_with(role_all_response)
     def get(self):
-        current_user = json.loads(get_jwt_identity())
+        current_user = _get_current_user()
         logger.info("Request to fetch all roles.", extra={"login": current_user})
 
         schema = RoleFilterSchema()
