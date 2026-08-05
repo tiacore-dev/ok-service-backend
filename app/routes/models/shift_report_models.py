@@ -81,6 +81,9 @@ shift_report_model = Model(
         "deleted": fields.Boolean(
             required=True, description="Deletion status of the shift report"
         ),
+        "leave_id": fields.String(
+            required=False, allow_null=True, description="Leave that cancelled the shift"
+        ),
         "number": fields.Integer(required=True, description="Number of shift report"),
         "created_at": fields.Integer(
             required=True, description="Unix epoch milliseconds: report creation time"

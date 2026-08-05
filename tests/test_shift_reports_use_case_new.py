@@ -105,6 +105,7 @@ def _report():
         night_shift=False,
         extreme_conditions=False,
         number=1,
+        leave_id=None,
     )
 
 

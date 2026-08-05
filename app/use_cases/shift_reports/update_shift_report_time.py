@@ -31,6 +31,7 @@ class UpdateShiftReportTimeUseCase:
             )
         return self._update(
             command,
+            leave_check_date=current.date,
             date_start=utc_epoch_milliseconds(),
             lng_start=command.lng,
             ltd_start=command.ltd,
@@ -49,6 +50,7 @@ class UpdateShiftReportTimeUseCase:
             raise ShiftReportConflictError("Shift report start time is in the future")
         return self._update(
             command,
+            leave_check_date=current.date,
             date_end=timestamp,
             lng_end=command.lng,
             ltd_end=command.ltd,
@@ -71,6 +73,7 @@ class UpdateShiftReportTimeUseCase:
             UpdateShiftReportCommand(
                 shift_report_id=command.shift_report_id,
                 updated_by=command.actor_id,
+                leave_check_date=changes.pop("leave_check_date", None),
                 **changes,
             )
         )

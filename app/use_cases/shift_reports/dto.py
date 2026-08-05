@@ -86,6 +86,7 @@ class UpdateShiftReportCommand:
     deleted: bool | None = None
     comment: str | None = None
     updated_by: UUID | None = None
+    leave_check_date: int | None = None
 
 
 @dataclass(frozen=True, slots=True)

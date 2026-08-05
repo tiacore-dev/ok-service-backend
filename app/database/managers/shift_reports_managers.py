@@ -54,8 +54,12 @@ class ShiftManager(BaseDBManager):
         if user_id is None:
             return
 
-        window_start = date_start or date
-        window_end = date_end or date
+        window_start = date_start if date_start is not None else date
+        window_end = (
+            date_end
+            if date_end is not None
+            else (date_start if date_start is not None else date)
+        )
         if window_start is None or window_end is None:
             return
 
@@ -249,6 +253,7 @@ class ShiftReportsManager(ShiftManager):
     def update_shift_report(self, record_id, **data):
         try:
             with self.session_scope() as session:
+                leave_check_date = data.pop("leave_check_date", None)
                 record = (
                     session.query(ShiftReports)
                     .filter(ShiftReports.shift_report_id == record_id)
@@ -257,16 +262,24 @@ class ShiftReportsManager(ShiftManager):
                 if not record:
                     return None
 
-                if self._has_shift_window_changes(data):
+                if not record.deleted:
                     user = data.get("user") or record.user
-                    self._check_leave_conflict(
-                        session,
-                        user,
-                        date=data.get("date") or record.date,
-                        date_start=data.get("date_start") or record.date_start,
-                        date_end=data.get("date_end") or record.date_end,
-                        message="Shift date intersects with existing leave",
-                    )
+                    if leave_check_date is not None:
+                        self._check_leave_conflict(
+                            session,
+                            user,
+                            date=leave_check_date,
+                            message="Shift date intersects with existing leave",
+                        )
+                    else:
+                        self._check_leave_conflict(
+                            session,
+                            user,
+                            date=data.get("date") or record.date,
+                            date_start=data.get("date_start") or record.date_start,
+                            date_end=data.get("date_end") or record.date_end,
+                            message="Shift date intersects with existing leave",
+                        )
 
                 signed_value = data.get("signed")
                 if signed_value is True:

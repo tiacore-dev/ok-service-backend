@@ -53,6 +53,7 @@ class ShiftReports(Base):
     night_shift = Column(Boolean, nullable=False, default=False)
     extreme_conditions = Column(Boolean, nullable=False, default=False)
     deleted = Column(Boolean, nullable=False, default=False)
+    leave_id = Column(UUID, ForeignKey("leaves.leave_id"), nullable=True)
     number = Column(
         Integer,
         shift_reports_number_seq,
@@ -115,6 +116,7 @@ class ShiftReports(Base):
             "distance_end": self.distance_end,
             "signed": self.signed,
             "deleted": self.deleted,
+            "leave_id": str(self.leave_id) if self.leave_id is not None else None,
             "created_by": str(self.created_by),
             "created_at": self.created_at,
             "night_shift": self.night_shift,

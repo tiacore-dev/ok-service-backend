@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -64,8 +64,123 @@ def test_add_leave_conflict_with_shift(
 
     response = client.post("/leaves/add", json=payload, headers=headers)
 
+    assert response.status_code == 200
+
+
+def test_add_leave_conflicts_with_open_shift(
+    client, jwt_token, seed_user, seed_leader, seed_project, db_session
+):
+    from app.database.models import ShiftReports
+
+    report = ShiftReports(
+        shift_report_id=uuid4(),
+        user=UUID(seed_user["user_id"]),
+        date=20240103,
+        date_start=20240103,
+        date_end=None,
+        project=UUID(seed_project["project_id"]),
+        created_by=UUID(seed_leader["user_id"]),
+        signed=False,
+        deleted=False,
+    )
+    report_id = report.shift_report_id
+    db_session.add(report)
+    db_session.commit()
+
+    response = client.post(
+        "/leaves/add",
+        json={
+            "user": seed_user["user_id"],
+            "responsible": seed_leader["user_id"],
+            "start_date": 20240103,
+            "end_date": 20240103,
+            "reason": "day_off",
+        },
+        headers={"Authorization": f"Bearer {jwt_token}"},
+    )
+
     assert response.status_code == 409
     assert response.json["msg"] == "Shift exists within the specified period"
+
+
+def test_add_leave_cancels_unstarted_shift_and_sets_leave_id(
+    client, jwt_token, seed_user, seed_leader, seed_project, db_session
+):
+    from app.database.models import ShiftReports
+
+    report = ShiftReports(
+        shift_report_id=uuid4(),
+        user=UUID(seed_user["user_id"]),
+        date=20240103,
+        date_start=None,
+        date_end=None,
+        project=UUID(seed_project["project_id"]),
+        created_by=UUID(seed_leader["user_id"]),
+        signed=False,
+        deleted=False,
+    )
+    report_id = report.shift_report_id
+    db_session.add(report)
+    db_session.commit()
+
+    response = client.post(
+        "/leaves/add",
+        json={
+            "user": seed_user["user_id"],
+            "responsible": seed_leader["user_id"],
+            "start_date": 20240103,
+            "end_date": 20240103,
+            "reason": "day_off",
+        },
+        headers={"Authorization": f"Bearer {jwt_token}"},
+    )
+
+    assert response.status_code == 200
+    saved_report = (
+        db_session.query(ShiftReports)
+        .populate_existing()
+        .filter_by(shift_report_id=report_id)
+        .one()
+    )
+    assert saved_report.deleted is True
+    assert str(saved_report.leave_id) == response.json["leave_id"]
+
+
+def test_edit_leave_cancels_newly_included_unstarted_shift(
+    client, jwt_token, seed_leave, seed_project, seed_leader, db_session
+):
+    from app.database.models import ShiftReports
+
+    report = ShiftReports(
+        shift_report_id=uuid4(),
+        user=UUID(seed_leave["user"]),
+        date=20240104,
+        date_start=None,
+        date_end=None,
+        project=UUID(seed_project["project_id"]),
+        created_by=UUID(seed_leader["user_id"]),
+        signed=False,
+        deleted=False,
+    )
+    report_id = report.shift_report_id
+    db_session.add(report)
+    db_session.commit()
+
+    response = client.patch(
+        f"/leaves/{seed_leave['leave_id']}/edit",
+        json={"end_date": 20240104},
+        headers={"Authorization": f"Bearer {jwt_token}"},
+    )
+
+    assert response.status_code == 200
+    saved_report = (
+        db_session.query(ShiftReports)
+        .populate_existing()
+        .filter_by(shift_report_id=report_id)
+        .one()
+    )
+    assert saved_report.deleted is True
+    assert str(saved_report.leave_id) == seed_leave["leave_id"]
 
 
 def test_shift_creation_conflict_with_leave(

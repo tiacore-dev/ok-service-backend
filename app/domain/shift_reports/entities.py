@@ -28,6 +28,7 @@ class ShiftReport:
     night_shift: bool
     extreme_conditions: bool
     number: int
+    leave_id: UUID | None = None
     comment: str | None = None
     signed_at: int | None = None
     signed_by: dict[str, str] | None = None

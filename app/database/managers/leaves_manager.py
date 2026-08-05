@@ -4,6 +4,7 @@ from sqlalchemy import and_
 
 from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import Leaves, ShiftReports, AbsenceReason
+from app.database.time_utils import utc_epoch_milliseconds
 
 
 class LeavesManager(BaseDBManager):
@@ -30,12 +31,31 @@ class LeavesManager(BaseDBManager):
             .filter(
                 ShiftReports.user == user_uuid,
                 ShiftReports.deleted.is_(False),
+                ShiftReports.date_start.is_not(None),
+                ShiftReports.date_end.is_(None),
                 ShiftReports.date_start <= end_date,
-                ShiftReports.date_end >= start_date,
             )
             .first()
         )
         return exists is not None
+
+    def _cancel_unstarted_shifts(self, session, user_uuid, start_date, end_date, leave_id):
+        shifts = (
+            session.query(ShiftReports)
+            .filter(
+                ShiftReports.user == user_uuid,
+                ShiftReports.deleted.is_(False),
+                ShiftReports.date_start.is_(None),
+                ShiftReports.date >= start_date,
+                ShiftReports.date <= end_date,
+            )
+            .all()
+        )
+        now = utc_epoch_milliseconds()
+        for shift in shifts:
+            shift.deleted = True
+            shift.leave_id = leave_id
+            shift.updated_at = now
 
     def has_overlapping_leave(self, user_id, start_date, end_date, exclude_id=None, session=None):
         user_uuid = self._to_uuid(user_id)
@@ -71,7 +91,14 @@ class LeavesManager(BaseDBManager):
         kwargs["created_by"] = self._to_uuid(kwargs.get("created_by"))
         if kwargs.get("updated_by"):
             kwargs["updated_by"] = self._to_uuid(kwargs.get("updated_by"))
-        return self.add(**kwargs)
+        with self.session_scope() as session:
+            leave = Leaves(**kwargs)
+            session.add(leave)
+            session.flush()
+            self._cancel_unstarted_shifts(
+                session, leave.user_id, leave.start_date, leave.end_date, leave.leave_id
+            )
+            return leave.to_dict()
 
     def update_leave(self, leave_id, **kwargs):
         if "reason" in kwargs and kwargs["reason"] is not None:
@@ -84,7 +111,19 @@ class LeavesManager(BaseDBManager):
             kwargs["created_by"] = self._to_uuid(kwargs["created_by"])
         if "updated_by" in kwargs and kwargs["updated_by"] is not None:
             kwargs["updated_by"] = self._to_uuid(kwargs["updated_by"])
-        return self.update(self._to_uuid(leave_id), **kwargs)
+        leave_uuid = self._to_uuid(leave_id)
+        with self.session_scope() as session:
+            leave = session.query(Leaves).filter(Leaves.leave_id == leave_uuid).first()
+            if leave is None:
+                return None
+            for field, value in kwargs.items():
+                if value is not None:
+                    setattr(leave, field, value)
+            session.flush()
+            self._cancel_unstarted_shifts(
+                session, leave.user_id, leave.start_date, leave.end_date, leave.leave_id
+            )
+            return leave.to_dict()
 
     def list_leaves(
         self,

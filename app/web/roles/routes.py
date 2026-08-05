@@ -47,7 +47,9 @@ class RoleAll(Resource):
         }
 
         logger.debug(
-            f"Fetching roles with filters: {filters}, offset={offset}, limit={limit}, sort_by={sort_by}, sort_order={sort_order}",
+            f"Fetching roles with filters: {filters}, offset={offset}, limit={
+                limit
+            }, sort_by={sort_by}, sort_order={sort_order}",
             extra={"login": current_user},
         )
 
