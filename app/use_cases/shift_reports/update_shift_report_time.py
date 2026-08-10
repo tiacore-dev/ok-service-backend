@@ -60,6 +60,10 @@ class UpdateShiftReportTimeUseCase:
         current = self.repository.get_shift_report(report_id)
         if current is None:
             raise ShiftReportNotFoundError("Shift report not found")
+        if current.leave_id is not None:
+            raise ShiftReportConflictError(
+                "Shift report linked to leave cannot be changed"
+            )
         if current.deleted:
             raise ShiftReportConflictError("Deleted shift report cannot be changed")
         if actor.role == "user" and current.user != actor.user_id:

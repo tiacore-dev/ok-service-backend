@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 
 from app.domain.shift_reports import (
     ShiftReport,
+    ShiftReportConflictError,
     ShiftReportForbiddenError,
     ShiftReportNotFoundError,
 )
@@ -19,11 +20,15 @@ class UpdateShiftReportUseCase:
     def execute(
         self, command: UpdateShiftReportCommand, actor: ShiftReportActor
     ) -> ShiftReport:
-        if actor.role == "user" and command.deleted is True:
-            raise ShiftReportForbiddenError("User cannot delete shift report")
         current = self.repository.get_shift_report(command.shift_report_id)
         if current is None:
             raise ShiftReportNotFoundError("Shift report not found")
+        if current.leave_id is not None:
+            raise ShiftReportConflictError(
+                "Shift report linked to leave cannot be changed"
+            )
+        if actor.role == "user" and command.deleted is True:
+            raise ShiftReportForbiddenError("User cannot delete shift report")
         if actor.role == "user" and current.user != actor.user_id:
             raise ShiftReportForbiddenError("User cannot edit not his shift report")
         if actor.role == "user" and current.signed is True:

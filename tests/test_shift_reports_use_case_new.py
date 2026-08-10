@@ -7,6 +7,7 @@ import app.use_cases.shift_reports.update_shift_report_time as shift_report_time
 
 from app.domain.shift_reports import (
     ShiftReport,
+    ShiftReportConflictError,
     ShiftReportDetail,
     ShiftReportForbiddenError,
     ShiftReportValidationError,
@@ -140,6 +141,23 @@ def test_update_shift_report_forbids_foreign_user():
         )
 
 
+def test_update_shift_report_rejects_leave_linked_report_for_any_actor():
+    report = _report().with_updates(leave_id=uuid4(), deleted=True)
+    repository = _FakeRepository(current=report)
+
+    with pytest.raises(
+        ShiftReportConflictError,
+        match="linked to leave cannot be changed",
+    ):
+        UpdateShiftReportUseCase(repository=repository).execute(
+            UpdateShiftReportCommand(
+                shift_report_id=report.shift_report_id,
+                comment="must not change",
+            ),
+            ShiftReportActor(role="admin", user_id=uuid4()),
+        )
+
+
 @pytest.mark.parametrize(
     "use_case_class", [SoftDeleteShiftReportUseCase, DeleteShiftReportUseCase]
 )
@@ -237,6 +255,21 @@ def test_shift_report_time_use_case_rejects_finish_before_start():
             ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
             actor,
         )
+
+
+@pytest.mark.parametrize("operation", ["start", "finish"])
+def test_shift_report_time_use_case_rejects_leave_linked_report(operation):
+    report = _report().with_updates(leave_id=uuid4())
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportTimeUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+    command = ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0)
+
+    with pytest.raises(
+        ShiftReportConflictError,
+        match="linked to leave cannot be changed",
+    ):
+        getattr(use_case, operation)(command, actor)
 
 
 def test_shift_report_time_use_case_rejects_second_start():

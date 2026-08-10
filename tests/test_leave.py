@@ -227,6 +227,43 @@ def test_edit_leave_cancels_newly_included_unstarted_shift(
     assert str(saved_report.leave_id) == seed_leave["leave_id"]
 
 
+def test_hard_delete_leave_unlinks_cancelled_shifts_without_restoring_them(
+    client, jwt_token, seed_leave, seed_project, seed_leader, db_session
+):
+    from app.database.models import ShiftReports
+
+    report = ShiftReports(
+        shift_report_id=uuid4(),
+        user=UUID(seed_leave["user"]),
+        date=20240103,
+        date_start=None,
+        date_end=None,
+        project=UUID(seed_project["project_id"]),
+        created_by=UUID(seed_leader["user_id"]),
+        signed=False,
+        deleted=True,
+        leave_id=UUID(seed_leave["leave_id"]),
+    )
+    report_id = report.shift_report_id
+    db_session.add(report)
+    db_session.commit()
+
+    response = client.delete(
+        f"/leaves/{seed_leave['leave_id']}/delete/hard",
+        headers={"Authorization": f"Bearer {jwt_token}"},
+    )
+
+    assert response.status_code == 200
+    saved_report = (
+        db_session.query(ShiftReports)
+        .populate_existing()
+        .filter_by(shift_report_id=report_id)
+        .one()
+    )
+    assert saved_report.leave_id is None
+    assert saved_report.deleted is True
+
+
 def test_shift_creation_conflict_with_leave(
     client,
     jwt_token,

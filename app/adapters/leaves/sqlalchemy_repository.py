@@ -73,7 +73,7 @@ class SQLAlchemyLeaveRepository(LeaveRepository):
         return leave_dict_to_entity(record)
 
     def delete_leave(self, leave_id: UUID) -> bool:
-        deleted = self.manager.delete(leave_id)
+        deleted = self.manager.delete_leave(leave_id)
         return deleted is not None
 
     def list_leaves(self, query: LeaveListQuery) -> list[Leave]:

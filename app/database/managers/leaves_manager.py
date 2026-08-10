@@ -153,6 +153,28 @@ class LeavesManager(BaseDBManager):
             )
             return leave.to_dict()
 
+    def delete_leave(self, leave_id):
+        """Удаляет leave после отвязки связанных отменённых смен."""
+        leave_uuid = self._to_uuid(leave_id)
+        with self.session_scope() as session:
+            leave = (
+                session.query(Leaves)
+                .filter(Leaves.leave_id == leave_uuid)
+                .first()
+            )
+            if leave is None:
+                return None
+
+            session.query(ShiftReports).filter(
+                ShiftReports.leave_id == leave_uuid
+            ).update(
+                {ShiftReports.leave_id: None},
+                synchronize_session=False,
+            )
+            session.flush()
+            session.delete(leave)
+            return leave
+
     def list_leaves(
         self,
         offset=0,
