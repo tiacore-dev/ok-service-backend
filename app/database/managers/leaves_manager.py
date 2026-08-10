@@ -39,7 +39,8 @@ class LeavesManager(BaseDBManager):
                 ShiftReports.deleted.is_(False),
                 ShiftReports.date_start.is_not(None),
                 ShiftReports.date_end.is_(None),
-                ShiftReports.date_start <= end_date,
+                ShiftReports.date >= start_date,
+                ShiftReports.date <= end_date,
             )
             .first()
         )

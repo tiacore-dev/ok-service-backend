@@ -46,21 +46,13 @@ class ShiftManager(BaseDBManager):
         user_id,
         *,
         date=None,
-        date_start=None,
-        date_end=None,
         message="User has a leave during the requested date",
     ):
         """Проверяет пересечение с отпуском/отсутствием."""
         if user_id is None:
             return
 
-        window_start = date_start if date_start is not None else date
-        window_end = (
-            date_end
-            if date_end is not None
-            else (date_start if date_start is not None else date)
-        )
-        if window_start is None or window_end is None:
+        if date is None:
             return
 
         leave_conflict = (
@@ -68,8 +60,8 @@ class ShiftManager(BaseDBManager):
             .filter(
                 Leaves.user_id == self._convert_to_uuid(user_id),
                 Leaves.deleted.is_(False),
-                Leaves.start_date <= window_end,
-                Leaves.end_date >= window_start,
+                Leaves.start_date <= date,
+                Leaves.end_date >= date,
             )
             .first()
         )
@@ -196,8 +188,6 @@ class ShiftReportsManager(ShiftManager):
                     session,
                     shift_report_data["user"],
                     date=shift_report_data["date"],
-                    date_start=shift_report_data["date_start"],
-                    date_end=shift_report_data["date_end"],
                 )
 
                 # 1. Создаем `shift_report`
@@ -276,8 +266,6 @@ class ShiftReportsManager(ShiftManager):
                             session,
                             user,
                             date=data.get("date") or record.date,
-                            date_start=data.get("date_start") or record.date_start,
-                            date_end=data.get("date_end") or record.date_end,
                             message="Shift date intersects with existing leave",
                         )
 

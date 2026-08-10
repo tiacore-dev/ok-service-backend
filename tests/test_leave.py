@@ -113,6 +113,40 @@ def test_add_leave_conflicts_with_open_shift(
     }
 
 
+def test_add_leave_ignores_open_shift_on_another_day(
+    client, jwt_token, seed_user, seed_leader, seed_project, db_session
+):
+    from app.database.models import ShiftReports
+
+    report = ShiftReports(
+        shift_report_id=uuid4(),
+        user=UUID(seed_user["user_id"]),
+        date=20240101,
+        date_start=20240101,
+        date_end=None,
+        project=UUID(seed_project["project_id"]),
+        created_by=UUID(seed_leader["user_id"]),
+        signed=False,
+        deleted=False,
+    )
+    db_session.add(report)
+    db_session.commit()
+
+    response = client.post(
+        "/leaves/add",
+        json={
+            "user": seed_user["user_id"],
+            "responsible": seed_leader["user_id"],
+            "start_date": 20240103,
+            "end_date": 20240103,
+            "reason": "day_off",
+        },
+        headers={"Authorization": f"Bearer {jwt_token}"},
+    )
+
+    assert response.status_code == 200
+
+
 def test_add_leave_cancels_unstarted_shift_and_sets_leave_id(
     client, jwt_token, seed_user, seed_leader, seed_project, db_session
 ):
