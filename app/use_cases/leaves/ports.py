@@ -9,12 +9,12 @@ from .dto import LeaveListQuery
 
 
 class LeaveRepository(Protocol):
-    def has_shift_conflict(
+    def get_open_shift_conflict(
         self,
         user_id: UUID,
         start_date: int,
         end_date: int,
-    ) -> bool: ...
+    ) -> dict[str, object] | None: ...
 
     def has_overlapping_leave(
         self,
@@ -33,4 +33,3 @@ class LeaveRepository(Protocol):
     def delete_leave(self, leave_id: UUID) -> bool: ...
 
     def list_leaves(self, query: LeaveListQuery) -> list[Leave]: ...
-

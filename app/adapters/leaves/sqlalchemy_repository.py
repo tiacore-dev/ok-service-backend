@@ -19,13 +19,13 @@ from .mappers import (
 class SQLAlchemyLeaveRepository(LeaveRepository):
     manager: LeavesManager = field(default_factory=LeavesManager)
 
-    def has_shift_conflict(
+    def get_open_shift_conflict(
         self,
         user_id: UUID,
         start_date: int,
         end_date: int,
-    ) -> bool:
-        return self.manager.has_shift_conflict(user_id, start_date, end_date)
+    ) -> dict[str, object] | None:
+        return self.manager.get_open_shift_conflict(user_id, start_date, end_date)
 
     def has_overlapping_leave(
         self,

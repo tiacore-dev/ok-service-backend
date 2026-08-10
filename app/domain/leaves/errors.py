@@ -13,7 +13,12 @@ class LeaveValidationError(LeaveError):
 class LeaveConflictError(LeaveError):
     """Raised when leave data conflicts with another domain rule."""
 
+    def __init__(
+        self, message: str, *, detail: dict[str, object] | None = None
+    ) -> None:
+        super().__init__(message)
+        self.detail = detail
+
 
 class LeaveNotFoundError(LeaveError):
     """Raised when a leave entity cannot be found."""
-

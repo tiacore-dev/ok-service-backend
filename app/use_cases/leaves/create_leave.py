@@ -33,10 +33,14 @@ class CreateLeaveUseCase:
         return self.repository.create_leave(leave)
 
     def _validate_availability(self, command: CreateLeaveCommand) -> None:
-        if self.repository.has_shift_conflict(
+        conflict = self.repository.get_open_shift_conflict(
             command.user_id, command.start_date, command.end_date
-        ):
-            raise LeaveConflictError("Shift exists within the specified period")
+        )
+        if conflict is not None:
+            raise LeaveConflictError(
+                "Shift exists within the specified period",
+                detail={"conflict_type": "open_shift", "shift_report": conflict},
+            )
 
         if self.repository.has_overlapping_leave(
             command.user_id, command.start_date, command.end_date

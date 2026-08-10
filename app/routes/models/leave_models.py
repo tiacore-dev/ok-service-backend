@@ -29,6 +29,7 @@ leave_msg_model = Model(
     {
         "msg": fields.String(required=True, description="Сообщение"),
         "leave_id": fields.String(description="ID листа отсутствия"),
+        "detail": fields.Raw(required=False, description="Детали конфликта"),
     },
 )
 

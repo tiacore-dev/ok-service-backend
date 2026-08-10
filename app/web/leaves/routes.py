@@ -128,7 +128,10 @@ def _repository() -> SQLAlchemyLeaveRepository:
 
 def _map_error(error: Exception):
     if isinstance(error, LeaveConflictError):
-        return {"msg": str(error)}, 409
+        payload: dict[str, object] = {"msg": str(error)}
+        if error.detail is not None:
+            payload["detail"] = error.detail
+        return payload, 409
     if isinstance(error, LeaveNotFoundError):
         return {"msg": str(error)}, 404
     if isinstance(error, IntegrityError):

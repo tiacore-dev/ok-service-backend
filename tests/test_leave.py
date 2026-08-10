@@ -101,6 +101,16 @@ def test_add_leave_conflicts_with_open_shift(
 
     assert response.status_code == 409
     assert response.json["msg"] == "Shift exists within the specified period"
+    assert response.json["detail"] == {
+        "conflict_type": "open_shift",
+        "shift_report": {
+            "shift_report_id": str(report_id),
+            "user": seed_user["user_id"],
+            "date": 20240103,
+            "date_start": 20240103,
+            "date_end": None,
+        },
+    }
 
 
 def test_add_leave_cancels_unstarted_shift_and_sets_leave_id(

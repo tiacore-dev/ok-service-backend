@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from sqlalchemy import and_
@@ -5,6 +6,9 @@ from sqlalchemy import and_
 from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import Leaves, ShiftReports, AbsenceReason
 from app.database.time_utils import utc_epoch_milliseconds
+
+
+logger = logging.getLogger("ok_service")
 
 
 class LeavesManager(BaseDBManager):
@@ -18,15 +22,17 @@ class LeavesManager(BaseDBManager):
             return UUID(value)
         return value
 
-    def has_shift_conflict(self, user_id, start_date, end_date, session=None):
+    def get_open_shift_conflict(self, user_id, start_date, end_date, session=None):
         user_uuid = self._to_uuid(user_id)
         if session is None:
             with self.session_scope() as scoped_session:
-                return self._has_shift_conflict(scoped_session, user_uuid, start_date, end_date)
-        return self._has_shift_conflict(session, user_uuid, start_date, end_date)
+                return self._get_open_shift_conflict(
+                    scoped_session, user_uuid, start_date, end_date
+                )
+        return self._get_open_shift_conflict(session, user_uuid, start_date, end_date)
 
-    def _has_shift_conflict(self, session, user_uuid, start_date, end_date):
-        exists = (
+    def _get_open_shift_conflict(self, session, user_uuid, start_date, end_date):
+        shift = (
             session.query(ShiftReports)
             .filter(
                 ShiftReports.user == user_uuid,
@@ -37,7 +43,28 @@ class LeavesManager(BaseDBManager):
             )
             .first()
         )
-        return exists is not None
+        if shift is None:
+            return None
+
+        conflict = {
+            "shift_report_id": str(shift.shift_report_id),
+            "user": str(shift.user),
+            "date": shift.date,
+            "date_start": shift.date_start,
+            "date_end": shift.date_end,
+        }
+
+        logger.warning(
+            "Leave period is blocked by an open shift",
+            extra={
+                "login": "database",
+                "user_id": str(user_uuid),
+                "leave_start_date": start_date,
+                "leave_end_date": end_date,
+                "conflicting_shift": conflict,
+            },
+        )
+        return conflict
 
     def _cancel_unstarted_shifts(self, session, user_uuid, start_date, end_date, leave_id):
         shifts = (

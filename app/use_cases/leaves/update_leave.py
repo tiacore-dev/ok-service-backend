@@ -52,8 +52,14 @@ class UpdateLeaveUseCase:
         end_date: int,
         user_id,
     ) -> None:
-        if self.repository.has_shift_conflict(user_id, start_date, end_date):
-            raise LeaveConflictError("Shift exists within the specified period")
+        conflict = self.repository.get_open_shift_conflict(
+            user_id, start_date, end_date
+        )
+        if conflict is not None:
+            raise LeaveConflictError(
+                "Shift exists within the specified period",
+                detail={"conflict_type": "open_shift", "shift_report": conflict},
+            )
 
         if self.repository.has_overlapping_leave(
             user_id, start_date, end_date, exclude_id=command.leave_id
