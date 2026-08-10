@@ -21,6 +21,16 @@ depends_on: Union[str, Sequence[str], None] = None
 METER_ID = PythonUUID("00000000-0000-0000-0000-000000000001")
 PIECE_ID = PythonUUID("00000000-0000-0000-0000-000000000002")
 TENTH_METER_ID = PythonUUID("00000000-0000-0000-0000-000000000003")
+SQUARE_METER_ID = PythonUUID("00000000-0000-0000-0000-000000000004")
+
+SUPPORTED_MEASUREMENT_UNIT_VALUES = {
+    "м.",
+    "м",
+    "шт.",
+    "шт",
+    "0.1 м (10 см)",
+    "м2",
+}
 
 
 def _unit_bindparams(statement: TextClause) -> TextClause:
@@ -28,6 +38,7 @@ def _unit_bindparams(statement: TextClause) -> TextClause:
         sa.bindparam("meter", value=METER_ID, type_=UUID(as_uuid=True)),
         sa.bindparam("piece", value=PIECE_ID, type_=UUID(as_uuid=True)),
         sa.bindparam("tenth_meter", value=TENTH_METER_ID, type_=UUID(as_uuid=True)),
+        sa.bindparam("square_meter", value=SQUARE_METER_ID, type_=UUID(as_uuid=True)),
     )
 
 
@@ -58,7 +69,8 @@ def upgrade() -> None:
             VALUES
                 (:meter, 'м'),
                 (:piece, 'шт.'),
-                (:tenth_meter, '0.1 м (10 см)')
+                (:tenth_meter, '0.1 м (10 см)'),
+                (:square_meter, 'м2')
             """
         ))
     )
@@ -75,7 +87,9 @@ def upgrade() -> None:
                     WHEN 'м.' THEN :meter
                     WHEN 'м' THEN :meter
                     WHEN 'шт.' THEN :piece
+                    WHEN 'шт' THEN :piece
                     WHEN '0.1 м (10 см)' THEN :tenth_meter
+                    WHEN 'м2' THEN :square_meter
                     ELSE NULL
                 END
                 WHERE measurement_unit IS NOT NULL
@@ -91,7 +105,7 @@ def upgrade() -> None:
                         SELECT 1 FROM {table}
                         WHERE measurement_unit IS NOT NULL
                           AND trim(measurement_unit) NOT IN (
-                              'м.', 'м', 'шт.', '0.1 м (10 см)'
+                              'м.', 'м', 'шт.', 'шт', '0.1 м (10 см)', 'м2'
                           )
                     ) THEN
                         RAISE EXCEPTION 'Unsupported measurement_unit value in {table}';

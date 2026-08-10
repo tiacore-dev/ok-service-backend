@@ -397,7 +397,7 @@ def seed_measurement_units(db_session):
     from app.database.models import MeasurementUnits
 
     result = {}
-    for name in ("м", "шт.", "0.1 м (10 см)"):
+    for name in ("м", "шт.", "0.1 м (10 см)", "м2"):
         item = MeasurementUnits(name=name)
         db_session.add(item)
         db_session.flush()
