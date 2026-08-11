@@ -21,6 +21,8 @@ class Config:
     API_KEY = os.getenv("API_KEY")
     ORIGIN = os.getenv("ORIGIN")
     TEMPLATE_SERVICE_URL = os.getenv("TEMPLATE_SERVICE_URL")
+    # Клиент создаётся лениво: соединение с Redis открывается только при команде.
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 
 class DevelopmentConfig(Config):
@@ -35,3 +37,4 @@ class TestingConfig(Config):
 
     TESTING = True
     SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URL")
+    REDIS_URL = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/1")

@@ -10,4 +10,5 @@
 - [docs/model-and-swagger-rules.md](./docs/model-and-swagger-rules.md) - правила построения request/response/filter моделей и swagger-контрактов.
 - [docs/access-control-rules.md](./docs/access-control-rules.md) - правила прав доступа, ownership и тестового gate перед следующими срезами миграции.
 - [docs/shift-report-details-rules.md](./docs/shift-report-details-rules.md) - правила расчёта статистики и статуса `project_work` в ответах `shift_report_details`.
+- [docs/project-work-statistics-cache.md](./docs/project-work-statistics-cache.md) - проектирование Redis-кэша агрегированной статистики по работам проекта.
 - [docs/time-contract.md](./docs/time-contract.md) - единый контракт Unix timestamp в миллисекундах.

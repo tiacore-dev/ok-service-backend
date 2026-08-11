@@ -15,10 +15,10 @@ from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 
 from app.database.managers.user_manager import UserManager
+from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
 from app.web._typing import to_plain_dict
 
 from .models import hello_model, login_model, refresh_model, response_auth
-from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
 
 logger = logging.getLogger("ok_service")
 

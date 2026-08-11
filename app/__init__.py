@@ -15,6 +15,7 @@ from prometheus_client import REGISTRY
 from prometheus_flask_exporter import PrometheusMetrics
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from app.adapters.statistics import create_redis_client
 from app.database import init_db, set_db_globals, setup_listeners
 from app.database.vacuum import start_background_task
 from app.error_handlers import setup_error_handlers
@@ -71,6 +72,10 @@ def create_app(config_name="development"):
         app.config.from_object(DevelopmentConfig)
     else:
         raise ValueError(f"Неизвестное имя конфигурации: {config_name}")
+
+    # from_url создаёт pool, но не выполняет сетевой запрос. Это сохраняет
+    # запуск приложения независимым от доступности Redis до первого обращения.
+    app.extensions["redis"] = create_redis_client(app.config["REDIS_URL"])
 
     # Добавляем ProxyFix для корректной обработки заголовков от прокси-сервера
     app.wsgi_app = ProxyFix(
