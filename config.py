@@ -24,6 +24,12 @@ class Config:
     # Клиент создаётся лениво: соединение с Redis открывается только при команде.
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
+    ENDPOINT_URL = os.getenv("ENDPOINT_URL")
+    REGION_NAME = os.getenv("REGION_NAME")
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+    BUCKET_NAME = os.getenv("BUCKET_NAME")
+
 
 class DevelopmentConfig(Config):
     """Конфигурация для разработки."""

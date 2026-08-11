@@ -1,16 +1,12 @@
 import logging
+
 from flask import jsonify, request
 
-
-logger = logging.getLogger('ok_service')
+logger = logging.getLogger("ok_service")
 
 
 def get_anonymous_login():
-    return {
-        "user_id": "anonymous",
-        "login": request.remote_addr,
-        "role": "unknown"
-    }
+    return {"user_id": "anonymous", "login": request.remote_addr, "role": "unknown"}
 
 
 def setup_error_handlers(app):
@@ -29,8 +25,9 @@ def setup_error_handlers(app):
 
     @app.errorhandler(404)
     def handle_not_found(e):
-        logger.warning(f"404 Not Found: {request.path}", extra={
-                       "login": get_anonymous_login()})
+        logger.warning(
+            f"404 Not Found: {request.path}", extra={"login": get_anonymous_login()}
+        )
         return jsonify({"msg": "Not Found"}), 404
 
     # @app.errorhandler(409)
