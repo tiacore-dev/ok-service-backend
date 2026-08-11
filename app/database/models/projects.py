@@ -49,6 +49,9 @@ class Projects(Base):
     project_place_relations = relationship(
         "ProjectPlaceRelations", back_populates="project"
     )
+    project_attachments = relationship(
+        "ProjectAttachments", back_populates="project", passive_deletes=True
+    )
 
     def __repr__(self):
         return (

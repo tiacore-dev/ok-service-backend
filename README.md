@@ -12,3 +12,4 @@
 - [docs/shift-report-details-rules.md](./docs/shift-report-details-rules.md) - правила расчёта статистики и статуса `project_work` в ответах `shift_report_details`.
 - [docs/project-work-statistics-cache.md](./docs/project-work-statistics-cache.md) - проектирование Redis-кэша агрегированной статистики по работам проекта.
 - [docs/time-contract.md](./docs/time-contract.md) - единый контракт Unix timestamp в миллисекундах.
+- [docs/attachments.md](./docs/attachments.md) - хранение, API, права и валидация вложений.

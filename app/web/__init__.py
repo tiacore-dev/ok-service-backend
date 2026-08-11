@@ -2,6 +2,11 @@ from flask_restx import Api
 
 from .api_keys.routes import api_key_ns
 from .auth.routes import login_ns
+from .attachments import (
+    object_attachment_ns,
+    project_attachment_ns,
+    shift_report_attachment_ns,
+)
 from .cities.routes import city_ns
 from .leaves.routes import leave_ns
 from .materials.routes import material_ns
@@ -29,6 +34,9 @@ from .works.routes import work_ns
 
 def register_namespaces(api: Api):
     api.add_namespace(login_ns)
+    api.add_namespace(project_attachment_ns)
+    api.add_namespace(shift_report_attachment_ns)
+    api.add_namespace(object_attachment_ns)
     api.add_namespace(role_ns)
     api.add_namespace(subscription_ns)
     api.add_namespace(api_key_ns)

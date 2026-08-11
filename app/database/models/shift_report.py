@@ -72,6 +72,9 @@ class ShiftReports(Base):
     shift_place_relations = relationship(
         "ShiftPlaceRelations", back_populates="shift_report", passive_deletes=True
     )
+    shift_report_attachments = relationship(
+        "ShiftReportAttachments", back_populates="shift_report", passive_deletes=True
+    )
 
     shift_report_creator = relationship(
         "Users", back_populates="created_shift_reports", foreign_keys=[created_by]
