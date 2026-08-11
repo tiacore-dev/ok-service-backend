@@ -1,6 +1,6 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
-
+from typing import Protocol, cast
 
 MIGRATION_PATH = (
     Path(__file__).parents[1]
@@ -10,11 +10,17 @@ MIGRATION_PATH = (
 )
 
 
-def _load_migration():
+class MeasurementUnitsMigration(Protocol):
+    SUPPORTED_MEASUREMENT_UNIT_VALUES: set[str]
+
+
+def _load_migration() -> MeasurementUnitsMigration:
     spec = spec_from_file_location("measurement_units_migration", MIGRATION_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Cannot load migration module: {MIGRATION_PATH}")
     migration = module_from_spec(spec)
     spec.loader.exec_module(migration)
-    return migration
+    return cast(MeasurementUnitsMigration, migration)
 
 
 def test_migration_accepts_legacy_measurement_unit_values():

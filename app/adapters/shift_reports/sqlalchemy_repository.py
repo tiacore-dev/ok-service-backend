@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
+from app.adapters.statistics import ProjectWorkStatistics
 from app.database.managers.projects_managers import ProjectsManager
 from app.database.managers.shift_reports_managers import (
     ShiftReportsDetailsManager,
@@ -31,6 +32,13 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         default_factory=ShiftReportsDetailsManager
     )
     projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
+    statistics: ProjectWorkStatistics | None = None
+
+    def _recalculate(self, *project_ids: UUID | None) -> None:
+        if self.statistics is not None:
+            self.statistics.recalculate_many(
+                {project_id for project_id in project_ids if project_id is not None}
+            )
 
     def create_shift_report(self, command: CreateShiftReportCommand) -> ShiftReport:
         payload = {
@@ -64,7 +72,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         record = normalize_result(created)
         if record is None:
             raise ValueError("Shift report creation did not return a record")
-        return shift_report_dict_to_entity(record)
+        entity = shift_report_dict_to_entity(record)
+        self._recalculate(entity.project)
+        return entity
 
     def get_shift_report(self, shift_report_id: UUID) -> ShiftReport | None:
         record = normalize_result(self.reports_manager.get_by_id(shift_report_id))
@@ -75,6 +85,7 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
     def update_shift_report(
         self, command: UpdateShiftReportCommand
     ) -> ShiftReport | None:
+        current = self.get_shift_report(command.shift_report_id)
         updated = self.reports_manager.update_shift_report(
             command.shift_report_id,
             user=command.user,
@@ -99,10 +110,15 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         record = normalize_result(updated)
         if record is None:
             return None
-        return shift_report_dict_to_entity(record)
+        entity = shift_report_dict_to_entity(record)
+        self._recalculate(current.project if current else None, entity.project)
+        return entity
 
     def delete_shift_report(self, shift_report_id: UUID) -> bool:
+        current = self.get_shift_report(shift_report_id)
         deleted = self.reports_manager.delete(shift_report_id)
+        if deleted is not None:
+            self._recalculate(current.project if current else None)
         return deleted is not None
 
     def list_shift_reports(self, **filters) -> tuple[int, list[ShiftReport]]:
@@ -117,7 +133,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         return self.reports_manager.get_total_sum_by_shift_report(shift_report_id)
 
     def get_project_stats(self, project_id: UUID) -> dict:
-        return self.projects_manager.get_project_stats(project_id)
+        if self.statistics is None:
+            return {}
+        return self.statistics.get_project_stats(project_id)
 
     def create_shift_report_detail(
         self, command: CreateShiftReportDetailPayload
@@ -132,7 +150,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         record = normalize_result(created)
         if record is None:
             raise ValueError("Shift report detail creation did not return a record")
-        return shift_report_detail_dict_to_entity(record)
+        entity = shift_report_detail_dict_to_entity(record)
+        self._recalculate(entity.shift_report_project)
+        return entity
 
     def get_shift_report_detail(
         self, shift_report_detail_id: UUID
@@ -147,6 +167,7 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
     def update_shift_report_detail(
         self, command: UpdateShiftReportDetailCommand
     ) -> ShiftReportDetail | None:
+        current = self.get_shift_report_detail(command.shift_report_detail_id)
         updated = self.details_manager.update_shift_report_details(
             shift_report_detail_id=command.shift_report_detail_id,
             shift_report=command.shift_report,
@@ -157,10 +178,18 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         record = normalize_result(updated)
         if record is None:
             return None
-        return shift_report_detail_dict_to_entity(record)
+        entity = shift_report_detail_dict_to_entity(record)
+        self._recalculate(
+            current.shift_report_project if current else None,
+            entity.shift_report_project,
+        )
+        return entity
 
     def delete_shift_report_detail(self, shift_report_detail_id: UUID) -> bool:
+        current = self.get_shift_report_detail(shift_report_detail_id)
         deleted = self.details_manager.delete(shift_report_detail_id)
+        if deleted is not None:
+            self._recalculate(current.shift_report_project if current else None)
         return deleted is not None
 
     def list_shift_report_details(self, **filters) -> list[ShiftReportDetail]:

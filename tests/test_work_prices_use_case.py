@@ -1,5 +1,5 @@
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from app.domain.work_prices import WorkPrice
 from app.use_cases.work_prices import (
@@ -8,34 +8,47 @@ from app.use_cases.work_prices import (
     UpdateWorkPriceCommand,
     UpdateWorkPriceUseCase,
 )
+from app.use_cases.work_prices.dto import WorkPriceListQuery
 
 
 class FakeWorkPriceRepository:
     def __init__(self, work_price: WorkPrice | None = None):
         self.work_price = work_price
-        self.created = None
-        self.updated = None
+        self.created: WorkPrice | None = None
+        self.updated: WorkPrice | None = None
 
     def create_work_price(self, work_price: WorkPrice) -> WorkPrice:
         self.created = work_price
         self.work_price = work_price
         return work_price
 
-    def get_work_price(self, work_price_id):
+    def get_work_price(self, work_price_id: UUID) -> WorkPrice | None:
         if self.work_price and self.work_price.work_price_id == work_price_id:
             return self.work_price
         return None
 
-    def update_work_price(self, work_price: WorkPrice):
+    def get_work_price_record(self, work_price_id: UUID) -> dict[str, object] | None:
+        work_price = self.get_work_price(work_price_id)
+        return {"work_price_id": str(work_price.work_price_id)} if work_price else None
+
+    def update_work_price(self, work_price: WorkPrice) -> WorkPrice:
         self.updated = work_price
         self.work_price = work_price
         return work_price
 
-    def delete_work_price(self, work_price_id):
+    def delete_work_price(self, work_price_id: UUID) -> bool:
         return self.work_price is not None and self.work_price.work_price_id == work_price_id
 
-    def list_work_prices(self, query):
+    def list_work_prices(self, query: WorkPriceListQuery) -> list[WorkPrice]:
         return [self.work_price] if self.work_price is not None else []
+
+    def list_work_price_records(
+        self, query: WorkPriceListQuery
+    ) -> list[dict[str, object]]:
+        return [
+            {"work_price_id": str(work_price.work_price_id)}
+            for work_price in self.list_work_prices(query)
+        ]
 
 
 def test_create_work_price_use_case():

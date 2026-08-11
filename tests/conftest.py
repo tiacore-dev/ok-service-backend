@@ -19,6 +19,25 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 GLOBAL_BASE = None
 
 
+class FakeRedis:
+    """In-memory Redis substitute; tests never need a Redis service."""
+
+    def __init__(self):
+        self.values: dict[str, str] = {}
+
+    def get(self, name: str):
+        return self.values.get(name)
+
+    def set(self, name: str, value: str):
+        self.values[name] = value
+        return True
+
+    def delete(self, *names: str):
+        for name in names:
+            self.values.pop(name, None)
+        return len(names)
+
+
 def create_city_for_user(db_session, user, name=None):
     """
     Helper to create a city for a given user and assign it.
@@ -84,13 +103,15 @@ def setup_database(test_app):
                     "ALTER TABLE cities DROP CONSTRAINT IF EXISTS fk_cities_created_by"
                 )
                 conn.exec_driver_sql(
-                    "ALTER TABLE cities DROP CONSTRAINT IF EXISTS cities_created_by_fkey"
+                    "ALTER TABLE cities DROP CONSTRAINT "
+                    "IF EXISTS cities_created_by_fkey"
                 )
                 conn.exec_driver_sql(
                     "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_position_id_fkey"
                 )
                 conn.exec_driver_sql(
-                    "ALTER TABLE positions DROP CONSTRAINT IF EXISTS positions_created_by_fkey"
+                    "ALTER TABLE positions DROP CONSTRAINT "
+                    "IF EXISTS positions_created_by_fkey"
                 )
         except Exception:  # pragma: no cover - cleanup best effort
             pass
@@ -150,6 +171,11 @@ def test_app():
         }
     )
     return app
+
+
+@pytest.fixture(autouse=True)
+def mock_redis(test_app):
+    test_app.extensions["redis"] = FakeRedis()
 
 
 @pytest.fixture

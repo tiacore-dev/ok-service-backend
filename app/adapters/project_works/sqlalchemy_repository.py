@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any, Protocol
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
-from app.database.managers.projects_managers import ProjectWorksManager, ProjectsManager
+from app.adapters.statistics import ProjectWorkStatistics
+from app.database.managers.projects_managers import ProjectsManager, ProjectWorksManager
 from app.domain.project_works import ProjectWork
 from app.use_cases.project_works.dto import ProjectWorkListQuery
 from app.use_cases.project_works.ports import ProjectWorkRepository
@@ -15,22 +17,59 @@ from .mappers import (
 )
 
 
+class ProjectWorkManager(Protocol):
+    def add(self, **kwargs: object) -> dict[str, Any]: ...
+
+    def get_by_id(self, record_id: UUID) -> dict[str, Any] | None: ...
+
+    def update(self, record_id: UUID, **kwargs: object) -> dict[str, Any] | None: ...
+
+    def delete(self, record_id: UUID) -> dict[str, Any] | None: ...
+
+    def get_all_filtered(
+        self,
+        offset: int = 0,
+        limit: int | None = None,
+        sort_by: str | None = "created_at",
+        sort_order: str = "desc",
+        **filters: Any,
+    ) -> list[dict[str, Any]]: ...
+
+
 @dataclass(slots=True)
 class SQLAlchemyProjectWorkRepository(ProjectWorkRepository):
-    manager: ProjectWorksManager = field(default_factory=ProjectWorksManager)
+    manager: ProjectWorkManager = field(default_factory=ProjectWorksManager)
     projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
+    statistics: ProjectWorkStatistics | None = None
+
+    def _recalculate(self, *project_ids: UUID | None) -> None:
+        if self.statistics is not None:
+            self.statistics.recalculate_many(
+                {project_id for project_id in project_ids if project_id is not None}
+            )
 
     def create_project_work(self, project_work: ProjectWork) -> ProjectWork:
-        created = self.manager.add(**project_work_entity_to_create_payload(project_work))
+        created = self.manager.add(
+            **project_work_entity_to_create_payload(project_work)
+        )
         record = normalize_result(created)
         if record is None:
             raise ValueError("Project work creation did not return a record")
-        return project_work_dict_to_entity(record)
+        entity = project_work_dict_to_entity(record)
+        self._recalculate(entity.project)
+        return entity
 
-    def create_project_works(self, project_works: list[ProjectWork]) -> list[ProjectWork]:
+    def create_project_works(
+        self, project_works: list[ProjectWork]
+    ) -> list[ProjectWork]:
         created_items: list[ProjectWork] = []
         for item in project_works:
-            created_items.append(self.create_project_work(item))
+            created = self.manager.add(**project_work_entity_to_create_payload(item))
+            record = normalize_result(created)
+            if record is None:
+                raise ValueError("Project work creation did not return a record")
+            created_items.append(project_work_dict_to_entity(record))
+        self._recalculate(*(item.project for item in created_items))
         return created_items
 
     def get_project_work(self, project_work_id: UUID) -> ProjectWork | None:
@@ -40,6 +79,7 @@ class SQLAlchemyProjectWorkRepository(ProjectWorkRepository):
         return project_work_dict_to_entity(record)
 
     def update_project_work(self, project_work: ProjectWork) -> ProjectWork | None:
+        current = self.get_project_work(project_work.project_work_id)
         updated = self.manager.update(
             record_id=project_work.project_work_id,
             project_work_name=project_work.project_work_name,
@@ -52,10 +92,15 @@ class SQLAlchemyProjectWorkRepository(ProjectWorkRepository):
         record = normalize_result(updated)
         if record is None:
             return None
-        return project_work_dict_to_entity(record)
+        entity = project_work_dict_to_entity(record)
+        self._recalculate(current.project if current else None, entity.project)
+        return entity
 
     def delete_project_work(self, project_work_id: UUID) -> bool:
+        current = self.get_project_work(project_work_id)
         deleted = self.manager.delete(project_work_id)
+        if deleted is not None:
+            self._recalculate(current.project if current else None)
         return deleted is not None
 
     def list_project_works(self, query: ProjectWorkListQuery) -> list[ProjectWork]:
@@ -80,4 +125,6 @@ class SQLAlchemyProjectWorkRepository(ProjectWorkRepository):
         return [UUID(project["project_id"]) for project in projects]
 
     def get_project_stats(self, project_id: UUID) -> dict:
-        return self.projects_manager.get_project_stats(project_id)
+        if self.statistics is None:
+            return {}
+        return self.statistics.get_project_stats(project_id)

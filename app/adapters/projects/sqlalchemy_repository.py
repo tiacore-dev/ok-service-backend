@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
+from app.adapters.statistics import ProjectWorkStatistics
 from app.database.managers.projects_managers import ProjectsManager
 from app.domain.projects import Project, ProjectValidationError
 from app.use_cases.projects.dto import ProjectActor, ProjectListQuery, ProjectStatsMap
@@ -16,6 +17,7 @@ from .mappers import project_dict_to_entity, project_entity_to_create_payload
 @dataclass(slots=True)
 class SQLAlchemyProjectRepository(ProjectRepository):
     manager: ProjectsManager = field(default_factory=ProjectsManager)
+    statistics: ProjectWorkStatistics | None = None
 
     def create_project(self, project: Project) -> Project:
         created = self.manager.add(**project_entity_to_create_payload(project))
@@ -49,7 +51,9 @@ class SQLAlchemyProjectRepository(ProjectRepository):
         deleted = self.manager.delete(project_id)
         return deleted is not None
 
-    def list_projects(self, query: ProjectListQuery, actor: ProjectActor) -> list[Project]:
+    def list_projects(
+        self, query: ProjectListQuery, actor: ProjectActor
+    ) -> list[Project]:
         records = self.manager.get_all_filtered_with_status(
             user={"role": actor.role, "user_id": str(actor.user_id)},
             offset=query.offset,
@@ -76,7 +80,9 @@ class SQLAlchemyProjectRepository(ProjectRepository):
         return projects
 
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap:
-        return self.manager.get_project_stats(project_id)
+        if self.statistics is None:
+            return {}
+        return self.statistics.get_project_stats(project_id)
 
     def get_project_stats_by_materials(self, project_id: UUID) -> ProjectStatsMap:
         return self.manager.get_project_stats_by_project_materials(project_id)

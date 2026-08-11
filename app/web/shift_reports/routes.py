@@ -5,7 +5,7 @@ import logging
 from typing import Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
@@ -16,6 +16,7 @@ from app.adapters.shift_reports import (
     shift_report_detail_entity_to_response,
     shift_report_entity_to_response,
 )
+from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import api_key_or_jwt_required
 from app.domain.shift_reports import (
     ShiftReportConflictError,
@@ -196,7 +197,9 @@ def _get_current_user() -> dict[str, Any]:
 
 
 def _repository() -> SQLAlchemyShiftReportRepository:
-    return SQLAlchemyShiftReportRepository()
+    return SQLAlchemyShiftReportRepository(
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+    )
 
 
 def _actor(current_user: dict[str, Any]) -> ShiftReportActor:
@@ -779,7 +782,9 @@ class ShiftReportDetailsAll(Resource):
     @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_filter_parser)
     @shift_report_details_ns.response(
-        200, "Shift report details found successfully", shift_report_details_all_response
+        200,
+        "Shift report details found successfully",
+        shift_report_details_all_response,
     )
     def get(self):
         current_user = _get_current_user()
@@ -843,7 +848,9 @@ class ShiftReportDetailsByReports(Resource):
     @shift_report_details_ns.expect(shift_report_details_by_report_ids, validate=False)
     @shift_report_details_ns.doc(consumes=["application/json"])
     @shift_report_details_ns.response(
-        200, "Shift report details found successfully", shift_report_details_all_response
+        200,
+        "Shift report details found successfully",
+        shift_report_details_all_response,
     )
     def post(self):
         current_user = _get_current_user()

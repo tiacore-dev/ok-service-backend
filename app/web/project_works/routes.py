@@ -5,7 +5,7 @@ import logging
 from typing import Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
@@ -15,6 +15,7 @@ from app.adapters.project_works import (
     SQLAlchemyProjectWorkRepository,
     project_work_entity_to_response,
 )
+from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.domain.project_works import (
     ProjectWorkForbiddenError,
@@ -63,7 +64,9 @@ from app.web._typing import (
 
 logger = logging.getLogger("ok_service")
 
-project_work_ns = Namespace("project_works", description="Project Works management operations")
+project_work_ns = Namespace(
+    "project_works", description="Project Works management operations"
+)
 
 project_work_ns.models[project_work_create_model.name] = project_work_create_model
 project_work_ns.models[project_work_edit_model.name] = project_work_edit_model
@@ -105,6 +108,7 @@ class ProjectWorkFilterPayload(TypedDict, total=False):
     max_quantity: float | int
     min_summ: float | int
     max_summ: float | int
+    with_stat: bool
 
 
 def get_jwt_identity():
@@ -127,7 +131,28 @@ def _get_current_user() -> dict[str, Any]:
 
 
 def _repository() -> SQLAlchemyProjectWorkRepository:
-    return SQLAlchemyProjectWorkRepository()
+    return SQLAlchemyProjectWorkRepository(
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+    )
+
+
+def _response_with_stats(project_work, stats: dict[str, Any]) -> dict[str, Any]:
+    response = project_work_entity_to_response(project_work)
+    work_stats = stats.get(str(project_work.work), {})
+    planned = float(work_stats.get("project_work_quantity", 0) or 0)
+    actual = float(work_stats.get("shift_report_details_quantity", 0) or 0)
+    response.update(
+        project_work_quantity=planned,
+        shift_report_details_quantity=actual,
+        acceptance_status=(
+            "not_checked"
+            if actual == 0
+            else "partial"
+            if actual < planned
+            else "accepted"
+        ),
+    )
+    return response
 
 
 def _parse_project_work_id(project_work_id: str) -> UUID:
@@ -140,7 +165,9 @@ def _parse_project_work_id(project_work_id: str) -> UUID:
 def _actor(current_user: dict[str, Any]) -> ProjectWorkActor:
     return ProjectWorkActor(
         role=str(current_user.get("role") or ""),
-        user_id=get_required_uuid(current_user, "user_id", "Current user id is required"),
+        user_id=get_required_uuid(
+            current_user, "user_id", "Current user id is required"
+        ),
     )
 
 
@@ -262,11 +289,9 @@ class ProjectWorkView(Resource):
             project_work = GetProjectWorkUseCase(repository=repository).execute(
                 _parse_project_work_id(project_work_id)
             )
-            response = project_work_entity_to_response(project_work)
-            stats = repository.get_project_stats(project_work.project)
-            work_stats = stats.get(str(project_work.work), {})
-            response["project_work_quantity"] = float(work_stats.get("project_work_quantity", 0) or 0)
-            response["shift_report_details_quantity"] = float(work_stats.get("shift_report_details_quantity", 0) or 0)
+            response = _response_with_stats(
+                project_work, repository.get_project_stats(project_work.project)
+            )
             return {
                 "msg": "Project work found successfully",
                 "project_work": response,
@@ -290,12 +315,16 @@ class ProjectWorkSoftDelete(Resource):
             extra={"login": current_user},
         )
         try:
-            project_work = SoftDeleteProjectWorkUseCase(repository=_repository()).execute(
+            project_work = SoftDeleteProjectWorkUseCase(
+                repository=_repository()
+            ).execute(
                 _parse_project_work_id(project_work_id),
                 _actor(current_user),
             )
             return {
-                "msg": f"Project work {project_work.project_work_id} soft deleted successfully",
+                "msg": f"Project work {
+                    project_work.project_work_id
+                } soft deleted successfully",
                 "project_work_id": str(project_work.project_work_id),
             }, 200
         except Exception as error:
@@ -382,7 +411,9 @@ class ProjectWorkEdit(Resource):
 class ProjectWorkAll(Resource):
     @api_key_or_jwt_required
     @project_work_ns.expect(project_work_filter_parser)
-    @project_work_ns.marshal_with(project_work_all_response)
+    @project_work_ns.response(
+        200, "Project works found successfully", project_work_all_response
+    )
     def get(self):
         current_user = _get_current_user()
         logger.info("Request to fetch all project works", extra={"login": current_user})
@@ -405,13 +436,26 @@ class ProjectWorkAll(Resource):
                 min_summ=get_optional_decimal(args, "min_summ"),
                 max_summ=get_optional_decimal(args, "max_summ"),
             )
-            project_works = ListProjectWorksUseCase(repository=_repository()).execute(
+            repository = _repository()
+            project_works = ListProjectWorksUseCase(repository=repository).execute(
                 query
+            )
+            with_stat = get_optional_bool(args, "with_stat") is True
+            stats_by_project = (
+                {
+                    project_id: repository.get_project_stats(project_id)
+                    for project_id in {item.project for item in project_works}
+                }
+                if with_stat
+                else {}
             )
             return {
                 "msg": "Project works found successfully",
                 "project_works": [
-                    project_work_entity_to_response(item) for item in project_works
+                    _response_with_stats(item, stats_by_project[item.project])
+                    if with_stat
+                    else project_work_entity_to_response(item)
+                    for item in project_works
                 ],
             }, 200
         except Exception as error:

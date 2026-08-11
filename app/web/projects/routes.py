@@ -5,7 +5,7 @@ import logging
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
@@ -15,6 +15,7 @@ from app.adapters.projects import (
     SQLAlchemyProjectRepository,
     project_entity_to_response,
 )
+from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.domain.projects import (
     ProjectForbiddenError,
@@ -40,7 +41,13 @@ from app.use_cases.projects import (
     UpdateProjectCommand,
     UpdateProjectUseCase,
 )
-from app.web._typing import get_optional_bool, get_optional_uuid, get_required_uuid, to_plain_dict
+from app.web._typing import (
+    get_optional_bool,
+    get_optional_uuid,
+    get_required_uuid,
+    to_plain_dict,
+)
+
 from .models import (
     project_all_response,
     project_create_model,
@@ -119,17 +126,23 @@ def _get_current_user() -> dict[str, Any]:
 
 
 def _repository() -> SQLAlchemyProjectRepository:
-    return SQLAlchemyProjectRepository()
+    return SQLAlchemyProjectRepository(
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+    )
 
 
 def _parse_project_id(project_id: str) -> UUID:
-    return get_required_uuid({"project_id": project_id}, "project_id", "Invalid UUID format")
+    return get_required_uuid(
+        {"project_id": project_id}, "project_id", "Invalid UUID format"
+    )
 
 
 def _actor(current_user: dict[str, Any]) -> ProjectActor:
     return ProjectActor(
         role=str(current_user.get("role", "")),
-        user_id=get_required_uuid(current_user, "user_id", "Current user id is required"),
+        user_id=get_required_uuid(
+            current_user, "user_id", "Current user id is required"
+        ),
     )
 
 
@@ -169,7 +182,9 @@ class ProjectAdd(Resource):
                     name=data["name"],
                     object=get_required_uuid(data, "object", "Object is required"),
                     project_leader=get_optional_uuid(data, "project_leader"),
-                    night_shift_available=bool(get_optional_bool(data, "night_shift_available")),
+                    night_shift_available=bool(
+                        get_optional_bool(data, "night_shift_available")
+                    ),
                     extreme_conditions_available=bool(
                         get_optional_bool(data, "extreme_conditions_available")
                     ),
@@ -179,9 +194,14 @@ class ProjectAdd(Resource):
                 ),
                 _actor(current_user),
             )
-            return {"msg": "New project added successfully", "project_id": str(project.project_id)}, 200
+            return {
+                "msg": "New project added successfully",
+                "project_id": str(project.project_id),
+            }, 200
         except Exception as error:
-            logger.error(f"Error adding project: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error adding project: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -191,14 +211,21 @@ class ProjectView(Resource):
     @project_ns.marshal_with(project_response)
     def get(self, project_id):
         current_user = _get_current_user()
-        logger.info(f"Request to view project: {project_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to view project: {project_id}", extra={"login": current_user}
+        )
         try:
             project = GetProjectUseCase(repository=_repository()).execute(
                 _parse_project_id(project_id)
             )
-            return {"msg": "Project found successfully", "project": project_entity_to_response(project)}, 200
+            return {
+                "msg": "Project found successfully",
+                "project": project_entity_to_response(project),
+            }, 200
         except Exception as error:
-            logger.error(f"Error viewing project: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error viewing project: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -223,7 +250,9 @@ class ProjectSoftDelete(Resource):
                 "project_id": project_id,
             }, 200
         except Exception as error:
-            logger.error(f"Error soft deleting project: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error soft deleting project: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -248,7 +277,9 @@ class ProjectHardDelete(Resource):
                 "project_id": project_id,
             }, 200
         except Exception as error:
-            logger.error(f"Error hard deleting project: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error hard deleting project: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -260,7 +291,9 @@ class ProjectEdit(Resource):
     @project_ns.marshal_with(project_msg_model)
     def patch(self, project_id):
         current_user = _get_current_user()
-        logger.info(f"Request to edit project: {project_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to edit project: {project_id}", extra={"login": current_user}
+        )
         schema = ProjectEditSchema()
         try:
             raw_payload = to_plain_dict(
@@ -275,7 +308,9 @@ class ProjectEdit(Resource):
                     name=data.get("name"),
                     object=get_optional_uuid(data, "object"),
                     project_leader=get_optional_uuid(data, "project_leader"),
-                    night_shift_available=get_optional_bool(data, "night_shift_available"),
+                    night_shift_available=get_optional_bool(
+                        data, "night_shift_available"
+                    ),
                     extreme_conditions_available=get_optional_bool(
                         data, "extreme_conditions_available"
                     ),
@@ -283,9 +318,14 @@ class ProjectEdit(Resource):
                 ),
                 _actor(current_user),
             )
-            return {"msg": "Project edited successfully", "project_id": str(project.project_id)}, 200
+            return {
+                "msg": "Project edited successfully",
+                "project_id": str(project.project_id),
+            }, 200
         except Exception as error:
-            logger.error(f"Error editing project: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error editing project: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -318,10 +358,14 @@ class ProjectAll(Resource):
             )
             return {
                 "msg": "Projects found successfully",
-                "projects": [project_entity_to_response(project) for project in projects],
+                "projects": [
+                    project_entity_to_response(project) for project in projects
+                ],
             }, 200
         except Exception as error:
-            logger.error(f"Error fetching projects: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error fetching projects: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -342,7 +386,8 @@ class ProjectStats(Resource):
             return {"msg": "Project stats fetched successfully", "stats": stats}, 200
         except Exception as error:
             logger.error(
-                f"Error getting stats for project: {error}", extra={"login": current_user}
+                f"Error getting stats for project: {error}",
+                extra={"login": current_user},
             )
             return _map_error(error)
 
@@ -354,7 +399,9 @@ class ProjectStatsByProjectMaterials(Resource):
     def get(self, project_id):
         current_user = _get_current_user()
         logger.info(
-            f"Request to get project stats BY PROJECT MATERIALS for project: {project_id}",
+            f"Request to get project stats BY PROJECT MATERIALS for project: {
+                project_id
+            }",
             extra={"login": current_user},
         )
         try:
@@ -364,6 +411,7 @@ class ProjectStatsByProjectMaterials(Resource):
             return {"msg": "Project stats fetched successfully", "stats": stats}, 200
         except Exception as error:
             logger.error(
-                f"Error getting stats for project materials: {error}", extra={"login": current_user}
+                f"Error getting stats for project materials: {error}",
+                extra={"login": current_user},
             )
             return _map_error(error)

@@ -37,4 +37,3 @@ class TestingConfig(Config):
 
     TESTING = True
     SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URL")
-    REDIS_URL = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/1")

@@ -44,7 +44,8 @@
 
 1. `project_work_quantity` — сумма плановых `quantity` из `project_works` проекта.
 2. `shift_report_details_quantity` — сумма `quantity` из деталей сменных отчётов проекта.
-3. Учитываются только детали отчётов, у которых `signed = true`.
+3. Учитываются только детали отчётов, у которых `signed = true` и
+   `deleted = false`.
 4. Группировка выполняется по `work`, а не по `project_work_id`. Поэтому одинаковая работа в нескольких `project_work` учитывается общей суммой.
 
 ## `acceptance_status`

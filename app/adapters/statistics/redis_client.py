@@ -5,7 +5,17 @@ only when a command is executed.  Statistics read/write behaviour is added in
 a later vertical slice.
 """
 
+from typing import Protocol
+
 from redis import Redis
+
+
+class RedisClient(Protocol):
+    def get(self, name: str) -> str | bytes | None: ...
+
+    def set(self, name: str, value: str) -> object: ...
+
+    def delete(self, *names: str) -> object: ...
 
 
 def create_redis_client(redis_url: str) -> Redis:

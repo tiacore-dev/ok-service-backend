@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, asc, desc
+from sqlalchemy import and_, asc, desc, func
 from sqlalchemy.orm import joinedload
 
 # Предполагается, что BaseDBManager в другом файле
@@ -169,63 +169,45 @@ class ProjectsManager(BaseDBManager):
             )
 
             with self.session_scope() as session:
-                project_works = (
-                    session.query(ProjectWorks)
+                plan_rows = (
+                    session.query(
+                        ProjectWorks.work,
+                        func.sum(ProjectWorks.quantity),
+                        func.max(ProjectWorks.project_work_name),
+                    )
                     .filter(ProjectWorks.project == project_id)
+                    .group_by(ProjectWorks.work)
                     .all()
                 )
-
                 result = {
-                    str(work.work): {
-                        "project_work_quantity": 0,
-                        "shift_report_details_quantity": 0,
-                        "project_work_name": work.project_work_name,
+                    str(work_id): {
+                        "project_work_quantity": float(quantity or 0),
+                        "shift_report_details_quantity": 0.0,
+                        "project_work_name": name,
                     }
-                    for work in project_works
+                    for work_id, quantity, name in plan_rows
                 }
-
-                project_works = [work.to_dict() for work in project_works]
-                for work in project_works:
-                    work_id = str(work["work"])
-                    if isinstance(work["quantity"], Decimal):
-                        work["quantity"] = float(work["quantity"])
-                    result[work_id]["project_work_quantity"] += work["quantity"]
-
-                reports = (
-                    session.query(ShiftReports)
+                actual_rows = (
+                    session.query(
+                        ShiftReportDetails.work,
+                        func.sum(ShiftReportDetails.quantity),
+                    )
+                    .join(
+                        ShiftReports,
+                        ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
+                    )
                     .filter(
                         ShiftReports.project == project_id,
                         ShiftReports.signed.is_(True),
+                        ShiftReports.deleted.is_(False),
                     )
+                    .group_by(ShiftReportDetails.work)
                     .all()
                 )
-
-                reports = [report.to_dict() for report in reports]
-                for report in reports:
-                    details = (
-                        session.query(ShiftReportDetails)
-                        .filter(
-                            ShiftReportDetails.shift_report
-                            == UUID(report["shift_report_id"])
-                        )
-                        .all()
-                    )
-                    details = [detail.to_dict() for detail in details]
-
-                    for detail in details:
-                        detail_work_id = str(detail["work"])
-                        if isinstance(detail["quantity"], Decimal):
-                            detail["quantity"] = float(detail["quantity"])
-                        if detail_work_id in result:
-                            result[detail_work_id]["shift_report_details_quantity"] += (
-                                detail["quantity"]
-                            )
-                        else:
-                            logger.warning(
-                                f"Work ID {detail_work_id} not found in result",
-                                extra={"login": "database"},
-                            )
-
+                for work_id, quantity in actual_rows:
+                    stats = result.get(str(work_id))
+                    if stats is not None:
+                        stats["shift_report_details_quantity"] = float(quantity or 0)
                 return result
         except Exception as e:
             logger.error(
@@ -233,6 +215,10 @@ class ProjectsManager(BaseDBManager):
                 extra={"login": "database"},
             )
             return {}
+
+    def get_all_project_ids(self) -> list[UUID]:
+        with self.session_scope() as session:
+            return [project_id for (project_id,) in session.query(Projects.project_id)]
 
     def get_project_stats_by_project_work(self, project_id):
         try:
