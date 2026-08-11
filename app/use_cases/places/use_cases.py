@@ -46,6 +46,14 @@ class ListPlacesUseCase:
 
 
 @dataclass(slots=True)
+class ListPlacesForObjectUseCase:
+    repository: PlaceRepository
+
+    def execute(self, object_id: UUID) -> list[Place]:
+        return self.repository.list_places_by_object(object_id)
+
+
+@dataclass(slots=True)
 class UpdatePlaceUseCase:
     repository: PlaceRepository
 

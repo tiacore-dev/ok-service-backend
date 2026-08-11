@@ -59,3 +59,12 @@ class SQLAlchemyPlaceRepository(PlaceRepository):
     def list_places(self) -> list[Place]:
         records = self.manager.get_all(offset=0, limit=None)
         return [_entity(record) for record in records]
+
+    def list_places_by_object(self, object_id: UUID) -> list[Place]:
+        records = self.manager.get_all_filtered(
+            offset=0,
+            limit=None,
+            sort_by=None,
+            object_id=object_id,
+        )
+        return [_entity(record) for record in records]

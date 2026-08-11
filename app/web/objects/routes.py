@@ -15,6 +15,7 @@ from app.adapters.objects import (
     SQLAlchemyObjectRepository,
     object_entity_to_response,
 )
+from app.adapters.places import SQLAlchemyPlaceRepository, place_entity_to_response
 from app.decorators import api_key_or_jwt_required
 from app.domain.objects import (
     ObjectForbiddenError,
@@ -38,6 +39,7 @@ from app.use_cases.objects import (
     UpdateObjectCommand,
     UpdateObjectUseCase,
 )
+from app.use_cases.places import ListPlacesForObjectUseCase
 from app.web._typing import (
     get_optional_bool,
     get_optional_float,
@@ -56,6 +58,7 @@ from .models import (
     object_model,
     object_msg_model,
     object_response,
+    object_view_model,
 )
 
 logger = logging.getLogger("ok_service")
@@ -68,6 +71,7 @@ object_ns.models[object_msg_model.name] = object_msg_model
 object_ns.models[object_response.name] = object_response
 object_ns.models[object_all_response.name] = object_all_response
 object_ns.models[object_model.name] = object_model
+object_ns.models[object_view_model.name] = object_view_model
 
 
 class ObjectCreatePayload(TypedDict):
@@ -131,6 +135,10 @@ def _get_current_user() -> dict[str, Any]:
 
 def _repository() -> SQLAlchemyObjectRepository:
     return SQLAlchemyObjectRepository()
+
+
+def _places_repository() -> SQLAlchemyPlaceRepository:
+    return SQLAlchemyPlaceRepository()
 
 
 def _parse_object_id(object_id: str) -> UUID:
@@ -219,9 +227,16 @@ class ObjectView(Resource):
                 _parse_object_id(object_id),
                 _actor(current_user),
             )
+            places = ListPlacesForObjectUseCase(
+                repository=_places_repository()
+            ).execute(obj.object_id)
+            object_response_data = object_entity_to_response(obj)
+            object_response_data["places"] = [
+                place_entity_to_response(place) for place in places
+            ]
             return {
                 "msg": "Object found successfully",
-                "object": object_entity_to_response(obj),
+                "object": object_response_data,
             }, 200
         except Exception as error:
             logger.error(

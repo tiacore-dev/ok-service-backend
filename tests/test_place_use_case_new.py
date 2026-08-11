@@ -8,6 +8,7 @@ from app.use_cases.places import (
     CreatePlaceCommand,
     CreatePlaceUseCase,
     HardDeletePlaceUseCase,
+    ListPlacesForObjectUseCase,
     PlaceActor,
     SoftDeletePlaceUseCase,
     UpdatePlaceCommand,
@@ -22,6 +23,7 @@ class FakePlaceRepository(PlaceRepository):
         self.created: Place | None = None
         self.updated: Place | None = None
         self.deleted: UUID | None = None
+        self.listed_object_id: UUID | None = None
 
     def create_place(self, place: Place) -> Place:
         self.created = place
@@ -42,6 +44,10 @@ class FakePlaceRepository(PlaceRepository):
 
     def list_places(self) -> list[Place]:
         return [self.place] if self.place else []
+
+    def list_places_by_object(self, object_id: UUID) -> list[Place]:
+        self.listed_object_id = object_id
+        return [self.place] if self.place and self.place.object_id == object_id else []
 
 
 def _place(name: str = "Main hall") -> Place:
@@ -97,6 +103,16 @@ def test_update_rejects_empty_name_when_name_is_changed():
         UpdatePlaceUseCase(FakePlaceRepository(place)).execute(
             UpdatePlaceCommand(place.place_id, name="   "), PlaceActor(role="admin")
         )
+
+
+def test_list_places_for_object_delegates_object_id():
+    place = _place()
+    repository = FakePlaceRepository(place)
+
+    result = ListPlacesForObjectUseCase(repository).execute(place.object_id)
+
+    assert result == [place]
+    assert repository.listed_object_id == place.object_id
 
 
 def test_mapper_keeps_invalid_legacy_values_for_get():
