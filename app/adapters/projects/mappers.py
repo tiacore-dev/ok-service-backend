@@ -50,3 +50,35 @@ def project_entity_to_response(project: Project) -> dict[str, Any]:
         "created_by": str(project.created_by) if project.created_by else None,
         "deleted": project.deleted,
     }
+
+
+def project_dict_to_response(payload: dict[str, Any]) -> dict[str, Any]:
+    """Serialize a stored project without applying write-time validation.
+
+    Project creation and updates use the strict domain entity. Reads must keep
+    historical rows available even when they no longer satisfy that entity's
+    invariants, for example when ``name`` is empty.
+    """
+    return {
+        "project_id": (
+            str(payload["project_id"])
+            if payload.get("project_id") is not None
+            else None
+        ),
+        "name": payload.get("name"),
+        "object": str(payload["object"]) if payload.get("object") is not None else None,
+        "project_leader": (
+            str(payload["project_leader"])
+            if payload.get("project_leader") is not None
+            else None
+        ),
+        "night_shift_available": payload.get("night_shift_available"),
+        "extreme_conditions_available": payload.get("extreme_conditions_available"),
+        "created_at": payload.get("created_at"),
+        "created_by": (
+            str(payload["created_by"])
+            if payload.get("created_by") is not None
+            else None
+        ),
+        "deleted": payload.get("deleted"),
+    }

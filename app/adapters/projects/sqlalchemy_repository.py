@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
 from app.adapters.statistics import ProjectWorkStatistics
 from app.database.managers.projects_managers import ProjectsManager
-from app.domain.projects import Project, ProjectValidationError
+from app.domain.projects import Project
 from app.use_cases.projects.dto import ProjectActor, ProjectListQuery, ProjectStatsMap
 from app.use_cases.projects.ports import ProjectRepository
 
@@ -31,6 +30,9 @@ class SQLAlchemyProjectRepository(ProjectRepository):
         if record is None:
             return None
         return project_dict_to_entity(record)
+
+    def get_project_record(self, project_id: UUID) -> dict[str, object] | None:
+        return normalize_result(self.manager.get_by_id(project_id))
 
     def update_project(self, project: Project) -> Project | None:
         updated = self.manager.update(
@@ -56,7 +58,15 @@ class SQLAlchemyProjectRepository(ProjectRepository):
     def list_projects(
         self, query: ProjectListQuery, actor: ProjectActor
     ) -> list[Project]:
-        records = self.manager.get_all_filtered_with_status(
+        return [
+            project_dict_to_entity(record)
+            for record in self.list_project_records(query, actor)
+        ]
+
+    def list_project_records(
+        self, query: ProjectListQuery, actor: ProjectActor
+    ) -> list[dict[str, object]]:
+        return self.manager.get_all_filtered_with_status(
             user={"role": actor.role, "user_id": str(actor.user_id)},
             offset=query.offset,
             limit=query.limit,
@@ -69,17 +79,6 @@ class SQLAlchemyProjectRepository(ProjectRepository):
             created_by=query.created_by,
             created_at=query.created_at,
         )
-        projects: list[Project] = []
-        for record in records:
-            try:
-                projects.append(project_dict_to_entity(record))
-            except ProjectValidationError as error:
-                logging.warning(
-                    "Skipping invalid project %s while listing projects: %s",
-                    record.get("project_id"),
-                    error,
-                )
-        return projects
 
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap:
         if self.statistics is None:

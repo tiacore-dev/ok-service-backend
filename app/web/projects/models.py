@@ -9,15 +9,15 @@ project_edit_model = generate_swagger_model(ProjectEditSchema(), "ProjectEdit")
 project_model = Model(
     "Project",
     {
-        "project_id": fields.String(required=True, description="ID of the project"),
-        "name": fields.String(required=True, description="Name of the project"),
-        "object": fields.String(required=True, description="Object data associated with the project"),
+        "project_id": fields.String(required=False, description="ID of the project"),
+        "name": fields.String(required=False, description="Name of the project; may be null in legacy records"),
+        "object": fields.String(required=False, description="Object data associated with the project; may be null in legacy records"),
         "project_leader": fields.String(required=False, description="User data of the project leader"),
-        "night_shift_available": fields.Boolean(required=True, description="If night shifts are available"),
-        "extreme_conditions_available": fields.Boolean(required=True, description="If extreme conditions are available"),
-        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds: project creation time"),
-        "created_by": fields.String(required=True, description="Creator of project"),
-        "deleted": fields.Boolean(required=True, description="Deletion status"),
+        "night_shift_available": fields.Boolean(required=False, description="If night shifts are available"),
+        "extreme_conditions_available": fields.Boolean(required=False, description="If extreme conditions are available"),
+        "created_at": fields.Integer(required=False, description="Unix epoch milliseconds: project creation time"),
+        "created_by": fields.String(required=False, description="Creator of project"),
+        "deleted": fields.Boolean(required=False, description="Deletion status"),
     },
 )
 

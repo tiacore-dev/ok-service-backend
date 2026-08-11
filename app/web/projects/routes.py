@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.adapters.projects import (
     SQLAlchemyProjectRepository,
-    project_entity_to_response,
+    project_dict_to_response,
 )
 from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import api_key_or_jwt_required, user_forbidden
@@ -220,7 +220,7 @@ class ProjectView(Resource):
             )
             return {
                 "msg": "Project found successfully",
-                "project": project_entity_to_response(project),
+                "project": project_dict_to_response(project),
             }, 200
         except Exception as error:
             logger.error(
@@ -359,7 +359,7 @@ class ProjectAll(Resource):
             return {
                 "msg": "Projects found successfully",
                 "projects": [
-                    project_entity_to_response(project) for project in projects
+                    project_dict_to_response(project) for project in projects
                 ],
             }, 200
         except Exception as error:

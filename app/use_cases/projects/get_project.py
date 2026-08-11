@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.domain.projects import Project, ProjectNotFoundError
+from app.domain.projects import ProjectNotFoundError
 
 from .ports import ProjectRepository
 
@@ -12,11 +12,11 @@ from .ports import ProjectRepository
 class GetProjectUseCase:
     repository: ProjectRepository
 
-    def execute(self, project_id: UUID) -> Project:
-        project = self.repository.get_project(project_id)
-        if project is None:
+    def execute(self, project_id: UUID) -> dict[str, object]:
+        record = self.repository.get_project_record(project_id)
+        if record is None:
             raise ProjectNotFoundError("Project not found")
-        return project
+        return record
 
 
 @dataclass(slots=True)

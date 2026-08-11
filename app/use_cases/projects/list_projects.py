@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.domain.projects import Project
-
 from .dto import ProjectActor, ProjectListQuery
 from .ports import ProjectRepository
 
@@ -12,5 +10,7 @@ from .ports import ProjectRepository
 class ListProjectsUseCase:
     repository: ProjectRepository
 
-    def execute(self, query: ProjectListQuery, actor: ProjectActor) -> list[Project]:
-        return self.repository.list_projects(query, actor)
+    def execute(
+        self, query: ProjectListQuery, actor: ProjectActor
+    ) -> list[dict[str, object]]:
+        return self.repository.list_project_records(query, actor)
