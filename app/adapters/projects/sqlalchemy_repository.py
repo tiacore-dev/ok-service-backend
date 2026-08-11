@@ -49,6 +49,8 @@ class SQLAlchemyProjectRepository(ProjectRepository):
 
     def delete_project(self, project_id: UUID) -> bool:
         deleted = self.manager.delete(project_id)
+        if deleted is not None and self.statistics is not None:
+            self.statistics.delete_project_stats(project_id)
         return deleted is not None
 
     def list_projects(

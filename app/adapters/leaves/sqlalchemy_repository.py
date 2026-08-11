@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
+from app.adapters.statistics import ProjectWorkStatistics
 from app.database.managers.leaves_manager import LeavesManager
 from app.domain.leaves import Leave
 from app.use_cases.leaves.dto import LeaveListQuery
@@ -18,6 +19,13 @@ from .mappers import (
 @dataclass(slots=True)
 class SQLAlchemyLeaveRepository(LeaveRepository):
     manager: LeavesManager = field(default_factory=LeavesManager)
+    statistics: ProjectWorkStatistics | None = None
+
+    def _recalculate_cancelled_shifts(self, leave_id: UUID) -> None:
+        if self.statistics is not None:
+            self.statistics.recalculate_many(
+                set(self.manager.get_cancelled_shift_project_ids(leave_id))
+            )
 
     def get_open_shift_conflict(
         self,
@@ -46,7 +54,9 @@ class SQLAlchemyLeaveRepository(LeaveRepository):
         record = normalize_result(created)
         if record is None:
             raise ValueError("Leave creation did not return a record")
-        return leave_dict_to_entity(record)
+        entity = leave_dict_to_entity(record)
+        self._recalculate_cancelled_shifts(entity.leave_id)
+        return entity
 
     def get_leave(self, leave_id: UUID) -> Leave | None:
         record = normalize_result(self.manager.get_by_id(leave_id))
@@ -70,7 +80,9 @@ class SQLAlchemyLeaveRepository(LeaveRepository):
         record = normalize_result(updated)
         if record is None:
             return None
-        return leave_dict_to_entity(record)
+        entity = leave_dict_to_entity(record)
+        self._recalculate_cancelled_shifts(entity.leave_id)
+        return entity
 
     def delete_leave(self, leave_id: UUID) -> bool:
         deleted = self.manager.delete_leave(leave_id)

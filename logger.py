@@ -1,14 +1,14 @@
 import logging
 import os
-from opentelemetry.trace import get_current_span, Span
+
+from opentelemetry.trace import Span, get_current_span
 from prometheus_client import Counter
 
 error_counter = Counter('flask_errors_total', 'Total number of errors')
-
-error_counter_by_user = Counter(
-    'flask_errors_total_by_user',
-    'Total number of errors per user',
-    ['user_id', 'login', 'role']
+log_messages_counter = Counter(
+    'log_messages_total',
+    'Total number of log messages handled by the application logger',
+    ['level'],
 )
 
 
@@ -40,31 +40,12 @@ class LokiFormatter(logging.Formatter):
 
 class PrometheusHandler(logging.Handler):
     def emit(self, record):
-        print("[PrometheusHandler] record.levelno =", record.levelno)
-        if record.levelno >= logging.ERROR:
-            error_counter.inc()
-
-            login_data = getattr(record, "login", {})
-
-            try:
-                if isinstance(login_data, dict):
-                    user_id = str(login_data.get("user_id", "unknown"))
-                    login = login_data.get("login", "unknown")
-                    role = login_data.get("role", "unknown")
-                elif isinstance(login_data, str):
-                    user_id = "system"
-                    login = login_data
-                    role = "system"
-                else:
-                    user_id = login = role = "unknown"
-
-                error_counter_by_user.labels(
-                    user_id=user_id,
-                    login=login,
-                    role=role
-                ).inc()
-            except Exception as e:
-                print(f"[PrometheusHandler] Error recording metric: {e}")
+        try:
+            log_messages_counter.labels(level=record.levelname).inc()
+            if record.levelno >= logging.ERROR:
+                error_counter.inc()
+        except Exception:  # noqa: BLE001 - telemetry failures must not break logging
+            self.handleError(record)
 
 
 class SkipMetricsFilter(logging.Filter):
@@ -76,6 +57,9 @@ class SkipMetricsFilter(logging.Filter):
 def setup_logger(name: str = "ok_service", log_file: str = "ok_service.log") -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
+    # The application logger owns its handlers. Propagation to the root logger
+    # would format and emit every record a second time (for example, via Gunicorn).
+    logger.propagate = False
 
     formatter = LokiFormatter("%(asctime)s %(levelname)s: %(message)s")
     skip_metrics_filter = SkipMetricsFilter()

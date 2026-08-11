@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Protocol
 from uuid import UUID
+
+from redis.exceptions import RedisError
 
 from app.database.managers.projects_managers import ProjectsManager
 from app.use_cases.projects.dto import ProjectStatsMap
@@ -13,6 +16,7 @@ from app.use_cases.projects.dto import ProjectStatsMap
 from .redis_client import RedisClient
 
 KEY_PREFIX = "project-work-stats"
+logger = logging.getLogger("ok_service")
 
 
 class ProjectStatsSource(Protocol):
@@ -25,6 +29,8 @@ class ProjectWorkStatistics(Protocol):
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap: ...
 
     def recalculate_many(self, project_ids: set[UUID]) -> None: ...
+
+    def delete_project_stats(self, project_id: UUID) -> None: ...
 
 
 def _key(project_id: UUID) -> str:
@@ -39,24 +45,36 @@ class RedisProjectWorkStatistics:
     projects_manager: ProjectStatsSource = field(default_factory=ProjectsManager)
 
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap:
-        raw = self.client.get(_key(project_id))
-        if raw is None:
-            return {}
-        if isinstance(raw, bytes):
-            raw = raw.decode("utf-8")
-        loaded = json.loads(raw)
-        if not isinstance(loaded, dict):
-            raise ValueError("Invalid project-work statistics cache payload")
-        return loaded
+        try:
+            raw = self.client.get(_key(project_id))
+            if raw is not None:
+                if isinstance(raw, bytes):
+                    raw = raw.decode("utf-8")
+                loaded = json.loads(raw)
+                if isinstance(loaded, dict):
+                    return loaded
+                logger.warning("Invalid project-work statistics cache payload")
+        except (RedisError, UnicodeDecodeError, json.JSONDecodeError) as error:
+            logger.warning("Redis statistics read failed: %s", error)
+        return self.recalculate(project_id)
 
     def recalculate(self, project_id: UUID) -> ProjectStatsMap:
         stats = self.projects_manager.get_project_stats(project_id)
         key = _key(project_id)
         if stats:
-            self.client.set(key, json.dumps(stats, ensure_ascii=False))
+            try:
+                self.client.set(key, json.dumps(stats, ensure_ascii=False))
+            except RedisError as error:
+                logger.warning("Redis statistics write failed: %s", error)
         else:
-            self.client.delete(key)
+            self.delete_project_stats(project_id)
         return stats
+
+    def delete_project_stats(self, project_id: UUID) -> None:
+        try:
+            self.client.delete(_key(project_id))
+        except RedisError as error:
+            logger.warning("Redis statistics delete failed: %s", error)
 
     def recalculate_many(self, project_ids: set[UUID]) -> None:
         for project_id in project_ids:

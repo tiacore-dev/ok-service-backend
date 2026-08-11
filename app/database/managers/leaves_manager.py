@@ -175,6 +175,19 @@ class LeavesManager(BaseDBManager):
             session.delete(leave)
             return leave
 
+    def get_cancelled_shift_project_ids(self, leave_id) -> list[UUID]:
+        leave_uuid = self._to_uuid(leave_id)
+        with self.session_scope() as session:
+            return [
+                project_id
+                for (project_id,) in session.query(ShiftReports.project)
+                .filter(
+                    ShiftReports.leave_id == leave_uuid,
+                    ShiftReports.deleted.is_(True),
+                )
+                .distinct()
+            ]
+
     def list_leaves(
         self,
         offset=0,

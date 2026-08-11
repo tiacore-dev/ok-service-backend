@@ -12,7 +12,7 @@ from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from prometheus_client import REGISTRY
+from prometheus_client import REGISTRY, CollectorRegistry
 from prometheus_flask_exporter import PrometheusMetrics
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -44,15 +44,27 @@ authorizations = {
 ma = Marshmallow()
 
 
+def setup_metrics(
+    app: Flask, registry: CollectorRegistry = REGISTRY
+) -> PrometheusMetrics:
+    """Configure bounded application metrics for a Flask instance."""
+    metrics = PrometheusMetrics(
+        app,
+        group_by="url_rule",
+        excluded_paths=[r"^/metrics$"],
+        registry=registry,
+    )
+    if "app_info" not in registry._names_to_collectors:
+        metrics.info("app_info", "Описание приложения", version="1.0.3")
+    return metrics
+
+
 def create_app(config_name="development"):
     """Функция для создания экземпляра приложения"""
     app = Flask(__name__)
     # Выбираем конфигурацию
     if config_name == "development":
-        metrics = PrometheusMetrics(app)
-        # необязательно, но можно указать кастомные метрики
-        if "app_info" not in REGISTRY._names_to_collectors:
-            metrics.info("app_info", "Описание приложения", version="1.0.3")
+        setup_metrics(app)
         app.config.from_object(DevelopmentConfig)
         # Настройка
         trace.set_tracer_provider(

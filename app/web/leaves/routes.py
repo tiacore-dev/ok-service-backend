@@ -6,7 +6,7 @@ from dataclasses import asdict
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
@@ -17,6 +17,7 @@ from app.adapters.leaves import (
     leave_entity_to_list_item,
     leave_entity_to_response,
 )
+from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import admin_required, api_key_or_jwt_required
 from app.domain.leaves import AbsenceReason, LeaveConflictError, LeaveNotFoundError
 from app.routes.models.leave_models import (
@@ -123,7 +124,9 @@ def _get_current_user() -> dict[str, Any]:
 
 
 def _repository() -> SQLAlchemyLeaveRepository:
-    return SQLAlchemyLeaveRepository()
+    return SQLAlchemyLeaveRepository(
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+    )
 
 
 def _map_error(error: Exception):

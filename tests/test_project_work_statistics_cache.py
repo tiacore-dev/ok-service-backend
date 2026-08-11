@@ -36,6 +36,13 @@ class FakeProjectsManager:
         return []
 
 
+class UnavailableRedis(FakeRedis):
+    def get(self, name: str) -> str | None:
+        from redis.exceptions import ConnectionError
+
+        raise ConnectionError("Redis is unavailable")
+
+
 def test_recalculate_replaces_one_project_stats_without_ttl():
     project_id = uuid4()
     client = FakeRedis()
@@ -60,4 +67,14 @@ def test_recalculate_removes_empty_project_stats():
     service.recalculate(project_id)
 
     assert service.get_project_stats(project_id) == {}
-    assert client.deleted == [f"project-work-stats:{project_id}"]
+    assert client.deleted == [f"project-work-stats:{project_id}"] * 2
+
+
+def test_cache_miss_and_redis_failure_fall_back_to_database_stats():
+    project_id = uuid4()
+    expected = {str(uuid4()): {"project_work_quantity": 5.0}}
+    service = RedisProjectWorkStatistics(
+        UnavailableRedis(), FakeProjectsManager(expected)
+    )
+
+    assert service.get_project_stats(project_id) == expected
