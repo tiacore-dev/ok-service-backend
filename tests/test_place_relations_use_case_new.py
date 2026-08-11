@@ -1,0 +1,53 @@
+from uuid import UUID, uuid4
+
+import pytest
+
+from app.use_cases.place_relations import (
+    PlaceRelationConflictError,
+    PlaceRelationForbiddenError,
+    PlaceRelationService,
+    ProjectPlaceRelation,
+    RelationActor,
+    ShiftPlaceRelation,
+)
+
+
+class FakeRepository:
+    def __init__(self):
+        self.project_id, self.object_id, self.place_id = uuid4(), uuid4(), uuid4()
+        self.shift_id, self.user_id, self.leader_id = uuid4(), uuid4(), uuid4()
+        self.project_relations = {}
+        self.shift_relations = {}
+    def get_project_place_relation(self, relation_id): return self.project_relations.get(relation_id)
+    def create_project_place_relation(self, relation): self.project_relations[relation.project_place_relation_id] = relation; return relation
+    def update_project_place_relation(self, relation): self.project_relations[relation.project_place_relation_id] = relation; return relation
+    def delete_project_place_relation(self, relation_id): return self.project_relations.pop(relation_id, None) is not None
+    def list_project_place_relations(self): return list(self.project_relations.values())
+    def get_shift_place_relation(self, relation_id): return self.shift_relations.get(relation_id)
+    def create_shift_place_relation(self, relation): self.shift_relations[relation.shift_place_relation_id] = relation; return relation
+    def update_shift_place_relation(self, relation): self.shift_relations[relation.shift_place_relation_id] = relation; return relation
+    def delete_shift_place_relation(self, relation_id): return self.shift_relations.pop(relation_id, None) is not None
+    def list_shift_place_relations(self): return list(self.shift_relations.values())
+    def project_object_id(self, project_id): return self.object_id if project_id == self.project_id else None
+    def place_object_id(self, place_id): return self.object_id if place_id == self.place_id else None
+    def project_leader_id(self, project_id): return self.leader_id if project_id == self.project_id else None
+    def shift_context(self, shift_report_id): return (self.project_id, self.user_id) if shift_report_id == self.shift_id else None
+    def has_project_place(self, project_id, place_id): return any(x.project_id == project_id and x.place_id == place_id for x in self.project_relations.values())
+    def has_shift_place(self, shift_report_id, place_id): return any(x.shift_report_id == shift_report_id and x.place_id == place_id for x in self.shift_relations.values())
+    def is_place_used_by_shift(self, project_id, place_id): return bool(self.shift_relations) and self.has_project_place(project_id, place_id)
+
+
+def test_shift_place_requires_project_place_and_allows_assigned_user():
+    repo = FakeRepository(); service = PlaceRelationService(repo)
+    actor = RelationActor("user", repo.user_id)
+    with pytest.raises(PlaceRelationConflictError): service.create_shift_place(repo.shift_id, repo.place_id, None, actor)
+    service.create_project_place(repo.project_id, repo.place_id, RelationActor("project-leader", repo.leader_id))
+    relation = service.create_shift_place(repo.shift_id, repo.place_id, "ok", actor)
+    assert relation.comment == "ok"
+    with pytest.raises(PlaceRelationConflictError): service.delete_project_place(next(iter(repo.project_relations)), RelationActor("manager", uuid4()))
+
+
+def test_project_leader_cannot_manage_another_project():
+    repo = FakeRepository()
+    with pytest.raises(PlaceRelationForbiddenError):
+        PlaceRelationService(repo).create_project_place(repo.project_id, repo.place_id, RelationActor("project-leader", uuid4()))

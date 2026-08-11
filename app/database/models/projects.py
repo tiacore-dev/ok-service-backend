@@ -46,6 +46,9 @@ class Projects(Base):
     )
     project_schedule = relationship("ProjectSchedules", back_populates="projects")
     project_materials = relationship("ProjectMaterials", back_populates="projects")
+    project_place_relations = relationship(
+        "ProjectPlaceRelations", back_populates="project"
+    )
 
     def __repr__(self):
         return (

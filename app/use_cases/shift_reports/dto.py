@@ -53,6 +53,7 @@ class ShiftReportListQuery:
     date_end_from: int | None = None
     date_end_to: int | None = None
     project: list[UUID] | None = None
+    place_id: list[UUID] | None = None
     lng_start: float | None = None
     ltd_start: float | None = None
     lng_end: float | None = None

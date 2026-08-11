@@ -20,6 +20,10 @@ class Places(Base):
     deleted = Column(Boolean, nullable=False, default=False)
 
     object = relationship("Objects", back_populates="places")
+    project_place_relations = relationship(
+        "ProjectPlaceRelations", back_populates="place"
+    )
+    shift_place_relations = relationship("ShiftPlaceRelations", back_populates="place")
 
     def to_dict(self):
         return {

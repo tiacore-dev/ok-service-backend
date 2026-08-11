@@ -15,6 +15,8 @@ from app.adapters.projects import (
     SQLAlchemyProjectRepository,
     project_dict_to_response,
 )
+from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
+from app.use_cases.place_relations import PlaceRelationConflictError
 from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.domain.projects import (
@@ -56,6 +58,7 @@ from .models import (
     project_model,
     project_msg_model,
     project_response,
+    project_view_model,
     project_stats_model,
     project_stats_response,
 )
@@ -70,6 +73,7 @@ project_ns.models[project_msg_model.name] = project_msg_model
 project_ns.models[project_response.name] = project_response
 project_ns.models[project_all_response.name] = project_all_response
 project_ns.models[project_model.name] = project_model
+project_ns.models[project_view_model.name] = project_view_model
 project_ns.models[project_stats_model.name] = project_stats_model
 project_ns.models[project_stats_response.name] = project_stats_response
 
@@ -147,6 +151,8 @@ def _actor(current_user: dict[str, Any]) -> ProjectActor:
 
 
 def _map_error(error: Exception):
+    if isinstance(error, PlaceRelationConflictError):
+        return {"msg": str(error)}, 409
     if isinstance(error, ProjectNotFoundError):
         return {"msg": str(error)}, 404
     if isinstance(error, ProjectForbiddenError):
@@ -218,9 +224,16 @@ class ProjectView(Resource):
             project = GetProjectUseCase(repository=_repository()).execute(
                 _parse_project_id(project_id)
             )
+            places = [
+                SQLAlchemyPlaceRelationRepository().place_response(item.place_id)
+                for item in SQLAlchemyPlaceRelationRepository().list_project_place_relations()
+                if item.project_id == _parse_project_id(project_id)
+            ]
+            project_response_data = project_dict_to_response(project)
+            project_response_data["places"] = [item for item in places if item is not None]
             return {
                 "msg": "Project found successfully",
-                "project": project_dict_to_response(project),
+                "project": project_response_data,
             }, 200
         except Exception as error:
             logger.error(
@@ -302,6 +315,11 @@ class ProjectEdit(Resource):
             data = cast(ProjectEditPayload, schema.load(raw_payload))
             if not any(value is not None for value in data.values()):
                 raise ValueError("No data provided for update")
+            new_object = get_optional_uuid(data, "object")
+            if new_object is not None:
+                SQLAlchemyPlaceRelationRepository().ensure_project_object(
+                    _parse_project_id(project_id), new_object
+                )
             project = UpdateProjectUseCase(repository=_repository()).execute(
                 UpdateProjectCommand(
                     project_id=_parse_project_id(project_id),

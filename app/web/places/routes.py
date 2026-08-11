@@ -25,6 +25,8 @@ from app.use_cases.places import (
     UpdatePlaceCommand,
     UpdatePlaceUseCase,
 )
+from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
+from app.use_cases.place_relations import PlaceRelationConflictError
 from app.web._typing import to_plain_dict
 
 from app.routes.models.place_models import (
@@ -100,6 +102,8 @@ def _response(place) -> dict[str, Any]:
 
 
 def _error(error: Exception):
+    if isinstance(error, PlaceRelationConflictError):
+        return {"msg": str(error)}, 409
     if isinstance(error, PlaceNotFoundError):
         return {"msg": str(error)}, 404
     if isinstance(error, PlaceForbiddenError):
@@ -170,6 +174,11 @@ class PlaceEdit(Resource):
             )
             if not data:
                 raise ValueError("No data provided for update")
+            object_id = data.get("object_id")
+            if object_id is not None:
+                SQLAlchemyPlaceRelationRepository().ensure_place_object(
+                    _parse_id(place_id), object_id
+                )
             place = UpdatePlaceUseCase(SQLAlchemyPlaceRepository()).execute(
                 UpdatePlaceCommand(
                     place_id=_parse_id(place_id),

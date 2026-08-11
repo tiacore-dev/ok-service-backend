@@ -11,6 +11,7 @@ from .measurement_units import MeasurementUnits as MeasurementUnits
 from .object_statuses import ObjectStatuses as ObjectStatuses
 from .objects import Objects as Objects
 from .places import Places as Places
+from .project_place_relations import ProjectPlaceRelations as ProjectPlaceRelations
 from .permission_types import PermissionTypes as PermissionTypes
 from .project_materials import ProjectMaterials as ProjectMaterials
 from .project_schedule import ProjectSchedules as ProjectSchedules
@@ -23,6 +24,7 @@ from .shift_report_details import ShiftReportDetails as ShiftReportDetails
 from .shift_report_materials import (
     ShiftReportMaterials as ShiftReportMaterials,
 )
+from .shift_place_relations import ShiftPlaceRelations as ShiftPlaceRelations
 from .subscriptions import Subscriptions as Subscriptions
 from .user import Users as Users
 from .work_categories import WorkCategories as WorkCategories
