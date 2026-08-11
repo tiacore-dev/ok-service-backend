@@ -40,6 +40,7 @@ class Objects(Base):
     object_status = relationship("ObjectStatuses", back_populates="object")
     project = relationship("Projects", back_populates="objects")
     city = relationship("Cities", back_populates="objects")
+    places = relationship("Places", back_populates="object")
 
     object_manager = relationship(
         "Users", back_populates="managed_objects", foreign_keys=[manager]

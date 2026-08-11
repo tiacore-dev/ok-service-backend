@@ -8,6 +8,7 @@ from .materials.routes import material_ns
 from .measurement_units.routes import measurement_unit_ns
 from .object_statuses.routes import object_status_ns
 from .objects.routes import object_ns
+from .places.routes import place_ns
 from .positions.routes import position_ns
 from .project_materials.routes import project_material_ns
 from .project_schedules.routes import project_schedule_ns
@@ -33,6 +34,7 @@ def register_namespaces(api: Api):
     api.add_namespace(leave_ns)
     api.add_namespace(city_ns)
     api.add_namespace(object_ns)
+    api.add_namespace(place_ns)
     api.add_namespace(object_status_ns)
     api.add_namespace(position_ns)
     api.add_namespace(project_schedule_ns)

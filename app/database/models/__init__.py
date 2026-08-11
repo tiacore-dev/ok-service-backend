@@ -10,6 +10,7 @@ from .materials import Materials as Materials
 from .measurement_units import MeasurementUnits as MeasurementUnits
 from .object_statuses import ObjectStatuses as ObjectStatuses
 from .objects import Objects as Objects
+from .places import Places as Places
 from .permission_types import PermissionTypes as PermissionTypes
 from .project_materials import ProjectMaterials as ProjectMaterials
 from .project_schedule import ProjectSchedules as ProjectSchedules
