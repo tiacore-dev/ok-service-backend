@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -20,6 +21,8 @@ from app.domain.attachments import (
 )
 from app.s3.s3_manager import FileValidationError
 from app.use_cases.attachments import AttachmentActor, AttachmentUseCase, UploadFile
+
+logger = logging.getLogger("ok_service")
 
 project_attachment_ns = Namespace(
     "project_attachments", path="/projects", description="Project attachments"
@@ -147,8 +150,33 @@ def _error(error: Exception):
 
 
 def _upload(target_type: str, target_id: str):
+    request_context = {
+        "target_type": target_type,
+        "target_id": target_id,
+        "method": request.method,
+        "path": request.path,
+    }
+    logger.debug("Attachment upload started: %s", request_context)
     try:
         files = request.files.getlist("files")
+        logger.debug(
+            "Attachment upload files parsed: count=%d files=%s",
+            len(files),
+            [
+                {
+                    "name": file.filename,
+                    "content_type": file.mimetype,
+                    "content_length": file.content_length,
+                }
+                for file in files
+            ],
+        )
+        actor = _actor()
+        logger.debug(
+            "Attachment upload actor resolved: user_id=%s role=%s",
+            actor.user_id,
+            actor.role,
+        )
         uploaded = _use_case().upload(
             target_type,
             _uuid(target_id),
@@ -160,13 +188,37 @@ def _upload(target_type: str, target_id: str):
                 )
                 for file in files
             ],
-            _actor(),
+            actor,
+        )
+        logger.info(
+            "Attachment upload completed: target_type=%s target_id=%s count=%d",
+            target_type,
+            target_id,
+            len(uploaded),
         )
         return {
             "msg": "Attachments uploaded successfully",
             "attachments": [_response(attachment) for attachment in uploaded],
         }, 200
     except Exception as error:
+        if isinstance(
+            error,
+            (
+                AttachmentNotFoundError,
+                AttachmentForbiddenError,
+                AttachmentConflictError,
+                AttachmentStorageError,
+                FileValidationError,
+                ValueError,
+            ),
+        ):
+            logger.warning(
+                "Attachment upload rejected: %s error=%s",
+                request_context,
+                error,
+            )
+        else:
+            logger.exception("Attachment upload failed unexpectedly: %s", request_context)
         return _error(error)
 
 
