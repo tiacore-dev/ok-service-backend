@@ -3,6 +3,7 @@ from flask_restx import Model, fields, reqparse
 from app.schemas.project_schemas import ProjectCreateSchema, ProjectEditSchema
 from app.utils.helpers import generate_swagger_model
 from app.routes.models.place_models import place_model
+from app.web.attachments.contract import attachment_view_model
 
 project_create_model = generate_swagger_model(ProjectCreateSchema(), "ProjectCreate")
 project_edit_model = generate_swagger_model(ProjectEditSchema(), "ProjectEdit")
@@ -30,7 +31,14 @@ project_msg_model = Model(
     },
 )
 
-project_view_model = Model("ProjectView", {**project_model, "places": fields.List(fields.Nested(place_model), required=True)})
+project_view_model = Model(
+    "ProjectView",
+    {
+        **project_model,
+        "places": fields.List(fields.Nested(place_model), required=True),
+        "attachments": fields.List(fields.Nested(attachment_view_model), required=True),
+    },
+)
 
 project_response = Model(
     "ProjectResponse",

@@ -11,6 +11,7 @@ from app.web.attachments import (
     project_attachment_ns,
     shift_report_attachment_ns,
 )
+from app.web.attachments.contract import attachment_view_model
 
 MIGRATION_PATH = (
     Path(__file__).parents[1] / "alembic/versions/20260811_attachments.py"
@@ -79,3 +80,7 @@ def test_attachment_swagger_contract_exposes_all_target_routes():
     ]["post"]
     assert upload_contract["consumes"] == ["multipart/form-data"]
     assert upload_contract["parameters"][0]["type"] == "file"
+
+
+def test_attachment_view_contract_exposes_preview_url():
+    assert "download_url" in attachment_view_model

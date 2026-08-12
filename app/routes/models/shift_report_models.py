@@ -6,6 +6,7 @@ from app.schemas.shift_report_schemas import (
     ShiftReportDetailSchema,
     ShiftReportEditSchema,
 )
+from app.web.attachments.contract import attachment_view_model
 from app.utils.helpers import generate_swagger_model
 
 # 1. Создаем модель `ShiftReportDetail`
@@ -132,6 +133,11 @@ shift_report_view_model = Model(
             fields.Raw,
             required=True,
             description="Places selected for this shift with relation comment",
+        ),
+        "attachments": fields.List(
+            fields.Nested(attachment_view_model),
+            required=True,
+            description="Attachments linked to this shift report",
         ),
     },
 )

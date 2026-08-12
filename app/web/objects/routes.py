@@ -15,6 +15,7 @@ from app.adapters.objects import (
     SQLAlchemyObjectRepository,
     object_entity_to_response,
 )
+from app.adapters.attachments import list_attachment_view_data
 from app.adapters.places import SQLAlchemyPlaceRepository, place_entity_to_response
 from app.decorators import api_key_or_jwt_required
 from app.domain.objects import (
@@ -40,6 +41,7 @@ from app.use_cases.objects import (
     UpdateObjectUseCase,
 )
 from app.use_cases.places import ListPlacesForObjectUseCase
+from app.web.attachments.contract import attachment_view_model
 from app.web._typing import (
     get_optional_bool,
     get_optional_float,
@@ -72,6 +74,7 @@ object_ns.models[object_response.name] = object_response
 object_ns.models[object_all_response.name] = object_all_response
 object_ns.models[object_model.name] = object_model
 object_ns.models[object_view_model.name] = object_view_model
+object_ns.models[attachment_view_model.name] = attachment_view_model
 
 
 class ObjectCreatePayload(TypedDict):
@@ -234,6 +237,9 @@ class ObjectView(Resource):
             object_response_data["places"] = [
                 place_entity_to_response(place) for place in places
             ]
+            object_response_data["attachments"] = list_attachment_view_data(
+                "object", obj.object_id
+            )
             return {
                 "msg": "Object found successfully",
                 "object": object_response_data,

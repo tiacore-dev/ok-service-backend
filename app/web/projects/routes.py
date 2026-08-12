@@ -15,6 +15,8 @@ from app.adapters.projects import (
     SQLAlchemyProjectRepository,
     project_dict_to_response,
 )
+from app.adapters.attachments import list_attachment_view_data
+from app.web.attachments.contract import attachment_view_model
 from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
 from app.use_cases.place_relations import PlaceRelationConflictError
 from app.adapters.statistics import RedisProjectWorkStatistics
@@ -76,6 +78,7 @@ project_ns.models[project_model.name] = project_model
 project_ns.models[project_view_model.name] = project_view_model
 project_ns.models[project_stats_model.name] = project_stats_model
 project_ns.models[project_stats_response.name] = project_stats_response
+project_ns.models[attachment_view_model.name] = attachment_view_model
 
 
 class ProjectCreatePayload(TypedDict):
@@ -231,6 +234,9 @@ class ProjectView(Resource):
             ]
             project_response_data = project_dict_to_response(project)
             project_response_data["places"] = [item for item in places if item is not None]
+            project_response_data["attachments"] = list_attachment_view_data(
+                "project", _parse_project_id(project_id)
+            )
             return {
                 "msg": "Project found successfully",
                 "project": project_response_data,

@@ -1,6 +1,7 @@
 from flask_restx import Model, fields, reqparse
 
 from app.routes.models.place_models import place_model
+from app.web.attachments.contract import attachment_view_model
 from app.schemas.object_schemas import ObjectCreateSchema, ObjectEditSchema
 from app.utils.helpers import generate_swagger_model
 
@@ -46,6 +47,11 @@ object_view_model = Model(
             fields.Nested(place_model),
             required=True,
             description="List of places linked to the object",
+        ),
+        "attachments": fields.List(
+            fields.Nested(attachment_view_model),
+            required=True,
+            description="Attachments linked to the object",
         ),
     },
 )

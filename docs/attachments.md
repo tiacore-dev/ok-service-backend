@@ -36,6 +36,13 @@ DELETE /projects/{project_id}/attachments/{attachment_id}
 ошибкой, уже загруженные в рамках запроса S3-объекты удаляются компенсирующей
 операцией.
 
+Detail views `GET /projects/{project_id}/view`,
+`GET /shift_reports/{shift_report_id}/view` and
+`GET /objects/{object_id}/view` include an `attachments` array. Each item
+contains attachment metadata and a presigned `download_url` for preview.
+The array is empty when the entity has no attachments. `/all` responses are
+unchanged. Access follows the original entity view endpoint.
+
 ## Права
 
 - Вложения проекта: `admin` и `manager` — любой проект; `project-leader` — только

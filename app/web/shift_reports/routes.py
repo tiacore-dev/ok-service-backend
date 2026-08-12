@@ -16,6 +16,7 @@ from app.adapters.shift_reports import (
     shift_report_detail_entity_to_response,
     shift_report_entity_to_response,
 )
+from app.adapters.attachments import list_attachment_view_data
 from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
 from app.use_cases.place_relations import PlaceRelationConflictError
 from app.adapters.statistics import RedisProjectWorkStatistics
@@ -95,6 +96,7 @@ from app.web._typing import (
     get_required_uuid,
     to_plain_dict,
 )
+from app.web.attachments.contract import attachment_view_model
 
 logger = logging.getLogger("ok_service")
 
@@ -113,6 +115,7 @@ shift_report_ns.models[shift_report_create_model.name] = shift_report_create_mod
 shift_report_ns.models[shift_report_edit_model.name] = shift_report_edit_model
 shift_report_ns.models[shift_report_msg_model.name] = shift_report_msg_model
 shift_report_ns.models[shift_report_response.name] = shift_report_response
+shift_report_ns.models[attachment_view_model.name] = attachment_view_model
 shift_report_ns.models[shift_report_all_response.name] = shift_report_all_response
 shift_report_ns.models[shift_report_view_model.name] = shift_report_view_model
 
@@ -377,6 +380,9 @@ class ShiftReportView(Resource):
                 for place in [relation_repository.place_response(relation.place_id)]
                 if place is not None
             ]
+            response["attachments"] = list_attachment_view_data(
+                "shift_report", report.shift_report_id
+            )
             response["shift_report_details_sum"] = (
                 _repository().get_total_sum_by_shift_report(report.shift_report_id)
             )

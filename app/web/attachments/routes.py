@@ -23,6 +23,8 @@ from app.domain.attachments import (
 from app.s3.s3_manager import FileValidationError
 from app.use_cases.attachments import AttachmentActor, AttachmentUseCase, UploadFile
 
+from .contract import attachment_view_model
+
 logger = logging.getLogger("ok_service")
 
 project_attachment_ns = Namespace(
@@ -74,6 +76,7 @@ for namespace in (
         attachment_list_model,
         attachment_url_model,
         attachment_message_model,
+        attachment_view_model,
     ):
         namespace.models[model.name] = model
 
