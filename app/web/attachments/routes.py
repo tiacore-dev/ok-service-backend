@@ -82,7 +82,6 @@ upload_parser.add_argument(
     "files",
     type=FileStorage,
     location="files",
-    action="append",
     required=True,
     help="One or more attachment files",
 )
@@ -270,6 +269,7 @@ def _register_routes(namespace: Namespace, target_type: str, id_name: str) -> No
     class AttachmentCollection(Resource):
         @api_key_or_jwt_required
         @namespace.expect(upload_parser)
+        @namespace.doc(consumes=["multipart/form-data"])
         @namespace.marshal_with(attachment_list_model)
         def post(self, **kwargs):
             return _upload(target_type, kwargs[id_name])

@@ -73,3 +73,9 @@ def test_attachment_swagger_contract_exposes_all_target_routes():
         )
         for suffix in ("", "/{attachment_id}", "/{attachment_id}/download")
     }
+
+    upload_contract = payload["paths"][
+        "/shift_reports/{shift_report_id}/attachments"
+    ]["post"]
+    assert upload_contract["consumes"] == ["multipart/form-data"]
+    assert upload_contract["parameters"][0]["type"] == "file"
