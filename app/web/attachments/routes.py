@@ -9,6 +9,7 @@ from flask import g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Model, Namespace, Resource, fields, reqparse
 from werkzeug.datastructures import FileStorage
+from werkzeug.exceptions import BadRequest
 
 from app.adapters.attachments import S3AttachmentStorage, SQLAlchemyAttachmentRepository
 from app.decorators import api_key_or_jwt_required
@@ -109,7 +110,9 @@ def _actor() -> AttachmentActor:
     user_id = identity.get("user_id")
     if not user_id:
         raise AttachmentForbiddenError("Current user id is required")
-    return AttachmentActor(user_id=UUID(str(user_id)), role=str(identity.get("role", "")))
+    return AttachmentActor(
+        user_id=UUID(str(user_id)), role=str(identity.get("role", ""))
+    )
 
 
 def _uuid(value: str) -> UUID:
@@ -144,7 +147,7 @@ def _error(error: Exception):
         return {"msg": str(error)}, 409
     if isinstance(error, AttachmentStorageError):
         return {"msg": str(error)}, 503
-    if isinstance(error, (FileValidationError, ValueError)):
+    if isinstance(error, (BadRequest, FileValidationError, ValueError)):
         return {"msg": str(error)}, 400
     return {"msg": "Internal server error"}, 500
 
@@ -208,6 +211,7 @@ def _upload(target_type: str, target_id: str):
                 AttachmentForbiddenError,
                 AttachmentConflictError,
                 AttachmentStorageError,
+                BadRequest,
                 FileValidationError,
                 ValueError,
             ),
@@ -218,7 +222,9 @@ def _upload(target_type: str, target_id: str):
                 error,
             )
         else:
-            logger.exception("Attachment upload failed unexpectedly: %s", request_context)
+            logger.exception(
+                "Attachment upload failed unexpectedly: %s", request_context
+            )
         return _error(error)
 
 

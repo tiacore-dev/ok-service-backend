@@ -2,6 +2,7 @@ from io import BytesIO
 from uuid import uuid4
 
 from flask import Flask
+from werkzeug.exceptions import BadRequest
 
 from app.use_cases.attachments import AttachmentActor
 from app.web.attachments import routes
@@ -10,6 +11,13 @@ from app.web.attachments import routes
 class FailingAttachmentUseCase:
     def upload(self, *args, **kwargs):
         raise RuntimeError("database failed")
+
+
+def test_bad_multipart_request_returns_400():
+    response, status = routes._error(BadRequest("Malformed multipart request"))
+
+    assert status == 400
+    assert response == {"msg": "400 Bad Request: Malformed multipart request"}
 
 
 def test_upload_logs_unexpected_exception_with_traceback(monkeypatch, caplog):
