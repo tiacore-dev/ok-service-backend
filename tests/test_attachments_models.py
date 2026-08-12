@@ -82,5 +82,5 @@ def test_attachment_swagger_contract_exposes_all_target_routes():
     assert upload_contract["parameters"][0]["type"] == "file"
 
 
-def test_attachment_view_contract_exposes_preview_url():
-    assert "download_url" in attachment_view_model
+def test_attachment_view_contract_excludes_preview_url():
+    assert "download_url" not in attachment_view_model

@@ -11,6 +11,5 @@ attachment_view_model = Model(
         "meta": fields.Raw(required=True),
         "created_at": fields.Integer(required=True),
         "created_by": fields.String(required=True),
-        "download_url": fields.String(required=True),
     },
 )

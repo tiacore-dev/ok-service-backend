@@ -39,9 +39,10 @@ DELETE /projects/{project_id}/attachments/{attachment_id}
 Detail views `GET /projects/{project_id}/view`,
 `GET /shift_reports/{shift_report_id}/view` and
 `GET /objects/{object_id}/view` include an `attachments` array. Each item
-contains attachment metadata and a presigned `download_url` for preview.
+contains attachment metadata without a download URL.
 The array is empty when the entity has no attachments. `/all` responses are
-unchanged. Access follows the original entity view endpoint.
+unchanged. Access follows the original entity view endpoint. To preview or
+download bytes, call the attachment `/download` endpoint.
 
 ## Права
 

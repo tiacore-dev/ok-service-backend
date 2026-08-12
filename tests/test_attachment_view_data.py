@@ -14,11 +14,6 @@ class FakeAttachmentRepository:
         return [self.attachment]
 
 
-class FakeAttachmentStorage:
-    def download_url(self, key, *, filename):
-        return f"https://s3.test/{key}?filename={filename}"
-
-
 def test_list_attachment_view_data_includes_preview_url():
     project_id = uuid4()
     attachment = Attachment(
@@ -36,13 +31,10 @@ def test_list_attachment_view_data_includes_preview_url():
         "project",
         project_id,
         repository=FakeAttachmentRepository(attachment),  # type: ignore[arg-type]
-        storage=FakeAttachmentStorage(),  # type: ignore[arg-type]
     )
 
     assert result[0]["attachment_id"] == str(attachment.attachment_id)
-    download_url = result[0]["download_url"]
-    assert isinstance(download_url, str)
-    assert download_url.startswith("https://s3.test/")
+    assert "download_url" not in result[0]
 
 
 def test_list_attachment_view_data_returns_empty_list_without_attachments():
@@ -54,7 +46,6 @@ def test_list_attachment_view_data_returns_empty_list_without_attachments():
         "project",
         uuid4(),
         repository=EmptyRepository(),  # type: ignore[arg-type]
-        storage=FakeAttachmentStorage(),  # type: ignore[arg-type]
     )
 
     assert result == []

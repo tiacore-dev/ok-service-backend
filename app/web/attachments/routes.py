@@ -5,7 +5,7 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from flask import g, request
+from flask import Response, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Model, Namespace, Resource, fields, reqparse
 from werkzeug.datastructures import FileStorage
@@ -246,10 +246,12 @@ def _list(target_type: str, target_id: str):
 
 def _download(target_type: str, target_id: str, attachment_id: str):
     try:
-        url = _use_case().download_url(
+        content, filename, content_type = _use_case().download_bytes(
             target_type, _uuid(target_id), _uuid(attachment_id), _actor()
         )
-        return {"msg": "Attachment download URL generated", "url": url}, 200
+        response = Response(content, status=200, mimetype=content_type)
+        response.headers["Content-Disposition"] = f'inline; filename="{filename}"'
+        return response
     except Exception as error:
         return _error(error)
 
@@ -285,7 +287,6 @@ def _register_routes(namespace: Namespace, target_type: str, id_name: str) -> No
     @namespace.route(f"{item_path}/download")
     class AttachmentDownload(Resource):
         @api_key_or_jwt_required
-        @namespace.marshal_with(attachment_url_model)
         def get(self, **kwargs):
             return _download(target_type, kwargs[id_name], kwargs["attachment_id"])
 

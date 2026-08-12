@@ -49,11 +49,8 @@ class S3AttachmentStorage:
         except (BotoCoreError, ClientError, OSError, RuntimeError) as error:
             raise AttachmentStorageError("Unable to delete attachment") from error
 
-    def download_url(self, key: str, *, filename: str) -> str:
+    def download_bytes(self, key: str) -> bytes:
         try:
-            url = run(self._manager.generate_presigned_url(key, download_name=filename))
+            return run(self._manager.download_bytes(key))
         except (BotoCoreError, ClientError, OSError, RuntimeError) as error:
-            raise AttachmentStorageError("Unable to generate download URL") from error
-        if url is None:
-            raise RuntimeError("Unable to generate attachment download URL")
-        return url
+            raise AttachmentStorageError("Unable to download attachment") from error

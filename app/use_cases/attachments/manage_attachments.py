@@ -114,13 +114,13 @@ class AttachmentUseCase:
         _ensure_access(target, actor, delete=False)
         return self.repository.list_attachments(target_type, target_id)
 
-    def download_url(
+    def download_bytes(
         self,
         target_type: str,
         target_id: UUID,
         attachment_id: UUID,
         actor: AttachmentActor,
-    ) -> str:
+    ) -> tuple[bytes, str, str]:
         target = self.repository.get_target(target_type, target_id)
         if target is None:
             raise AttachmentNotFoundError("Attachment target not found")
@@ -128,7 +128,8 @@ class AttachmentUseCase:
         attachment = self.repository.get_attachment(target_type, target_id, attachment_id)
         if attachment is None:
             raise AttachmentNotFoundError("Attachment not found")
-        return self.storage.download_url(attachment.s3_key, filename=attachment.name)
+        content_type = str(attachment.meta.get("content_type", "application/octet-stream"))
+        return self.storage.download_bytes(attachment.s3_key), attachment.name, content_type
 
     def delete(
         self,
