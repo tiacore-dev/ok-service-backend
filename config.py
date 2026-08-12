@@ -10,6 +10,10 @@ class Config:
     """Базовая конфигурация."""
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # The limit applies to the complete HTTP request, including multipart
+    # headers and boundaries. It is slightly above the per-file 100 MiB limit
+    # enforced by AsyncS3Manager.
+    MAX_CONTENT_LENGTH = 105 * 1024 * 1024
     TESTING = False
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")

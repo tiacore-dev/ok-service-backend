@@ -2,8 +2,9 @@ from io import BytesIO
 from uuid import uuid4
 
 from flask import Flask
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 
+from config import Config
 from app.use_cases.attachments import AttachmentActor
 from app.web.attachments import routes
 
@@ -18,6 +19,17 @@ def test_bad_multipart_request_returns_400():
 
     assert status == 400
     assert response == {"msg": "400 Bad Request: Malformed multipart request"}
+
+
+def test_oversized_multipart_request_returns_413():
+    response, status = routes._error(RequestEntityTooLarge())
+
+    assert status == 413
+    assert response == {"msg": "413 Request Entity Too Large: The data value transmitted exceeds the capacity limit."}
+
+
+def test_application_request_body_limit_allows_100_mib_file_with_multipart_overhead():
+    assert Config.MAX_CONTENT_LENGTH == 105 * 1024 * 1024
 
 
 def test_upload_logs_unexpected_exception_with_traceback(monkeypatch, caplog):

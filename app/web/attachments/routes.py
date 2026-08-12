@@ -9,7 +9,7 @@ from flask import g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Model, Namespace, Resource, fields, reqparse
 from werkzeug.datastructures import FileStorage
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 
 from app.adapters.attachments import S3AttachmentStorage, SQLAlchemyAttachmentRepository
 from app.decorators import api_key_or_jwt_required
@@ -139,6 +139,8 @@ def _response(attachment: Attachment) -> dict[str, object]:
 
 
 def _error(error: Exception):
+    if isinstance(error, RequestEntityTooLarge):
+        return {"msg": str(error)}, 413
     if isinstance(error, AttachmentNotFoundError):
         return {"msg": str(error)}, 404
     if isinstance(error, AttachmentForbiddenError):
@@ -212,6 +214,7 @@ def _upload(target_type: str, target_id: str):
                 AttachmentConflictError,
                 AttachmentStorageError,
                 BadRequest,
+                RequestEntityTooLarge,
                 FileValidationError,
                 ValueError,
             ),
