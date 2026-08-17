@@ -17,6 +17,7 @@ from .get_shift_report_detail import GetShiftReportDetailUseCase
 from .list_shift_report_details import ListShiftReportDetailsUseCase
 from .list_shift_reports import ListShiftReportsUseCase
 from .ports import ShiftReportRepository
+from .sign_shift_report import SignShiftReportUseCase
 from .update_shift_report import UpdateShiftReportUseCase
 from .update_shift_report_detail import UpdateShiftReportDetailUseCase
 from .update_shift_report_time import UpdateShiftReportTimeUseCase
@@ -37,6 +38,7 @@ __all__ = [
     "ShiftReportTimeCommand",
     "ShiftReportListQuery",
     "ShiftReportRepository",
+    "SignShiftReportUseCase",
     "SoftDeleteShiftReportUseCase",
     "UpdateShiftReportCommand",
     "UpdateShiftReportDetailCommand",

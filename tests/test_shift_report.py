@@ -224,6 +224,102 @@ def test_edit_shift_report(client, jwt_token, seed_shift_report):
             session.close()
 
 
+def test_sign_shift_report_sets_audit_fields(
+    client, jwt_token_admin, seed_shift_report, seed_admin
+):
+    headers = {"Authorization": f"Bearer {jwt_token_admin}"}
+    response = client.patch(
+        f"/shift_reports/{seed_shift_report['shift_report_id']}/sign",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json["msg"] == "Shift report signed successfully"
+
+    from app.database.models import ShiftReports
+
+    with client.application.app_context():
+        from app.database.db_globals import Session
+
+        session = Session()
+        try:
+            report = session.query(ShiftReports).filter_by(
+                shift_report_id=seed_shift_report["shift_report_id"]
+            ).first()
+            assert report is not None
+            assert report.signed is True
+            assert str(report.signed_by) == seed_admin["user_id"]
+            assert report.signed_at is not None
+        finally:
+            session.close()
+
+
+def test_edit_signed_false_clears_approval_audit(
+    client, jwt_token_admin, seed_shift_report
+):
+    headers = {"Authorization": f"Bearer {jwt_token_admin}"}
+    sign_response = client.patch(
+        f"/shift_reports/{seed_shift_report['shift_report_id']}/sign",
+        headers=headers,
+    )
+    assert sign_response.status_code == 200
+
+    response = client.patch(
+        f"/shift_reports/{seed_shift_report['shift_report_id']}/edit",
+        json={"signed": False},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    from app.database.models import ShiftReports
+
+    with client.application.app_context():
+        from app.database.db_globals import Session
+
+        session = Session()
+        try:
+            report = session.query(ShiftReports).filter_by(
+                shift_report_id=seed_shift_report["shift_report_id"]
+            ).first()
+            assert report is not None
+            assert report.signed is False
+            assert report.signed_by is None
+            assert report.signed_at is None
+        finally:
+            session.close()
+
+
+def test_edit_shift_report_signed_true_does_not_set_approval_audit(
+    client, jwt_token, seed_shift_report
+):
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+    response = client.patch(
+        f"/shift_reports/{seed_shift_report['shift_report_id']}/edit",
+        json={"signed": True},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    from app.database.models import ShiftReports
+
+    with client.application.app_context():
+        from app.database.db_globals import Session
+
+        session = Session()
+        try:
+            report = session.query(ShiftReports).filter_by(
+                shift_report_id=seed_shift_report["shift_report_id"]
+            ).first()
+            assert report is not None
+            assert report.signed is True
+            assert report.signed_by is None
+            assert report.signed_at is None
+        finally:
+            session.close()
+
+
 def test_get_all_shift_reports_with_filters(
     client, jwt_token, seed_shift_report, seed_user, seed_project
 ):
