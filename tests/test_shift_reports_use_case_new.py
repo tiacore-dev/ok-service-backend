@@ -20,6 +20,7 @@ from app.use_cases.shift_reports import (
     DeleteShiftReportUseCase,
     ListShiftReportsUseCase,
     ShiftReportActor,
+    SignShiftReportUseCase,
     ShiftReportListQuery,
     UpdateShiftReportCommand,
     UpdateShiftReportUseCase,
@@ -36,6 +37,7 @@ class _FakeRepository:
     created_command: CreateShiftReportCommand | None = None
     listed_filters: dict[str, object] | None = field(default=None, init=False)
     project_ids: list[UUID] = field(default_factory=list)
+    signed_by: UUID | None = field(default=None, init=False)
 
     def get_shift_report(self, shift_report_id):
         return self.current if shift_report_id == self.current.shift_report_id else None
@@ -47,6 +49,10 @@ class _FakeRepository:
             if value is not None:
                 changes[field] = value
         return self.current.with_updates(**changes)
+
+    def sign_shift_report(self, shift_report_id, signed_by):
+        self.signed_by = signed_by
+        return self.current.with_updates(signed=True)
 
     def delete_shift_report(self, shift_report_id):
         return shift_report_id == self.current.shift_report_id
@@ -215,6 +221,42 @@ def test_update_shift_report_sets_audit_user_from_actor():
     )
 
     assert captured["updated_by"] == actor.user_id
+
+
+@pytest.mark.parametrize("role", ["admin", "project-leader", "manager"])
+def test_sign_shift_report_allows_configured_signer_roles(role):
+    report = _report()
+    repository = _FakeRepository(current=report)
+    actor = ShiftReportActor(role=role, user_id=uuid4())
+
+    updated = SignShiftReportUseCase(repository=repository).execute(
+        report.shift_report_id, actor
+    )
+
+    assert updated.signed is True
+    assert repository.signed_by == actor.user_id
+
+
+def test_sign_shift_report_forbids_user_role():
+    report = _report()
+    repository = _FakeRepository(current=report)
+
+    with pytest.raises(ShiftReportForbiddenError, match="cannot sign"):
+        SignShiftReportUseCase(repository=repository).execute(
+            report.shift_report_id,
+            ShiftReportActor(role="user", user_id=uuid4()),
+        )
+
+
+def test_sign_shift_report_rejects_leave_linked_report():
+    report = _report().with_updates(leave_id=uuid4())
+    repository = _FakeRepository(current=report)
+
+    with pytest.raises(ShiftReportConflictError, match="linked to leave"):
+        SignShiftReportUseCase(repository=repository).execute(
+            report.shift_report_id,
+            ShiftReportActor(role="manager", user_id=uuid4()),
+        )
 
 
 def test_update_shift_report_allows_manual_lifecycle_correction():

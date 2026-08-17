@@ -270,10 +270,7 @@ class ShiftReportsManager(ShiftManager):
                         )
 
                 signed_value = data.get("signed")
-                if signed_value is True:
-                    data["signed_at"] = utc_epoch_milliseconds()
-                    data["signed_by"] = data.get("updated_by")
-                elif signed_value is False:
+                if signed_value is False:
                     data["signed_at"] = None
                     data["signed_by"] = None
                 data["updated_at"] = utc_epoch_milliseconds()
@@ -287,6 +284,24 @@ class ShiftReportsManager(ShiftManager):
                 return record.to_dict()
         except ShiftReportConflictError:
             raise
+
+    def sign_shift_report(self, record_id, signed_by):
+        with self.session_scope() as session:
+            record = (
+                session.query(ShiftReports)
+                .filter(ShiftReports.shift_report_id == record_id)
+                .first()
+            )
+            if not record:
+                return None
+
+            record.signed = True
+            record.signed_at = utc_epoch_milliseconds()
+            record.signed_by = signed_by
+            record.updated_at = utc_epoch_milliseconds()
+            record.updated_by = signed_by
+            session.commit()
+            return record.to_dict()
 
     def get_project_leader(self, project):
         """Получение руководителя проекта по project"""
