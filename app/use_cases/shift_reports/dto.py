@@ -11,6 +11,9 @@ class ShiftReportActor:
     user_id: UUID
 
 
+SHIFT_REPORT_SIGNER_ROLES = frozenset({"admin", "project-leader", "manager"})
+
+
 @dataclass(frozen=True, slots=True)
 class CreateShiftReportDetailCommand:
     project_work: UUID | None

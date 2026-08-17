@@ -114,6 +114,16 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         self._recalculate(current.project if current else None, entity.project)
         return entity
 
+    def sign_shift_report(
+        self, shift_report_id: UUID, signed_by: UUID
+    ) -> ShiftReport | None:
+        record = normalize_result(
+            self.reports_manager.sign_shift_report(shift_report_id, signed_by)
+        )
+        if record is None:
+            return None
+        return shift_report_dict_to_entity(record)
+
     def delete_shift_report(self, shift_report_id: UUID) -> bool:
         current = self.get_shift_report(shift_report_id)
         deleted = self.reports_manager.delete(shift_report_id)

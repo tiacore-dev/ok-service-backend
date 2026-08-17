@@ -79,6 +79,7 @@ from app.use_cases.shift_reports import (
     ShiftReportActor,
     ShiftReportListQuery,
     ShiftReportTimeCommand,
+    SignShiftReportUseCase,
     SoftDeleteShiftReportUseCase,
     UpdateShiftReportCommand,
     UpdateShiftReportDetailCommand,
@@ -510,6 +511,32 @@ class ShiftReportFinish(Resource):
         try:
             return _update_shift_report_time(report_id, current_user, finish=True)
         except Exception as error:
+            return _map_error(error)
+
+
+@shift_report_ns.route("/<string:report_id>/sign")
+class ShiftReportSign(Resource):
+    @api_key_or_jwt_required
+    @shift_report_ns.marshal_with(shift_report_msg_model)
+    def patch(self, report_id):
+        current_user = _get_current_user()
+        logger.info(
+            f"Request to sign shift report: {report_id}",
+            extra={"login": current_user},
+        )
+        try:
+            signed = SignShiftReportUseCase(repository=_repository()).execute(
+                _parse_uuid(report_id), _actor(current_user)
+            )
+            return {
+                "msg": "Shift report signed successfully",
+                "shift_report_id": str(signed.shift_report_id),
+            }, 200
+        except Exception as error:
+            logger.error(
+                f"Error signing shift report: {error}",
+                extra={"login": current_user},
+            )
             return _map_error(error)
 
 
