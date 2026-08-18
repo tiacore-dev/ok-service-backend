@@ -9,10 +9,11 @@ from app.domain.attachments import (
     AttachmentTarget,
 )
 from app.use_cases.attachments import AttachmentActor, AttachmentUseCase, UploadFile
+from app.use_cases.attachments.ports import AttachmentRepository, AttachmentStorage
 
 
 @dataclass
-class FakeRepository:
+class FakeRepository(AttachmentRepository):
     target: AttachmentTarget | None
     attachments: list[Attachment] = field(default_factory=list)
     fail_create: bool = False
@@ -44,7 +45,7 @@ class FakeRepository:
 
 
 @dataclass
-class FakeStorage:
+class FakeStorage(AttachmentStorage):
     uploaded_keys: list[str] = field(default_factory=list)
     deleted_keys: list[str] = field(default_factory=list)
 
@@ -66,8 +67,8 @@ class FakeStorage:
     def delete(self, key):
         self.deleted_keys.append(key)
 
-    def download_url(self, key, *, filename):
-        return f"https://s3.test/{key}?filename={filename}"
+    def download_bytes(self, key):
+        return b"file contents"
 
 
 def _file(name="document.pdf"):
@@ -163,6 +164,26 @@ def test_unassigned_object_manager_cannot_upload_attachment():
             target.target_id,
             [_file()],
             AttachmentActor(uuid4(), "manager"),
+        )
+
+
+def test_place_attachment_uses_related_object_manager_acl():
+    manager_id = uuid4()
+    target = AttachmentTarget("place", uuid4(), False, owner_id=manager_id)
+
+    result = AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+        "place", target.target_id, [_file()], AttachmentActor(manager_id, "manager")
+    )
+
+    assert len(result) == 1
+
+
+def test_unassigned_manager_cannot_upload_place_attachment():
+    target = AttachmentTarget("place", uuid4(), False, owner_id=uuid4())
+
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+            "place", target.target_id, [_file()], AttachmentActor(uuid4(), "manager")
         )
 
 

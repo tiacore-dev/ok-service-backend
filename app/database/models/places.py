@@ -24,6 +24,9 @@ class Places(Base):
         "ProjectPlaceRelations", back_populates="place"
     )
     shift_place_relations = relationship("ShiftPlaceRelations", back_populates="place")
+    place_attachments = relationship(
+        "PlaceAttachments", back_populates="place", passive_deletes=True
+    )
 
     def to_dict(self):
         return {

@@ -4,6 +4,7 @@ from .api_keys.routes import api_key_ns
 from .auth.routes import login_ns
 from .attachments import (
     object_attachment_ns,
+    place_attachment_ns,
     project_attachment_ns,
     shift_report_attachment_ns,
 )
@@ -37,6 +38,7 @@ def register_namespaces(api: Api):
     api.add_namespace(project_attachment_ns)
     api.add_namespace(shift_report_attachment_ns)
     api.add_namespace(object_attachment_ns)
+    api.add_namespace(place_attachment_ns)
     api.add_namespace(role_ns)
     api.add_namespace(subscription_ns)
     api.add_namespace(api_key_ns)

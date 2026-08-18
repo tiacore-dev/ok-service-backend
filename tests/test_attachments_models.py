@@ -8,6 +8,7 @@ from flask_restx import Api
 from app.database.db_setup import Base
 from app.web.attachments import (
     object_attachment_ns,
+    place_attachment_ns,
     project_attachment_ns,
     shift_report_attachment_ns,
 )
@@ -25,6 +26,7 @@ def test_attachment_tables_follow_project_identifier_contract():
             "project_attachments",
             "shift_report_attachments",
             "object_attachments",
+            "place_attachments",
         }
     )
     assert "attachment_id" in Base.metadata.tables["attachments"].c
@@ -33,6 +35,7 @@ def test_attachment_tables_follow_project_identifier_contract():
         "shift_report_attachments"
     ].c
     assert "object_attachment_id" in Base.metadata.tables["object_attachments"].c
+    assert "place_attachment_id" in Base.metadata.tables["place_attachments"].c
     assert "company_id" not in Base.metadata.tables["attachments"].c
 
 
@@ -57,6 +60,7 @@ def test_attachment_swagger_contract_exposes_all_target_routes():
         project_attachment_ns,
         shift_report_attachment_ns,
         object_attachment_ns,
+        place_attachment_ns,
     ):
         api.add_namespace(namespace)
 
@@ -71,6 +75,7 @@ def test_attachment_swagger_contract_exposes_all_target_routes():
             ("projects", "project_id"),
             ("shift_reports", "shift_report_id"),
             ("objects", "object_id"),
+            ("places", "place_id"),
         )
         for suffix in ("", "/{attachment_id}", "/{attachment_id}/download")
     }
@@ -80,6 +85,24 @@ def test_attachment_swagger_contract_exposes_all_target_routes():
     ]["post"]
     assert upload_contract["consumes"] == ["multipart/form-data"]
     assert upload_contract["parameters"][0]["type"] == "file"
+
+
+def test_place_attachment_migration_declares_relation_and_permissions():
+    migration_path = (
+        Path(__file__).parents[1] / "alembic/versions/20260818_place_attachments.py"
+    )
+    spec = spec_from_file_location("place_attachments_migration", migration_path)
+    assert spec is not None and spec.loader is not None
+    migration = module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+    assert migration.revision == "20260818_place_attach"
+    assert migration.down_revision == "20260811_attachments"
+    assert len(migration.PERMISSIONS) == 4
+    assert (
+        "places-attachments-upload",
+        "POST /places/{place_id}/attachments",
+    ) in migration.PERMISSIONS
 
 
 def test_attachment_view_contract_excludes_preview_url():

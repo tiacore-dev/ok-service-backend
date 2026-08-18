@@ -2,6 +2,7 @@ from flask_restx import Model, fields
 
 from app.schemas.place_schemas import PlaceCreateSchema, PlaceEditSchema
 from app.utils.helpers import generate_swagger_model
+from app.web.attachments.contract import attachment_view_model
 
 place_create_model = generate_swagger_model(PlaceCreateSchema(), "PlaceCreate")
 place_edit_model = generate_swagger_model(PlaceEditSchema(), "PlaceEdit")
@@ -18,9 +19,21 @@ place_model = Model(
 place_msg_model = Model(
     "PlaceMessage", {"msg": fields.String(required=True), "place_id": fields.String()}
 )
+place_view_model = Model(
+    "PlaceView",
+    {
+        **place_model,
+        "attachments": fields.List(
+            fields.Nested(attachment_view_model), required=True
+        ),
+    },
+)
 place_response = Model(
     "PlaceResponse",
-    {"msg": fields.String(required=True), "place": fields.Nested(place_model, required=True)},
+    {
+        "msg": fields.String(required=True),
+        "place": fields.Nested(place_view_model, required=True),
+    },
 )
 place_all_response = Model(
     "PlaceAllResponse",

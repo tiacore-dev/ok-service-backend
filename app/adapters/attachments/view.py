@@ -1,12 +1,21 @@
+from typing import Protocol
 from uuid import UUID
 
+from app.domain.attachments import Attachment
+
 from .sqlalchemy_repository import SQLAlchemyAttachmentRepository
+
+
+class AttachmentViewRepository(Protocol):
+    def list_attachments(
+        self, target_type: str, target_id: UUID
+    ) -> list[Attachment]: ...
 
 
 def list_attachment_view_data(
     target_type: str,
     target_id: UUID,
-    repository: SQLAlchemyAttachmentRepository | None = None,
+    repository: AttachmentViewRepository | None = None,
     storage: object | None = None,
 ) -> list[dict[str, object]]:
     """Build attachment metadata for an already authorized view."""

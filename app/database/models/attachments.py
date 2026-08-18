@@ -30,6 +30,7 @@ class Attachments(Base):
         "ShiftReportAttachments", back_populates="attachment"
     )
     object_attachments = relationship("ObjectAttachments", back_populates="attachment")
+    place_attachments = relationship("PlaceAttachments", back_populates="attachment")
     creator = relationship("Users", back_populates="created_attachments")
 
 
@@ -99,3 +100,25 @@ class ObjectAttachments(Base):
 
     object = relationship("Objects", back_populates="object_attachments")
     attachment = relationship("Attachments", back_populates="object_attachments")
+
+
+class PlaceAttachments(Base):
+    __tablename__ = "place_attachments"
+    __table_args__ = (
+        UniqueConstraint("place_id", "attachment_id", name="uq_place_attachments"),
+    )
+
+    place_attachment_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    place_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("places.place_id"),
+        nullable=False,
+    )
+    attachment_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("attachments.attachment_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    place = relationship("Places", back_populates="place_attachments")
+    attachment = relationship("Attachments", back_populates="place_attachments")

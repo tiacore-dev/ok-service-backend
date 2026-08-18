@@ -31,6 +31,10 @@ def _ensure_access(target: AttachmentTarget, actor: AttachmentActor, *, delete: 
         if actor.role == "admin" or target.owner_id == actor.user_id:
             return
         raise AttachmentForbiddenError("Forbidden")
+    if target.target_type == "place":
+        if actor.role == "admin" or target.owner_id == actor.user_id:
+            return
+        raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "shift_report":
         if actor.role == "user":
             if delete:

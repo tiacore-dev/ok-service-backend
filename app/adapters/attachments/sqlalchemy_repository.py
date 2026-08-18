@@ -8,6 +8,8 @@ from app.database.models import (
     Attachments,
     ObjectAttachments,
     Objects,
+    PlaceAttachments,
+    Places,
     ProjectAttachments,
     Projects,
     ShiftReportAttachments,
@@ -32,6 +34,7 @@ class SQLAlchemyAttachmentRepository:
         "project": (ProjectAttachments, "project_id", Projects),
         "shift_report": (ShiftReportAttachments, "shift_report_id", ShiftReports),
         "object": (ObjectAttachments, "object_id", Objects),
+        "place": (PlaceAttachments, "place_id", Places),
     }
 
     @staticmethod
@@ -88,6 +91,17 @@ class SQLAlchemyAttachmentRepository:
                     owner_id=report.user,
                     signed=report.signed,
                     leave_id=report.leave_id,
+                )
+            if target_type == "place":
+                place = session.get(Places, target_id)
+                if place is None:
+                    return None
+                owner_id = place.object.manager if place.object else None
+                return AttachmentTarget(
+                    target_type=target_type,
+                    target_id=target_id,
+                    deleted=place.deleted,
+                    owner_id=owner_id,
                 )
             return None
         finally:

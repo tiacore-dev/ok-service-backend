@@ -3,7 +3,7 @@
 ## Хранение
 
 Вложения хранятся в S3-совместимом хранилище и связаны ровно с одной сущностью:
-проектом, сменным отчётом или объектом. Повторное связывание уже созданного
+проектом, сменным отчётом, объектом или местом. Повторное связывание уже созданного
 `attachment` не поддерживается API.
 
 S3 key формируется по шаблонам:
@@ -11,6 +11,7 @@ S3 key формируется по шаблонам:
 - `ok-service/projects/{project_id}/{attachment_id}_{filename}`;
 - `ok-service/shift_reports/{shift_report_id}/{attachment_id}_{filename}`;
 - `ok-service/objects/{object_id}/{attachment_id}_{filename}`.
+- `ok-service/places/{place_id}/{attachment_id}_{filename}`.
 
 UUID предотвращает перезапись файлов с одинаковыми именами. Исходные данные файла
 хранятся в `attachments`: нормализованное имя, размер, SHA-256 checksum, MIME-тип,
@@ -28,8 +29,8 @@ GET    /projects/{project_id}/attachments/{attachment_id}/download
 DELETE /projects/{project_id}/attachments/{attachment_id}
 ```
 
-Префикс `projects` заменяется на `shift_reports` или `objects` для соответствующей
-сущности.
+Префикс `projects` заменяется на `shift_reports`, `objects` или `places` для
+соответствующей сущности.
 
 Загрузка использует `multipart/form-data`. Каждый файл передаётся повторяемым полем
 `files`. Batch атомарен на уровне API: если валидация, S3 или запись в БД завершается
@@ -38,7 +39,8 @@ DELETE /projects/{project_id}/attachments/{attachment_id}
 
 Detail views `GET /projects/{project_id}/view`,
 `GET /shift_reports/{shift_report_id}/view` and
-`GET /objects/{object_id}/view` include an `attachments` array. Each item
+`GET /objects/{object_id}/view`, `GET /places/{place_id}/view` include an
+`attachments` array. Each item
 contains attachment metadata without a download URL.
 The array is empty when the entity has no attachments. `/all` responses are
 unchanged. Access follows the original entity view endpoint. To preview or
@@ -49,6 +51,8 @@ download bytes, call the attachment `/download` endpoint.
 - Вложения проекта: `admin` и `manager` — любой проект; `project-leader` — только
   проект, где он указан в `project_leader`.
 - Вложения объекта: `admin` или пользователь, указанный в `objects.manager`.
+- Вложения места: `admin` или пользователь, указанный в `objects.manager` для
+  объекта, которому принадлежит место.
 - Вложения сменного отчёта: роль `user` — только собственный неподписанный отчёт;
   отчёт, связанный с отсутствием через `leave_id`, не изменяется. Роль `user` не
   удаляет вложения смены. Остальные роли работают по текущему контракту смен.

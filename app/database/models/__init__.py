@@ -1,6 +1,7 @@
 from .api_keys import ApiKeys as ApiKeys
 from .attachments import Attachments as Attachments
 from .attachments import ObjectAttachments as ObjectAttachments
+from .attachments import PlaceAttachments as PlaceAttachments
 from .attachments import ProjectAttachments as ProjectAttachments
 from .attachments import ShiftReportAttachments as ShiftReportAttachments
 from .cities import Cities as Cities

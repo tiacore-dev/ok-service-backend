@@ -10,6 +10,7 @@ from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from app.adapters.attachments import list_attachment_view_data
 from app.adapters.places import SQLAlchemyPlaceRepository
 from app.decorators import admin_required, api_key_or_jwt_required
 from app.domain.places import PlaceForbiddenError, PlaceNotFoundError, PlaceValidationError
@@ -36,7 +37,9 @@ from app.routes.models.place_models import (
     place_model,
     place_msg_model,
     place_response,
+    place_view_model,
 )
+from app.web.attachments.contract import attachment_view_model
 
 place_ns = Namespace("places", description="Places management operations")
 for model in (
@@ -46,8 +49,10 @@ for model in (
     place_msg_model,
     place_response,
     place_all_response,
+    place_view_model,
 ):
     place_ns.models[model.name] = model
+place_ns.models[attachment_view_model.name] = attachment_view_model
 
 
 class PlaceCreatePayload(TypedDict):
@@ -153,7 +158,11 @@ class PlaceView(Resource):
     def get(self, place_id):
         try:
             place = GetPlaceUseCase(SQLAlchemyPlaceRepository()).execute(_parse_id(place_id))
-            return {"msg": "Place found successfully", "place": _response(place)}, 200
+            place_response_data = _response(place)
+            place_response_data["attachments"] = list_attachment_view_data(
+                "place", place.place_id
+            )
+            return {"msg": "Place found successfully", "place": place_response_data}, 200
         except Exception as error:
             return _error(error)
 
