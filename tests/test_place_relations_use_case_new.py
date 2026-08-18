@@ -35,6 +35,16 @@ class FakeRepository:
     def has_project_place(self, project_id, place_id): return any(x.project_id == project_id and x.place_id == place_id for x in self.project_relations.values())
     def has_shift_place(self, shift_report_id, place_id): return any(x.shift_report_id == shift_report_id and x.place_id == place_id for x in self.shift_relations.values())
     def is_place_used_by_shift(self, project_id, place_id): return bool(self.shift_relations) and self.has_project_place(project_id, place_id)
+    def bulk_create_project_place_relations(self, relations):
+        for relation in relations: self.create_project_place_relation(relation)
+        return relations
+    def bulk_delete_project_place_relations(self, relation_ids):
+        return sum(self.delete_project_place_relation(relation_id) for relation_id in relation_ids)
+    def bulk_create_shift_place_relations(self, relations):
+        for relation in relations: self.create_shift_place_relation(relation)
+        return relations
+    def bulk_delete_shift_place_relations(self, relation_ids):
+        return sum(self.delete_shift_place_relation(relation_id) for relation_id in relation_ids)
 
 
 def test_shift_place_requires_project_place_and_allows_assigned_user():
@@ -51,3 +61,36 @@ def test_project_leader_cannot_manage_another_project():
     repo = FakeRepository()
     with pytest.raises(PlaceRelationForbiddenError):
         PlaceRelationService(repo).create_project_place(repo.project_id, repo.place_id, RelationActor("project-leader", uuid4()))
+
+
+def test_bulk_project_places_skips_existing_and_deduplicates():
+    repo = FakeRepository()
+    service = PlaceRelationService(repo)
+    actor = RelationActor("admin", uuid4())
+    first = service.bulk_create_project_places(repo.project_id, [repo.place_id, repo.place_id], actor)
+    second = service.bulk_create_project_places(repo.project_id, [repo.place_id], actor)
+    assert len(first) == 1
+    assert second == []
+    assert service.bulk_delete_project_places(repo.project_id, [repo.place_id, uuid4()], actor) == 1
+    assert service.bulk_delete_project_places(repo.project_id, [repo.place_id], actor) == 0
+
+
+def test_bulk_shift_places_validates_all_before_writing():
+    repo = FakeRepository()
+    service = PlaceRelationService(repo)
+    actor = RelationActor("admin", uuid4())
+    service.create_project_place(repo.project_id, repo.place_id, actor)
+    with pytest.raises(PlaceRelationConflictError):
+        service.bulk_create_shift_places(repo.shift_id, [repo.place_id, uuid4()], actor)
+    assert repo.shift_relations == {}
+
+
+def test_bulk_shift_places_skips_existing_and_missing_on_delete():
+    repo = FakeRepository()
+    service = PlaceRelationService(repo)
+    actor = RelationActor("admin", uuid4())
+    service.create_project_place(repo.project_id, repo.place_id, actor)
+    created = service.bulk_create_shift_places(repo.shift_id, [repo.place_id, repo.place_id], actor)
+    assert len(created) == 1
+    assert service.bulk_delete_shift_places(repo.shift_id, [repo.place_id, uuid4()], actor) == 1
+    assert service.bulk_delete_shift_places(repo.shift_id, [repo.place_id], actor) == 0

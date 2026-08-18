@@ -58,6 +58,10 @@ class PlaceRelationRepository(Protocol):
     def has_project_place(self, project_id: UUID, place_id: UUID) -> bool: ...
     def has_shift_place(self, shift_report_id: UUID, place_id: UUID) -> bool: ...
     def is_place_used_by_shift(self, project_id: UUID, place_id: UUID) -> bool: ...
+    def bulk_create_project_place_relations(self, relations: list[ProjectPlaceRelation]) -> list[ProjectPlaceRelation]: ...
+    def bulk_delete_project_place_relations(self, relation_ids: list[UUID]) -> int: ...
+    def bulk_create_shift_place_relations(self, relations: list[ShiftPlaceRelation]) -> list[ShiftPlaceRelation]: ...
+    def bulk_delete_shift_place_relations(self, relation_ids: list[UUID]) -> int: ...
 
 
 def _privileged(actor: RelationActor) -> bool:
@@ -93,6 +97,10 @@ def _check_project_place(repository, project_id, place_id):
         raise PlaceRelationConflictError("Project and place objects must match")
 
 
+def _unique_place_ids(place_ids: list[UUID]) -> list[UUID]:
+    return list(dict.fromkeys(place_ids))
+
+
 @dataclass(slots=True)
 class PlaceRelationService:
     repository: PlaceRelationRepository
@@ -106,6 +114,16 @@ class PlaceRelationService:
         return self.repository.create_project_place_relation(
             ProjectPlaceRelation(uuid4(), project_id, place_id)
         )
+
+    def bulk_create_project_places(self, project_id, place_ids, actor):
+        if not _project_allowed(self.repository, project_id, actor):
+            raise PlaceRelationForbiddenError("Forbidden")
+        relations = []
+        for place_id in _unique_place_ids(place_ids):
+            _check_project_place(self.repository, project_id, place_id)
+            if not self.repository.has_project_place(project_id, place_id):
+                relations.append(ProjectPlaceRelation(uuid4(), project_id, place_id))
+        return self.repository.bulk_create_project_place_relations(relations) if relations else []
 
     def update_project_place(self, relation_id, project_id, place_id, actor):
         current = self.repository.get_project_place_relation(relation_id)
@@ -136,6 +154,18 @@ class PlaceRelationService:
         if not self.repository.delete_project_place_relation(relation_id):
             raise PlaceRelationNotFoundError("Project place relation not found")
 
+    def bulk_delete_project_places(self, project_id, place_ids, actor):
+        if not _project_allowed(self.repository, project_id, actor):
+            raise PlaceRelationForbiddenError("Forbidden")
+        requested = set(_unique_place_ids(place_ids))
+        relation_ids = []
+        for relation in self.repository.list_project_place_relations():
+            if relation.project_id == project_id and relation.place_id in requested:
+                if self.repository.is_place_used_by_shift(project_id, relation.place_id):
+                    raise PlaceRelationConflictError("Project place is used by a shift")
+                relation_ids.append(relation.project_place_relation_id)
+        return self.repository.bulk_delete_project_place_relations(relation_ids) if relation_ids else 0
+
     def create_shift_place(self, shift_report_id, place_id, comment, actor):
         if not _shift_allowed(self.repository, shift_report_id, actor):
             raise PlaceRelationForbiddenError("Forbidden")
@@ -149,6 +179,20 @@ class PlaceRelationService:
         return self.repository.create_shift_place_relation(
             ShiftPlaceRelation(uuid4(), shift_report_id, place_id, comment)
         )
+
+    def bulk_create_shift_places(self, shift_report_id, place_ids, actor):
+        if not _shift_allowed(self.repository, shift_report_id, actor):
+            raise PlaceRelationForbiddenError("Forbidden")
+        context = self.repository.shift_context(shift_report_id)
+        if context is None:
+            raise PlaceRelationNotFoundError("Shift report not found")
+        relations = []
+        for place_id in _unique_place_ids(place_ids):
+            if not self.repository.has_project_place(context[0], place_id):
+                raise PlaceRelationConflictError("Place is not linked to shift project")
+            if not self.repository.has_shift_place(shift_report_id, place_id):
+                relations.append(ShiftPlaceRelation(uuid4(), shift_report_id, place_id, None))
+        return self.repository.bulk_create_shift_place_relations(relations) if relations else []
 
     def update_shift_place(self, relation_id, place_id, comment, actor):
         current = self.repository.get_shift_place_relation(relation_id)
@@ -176,3 +220,14 @@ class PlaceRelationService:
             raise PlaceRelationForbiddenError("Forbidden")
         if not self.repository.delete_shift_place_relation(relation_id):
             raise PlaceRelationNotFoundError("Shift place relation not found")
+
+    def bulk_delete_shift_places(self, shift_report_id, place_ids, actor):
+        if not _shift_allowed(self.repository, shift_report_id, actor):
+            raise PlaceRelationForbiddenError("Forbidden")
+        requested = set(_unique_place_ids(place_ids))
+        relation_ids = [
+            relation.shift_place_relation_id
+            for relation in self.repository.list_shift_place_relations()
+            if relation.shift_report_id == shift_report_id and relation.place_id in requested
+        ]
+        return self.repository.bulk_delete_shift_place_relations(relation_ids) if relation_ids else 0

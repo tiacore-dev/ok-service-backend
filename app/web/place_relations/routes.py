@@ -19,14 +19,16 @@ from app.use_cases.place_relations import (
 from app.web._typing import to_plain_dict
 from app.schemas.place_relation_schemas import (
     ProjectPlaceRelationCreateSchema, ProjectPlaceRelationEditSchema,
+    ProjectPlaceRelationBulkSchema,
     ShiftPlaceRelationCreateSchema, ShiftPlaceRelationEditSchema,
+    ShiftPlaceRelationBulkSchema,
 )
 from app.routes.models.place_relation_models import *  # noqa: F403
 
 project_place_relation_ns = Namespace("project_place_relations", description="Project-place relations")
 shift_place_relation_ns = Namespace("shift_place_relations", description="Shift-place relations")
 for _ns in (project_place_relation_ns, shift_place_relation_ns):
-    for _model in (project_place_relation_create_model, project_place_relation_edit_model, shift_place_relation_create_model, shift_place_relation_edit_model, project_place_relation_model, shift_place_relation_model, project_place_relation_msg_model, shift_place_relation_msg_model, project_place_relation_response, shift_place_relation_response, project_place_relation_all_response, shift_place_relation_all_response):
+    for _model in (project_place_relation_create_model, project_place_relation_edit_model, project_place_relation_bulk_model, shift_place_relation_create_model, shift_place_relation_edit_model, shift_place_relation_bulk_model, project_place_relation_model, shift_place_relation_model, project_place_relation_msg_model, shift_place_relation_msg_model, project_place_relation_response, shift_place_relation_response, project_place_relation_all_response, shift_place_relation_all_response, project_place_relation_bulk_response, shift_place_relation_bulk_response, project_place_relation_bulk_delete_response, shift_place_relation_bulk_delete_response):
         _ns.models[_model.name] = _model
 
 
@@ -81,6 +83,34 @@ class ProjectPlaceRelationAdd(Resource):
             data = cast(dict[str, Any], ProjectPlaceRelationCreateSchema().load(to_plain_dict(request.get_json(silent=True), "Request body is required")))
             item = _service().create_project_place(data["project_id"], data["place_id"], _actor())
             return {"msg": "Project place relation added successfully", "project_place_relation_id": str(item.project_place_relation_id)}, 200
+        except Exception as error: return _error(error)
+
+
+@project_place_relation_ns.route("/add-bulk")
+class ProjectPlaceRelationBulkAdd(Resource):
+    @api_key_or_jwt_required
+    @user_forbidden
+    @project_place_relation_ns.expect(project_place_relation_bulk_model)
+    @project_place_relation_ns.marshal_with(project_place_relation_bulk_response)
+    def post(self):
+        try:
+            data = cast(dict[str, Any], ProjectPlaceRelationBulkSchema().load(to_plain_dict(request.get_json(silent=True), "Request body is required")))
+            items = _service().bulk_create_project_places(data["project_id"], data["place_ids"], _actor())
+            return {"msg": "Project place relations added successfully", "project_place_relations": [_project_response(item) for item in items]}, 200
+        except Exception as error: return _error(error)
+
+
+@project_place_relation_ns.route("/delete-bulk")
+class ProjectPlaceRelationBulkDelete(Resource):
+    @api_key_or_jwt_required
+    @user_forbidden
+    @project_place_relation_ns.expect(project_place_relation_bulk_model)
+    @project_place_relation_ns.marshal_with(project_place_relation_bulk_delete_response)
+    def delete(self):
+        try:
+            data = cast(dict[str, Any], ProjectPlaceRelationBulkSchema().load(to_plain_dict(request.get_json(silent=True), "Request body is required")))
+            deleted = _service().bulk_delete_project_places(data["project_id"], data["place_ids"], _actor())
+            return {"msg": "Project place relations deleted successfully", "deleted_count": deleted}, 200
         except Exception as error: return _error(error)
 
 
@@ -141,6 +171,32 @@ class ShiftPlaceRelationAdd(Resource):
             data = cast(dict[str, Any], ShiftPlaceRelationCreateSchema().load(to_plain_dict(request.get_json(silent=True), "Request body is required")))
             item = _service().create_shift_place(data["shift_report_id"], data["place_id"], data.get("comment"), _actor())
             return {"msg": "Shift place relation added successfully", "shift_place_relation_id": str(item.shift_place_relation_id)}, 200
+        except Exception as error: return _error(error)
+
+
+@shift_place_relation_ns.route("/add-bulk")
+class ShiftPlaceRelationBulkAdd(Resource):
+    @api_key_or_jwt_required
+    @shift_place_relation_ns.expect(shift_place_relation_bulk_model)
+    @shift_place_relation_ns.marshal_with(shift_place_relation_bulk_response)
+    def post(self):
+        try:
+            data = cast(dict[str, Any], ShiftPlaceRelationBulkSchema().load(to_plain_dict(request.get_json(silent=True), "Request body is required")))
+            items = _service().bulk_create_shift_places(data["shift_report_id"], data["place_ids"], _actor())
+            return {"msg": "Shift place relations added successfully", "shift_place_relations": [_shift_response(item) for item in items]}, 200
+        except Exception as error: return _error(error)
+
+
+@shift_place_relation_ns.route("/delete-bulk")
+class ShiftPlaceRelationBulkDelete(Resource):
+    @api_key_or_jwt_required
+    @shift_place_relation_ns.expect(shift_place_relation_bulk_model)
+    @shift_place_relation_ns.marshal_with(shift_place_relation_bulk_delete_response)
+    def delete(self):
+        try:
+            data = cast(dict[str, Any], ShiftPlaceRelationBulkSchema().load(to_plain_dict(request.get_json(silent=True), "Request body is required")))
+            deleted = _service().bulk_delete_shift_places(data["shift_report_id"], data["place_ids"], _actor())
+            return {"msg": "Shift place relations deleted successfully", "deleted_count": deleted}, 200
         except Exception as error: return _error(error)
 
 
