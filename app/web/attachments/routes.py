@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import logging
+from io import BytesIO
 from typing import Any
 from uuid import UUID
 
-from flask import Response, g, request
+from flask import g, request, send_file
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Model, Namespace, Resource, fields, reqparse
 from werkzeug.datastructures import FileStorage
@@ -249,14 +250,54 @@ def _list(target_type: str, target_id: str):
 
 
 def _download(target_type: str, target_id: str, attachment_id: str):
+    request_context = {
+        "target_type": target_type,
+        "target_id": target_id,
+        "attachment_id": attachment_id,
+        "method": request.method,
+        "path": request.path,
+    }
+    logger.debug("Attachment download started: %s", request_context)
     try:
         content, filename, content_type = _use_case().download_bytes(
             target_type, _uuid(target_id), _uuid(attachment_id), _actor()
         )
-        response = Response(content, status=200, mimetype=content_type)
-        response.headers["Content-Disposition"] = f'inline; filename="{filename}"'
+        response = send_file(
+            BytesIO(content),
+            mimetype=content_type,
+            as_attachment=False,
+            download_name=filename,
+        )
+        logger.info(
+            "Attachment download completed: target_type=%s target_id=%s "
+            "attachment_id=%s bytes=%d",
+            target_type,
+            target_id,
+            attachment_id,
+            len(content),
+        )
         return response
     except Exception as error:
+        if isinstance(
+            error,
+            (
+                AttachmentNotFoundError,
+                AttachmentForbiddenError,
+                AttachmentConflictError,
+                AttachmentStorageError,
+                BadRequest,
+                ValueError,
+            ),
+        ):
+            logger.warning(
+                "Attachment download rejected: %s error=%s",
+                request_context,
+                error,
+            )
+        else:
+            logger.exception(
+                "Attachment download failed unexpectedly: %s", request_context
+            )
         return _error(error)
 
 
