@@ -1,7 +1,7 @@
 from io import BytesIO
 from uuid import uuid4
 
-from flask import Flask
+from flask import Flask, Response
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 
 from config import Config
@@ -84,6 +84,7 @@ def test_download_uses_rfc5987_content_disposition_for_unicode_filename(monkeypa
             "62692922-bc80-4501-ac69-c387b3397f57",
         )
 
+    assert isinstance(response, Response)
     assert response.status_code == 200
     assert response.headers["Content-Disposition"] == (
         "inline; filename=__.pdf; filename*=UTF-8''"
@@ -104,11 +105,13 @@ def test_download_logs_unexpected_exception_with_traceback(monkeypatch, caplog):
         method="GET",
     ):
         with caplog.at_level("DEBUG", logger="ok_service"):
-            response, status = routes._download(
+            result = routes._download(
                 "shift_report",
                 "62692922-bc80-4501-ac69-c387b3397f57",
                 "62692922-bc80-4501-ac69-c387b3397f57",
             )
+            assert isinstance(result, tuple)
+            response, status = result
 
     assert status == 500
     assert response == {"msg": "Internal server error"}

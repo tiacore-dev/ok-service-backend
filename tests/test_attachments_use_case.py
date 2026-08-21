@@ -220,12 +220,85 @@ def test_user_cannot_upload_to_forbidden_shift_report(owner_matches, signed):
         )
 
 
-def test_user_cannot_delete_shift_report_attachment():
+def test_user_can_list_and_download_own_signed_shift_report_attachment():
+    user_id = uuid4()
+    target = AttachmentTarget(
+        "shift_report", uuid4(), False, owner_id=user_id, signed=True
+    )
+    attachment = Attachment(
+        uuid4(),
+        "approved.pdf",
+        "key",
+        8,
+        "checksum",
+        {"content_type": "application/pdf", "extension": "pdf"},
+        1,
+        user_id,
+    )
+    repository = FakeRepository(target, attachments=[attachment])
+    use_case = AttachmentUseCase(repository, FakeStorage())
+
+    assert use_case.list(
+        "shift_report", target.target_id, AttachmentActor(user_id, "user")
+    ) == [attachment]
+    content, filename, content_type = use_case.download_bytes(
+        "shift_report",
+        target.target_id,
+        attachment.attachment_id,
+        AttachmentActor(user_id, "user"),
+    )
+    assert (content, filename, content_type) == (
+        b"file contents",
+        "approved.pdf",
+        "application/pdf",
+    )
+
+
+@pytest.mark.parametrize("role", ["manager", "project-leader"])
+def test_non_admin_cannot_edit_signed_shift_report_attachments(role):
+    target = AttachmentTarget(
+        "shift_report", uuid4(), False, owner_id=uuid4(), signed=True
+    )
+
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+            "shift_report",
+            target.target_id,
+            [_file()],
+            AttachmentActor(uuid4(), role),
+        )
+
+
+def test_user_can_delete_attachment_from_own_unsigned_shift_report():
     user_id = uuid4()
     target = AttachmentTarget("shift_report", uuid4(), False, owner_id=user_id)
     attachment = Attachment(
         uuid4(),
         "document.pdf",
+        "key",
+        8,
+        "checksum",
+        {"content_type": "application/pdf", "extension": "pdf"},
+        1,
+        user_id,
+    )
+    repository = FakeRepository(target, attachments=[attachment])
+
+    AttachmentUseCase(repository, FakeStorage()).delete(
+        "shift_report",
+        target.target_id,
+        attachment.attachment_id,
+        AttachmentActor(user_id, "user"),
+    )
+    assert repository.attachments == []
+
+
+def test_user_cannot_delete_attachment_from_own_signed_shift_report():
+    user_id = uuid4()
+    target = AttachmentTarget("shift_report", uuid4(), False, owner_id=user_id, signed=True)
+    attachment = Attachment(
+        uuid4(),
+        "approved.pdf",
         "key",
         8,
         "checksum",

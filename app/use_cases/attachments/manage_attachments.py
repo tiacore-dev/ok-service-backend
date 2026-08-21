@@ -18,7 +18,7 @@ from .ports import AttachmentRepository, AttachmentStorage
 logger = logging.getLogger("ok_service")
 
 
-def _ensure_access(target: AttachmentTarget, actor: AttachmentActor, *, delete: bool) -> None:
+def _ensure_view_access(target: AttachmentTarget, actor: AttachmentActor) -> None:
     if target.deleted:
         raise AttachmentConflictError("Deleted entity cannot be changed")
     if target.target_type == "project":
@@ -37,16 +37,24 @@ def _ensure_access(target: AttachmentTarget, actor: AttachmentActor, *, delete: 
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "shift_report":
         if actor.role == "user":
-            if delete:
-                raise AttachmentForbiddenError("User cannot delete shift report attachment")
             if target.owner_id != actor.user_id:
-                raise AttachmentForbiddenError("User cannot edit not his shift report")
-            if target.signed:
-                raise AttachmentForbiddenError("User cannot edit signed shift report")
-        if target.leave_id is not None:
-            raise AttachmentConflictError("Shift report linked to leave cannot be changed")
+                raise AttachmentForbiddenError("User cannot view not his shift report")
         return
     raise AttachmentNotFoundError("Attachment target not found")
+
+
+def _ensure_mutation_access(
+    target: AttachmentTarget, actor: AttachmentActor, *, delete: bool
+) -> None:
+    _ensure_view_access(target, actor)
+    if target.target_type != "shift_report":
+        return
+    if target.leave_id is not None:
+        raise AttachmentConflictError("Shift report linked to leave cannot be changed")
+    if target.signed and actor.role != "admin":
+        raise AttachmentForbiddenError(
+            "Only admin can edit signed shift report attachments"
+        )
 
 
 @dataclass(slots=True)
@@ -66,7 +74,7 @@ class AttachmentUseCase:
         target = self.repository.get_target(target_type, target_id)
         if target is None:
             raise AttachmentNotFoundError("Attachment target not found")
-        _ensure_access(target, actor, delete=False)
+        _ensure_mutation_access(target, actor, delete=False)
 
         uploaded: list[Attachment] = []
         try:
@@ -115,7 +123,7 @@ class AttachmentUseCase:
         target = self.repository.get_target(target_type, target_id)
         if target is None:
             raise AttachmentNotFoundError("Attachment target not found")
-        _ensure_access(target, actor, delete=False)
+        _ensure_view_access(target, actor)
         return self.repository.list_attachments(target_type, target_id)
 
     def download_bytes(
@@ -128,7 +136,7 @@ class AttachmentUseCase:
         target = self.repository.get_target(target_type, target_id)
         if target is None:
             raise AttachmentNotFoundError("Attachment target not found")
-        _ensure_access(target, actor, delete=False)
+        _ensure_view_access(target, actor)
         attachment = self.repository.get_attachment(target_type, target_id, attachment_id)
         if attachment is None:
             raise AttachmentNotFoundError("Attachment not found")
@@ -145,7 +153,7 @@ class AttachmentUseCase:
         target = self.repository.get_target(target_type, target_id)
         if target is None:
             raise AttachmentNotFoundError("Attachment target not found")
-        _ensure_access(target, actor, delete=True)
+        _ensure_mutation_access(target, actor, delete=True)
         attachment = self.repository.get_attachment(target_type, target_id, attachment_id)
         if attachment is None:
             raise AttachmentNotFoundError("Attachment not found")
