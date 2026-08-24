@@ -2,6 +2,7 @@ from .create_shift_report_material import CreateShiftReportMaterialUseCase
 from .delete_shift_report_material import DeleteShiftReportMaterialUseCase
 from .dto import (
     CreateShiftReportMaterialCommand,
+    ShiftReportMaterialActor,
     ShiftReportMaterialListQuery,
     UpdateShiftReportMaterialCommand,
 )
@@ -12,6 +13,7 @@ from .update_shift_report_material import UpdateShiftReportMaterialUseCase
 
 __all__ = [
     "CreateShiftReportMaterialCommand",
+    "ShiftReportMaterialActor",
     "CreateShiftReportMaterialUseCase",
     "DeleteShiftReportMaterialUseCase",
     "GetShiftReportMaterialUseCase",

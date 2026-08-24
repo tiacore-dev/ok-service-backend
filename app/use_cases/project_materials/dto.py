@@ -15,6 +15,12 @@ class CreateProjectMaterialCommand:
 
 
 @dataclass(frozen=True, slots=True)
+class ProjectMaterialActor:
+    role: str
+    user_id: UUID
+
+
+@dataclass(frozen=True, slots=True)
 class UpdateProjectMaterialCommand:
     project_material_id: UUID
     project: UUID | None = None

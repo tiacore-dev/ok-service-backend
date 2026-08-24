@@ -5,6 +5,8 @@ from uuid import UUID
 
 from app.adapters._typing import normalize_result
 from app.database.managers.materials_manager import ShiftReportMaterialsManager
+from app.database.managers.projects_managers import ProjectsManager
+from app.database.managers.shift_reports_managers import ShiftReportsManager
 from app.domain.shift_report_materials import ShiftReportMaterial
 from app.use_cases.shift_report_materials.dto import ShiftReportMaterialListQuery
 from app.use_cases.shift_report_materials.ports import ShiftReportMaterialRepository
@@ -20,6 +22,8 @@ class SQLAlchemyShiftReportMaterialRepository(ShiftReportMaterialRepository):
     manager: ShiftReportMaterialsManager = field(
         default_factory=ShiftReportMaterialsManager
     )
+    reports_manager: ShiftReportsManager = field(default_factory=ShiftReportsManager)
+    projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
 
     def create_shift_report_material(
         self, shift_report_material: ShiftReportMaterial
@@ -74,3 +78,18 @@ class SQLAlchemyShiftReportMaterialRepository(ShiftReportMaterialRepository):
             created_at=query.created_at,
         )
         return [shift_report_material_dict_to_entity(record) for record in records]
+
+    def get_shift_report_context(
+        self, shift_report_id: UUID
+    ) -> tuple[UUID, UUID | None, bool] | None:
+        report = normalize_result(self.reports_manager.get_by_id(shift_report_id))
+        if report is None:
+            return None
+        project_id = UUID(str(report["project"]))
+        project = normalize_result(self.projects_manager.get_by_id(project_id))
+        project_leader = (
+            UUID(str(project["project_leader"]))
+            if project and project.get("project_leader")
+            else None
+        )
+        return project_id, project_leader, bool(report.get("signed", False))

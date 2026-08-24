@@ -109,6 +109,18 @@ Soft delete места запрещён, если место используе�
 `project_place_relations` или `shift_place_relations`; endpoint возвращает `409`.
 Сначала необходимо удалить соответствующие связи.
 
+### Материалы project и смены
+
+`project_materials` добавлять могут `admin`, `manager` и project leader только
+в project, где он указан в `projects.project_leader`. Project leader не может
+добавлять материалы в чужую спецификацию.
+
+`shift_report_materials` добавлять могут `admin`, `manager` и владелец смены с
+ролью `user` по действующей проверке смены. Project leader может добавлять
+материалы в смену, относящуюся к его project; принадлежность проверяется через
+`shift_reports.project -> projects.project_leader`. Для чужого project ответом
+остаётся `403`.
+
 ## Проверки для API key
 
 Если endpoint доступен по API key:
