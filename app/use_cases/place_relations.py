@@ -83,16 +83,14 @@ def _project_allowed(repository: PlaceRelationRepository, project_id: UUID, acto
 
 
 def _project_view_allowed(actor: RelationActor) -> bool:
-    return actor.role in {"admin", "manager", "project-leader"}
+    return actor.role in {"admin", "manager", "project-leader", "user"}
 
 
 def _shift_view_allowed(repository: PlaceRelationRepository, shift_report_id: UUID, actor: RelationActor) -> bool:
     context = repository.shift_context(shift_report_id)
     if context is None:
         return False
-    return actor.role in {"admin", "manager", "project-leader"} or (
-        actor.role == "user" and context.user_id == actor.user_id
-    )
+    return actor.role in {"admin", "manager", "project-leader", "user"}
 
 
 def _shift_mutation_allowed(repository: PlaceRelationRepository, shift_report_id: UUID, actor: RelationActor) -> bool:

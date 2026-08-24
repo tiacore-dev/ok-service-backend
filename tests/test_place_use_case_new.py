@@ -142,17 +142,15 @@ def test_list_places_for_object_delegates_object_id():
     assert repository.listed_object_id == place.object_id
 
 
-def test_get_and_list_places_block_user():
+def test_get_and_list_places_allow_user():
     place = _place()
     repository = FakePlaceRepository(place)
     actor = PlaceActor(role="user")
 
-    with pytest.raises(PlaceForbiddenError):
-        from app.use_cases.places import GetPlaceUseCase
-        GetPlaceUseCase(repository).execute(place.place_id, actor)
-    with pytest.raises(PlaceForbiddenError):
-        from app.use_cases.places import ListPlacesUseCase
-        ListPlacesUseCase(repository).execute(actor)
+    from app.use_cases.places import GetPlaceUseCase, ListPlacesUseCase
+
+    assert GetPlaceUseCase(repository).execute(place.place_id, actor) == place
+    assert ListPlacesUseCase(repository).execute(actor) == [place]
 
 
 def test_mapper_keeps_invalid_legacy_values_for_get():

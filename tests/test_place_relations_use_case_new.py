@@ -65,6 +65,23 @@ def test_project_leader_cannot_manage_another_project():
         PlaceRelationService(repo).create_project_place(repo.project_id, repo.place_id, RelationActor("project-leader", uuid4()))
 
 
+def test_user_can_view_project_and_shift_place_relations():
+    repo = FakeRepository()
+    service = PlaceRelationService(repo)
+    project_relation = service.create_project_place(
+        repo.project_id, repo.place_id, RelationActor("admin", uuid4())
+    )
+    shift_relation = service.create_shift_place(
+        repo.shift_id, repo.place_id, None, RelationActor("admin", uuid4())
+    )
+    actor = RelationActor("user", uuid4())
+
+    assert service.get_project_place(project_relation.project_place_relation_id, actor)
+    assert service.list_project_places(actor) == [project_relation]
+    assert service.get_shift_place(shift_relation.shift_place_relation_id, actor)
+    assert service.list_shift_places(actor) == [shift_relation]
+
+
 def test_bulk_project_places_skips_existing_and_deduplicates():
     repo = FakeRepository()
     service = PlaceRelationService(repo)

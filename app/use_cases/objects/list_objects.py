@@ -13,8 +13,4 @@ class ListObjectsUseCase:
     repository: ObjectRepository
 
     def execute(self, query: ObjectListQuery, actor: ObjectActor) -> list[Object]:
-        if actor.role == "user":
-            from app.domain.objects import ObjectForbiddenError
-
-            raise ObjectForbiddenError("Forbidden")
         return self.repository.list_objects(query, actor)

@@ -14,8 +14,6 @@ class GetProjectUseCase:
     repository: ProjectRepository
 
     def execute(self, project_id: UUID, actor: ProjectActor) -> dict[str, object]:
-        if actor.role == "user":
-            raise ProjectForbiddenError("Forbidden")
         record = self.repository.get_project_record(project_id)
         if record is None:
             raise ProjectNotFoundError("Project not found")

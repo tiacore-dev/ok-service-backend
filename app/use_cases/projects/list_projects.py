@@ -15,6 +15,4 @@ class ListProjectsUseCase:
     def execute(
         self, query: ProjectListQuery, actor: ProjectActor
     ) -> list[dict[str, object]]:
-        if actor.role == "user":
-            raise ProjectForbiddenError("Forbidden")
         return self.repository.list_project_records(query, actor)

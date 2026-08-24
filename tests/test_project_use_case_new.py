@@ -207,15 +207,13 @@ def test_list_projects_use_case_delegates_query_and_actor():
     assert repository.listed_actor == actor
 
 
-def test_project_reads_block_user():
+def test_project_reads_allow_user_but_stats_remain_restricted():
     project = _project()
     repository = FakeProjectRepository(project=project)
     actor = ProjectActor(role="user", user_id=uuid4())
 
-    with pytest.raises(ProjectForbiddenError):
-        GetProjectUseCase(repository).execute(project.project_id, actor)
-    with pytest.raises(ProjectForbiddenError):
-        ListProjectsUseCase(repository).execute(ProjectListQuery(), actor)
+    assert GetProjectUseCase(repository).execute(project.project_id, actor)
+    assert ListProjectsUseCase(repository).execute(ProjectListQuery(), actor)
     with pytest.raises(ProjectForbiddenError):
         GetProjectStatsUseCase(repository).execute(project.project_id, actor)
 

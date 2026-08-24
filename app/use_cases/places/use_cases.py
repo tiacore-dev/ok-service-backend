@@ -36,8 +36,6 @@ class GetPlaceUseCase:
     repository: PlaceRepository
 
     def execute(self, place_id: UUID, actor: PlaceActor) -> Place:
-        if actor.role == "user":
-            raise PlaceForbiddenError("Forbidden")
         place = self.repository.get_place(place_id)
         if place is None:
             raise PlaceNotFoundError("Place not found")
@@ -49,8 +47,6 @@ class ListPlacesUseCase:
     repository: PlaceRepository
 
     def execute(self, actor: PlaceActor) -> list[Place]:
-        if actor.role == "user":
-            raise PlaceForbiddenError("Forbidden")
         return self.repository.list_places()
 
 
