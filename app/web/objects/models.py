@@ -1,5 +1,7 @@
 from flask_restx import Model, fields, reqparse
 
+from app.routes.models.place_models import place_model
+from app.web.attachments.contract import attachment_view_model
 from app.schemas.object_schemas import ObjectCreateSchema, ObjectEditSchema
 from app.utils.helpers import generate_swagger_model
 
@@ -21,7 +23,9 @@ object_model = Model(
         "manager": fields.String(required=False, description="Manager of the object"),
         "lng": fields.Float(required=False, description="Longitude of the object"),
         "ltd": fields.Float(required=False, description="Latitude of the object"),
-        "created_at": fields.Integer(required=True, description="Unix epoch milliseconds: object creation time"),
+        "created_at": fields.Integer(
+            required=True, description="Unix epoch milliseconds: object creation time"
+        ),
         "created_by": fields.String(required=False, description="Creator of object"),
         "deleted": fields.Boolean(required=True, description="Deletion status"),
     },
@@ -35,11 +39,28 @@ object_msg_model = Model(
     },
 )
 
+object_view_model = Model(
+    "ObjectView",
+    {
+        **object_model,
+        "places": fields.List(
+            fields.Nested(place_model),
+            required=True,
+            description="List of places linked to the object",
+        ),
+        "attachments": fields.List(
+            fields.Nested(attachment_view_model),
+            required=True,
+            description="Attachments linked to the object",
+        ),
+    },
+)
+
 object_response = Model(
     "ObjectResponse",
     {
         "msg": fields.String(required=True, description="Response message"),
-        "object": fields.Nested(object_model, required=True),
+        "object": fields.Nested(object_view_model, required=True),
     },
 )
 
@@ -47,14 +68,22 @@ object_all_response = Model(
     "ObjectAllResponse",
     {
         "msg": fields.String(required=True, description="Response message"),
-        "objects": fields.List(fields.Nested(object_model), description="List of objects"),
+        "objects": fields.List(
+            fields.Nested(object_model), description="List of objects"
+        ),
     },
 )
 
 object_filter_parser = reqparse.RequestParser()
-object_filter_parser.add_argument("offset", type=int, default=0, help="Offset for pagination")
-object_filter_parser.add_argument("limit", type=int, default=10, help="Limit for pagination")
-object_filter_parser.add_argument("sort_by", type=str, required=False, help="Поле для сортировки")
+object_filter_parser.add_argument(
+    "offset", type=int, default=0, help="Offset for pagination"
+)
+object_filter_parser.add_argument(
+    "limit", type=int, default=10, help="Limit for pagination"
+)
+object_filter_parser.add_argument(
+    "sort_by", type=str, required=False, help="Поле для сортировки"
+)
 object_filter_parser.add_argument(
     "sort_order",
     type=str,
@@ -62,13 +91,36 @@ object_filter_parser.add_argument(
     choices=["asc", "desc"],
     help="Порядок сортировки",
 )
-object_filter_parser.add_argument("name", type=str, required=False, help="Filter by name")
-object_filter_parser.add_argument("address", type=str, required=False, help="Filter by address")
-object_filter_parser.add_argument("status", type=str, required=False, help="Filter by object status")
-object_filter_parser.add_argument("manager", type=str, required=False, help="Filter by manager ID")
-object_filter_parser.add_argument("deleted", type=lambda x: x.lower() in ["true", "1"], required=False, help="Флаг для фильтрации по удаленным объектам")
-object_filter_parser.add_argument("city", type=str, required=False, help="Filter by city")
-object_filter_parser.add_argument("lng", type=float, required=False, help="Filter by longitude")
-object_filter_parser.add_argument("ltd", type=float, required=False, help="Filter by latitude")
-object_filter_parser.add_argument("created_by", type=str, required=False, help="Filter by creator ID")
-object_filter_parser.add_argument("created_at", type=int, required=False, help="Filter by Unix epoch milliseconds")
+object_filter_parser.add_argument(
+    "name", type=str, required=False, help="Filter by name"
+)
+object_filter_parser.add_argument(
+    "address", type=str, required=False, help="Filter by address"
+)
+object_filter_parser.add_argument(
+    "status", type=str, required=False, help="Filter by object status"
+)
+object_filter_parser.add_argument(
+    "manager", type=str, required=False, help="Filter by manager ID"
+)
+object_filter_parser.add_argument(
+    "deleted",
+    type=lambda x: x.lower() in ["true", "1"],
+    required=False,
+    help="Флаг для фильтрации по удаленным объектам",
+)
+object_filter_parser.add_argument(
+    "city", type=str, required=False, help="Filter by city"
+)
+object_filter_parser.add_argument(
+    "lng", type=float, required=False, help="Filter by longitude"
+)
+object_filter_parser.add_argument(
+    "ltd", type=float, required=False, help="Filter by latitude"
+)
+object_filter_parser.add_argument(
+    "created_by", type=str, required=False, help="Filter by creator ID"
+)
+object_filter_parser.add_argument(
+    "created_at", type=int, required=False, help="Filter by Unix epoch milliseconds"
+)

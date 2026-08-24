@@ -5,11 +5,12 @@ from uuid import uuid4
 
 from app.domain.shift_report_materials import (
     ShiftReportMaterial,
+    ShiftReportMaterialForbiddenError,
     validate_shift_report_material_quantity,
 )
 
 from ..time_utils import utc_epoch_milliseconds
-from .dto import CreateShiftReportMaterialCommand
+from .dto import CreateShiftReportMaterialCommand, ShiftReportMaterialActor
 from .ports import ShiftReportMaterialRepository
 
 
@@ -17,7 +18,19 @@ from .ports import ShiftReportMaterialRepository
 class CreateShiftReportMaterialUseCase:
     repository: ShiftReportMaterialRepository
 
-    def execute(self, command: CreateShiftReportMaterialCommand) -> ShiftReportMaterial:
+    def execute(
+        self,
+        command: CreateShiftReportMaterialCommand,
+        actor: ShiftReportMaterialActor,
+    ) -> ShiftReportMaterial:
+        if actor.role == "project-leader":
+            context = self.repository.get_shift_report_context(command.shift_report)
+            if context is None or context[1] != actor.user_id:
+                raise ShiftReportMaterialForbiddenError(
+                    "You cannot add material to a shift outside your project"
+                )
+        elif actor.role not in {"admin", "manager", "user"}:
+            raise ShiftReportMaterialForbiddenError("Forbidden")
         validate_shift_report_material_quantity(command.quantity)
 
         shift_report_material = ShiftReportMaterial(

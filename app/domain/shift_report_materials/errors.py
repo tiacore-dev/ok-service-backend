@@ -15,3 +15,7 @@ class ShiftReportMaterialValidationError(ShiftReportMaterialError):
 
 class ShiftReportMaterialNotFoundError(ShiftReportMaterialError):
     """Raised when a shift report material entity cannot be found."""
+
+
+class ShiftReportMaterialForbiddenError(ShiftReportMaterialError):
+    """Raised when an actor cannot add material to a shift report."""

@@ -12,3 +12,7 @@ class ProjectMaterialValidationError(ProjectMaterialError):
 
 class ProjectMaterialNotFoundError(ProjectMaterialError):
     """Raised when a project material entity cannot be found."""
+
+
+class ProjectMaterialForbiddenError(ProjectMaterialError):
+    """Raised when an actor cannot add material to a project."""

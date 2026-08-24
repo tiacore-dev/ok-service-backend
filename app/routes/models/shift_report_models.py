@@ -6,6 +6,7 @@ from app.schemas.shift_report_schemas import (
     ShiftReportDetailSchema,
     ShiftReportEditSchema,
 )
+from app.web.attachments.contract import attachment_view_model
 from app.utils.helpers import generate_swagger_model
 
 # 1. Создаем модель `ShiftReportDetail`
@@ -124,11 +125,28 @@ shift_report_msg_model = Model(
     },
 )
 
+shift_report_view_model = Model(
+    "ShiftReportView",
+    {
+        **shift_report_model,
+        "places": fields.List(
+            fields.Raw,
+            required=True,
+            description="Places selected for this shift with relation comment",
+        ),
+        "attachments": fields.List(
+            fields.Nested(attachment_view_model),
+            required=True,
+            description="Attachments linked to this shift report",
+        ),
+    },
+)
+
 shift_report_response = Model(
     "ShiftReportResponse",
     {
         "msg": fields.String(required=True, description="Response message"),
-        "shift_report": fields.Nested(shift_report_model, required=True),
+        "shift_report": fields.Nested(shift_report_view_model, required=True),
     },
 )
 
@@ -185,6 +203,7 @@ shift_report_filter_parser.add_argument(
     action="append",
     help="Filter by project IDs (can be passed multiple times or comma-separated)",
 )
+shift_report_filter_parser.add_argument("place_id", type=str, action="append", help="Filter by place IDs")
 shift_report_filter_parser.add_argument(
     "lng_start", type=float, required=False, help="Filter by start longitude"
 )

@@ -170,7 +170,7 @@ def test_soft_delete_project_use_case_rejects_foreign_project_for_project_leader
     repository = FakeProjectRepository(project=project)
     actor = ProjectActor(role="project-leader", user_id=uuid4())
 
-    with pytest.raises(ProjectForbiddenError, match="User cannot hard delete not his shift report"):
+    with pytest.raises(ProjectForbiddenError, match="Forbidden"):
         SoftDeleteProjectUseCase(repository=repository).execute(project.project_id, actor)
 
 
@@ -189,20 +189,42 @@ def test_get_project_use_case_raises_for_missing_project():
     repository = FakeProjectRepository()
 
     with pytest.raises(ProjectNotFoundError):
-        GetProjectUseCase(repository=repository).execute(uuid4())
+        GetProjectUseCase(repository=repository).execute(
+            uuid4(), ProjectActor(role="admin", user_id=uuid4())
+        )
 
 
 def test_list_projects_use_case_delegates_query_and_actor():
     project = _project()
     repository = FakeProjectRepository(project=project)
     query = ProjectListQuery(name="New")
-    actor = ProjectActor(role="user", user_id=uuid4())
+    actor = ProjectActor(role="manager", user_id=uuid4())
 
     result = ListProjectsUseCase(repository=repository).execute(query, actor)
 
     assert result == [{"project_id": str(project.project_id), "name": project.name}]
     assert repository.listed_query == query
     assert repository.listed_actor == actor
+
+
+def test_project_reads_allow_user_but_stats_remain_restricted():
+    project = _project()
+    repository = FakeProjectRepository(project=project)
+    actor = ProjectActor(role="user", user_id=uuid4())
+
+    assert GetProjectUseCase(repository).execute(project.project_id, actor)
+    assert ListProjectsUseCase(repository).execute(ProjectListQuery(), actor)
+    with pytest.raises(ProjectForbiddenError):
+        GetProjectStatsUseCase(repository).execute(project.project_id, actor)
+
+
+def test_project_delete_is_admin_only():
+    project = _project()
+    repository = FakeProjectRepository(project=project)
+    with pytest.raises(ProjectForbiddenError):
+        SoftDeleteProjectUseCase(repository).execute(
+            project.project_id, ProjectActor("manager", uuid4())
+        )
 
 
 def test_project_stats_use_cases_delegate_to_repository():
@@ -213,9 +235,10 @@ def test_project_stats_use_cases_delegate_to_repository():
         stats_by_materials={str(project.project_id): {"project_work_quantity": 5}},
     )
 
-    assert GetProjectStatsUseCase(repository=repository).execute(project.project_id) == repository.stats
+    actor = ProjectActor(role="admin", user_id=uuid4())
+    assert GetProjectStatsUseCase(repository=repository).execute(project.project_id, actor) == repository.stats
     assert (
-        GetProjectStatsByMaterialsUseCase(repository=repository).execute(project.project_id)
+        GetProjectStatsByMaterialsUseCase(repository=repository).execute(project.project_id, actor)
         == repository.stats_by_materials
     )
 

@@ -185,6 +185,7 @@ class ShiftReportFilterSchema(Schema):
     date_end_from = fields.Int(required=False)
     date_end_to = fields.Int(required=False)
     project = fields.List(fields.String(), required=False)
+    place_id = fields.List(fields.String(), required=False)
     lng_start = fields.Float(required=False)
     ltd_start = fields.Float(required=False)
     lng_end = fields.Float(required=False)
@@ -200,7 +201,7 @@ class ShiftReportFilterSchema(Schema):
     @pre_load
     def split_list_filters(self, data, **kwargs):
         """Normalize list-like filters (user, project) for IN queries."""
-        for field_name in ["user", "project"]:
+        for field_name in ["user", "project", "place_id"]:
             raw_value = data.get(field_name)
             if raw_value is None:
                 continue

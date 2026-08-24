@@ -17,6 +17,7 @@ from app.database.models import (
     Users,
     WorkMaterialRelations,
     WorkPrices,
+    ShiftPlaceRelations,
 )
 from app.database.time_utils import utc_epoch_milliseconds
 from app.domain.shift_reports import ShiftReportConflictError
@@ -359,6 +360,12 @@ class ShiftReportsManager(ShiftManager):
 
         with self.session_scope() as session:
             query = session.query(self.model)
+            place_ids = filters.pop("place_id", None)
+            if place_ids:
+                query = query.join(
+                    ShiftPlaceRelations,
+                    ShiftPlaceRelations.shift_report_id == self.model.shift_report_id,
+                ).filter(ShiftPlaceRelations.place_id.in_(place_ids)).distinct()
 
             # Aliases для join
             user_alias = aliased(Users)
@@ -430,6 +437,7 @@ class ShiftReportsManager(ShiftManager):
                     "date_start_to",
                     "date_end_from",
                     "date_end_to",
+                    "place_id",
                 ]:
                     continue
                 if value is not None and hasattr(self.model, key):

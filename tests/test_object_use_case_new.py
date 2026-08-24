@@ -83,12 +83,13 @@ def test_create_object_use_case_sets_created_by_from_actor():
     assert result.created_by == command.created_by
 
 
-def test_get_object_use_case_blocks_user_for_inactive_object():
+def test_get_object_use_case_allows_user_to_view_inactive_object():
     repository = FakeObjectRepository(obj=_object(status="inactive"))
     actor = ObjectActor(role="user", user_id=uuid4())
 
-    with pytest.raises(ObjectForbiddenError, match="Forbidden"):
-        GetObjectUseCase(repository=repository).execute(repository.obj.object_id, actor)  # type: ignore[union-attr]
+    result = GetObjectUseCase(repository=repository).execute(repository.obj.object_id, actor)  # type: ignore[union-attr]
+
+    assert result == repository.obj
 
 
 def test_get_object_use_case_returns_object_for_admin():
@@ -139,13 +140,22 @@ def test_list_objects_use_case_delegates():
     obj = _object()
     repository = FakeObjectRepository(obj=obj)
     query = ObjectListQuery(name="Object")
-    actor = ObjectActor(role="user", user_id=uuid4())
+    actor = ObjectActor(role="manager", user_id=uuid4())
 
     result = ListObjectsUseCase(repository=repository).execute(query, actor)
 
     assert result == [obj]
     assert repository.listed_query == query
     assert repository.listed_actor == actor
+
+
+def test_list_objects_use_case_allows_user():
+    repository = FakeObjectRepository(obj=_object())
+    result = ListObjectsUseCase(repository=repository).execute(
+        ObjectListQuery(), ObjectActor(role="user", user_id=uuid4())
+    )
+
+    assert result == [repository.obj]
 
 
 def test_object_mapper_treats_string_none_as_missing_created_by():

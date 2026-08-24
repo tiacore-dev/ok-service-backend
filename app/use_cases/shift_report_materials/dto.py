@@ -15,6 +15,12 @@ class CreateShiftReportMaterialCommand:
 
 
 @dataclass(frozen=True, slots=True)
+class ShiftReportMaterialActor:
+    role: str
+    user_id: UUID
+
+
+@dataclass(frozen=True, slots=True)
 class UpdateShiftReportMaterialCommand:
     shift_report_material_id: UUID
     shift_report: UUID | None = None

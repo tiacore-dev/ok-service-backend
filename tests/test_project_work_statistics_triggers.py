@@ -47,6 +47,9 @@ class FakeStatistics:
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap:
         return {}
 
+    def delete_project_stats(self, project_id: UUID) -> None:
+        return None
+
 
 def _project_work():
     return ProjectWork(

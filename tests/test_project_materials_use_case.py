@@ -1,10 +1,13 @@
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
+
 from app.domain.project_materials import ProjectMaterial
 from app.use_cases.project_materials import (
     CreateProjectMaterialCommand,
     CreateProjectMaterialUseCase,
+    ProjectMaterialActor,
     UpdateProjectMaterialCommand,
     UpdateProjectMaterialUseCase,
 )
@@ -37,6 +40,9 @@ class FakeProjectMaterialRepository:
     def list_project_materials(self, query):
         return [self.project_material] if self.project_material is not None else []
 
+    def get_project_ids_by_leader(self, user_id):
+        return [self.project_material.project] if self.project_material else []
+
 
 def test_create_project_material_use_case():
     repository = FakeProjectMaterialRepository()
@@ -47,10 +53,46 @@ def test_create_project_material_use_case():
         created_by=uuid4(),
     )
 
-    result = CreateProjectMaterialUseCase(repository=repository).execute(command)
+    result = CreateProjectMaterialUseCase(repository=repository).execute(
+        command, ProjectMaterialActor(role="admin", user_id=command.created_by)
+    )
 
     assert result == repository.created
     assert result.quantity == Decimal("3.25")
+
+
+def test_project_leader_can_create_material_in_own_project():
+    repository = FakeProjectMaterialRepository()
+    leader_id = uuid4()
+    project_id = uuid4()
+    repository.project_material = ProjectMaterial(
+        project_material_id=uuid4(), project=project_id, material=uuid4(),
+        quantity=Decimal("1"), created_by=leader_id, created_at=1,
+    )
+    command = CreateProjectMaterialCommand(
+        project=project_id, material=uuid4(), quantity=Decimal("2"), created_by=leader_id
+    )
+
+    result = CreateProjectMaterialUseCase(repository=repository).execute(
+        command, ProjectMaterialActor(role="project-leader", user_id=leader_id)
+    )
+
+    assert result.project == project_id
+
+
+def test_project_leader_cannot_create_material_in_foreign_project():
+    from app.domain.project_materials import ProjectMaterialForbiddenError
+
+    repository = FakeProjectMaterialRepository()
+    leader_id = uuid4()
+    command = CreateProjectMaterialCommand(
+        project=uuid4(), material=uuid4(), quantity=Decimal("2"), created_by=leader_id
+    )
+
+    with pytest.raises(ProjectMaterialForbiddenError):
+        CreateProjectMaterialUseCase(repository=repository).execute(
+            command, ProjectMaterialActor(role="project-leader", user_id=leader_id)
+        )
 
 
 def test_update_project_material_use_case():
