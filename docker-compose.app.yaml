@@ -10,9 +10,11 @@ services:
     environment:
       - HTTP_PROXY=
       - HTTPS_PROXY=
+      - AWS_CA_BUNDLE=/etc/ssl/custom/caddy-fire-loc.crt
     volumes:
       - ./logs:/app/logs
       - .env:/app/.env 
+      - ${S3_CA_CERT_HOST_PATH}:/etc/ssl/custom/caddy-fire-loc.crt:ro
     command: gunicorn -c gunicorn.conf.py run:app
     networks:
       - ok_network
