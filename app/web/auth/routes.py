@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from asyncio import run
 from typing import TypedDict, cast
 
 from flask import request
@@ -16,6 +17,7 @@ from marshmallow import ValidationError
 
 from app.database.managers.user_manager import UserManager
 from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
+from app.s3.s3_manager import AsyncS3Manager
 from app.web._typing import to_plain_dict
 
 from .models import hello_model, login_model, refresh_model, response_auth
@@ -43,6 +45,20 @@ class RefreshPayload(TypedDict):
 class HealthCheck(Resource):
     def get(self):
         return {"msg": "Hello, world!"}, 200
+
+
+@login_ns.route("/health/s3")
+class S3HealthCheck(Resource):
+    @login_ns.doc(
+        responses={
+            200: "S3 bucket is available",
+            503: "S3 bucket is unavailable",
+        }
+    )
+    def get(self):
+        if run(AsyncS3Manager().is_available()):
+            return {"service": "s3", "status": "ok"}, 200
+        return {"service": "s3", "status": "unavailable"}, 503
 
 
 @login_ns.route("/login")

@@ -17,6 +17,7 @@ from app.database.models import (
     Users,
     WorkMaterialRelations,
     WorkPrices,
+    ShiftPlaceRelations,
 )
 from app.database.time_utils import utc_epoch_milliseconds
 from app.domain.shift_reports import ShiftReportConflictError
@@ -270,10 +271,7 @@ class ShiftReportsManager(ShiftManager):
                         )
 
                 signed_value = data.get("signed")
-                if signed_value is True:
-                    data["signed_at"] = utc_epoch_milliseconds()
-                    data["signed_by"] = data.get("updated_by")
-                elif signed_value is False:
+                if signed_value is False:
                     data["signed_at"] = None
                     data["signed_by"] = None
                 data["updated_at"] = utc_epoch_milliseconds()
@@ -287,6 +285,24 @@ class ShiftReportsManager(ShiftManager):
                 return record.to_dict()
         except ShiftReportConflictError:
             raise
+
+    def sign_shift_report(self, record_id, signed_by):
+        with self.session_scope() as session:
+            record = (
+                session.query(ShiftReports)
+                .filter(ShiftReports.shift_report_id == record_id)
+                .first()
+            )
+            if not record:
+                return None
+
+            record.signed = True
+            record.signed_at = utc_epoch_milliseconds()
+            record.signed_by = signed_by
+            record.updated_at = utc_epoch_milliseconds()
+            record.updated_by = signed_by
+            session.commit()
+            return record.to_dict()
 
     def get_project_leader(self, project):
         """Получение руководителя проекта по project"""
@@ -344,6 +360,12 @@ class ShiftReportsManager(ShiftManager):
 
         with self.session_scope() as session:
             query = session.query(self.model)
+            place_ids = filters.pop("place_id", None)
+            if place_ids:
+                query = query.join(
+                    ShiftPlaceRelations,
+                    ShiftPlaceRelations.shift_report_id == self.model.shift_report_id,
+                ).filter(ShiftPlaceRelations.place_id.in_(place_ids)).distinct()
 
             # Aliases для join
             user_alias = aliased(Users)
@@ -415,6 +437,7 @@ class ShiftReportsManager(ShiftManager):
                     "date_start_to",
                     "date_end_from",
                     "date_end_to",
+                    "place_id",
                 ]:
                     continue
                 if value is not None and hasattr(self.model, key):

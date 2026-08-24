@@ -10,6 +10,10 @@ class Config:
     """Базовая конфигурация."""
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # The limit applies to the complete HTTP request, including multipart
+    # headers and boundaries. It is slightly above the per-file 100 MiB limit
+    # enforced by AsyncS3Manager.
+    MAX_CONTENT_LENGTH = 105 * 1024 * 1024
     TESTING = False
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
@@ -23,6 +27,12 @@ class Config:
     TEMPLATE_SERVICE_URL = os.getenv("TEMPLATE_SERVICE_URL")
     # Клиент создаётся лениво: соединение с Redis открывается только при команде.
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+    ENDPOINT_URL = os.getenv("ENDPOINT_URL")
+    REGION_NAME = os.getenv("REGION_NAME")
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+    BUCKET_NAME = os.getenv("BUCKET_NAME")
 
 
 class DevelopmentConfig(Config):

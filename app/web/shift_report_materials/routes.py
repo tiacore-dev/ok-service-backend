@@ -18,6 +18,7 @@ from app.adapters.shift_report_materials import (
 from app.database.managers.shift_reports_managers import ShiftReportsManager
 from app.decorators import api_key_or_jwt_required
 from app.domain.shift_report_materials import (
+    ShiftReportMaterialForbiddenError,
     ShiftReportMaterialNotFoundError,
     ShiftReportMaterialValidationError,
 )
@@ -42,6 +43,7 @@ from app.use_cases.shift_report_materials import (
     GetShiftReportMaterialUseCase,
     ListShiftReportMaterialsUseCase,
     ShiftReportMaterialListQuery,
+    ShiftReportMaterialActor,
     UpdateShiftReportMaterialCommand,
     UpdateShiftReportMaterialUseCase,
 )
@@ -162,6 +164,8 @@ def _check_shift_report_access(current_user: dict[str, Any], shift_report_id: st
 def _map_error(error: Exception):
     if isinstance(error, ShiftReportMaterialNotFoundError):
         return {"msg": str(error)}, 404
+    if isinstance(error, ShiftReportMaterialForbiddenError):
+        return {"msg": str(error)}, 403
     if isinstance(error, ShiftReportMaterialValidationError):
         return {"msg": str(error)}, 400
     if isinstance(error, IntegrityError):
@@ -195,11 +199,16 @@ class ShiftReportMaterialAdd(Resource):
             shift_report_id = get_required_uuid(
                 data, "shift_report", "Shift report is required"
             )
-            access_error = _check_shift_report_access(
-                current_user, str(shift_report_id)
-            )
+            access_error = None
+            if current_user.get("role") != "project-leader":
+                access_error = _check_shift_report_access(
+                    current_user, str(shift_report_id)
+                )
             if access_error:
                 return access_error
+            created_by = get_required_uuid(
+                current_user, "user_id", "Current user id is required"
+            )
             record = CreateShiftReportMaterialUseCase(repository=_repository()).execute(
                 CreateShiftReportMaterialCommand(
                     shift_report=shift_report_id,
@@ -210,10 +219,11 @@ class ShiftReportMaterialAdd(Resource):
                         data, "quantity", "Quantity is required"
                     ),
                     shift_report_detail=get_optional_uuid(data, "shift_report_detail"),
-                    created_by=get_required_uuid(
-                        current_user, "user_id", "Current user id is required"
-                    ),
-                )
+                    created_by=created_by,
+                ),
+                ShiftReportMaterialActor(
+                    role=str(current_user.get("role", "")), user_id=created_by
+                ),
             )
             return {
                 "msg": "Shift report material added successfully",

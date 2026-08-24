@@ -17,6 +17,7 @@ from app.adapters.project_materials import (
 )
 from app.decorators import admin_required, api_key_or_jwt_required
 from app.domain.project_materials import (
+    ProjectMaterialForbiddenError,
     ProjectMaterialNotFoundError,
     ProjectMaterialValidationError,
 )
@@ -40,6 +41,7 @@ from app.use_cases.project_materials import (
     DeleteProjectMaterialUseCase,
     GetProjectMaterialUseCase,
     ListProjectMaterialsUseCase,
+    ProjectMaterialActor,
     ProjectMaterialListQuery,
     UpdateProjectMaterialCommand,
     UpdateProjectMaterialUseCase,
@@ -70,7 +72,9 @@ project_material_ns.models[project_material_all_response.name] = (
     project_material_all_response
 )
 project_material_ns.models[project_material_model.name] = project_material_model
-project_material_ns.models[project_material_edit_model.name] = project_material_edit_model
+project_material_ns.models[project_material_edit_model.name] = (
+    project_material_edit_model
+)
 
 
 class ProjectMaterialCreatePayload(TypedDict):
@@ -130,6 +134,8 @@ def _parse_project_material_id(project_material_id: str) -> UUID:
 def _map_error(error: Exception):
     if isinstance(error, ProjectMaterialNotFoundError):
         return {"msg": str(error)}, 404
+    if isinstance(error, ProjectMaterialForbiddenError):
+        return {"msg": str(error)}, 403
     if isinstance(error, ProjectMaterialValidationError):
         return {"msg": str(error)}, 400
     if isinstance(error, IntegrityError):
@@ -144,7 +150,6 @@ def _map_error(error: Exception):
 @project_material_ns.route("/add")
 class ProjectMaterialAdd(Resource):
     @api_key_or_jwt_required
-    @admin_required
     @project_material_ns.expect(project_material_create_model)
     @project_material_ns.marshal_with(project_material_msg_model)
     def post(self):
@@ -169,7 +174,15 @@ class ProjectMaterialAdd(Resource):
                 ),
             )
             record = CreateProjectMaterialUseCase(repository=_repository()).execute(
-                command
+                command,
+                ProjectMaterialActor(
+                    role=(
+                        "admin"
+                        if getattr(g, "auth_via_api_key", False)
+                        else str(current_user.get("role", ""))
+                    ),
+                    user_id=command.created_by,
+                ),
             )
             return {
                 "msg": "Project material added successfully",
@@ -226,7 +239,9 @@ class ProjectMaterialHardDelete(Resource):
             if not deleted:
                 raise ProjectMaterialNotFoundError("Project material not found")
             return {
-                "msg": f"Project material {project_material_id} hard deleted successfully",
+                "msg": f"Project material {
+                    project_material_id
+                } hard deleted successfully",
                 "project_material_id": project_material_id,
             }, 200
         except Exception as error:
@@ -275,7 +290,8 @@ class ProjectMaterialEdit(Resource):
             }, 200
         except Exception as error:
             logger.error(
-                f"Error editing project material: {error}", extra={"login": current_user}
+                f"Error editing project material: {error}",
+                extra={"login": current_user},
             )
             return _map_error(error)
 

@@ -134,6 +134,7 @@ class Users(Base):
     created_shift_report_materials = relationship(
         "ShiftReportMaterials", back_populates="shift_report_material_creator"
     )
+    created_attachments = relationship("Attachments", back_populates="creator")
     created_cities = relationship(
         "Cities", back_populates="creator", foreign_keys="[Cities.created_by]"
     )

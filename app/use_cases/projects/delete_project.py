@@ -17,8 +17,8 @@ class SoftDeleteProjectUseCase:
         current = self.repository.get_project(project_id)
         if current is None:
             raise ProjectNotFoundError("Project not found")
-        if actor.role == "project-leader" and current.project_leader != actor.user_id:
-            raise ProjectForbiddenError("User cannot hard delete not his shift report")
+        if actor.role != "admin":
+            raise ProjectForbiddenError("Forbidden")
         updated = current.with_updates(deleted=True)
         return self.repository.update_project(updated) is not None
 
@@ -31,6 +31,6 @@ class HardDeleteProjectUseCase:
         current = self.repository.get_project(project_id)
         if current is None:
             raise ProjectNotFoundError("Project not found")
-        if actor.role == "project-leader" and current.project_leader != actor.user_id:
-            raise ProjectForbiddenError("User cannot hard delete not his shift report")
+        if actor.role != "admin":
+            raise ProjectForbiddenError("Forbidden")
         return self.repository.delete_project(project_id)

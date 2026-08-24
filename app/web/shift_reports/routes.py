@@ -16,6 +16,9 @@ from app.adapters.shift_reports import (
     shift_report_detail_entity_to_response,
     shift_report_entity_to_response,
 )
+from app.adapters.attachments import list_attachment_view_data
+from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
+from app.use_cases.place_relations import PlaceRelationConflictError
 from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import api_key_or_jwt_required
 from app.domain.shift_reports import (
@@ -46,6 +49,7 @@ from app.routes.models.shift_report_models import (
     shift_report_model,
     shift_report_msg_model,
     shift_report_response,
+    shift_report_view_model,
     shift_report_updater_model,
     shift_report_user_model,
 )
@@ -75,6 +79,7 @@ from app.use_cases.shift_reports import (
     ShiftReportActor,
     ShiftReportListQuery,
     ShiftReportTimeCommand,
+    SignShiftReportUseCase,
     SoftDeleteShiftReportUseCase,
     UpdateShiftReportCommand,
     UpdateShiftReportDetailCommand,
@@ -92,6 +97,7 @@ from app.web._typing import (
     get_required_uuid,
     to_plain_dict,
 )
+from app.web.attachments.contract import attachment_view_model
 
 logger = logging.getLogger("ok_service")
 
@@ -110,7 +116,9 @@ shift_report_ns.models[shift_report_create_model.name] = shift_report_create_mod
 shift_report_ns.models[shift_report_edit_model.name] = shift_report_edit_model
 shift_report_ns.models[shift_report_msg_model.name] = shift_report_msg_model
 shift_report_ns.models[shift_report_response.name] = shift_report_response
+shift_report_ns.models[attachment_view_model.name] = attachment_view_model
 shift_report_ns.models[shift_report_all_response.name] = shift_report_all_response
+shift_report_ns.models[shift_report_view_model.name] = shift_report_view_model
 
 shift_report_details_ns.models[shift_report_details_create_model.name] = (
     shift_report_details_create_model
@@ -256,6 +264,7 @@ def _build_list_query(data: dict[str, Any]) -> ShiftReportListQuery:
         date_end_from=get_optional_int(data, "date_end_from"),
         date_end_to=get_optional_int(data, "date_end_to"),
         project=get_optional_uuid_list(data, "project"),
+        place_id=get_optional_uuid_list(data, "place_id"),
         lng_start=get_optional_float(data, "lng_start"),
         ltd_start=get_optional_float(data, "ltd_start"),
         lng_end=get_optional_float(data, "lng_end"),
@@ -271,6 +280,8 @@ def _build_list_query(data: dict[str, Any]) -> ShiftReportListQuery:
 
 
 def _map_error(error: Exception):
+    if isinstance(error, PlaceRelationConflictError):
+        return {"msg": str(error)}, 409
     if isinstance(error, ShiftReportNotFoundError):
         return {"msg": str(error)}, 404
     if isinstance(error, ShiftReportForbiddenError):
@@ -356,9 +367,23 @@ class ShiftReportView(Resource):
         )
         try:
             report = GetShiftReportUseCase(repository=_repository()).execute(
-                _parse_uuid(report_id)
+                _parse_uuid(report_id), _actor(current_user)
             )
             response = shift_report_entity_to_response(report)
+            relation_repository = SQLAlchemyPlaceRelationRepository()
+            response["places"] = [
+                {
+                    **place,
+                    "comment": relation.comment,
+                }
+                for relation in relation_repository.list_shift_place_relations()
+                if relation.shift_report_id == report.shift_report_id
+                for place in [relation_repository.place_response(relation.place_id)]
+                if place is not None
+            ]
+            response["attachments"] = list_attachment_view_data(
+                "shift_report", report.shift_report_id
+            )
             response["shift_report_details_sum"] = (
                 _repository().get_total_sum_by_shift_report(report.shift_report_id)
             )
@@ -489,6 +514,32 @@ class ShiftReportFinish(Resource):
             return _map_error(error)
 
 
+@shift_report_ns.route("/<string:report_id>/sign")
+class ShiftReportSign(Resource):
+    @api_key_or_jwt_required
+    @shift_report_ns.marshal_with(shift_report_msg_model)
+    def patch(self, report_id):
+        current_user = _get_current_user()
+        logger.info(
+            f"Request to sign shift report: {report_id}",
+            extra={"login": current_user},
+        )
+        try:
+            signed = SignShiftReportUseCase(repository=_repository()).execute(
+                _parse_uuid(report_id), _actor(current_user)
+            )
+            return {
+                "msg": "Shift report signed successfully",
+                "shift_report_id": str(signed.shift_report_id),
+            }, 200
+        except Exception as error:
+            logger.error(
+                f"Error signing shift report: {error}",
+                extra={"login": current_user},
+            )
+            return _map_error(error)
+
+
 @shift_report_ns.route("/<string:report_id>/edit")
 class ShiftReportEdit(Resource):
     @api_key_or_jwt_required
@@ -505,6 +556,11 @@ class ShiftReportEdit(Resource):
                 request.get_json(silent=True), "Request body is required"
             )
             data = cast(ShiftReportEditPayload, schema.load(raw_payload))
+            new_project = get_optional_uuid(data, "project")
+            if new_project is not None:
+                SQLAlchemyPlaceRelationRepository().ensure_shift_project(
+                    _parse_uuid(report_id), new_project
+                )
             updated = UpdateShiftReportUseCase(repository=_repository()).execute(
                 UpdateShiftReportCommand(
                     shift_report_id=_parse_uuid(report_id),
@@ -560,6 +616,10 @@ class ShiftReportAll(Resource):
             )
             if project_args is not None:
                 raw_args["project"] = [str(item) for item in project_args]
+        if "place_id" in request.args:
+            place_args = get_optional_uuid_list({"place_id": request.args.getlist("place_id")}, "place_id")
+            if place_args is not None:
+                raw_args["place_id"] = [str(item) for item in place_args]
         try:
             args = cast(dict[str, Any], schema.load(raw_args))
         except ValidationError as err:

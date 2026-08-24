@@ -26,3 +26,7 @@ class ShiftReportMaterialRepository(Protocol):
     def list_shift_report_materials(
         self, query: ShiftReportMaterialListQuery
     ) -> list[ShiftReportMaterial]: ...
+
+    def get_shift_report_context(
+        self, shift_report_id: UUID
+    ) -> tuple[UUID, UUID | None, bool] | None: ...

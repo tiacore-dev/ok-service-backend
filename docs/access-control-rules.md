@@ -67,6 +67,13 @@
 - use-case решает, можно ли трогать конкретный отчёт или его детали;
 - при добавлении новых сценариев не дублировать проверку ownership в нескольких endpoint-ах одного модуля.
 
+### Согласование `shift_reports`
+
+- `PATCH /shift_reports/{id}/sign` не принимает тело запроса и устанавливает `signed=true`;
+- согласовать сменный отчёт могут роли `admin`, `project-leader` и `manager`;
+- при согласовании сервер заполняет `signed_by` текущим пользователем и `signed_at` текущим Unix timestamp в миллисекундах;
+- обычный `PATCH /shift_reports/{id}/edit` не создаёт данные аудита при `signed=true`, но при `signed=false` очищает `signed_by` и `signed_at`.
+
 ## Проверки для API key
 
 Если endpoint доступен по API key:
