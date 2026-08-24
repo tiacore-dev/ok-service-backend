@@ -187,6 +187,54 @@ def test_unassigned_manager_cannot_upload_place_attachment():
         )
 
 
+@pytest.mark.parametrize("target_type", ["object", "place"])
+@pytest.mark.parametrize("role", ["manager", "project-leader"])
+def test_manager_and_project_leader_can_view_any_object_or_place_attachment(
+    target_type, role
+):
+    attachment = Attachment(
+        uuid4(),
+        "document.pdf",
+        "key",
+        8,
+        "checksum",
+        {"content_type": "application/pdf", "extension": "pdf"},
+        1,
+        uuid4(),
+    )
+    target = AttachmentTarget(target_type, uuid4(), False, owner_id=uuid4())
+    use_case = AttachmentUseCase(
+        FakeRepository(target, attachments=[attachment]), FakeStorage()
+    )
+    actor = AttachmentActor(uuid4(), role)
+
+    assert use_case.list(target_type, target.target_id, actor) == [attachment]
+    content, filename, content_type = use_case.download_bytes(
+        target_type, target.target_id, attachment.attachment_id, actor
+    )
+    assert (content, filename, content_type) == (
+        b"file contents",
+        "document.pdf",
+        "application/pdf",
+    )
+
+
+@pytest.mark.parametrize("target_type", ["object", "place"])
+@pytest.mark.parametrize("role", ["manager", "project-leader"])
+def test_manager_and_project_leader_cannot_upload_to_foreign_object_or_place(
+    target_type, role
+):
+    target = AttachmentTarget(target_type, uuid4(), False, owner_id=uuid4())
+
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+            target_type,
+            target.target_id,
+            [_file()],
+            AttachmentActor(uuid4(), role),
+        )
+
+
 def test_user_can_upload_only_to_own_unsigned_shift_report():
     user_id = uuid4()
     target = AttachmentTarget("shift_report", uuid4(), False, owner_id=user_id)

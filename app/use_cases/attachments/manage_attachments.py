@@ -28,11 +28,17 @@ def _ensure_view_access(target: AttachmentTarget, actor: AttachmentActor) -> Non
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "object":
-        if actor.role == "admin" or target.owner_id == actor.user_id:
+        if (
+            actor.role in {"admin", "manager", "project-leader"}
+            or target.owner_id == actor.user_id
+        ):
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "place":
-        if actor.role == "admin" or target.owner_id == actor.user_id:
+        if (
+            actor.role in {"admin", "manager", "project-leader"}
+            or target.owner_id == actor.user_id
+        ):
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "shift_report":
@@ -46,9 +52,16 @@ def _ensure_view_access(target: AttachmentTarget, actor: AttachmentActor) -> Non
 def _ensure_mutation_access(
     target: AttachmentTarget, actor: AttachmentActor, *, delete: bool
 ) -> None:
-    _ensure_view_access(target, actor)
+    if target.deleted:
+        raise AttachmentConflictError("Deleted entity cannot be changed")
+    if target.target_type in {"object", "place"}:
+        if actor.role == "admin" or target.owner_id == actor.user_id:
+            return
+        raise AttachmentForbiddenError("Forbidden")
     if target.target_type != "shift_report":
+        _ensure_view_access(target, actor)
         return
+    _ensure_view_access(target, actor)
     if target.leave_id is not None:
         raise AttachmentConflictError("Shift report linked to leave cannot be changed")
     if target.signed and actor.role != "admin":
@@ -137,11 +150,19 @@ class AttachmentUseCase:
         if target is None:
             raise AttachmentNotFoundError("Attachment target not found")
         _ensure_view_access(target, actor)
-        attachment = self.repository.get_attachment(target_type, target_id, attachment_id)
+        attachment = self.repository.get_attachment(
+            target_type, target_id, attachment_id
+        )
         if attachment is None:
             raise AttachmentNotFoundError("Attachment not found")
-        content_type = str(attachment.meta.get("content_type", "application/octet-stream"))
-        return self.storage.download_bytes(attachment.s3_key), attachment.name, content_type
+        content_type = str(
+            attachment.meta.get("content_type", "application/octet-stream")
+        )
+        return (
+            self.storage.download_bytes(attachment.s3_key),
+            attachment.name,
+            content_type,
+        )
 
     def delete(
         self,
@@ -154,10 +175,14 @@ class AttachmentUseCase:
         if target is None:
             raise AttachmentNotFoundError("Attachment target not found")
         _ensure_mutation_access(target, actor, delete=True)
-        attachment = self.repository.get_attachment(target_type, target_id, attachment_id)
+        attachment = self.repository.get_attachment(
+            target_type, target_id, attachment_id
+        )
         if attachment is None:
             raise AttachmentNotFoundError("Attachment not found")
-        deleted = self.repository.delete_attachment(target_type, target_id, attachment_id)
+        deleted = self.repository.delete_attachment(
+            target_type, target_id, attachment_id
+        )
         if deleted is None:
             raise AttachmentNotFoundError("Attachment not found")
         try:
