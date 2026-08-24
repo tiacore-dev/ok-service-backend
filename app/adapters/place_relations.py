@@ -12,6 +12,7 @@ from app.use_cases.place_relations import (
     PlaceRelationRepository,
     ProjectPlaceRelation,
     ShiftPlaceRelation,
+    ShiftContext,
 )
 
 
@@ -126,7 +127,15 @@ class SQLAlchemyPlaceRelationRepository(PlaceRelationRepository):
 
     def shift_context(self, shift_report_id):
         value = self.reports_manager.get_by_id(shift_report_id)
-        return (UUID(value["project"]), UUID(value["user"])) if value else None
+        return (
+            ShiftContext(
+                project_id=UUID(value["project"]),
+                user_id=UUID(value["user"]),
+                signed=bool(value.get("signed", False)),
+            )
+            if value
+            else None
+        )
 
     def has_project_place(self, project_id, place_id):
         return bool(

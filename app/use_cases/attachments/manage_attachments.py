@@ -28,24 +28,21 @@ def _ensure_view_access(target: AttachmentTarget, actor: AttachmentActor) -> Non
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "object":
-        if (
-            actor.role in {"admin", "manager", "project-leader"}
-            or target.owner_id == actor.user_id
-        ):
+        if actor.role in {"admin", "manager", "project-leader", "user"}:
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "place":
-        if (
-            actor.role in {"admin", "manager", "project-leader"}
-            or target.owner_id == actor.user_id
-        ):
+        if actor.role in {"admin", "manager", "project-leader", "user"}:
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "shift_report":
         if actor.role == "user":
             if target.owner_id != actor.user_id:
                 raise AttachmentForbiddenError("User cannot view not his shift report")
-        return
+            return
+        if actor.role in {"admin", "manager", "project-leader"}:
+            return
+        raise AttachmentForbiddenError("Forbidden")
     raise AttachmentNotFoundError("Attachment target not found")
 
 
@@ -55,7 +52,7 @@ def _ensure_mutation_access(
     if target.deleted:
         raise AttachmentConflictError("Deleted entity cannot be changed")
     if target.target_type in {"object", "place"}:
-        if actor.role == "admin" or target.owner_id == actor.user_id:
+        if actor.role == "admin":
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type != "shift_report":
@@ -64,10 +61,15 @@ def _ensure_mutation_access(
     _ensure_view_access(target, actor)
     if target.leave_id is not None:
         raise AttachmentConflictError("Shift report linked to leave cannot be changed")
-    if target.signed and actor.role != "admin":
-        raise AttachmentForbiddenError(
-            "Only admin can edit signed shift report attachments"
-        )
+    if actor.role == "admin":
+        return
+    if actor.role == "manager":
+        return
+    if actor.role == "project-leader" and target.project_leader_id == actor.user_id:
+        return
+    if actor.role == "user" and not target.signed and target.owner_id == actor.user_id:
+        return
+    raise AttachmentForbiddenError("Forbidden")
 
 
 @dataclass(slots=True)

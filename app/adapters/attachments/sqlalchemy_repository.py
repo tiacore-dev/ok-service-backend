@@ -84,11 +84,15 @@ class SQLAlchemyAttachmentRepository:
                 report = session.get(ShiftReports, target_id)
                 if report is None:
                     return None
+                project_leader_id = None
+                if report.projects is not None:
+                    project_leader_id = report.projects.project_leader
                 return AttachmentTarget(
                     target_type=target_type,
                     target_id=target_id,
                     deleted=report.deleted,
                     owner_id=report.user,
+                    project_leader_id=project_leader_id,
                     signed=report.signed,
                     leave_id=report.leave_id,
                 )

@@ -225,7 +225,7 @@ class ProjectView(Resource):
         )
         try:
             project = GetProjectUseCase(repository=_repository()).execute(
-                _parse_project_id(project_id)
+                _parse_project_id(project_id), _actor(current_user)
             )
             places = [
                 SQLAlchemyPlaceRelationRepository().place_response(item.place_id)
@@ -405,7 +405,7 @@ class ProjectStats(Resource):
         )
         try:
             stats = GetProjectStatsUseCase(repository=_repository()).execute(
-                _parse_project_id(project_id)
+                _parse_project_id(project_id), _actor(current_user)
             )
             return {"msg": "Project stats fetched successfully", "stats": stats}, 200
         except Exception as error:
@@ -430,7 +430,7 @@ class ProjectStatsByProjectMaterials(Resource):
         )
         try:
             stats = GetProjectStatsByMaterialsUseCase(repository=_repository()).execute(
-                _parse_project_id(project_id)
+                _parse_project_id(project_id), _actor(current_user)
             )
             return {"msg": "Project stats fetched successfully", "stats": stats}, 200
         except Exception as error:

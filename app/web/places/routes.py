@@ -157,7 +157,7 @@ class PlaceView(Resource):
     @place_ns.marshal_with(place_response)
     def get(self, place_id):
         try:
-            place = GetPlaceUseCase(SQLAlchemyPlaceRepository()).execute(_parse_id(place_id))
+            place = GetPlaceUseCase(SQLAlchemyPlaceRepository()).execute(_parse_id(place_id), _actor())
             place_response_data = _response(place)
             place_response_data["attachments"] = list_attachment_view_data(
                 "place", place.place_id
@@ -245,7 +245,7 @@ class PlaceAll(Resource):
     @place_ns.marshal_with(place_all_response)
     def get(self):
         try:
-            places = ListPlacesUseCase(SQLAlchemyPlaceRepository()).execute()
+            places = ListPlacesUseCase(SQLAlchemyPlaceRepository()).execute(_actor())
             return {
                 "msg": "Places found successfully",
                 "places": [_response(place) for place in places],

@@ -144,15 +144,14 @@ def test_project_leader_cannot_upload_to_another_project():
         )
 
 
-def test_assigned_object_manager_can_upload_attachment():
+def test_assigned_object_manager_cannot_upload_object_attachment():
     manager_id = uuid4()
     target = AttachmentTarget("object", uuid4(), False, owner_id=manager_id)
 
-    result = AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
-        "object", target.target_id, [_file()], AttachmentActor(manager_id, "manager")
-    )
-
-    assert len(result) == 1
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+            "object", target.target_id, [_file()], AttachmentActor(manager_id, "manager")
+        )
 
 
 def test_unassigned_object_manager_cannot_upload_attachment():
@@ -167,15 +166,14 @@ def test_unassigned_object_manager_cannot_upload_attachment():
         )
 
 
-def test_place_attachment_uses_related_object_manager_acl():
+def test_place_attachment_requires_admin_for_upload():
     manager_id = uuid4()
     target = AttachmentTarget("place", uuid4(), False, owner_id=manager_id)
 
-    result = AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
-        "place", target.target_id, [_file()], AttachmentActor(manager_id, "manager")
-    )
-
-    assert len(result) == 1
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+            "place", target.target_id, [_file()], AttachmentActor(manager_id, "manager")
+        )
 
 
 def test_unassigned_manager_cannot_upload_place_attachment():
@@ -302,18 +300,25 @@ def test_user_can_list_and_download_own_signed_shift_report_attachment():
     )
 
 
-@pytest.mark.parametrize("role", ["manager", "project-leader"])
-def test_non_admin_cannot_edit_signed_shift_report_attachments(role):
+def test_manager_can_edit_signed_shift_report_attachments():
     target = AttachmentTarget(
         "shift_report", uuid4(), False, owner_id=uuid4(), signed=True
     )
 
+    result = AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+        "shift_report", target.target_id, [_file()], AttachmentActor(uuid4(), "manager")
+    )
+    assert len(result) == 1
+
+
+def test_unassigned_project_leader_cannot_edit_signed_shift_report_attachments():
+    target = AttachmentTarget(
+        "shift_report", uuid4(), False, owner_id=uuid4(), signed=True,
+        project_leader_id=uuid4(),
+    )
     with pytest.raises(AttachmentForbiddenError):
         AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
-            "shift_report",
-            target.target_id,
-            [_file()],
-            AttachmentActor(uuid4(), role),
+            "shift_report", target.target_id, [_file()], AttachmentActor(uuid4(), "project-leader")
         )
 
 

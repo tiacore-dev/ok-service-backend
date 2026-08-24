@@ -26,6 +26,13 @@ class RelationActor:
 
 
 @dataclass(frozen=True, slots=True)
+class ShiftContext:
+    project_id: UUID
+    user_id: UUID
+    signed: bool
+
+
+@dataclass(frozen=True, slots=True)
 class ProjectPlaceRelation:
     project_place_relation_id: UUID
     project_id: UUID
@@ -54,7 +61,7 @@ class PlaceRelationRepository(Protocol):
     def project_object_id(self, project_id: UUID) -> UUID | None: ...
     def place_object_id(self, place_id: UUID) -> UUID | None: ...
     def project_leader_id(self, project_id: UUID) -> UUID | None: ...
-    def shift_context(self, shift_report_id: UUID) -> tuple[UUID, UUID] | None: ...
+    def shift_context(self, shift_report_id: UUID) -> ShiftContext | None: ...
     def has_project_place(self, project_id: UUID, place_id: UUID) -> bool: ...
     def has_shift_place(self, shift_report_id: UUID, place_id: UUID) -> bool: ...
     def is_place_used_by_shift(self, project_id: UUID, place_id: UUID) -> bool: ...
@@ -75,17 +82,47 @@ def _project_allowed(repository: PlaceRelationRepository, project_id: UUID, acto
     )
 
 
-def _shift_allowed(repository: PlaceRelationRepository, shift_report_id: UUID, actor: RelationActor) -> bool:
+def _project_view_allowed(actor: RelationActor) -> bool:
+    return actor.role in {"admin", "manager", "project-leader"}
+
+
+def _shift_view_allowed(repository: PlaceRelationRepository, shift_report_id: UUID, actor: RelationActor) -> bool:
     context = repository.shift_context(shift_report_id)
     if context is None:
         return False
-    project_id, user_id = context
-    return _privileged(actor) or (
-        actor.role == "user" and user_id == actor.user_id
-    ) or (
-        actor.role == "project-leader"
-        and repository.project_leader_id(project_id) == actor.user_id
+    return actor.role in {"admin", "manager", "project-leader"} or (
+        actor.role == "user" and context.user_id == actor.user_id
     )
+
+
+def _shift_mutation_allowed(repository: PlaceRelationRepository, shift_report_id: UUID, actor: RelationActor) -> bool:
+    context = repository.shift_context(shift_report_id)
+    if context is None:
+        return False
+    if actor.role == "admin":
+        return True
+    if actor.role == "project-leader":
+        return repository.project_leader_id(context.project_id) == actor.user_id
+    return actor.role == "user" and not context.signed and context.user_id == actor.user_id
+
+
+def _require_project_view(actor: RelationActor) -> None:
+    if not _project_view_allowed(actor):
+        raise PlaceRelationForbiddenError("Forbidden")
+
+
+def _require_shift_view(repository: PlaceRelationRepository, shift_report_id: UUID, actor: RelationActor) -> None:
+    if not _shift_view_allowed(repository, shift_report_id, actor):
+        raise PlaceRelationForbiddenError("Forbidden")
+
+
+def _require_shift_mutation(repository: PlaceRelationRepository, shift_report_id: UUID, actor: RelationActor) -> None:
+    if not _shift_mutation_allowed(repository, shift_report_id, actor):
+        raise PlaceRelationForbiddenError("Forbidden")
+
+
+def _shift_allowed(repository: PlaceRelationRepository, shift_report_id: UUID, actor: RelationActor) -> bool:
+    return _shift_mutation_allowed(repository, shift_report_id, actor)
 
 
 def _check_project_place(repository, project_id, place_id):
@@ -104,6 +141,32 @@ def _unique_place_ids(place_ids: list[UUID]) -> list[UUID]:
 @dataclass(slots=True)
 class PlaceRelationService:
     repository: PlaceRelationRepository
+
+    def get_project_place(self, relation_id, actor):
+        _require_project_view(actor)
+        current = self.repository.get_project_place_relation(relation_id)
+        if current is None:
+            raise PlaceRelationNotFoundError("Project place relation not found")
+        return current
+
+    def list_project_places(self, actor):
+        _require_project_view(actor)
+        return self.repository.list_project_place_relations()
+
+    def get_shift_place(self, relation_id, actor):
+        current = self.repository.get_shift_place_relation(relation_id)
+        if current is None:
+            raise PlaceRelationNotFoundError("Shift place relation not found")
+        _require_shift_view(self.repository, current.shift_report_id, actor)
+        return current
+
+    def list_shift_places(self, actor):
+        relations = self.repository.list_shift_place_relations()
+        return [
+            relation
+            for relation in relations
+            if _shift_view_allowed(self.repository, relation.shift_report_id, actor)
+        ]
 
     def create_project_place(self, project_id, place_id, actor):
         if not _project_allowed(self.repository, project_id, actor):
@@ -126,22 +189,7 @@ class PlaceRelationService:
         return self.repository.bulk_create_project_place_relations(relations) if relations else []
 
     def update_project_place(self, relation_id, project_id, place_id, actor):
-        current = self.repository.get_project_place_relation(relation_id)
-        if current is None:
-            raise PlaceRelationNotFoundError("Project place relation not found")
-        if not _project_allowed(self.repository, current.project_id, actor):
-            raise PlaceRelationForbiddenError("Forbidden")
-        _check_project_place(self.repository, project_id, place_id)
-        if (project_id, place_id) != (current.project_id, current.place_id) and self.repository.has_project_place(project_id, place_id):
-            raise PlaceRelationConflictError("Place is already linked to project")
-        if self.repository.is_place_used_by_shift(current.project_id, current.place_id):
-            raise PlaceRelationConflictError("Project place is used by a shift")
-        result = self.repository.update_project_place_relation(
-            ProjectPlaceRelation(relation_id, project_id, place_id)
-        )
-        if result is None:
-            raise PlaceRelationNotFoundError("Project place relation not found")
-        return result
+        raise PlaceRelationForbiddenError("Project place relations cannot be edited")
 
     def delete_project_place(self, relation_id, actor):
         current = self.repository.get_project_place_relation(relation_id)
@@ -172,7 +220,7 @@ class PlaceRelationService:
         context = self.repository.shift_context(shift_report_id)
         if context is None:
             raise PlaceRelationNotFoundError("Shift report not found")
-        if not self.repository.has_project_place(context[0], place_id):
+        if not self.repository.has_project_place(context.project_id, place_id):
             raise PlaceRelationConflictError("Place is not linked to shift project")
         if self.repository.has_shift_place(shift_report_id, place_id):
             raise PlaceRelationConflictError("Place is already linked to shift")
@@ -188,7 +236,7 @@ class PlaceRelationService:
             raise PlaceRelationNotFoundError("Shift report not found")
         relations = []
         for place_id in _unique_place_ids(place_ids):
-            if not self.repository.has_project_place(context[0], place_id):
+            if not self.repository.has_project_place(context.project_id, place_id):
                 raise PlaceRelationConflictError("Place is not linked to shift project")
             if not self.repository.has_shift_place(shift_report_id, place_id):
                 relations.append(ShiftPlaceRelation(uuid4(), shift_report_id, place_id, None))
@@ -198,10 +246,9 @@ class PlaceRelationService:
         current = self.repository.get_shift_place_relation(relation_id)
         if current is None:
             raise PlaceRelationNotFoundError("Shift place relation not found")
-        if not _shift_allowed(self.repository, current.shift_report_id, actor):
-            raise PlaceRelationForbiddenError("Forbidden")
+        _require_shift_mutation(self.repository, current.shift_report_id, actor)
         context = self.repository.shift_context(current.shift_report_id)
-        if context is None or not self.repository.has_project_place(context[0], place_id):
+        if context is None or not self.repository.has_project_place(context.project_id, place_id):
             raise PlaceRelationConflictError("Place is not linked to shift project")
         if place_id != current.place_id and self.repository.has_shift_place(current.shift_report_id, place_id):
             raise PlaceRelationConflictError("Place is already linked to shift")
@@ -216,14 +263,12 @@ class PlaceRelationService:
         current = self.repository.get_shift_place_relation(relation_id)
         if current is None:
             raise PlaceRelationNotFoundError("Shift place relation not found")
-        if not _shift_allowed(self.repository, current.shift_report_id, actor):
-            raise PlaceRelationForbiddenError("Forbidden")
+        _require_shift_mutation(self.repository, current.shift_report_id, actor)
         if not self.repository.delete_shift_place_relation(relation_id):
             raise PlaceRelationNotFoundError("Shift place relation not found")
 
     def bulk_delete_shift_places(self, shift_report_id, place_ids, actor):
-        if not _shift_allowed(self.repository, shift_report_id, actor):
-            raise PlaceRelationForbiddenError("Forbidden")
+        _require_shift_mutation(self.repository, shift_report_id, actor)
         requested = set(_unique_place_ids(place_ids))
         relation_ids = [
             relation.shift_place_relation_id

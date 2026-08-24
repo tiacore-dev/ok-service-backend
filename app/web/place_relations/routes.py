@@ -120,8 +120,7 @@ class ProjectPlaceRelationView(Resource):
     @project_place_relation_ns.marshal_with(project_place_relation_response)
     def get(self, relation_id):
         try:
-            item = SQLAlchemyPlaceRelationRepository().get_project_place_relation(_id(relation_id))
-            if item is None: raise PlaceRelationNotFoundError("Project place relation not found")
+            item = _service().get_project_place(_id(relation_id), _actor())
             return {"msg": "Project place relation found successfully", "project_place_relation": _project_response(item)}, 200
         except Exception as error: return _error(error)
 
@@ -131,8 +130,10 @@ class ProjectPlaceRelationAll(Resource):
     @api_key_or_jwt_required
     @project_place_relation_ns.marshal_with(project_place_relation_all_response)
     def get(self):
-        items = SQLAlchemyPlaceRelationRepository().list_project_place_relations()
-        return {"msg": "Project place relations found successfully", "project_place_relations": [_project_response(item) for item in items]}, 200
+        try:
+            items = _service().list_project_places(_actor())
+            return {"msg": "Project place relations found successfully", "project_place_relations": [_project_response(item) for item in items]}, 200
+        except Exception as error: return _error(error)
 
 
 @project_place_relation_ns.route("/<string:relation_id>/edit")
@@ -206,8 +207,7 @@ class ShiftPlaceRelationView(Resource):
     @shift_place_relation_ns.marshal_with(shift_place_relation_response)
     def get(self, relation_id):
         try:
-            item = SQLAlchemyPlaceRelationRepository().get_shift_place_relation(_id(relation_id))
-            if item is None: raise PlaceRelationNotFoundError("Shift place relation not found")
+            item = _service().get_shift_place(_id(relation_id), _actor())
             return {"msg": "Shift place relation found successfully", "shift_place_relation": _shift_response(item)}, 200
         except Exception as error: return _error(error)
 
@@ -217,8 +217,10 @@ class ShiftPlaceRelationAll(Resource):
     @api_key_or_jwt_required
     @shift_place_relation_ns.marshal_with(shift_place_relation_all_response)
     def get(self):
-        items = SQLAlchemyPlaceRelationRepository().list_shift_place_relations()
-        return {"msg": "Shift place relations found successfully", "shift_place_relations": [_shift_response(item) for item in items]}, 200
+        try:
+            items = _service().list_shift_places(_actor())
+            return {"msg": "Shift place relations found successfully", "shift_place_relations": [_shift_response(item) for item in items]}, 200
+        except Exception as error: return _error(error)
 
 
 @shift_place_relation_ns.route("/<string:relation_id>/edit")
@@ -229,8 +231,7 @@ class ShiftPlaceRelationEdit(Resource):
     def patch(self, relation_id):
         try:
             data = cast(dict[str, Any], ShiftPlaceRelationEditSchema().load(to_plain_dict(request.get_json(silent=True), "Request body is required")))
-            current = SQLAlchemyPlaceRelationRepository().get_shift_place_relation(_id(relation_id))
-            if current is None: raise PlaceRelationNotFoundError("Shift place relation not found")
+            current = _service().get_shift_place(_id(relation_id), _actor())
             item = _service().update_shift_place(_id(relation_id), data.get("place_id", current.place_id), data.get("comment", current.comment), _actor())
             return {"msg": "Shift place relation edited successfully", "shift_place_relation_id": str(item.shift_place_relation_id)}, 200
         except Exception as error: return _error(error)

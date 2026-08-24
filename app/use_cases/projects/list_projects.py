@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.domain.projects import ProjectForbiddenError
+
 from .dto import ProjectActor, ProjectListQuery
 from .ports import ProjectRepository
 
@@ -13,4 +15,6 @@ class ListProjectsUseCase:
     def execute(
         self, query: ProjectListQuery, actor: ProjectActor
     ) -> list[dict[str, object]]:
+        if actor.role == "user":
+            raise ProjectForbiddenError("Forbidden")
         return self.repository.list_project_records(query, actor)
