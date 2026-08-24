@@ -18,6 +18,7 @@ from app.use_cases.shift_reports import (
     CreateShiftReportDetailUseCase,
     CreateShiftReportUseCase,
     DeleteShiftReportUseCase,
+    GetShiftReportUseCase,
     ListShiftReportsUseCase,
     ShiftReportActor,
     SignShiftReportUseCase,
@@ -144,6 +145,29 @@ def test_update_shift_report_forbids_foreign_user():
                 shift_report_id=report.shift_report_id, deleted=True
             ),
             actor,
+        )
+
+
+def test_user_can_view_own_shift_report():
+    report = _report()
+    repository = _FakeRepository(current=report)
+
+    result = GetShiftReportUseCase(repository).execute(
+        report.shift_report_id,
+        ShiftReportActor(role="user", user_id=report.user),
+    )
+
+    assert result == report
+
+
+def test_user_cannot_view_foreign_shift_report():
+    report = _report()
+    repository = _FakeRepository(current=report)
+
+    with pytest.raises(ShiftReportForbiddenError):
+        GetShiftReportUseCase(repository).execute(
+            report.shift_report_id,
+            ShiftReportActor(role="user", user_id=uuid4()),
         )
 
 

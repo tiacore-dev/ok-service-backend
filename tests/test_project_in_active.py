@@ -116,20 +116,11 @@ def test_admin_sees_all_projects(client, jwt_token_admin, seed_project_active, s
                for p in projects)  # Неактивный объект
 
 
-def test_user_sees_only_active_projects(client, jwt_token_user, seed_project_active, seed_project_inactive):
+def test_user_cannot_view_projects(client, jwt_token_user, seed_project_active, seed_project_inactive):
     """
-    Тест на то, что обычный user видит только проекты с активными объектами.
+    По матрице доступа обычный user не видит проекты.
     """
     headers = {"Authorization": f"Bearer {jwt_token_user}"}
 
     response = client.get("/projects/all", headers=headers)
-    assert response.status_code == 200
-    projects = response.json["projects"]
-
-    # Пользователь не должен видеть проект с неактивным объектом
-    assert all(str(p["object"]) != str(seed_project_inactive["object"])
-               for p in projects)
-
-    # Пользователь должен видеть только проекты, у которых у объектов статус 'active'
-    assert any(str(p["object"]) == str(seed_project_active["object"])
-               for p in projects)
+    assert response.status_code == 403

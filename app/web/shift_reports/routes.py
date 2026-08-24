@@ -367,7 +367,7 @@ class ShiftReportView(Resource):
         )
         try:
             report = GetShiftReportUseCase(repository=_repository()).execute(
-                _parse_uuid(report_id)
+                _parse_uuid(report_id), _actor(current_user)
             )
             response = shift_report_entity_to_response(report)
             relation_repository = SQLAlchemyPlaceRelationRepository()
