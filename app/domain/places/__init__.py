@@ -1,8 +1,14 @@
 from .entities import Place
-from .errors import PlaceForbiddenError, PlaceNotFoundError, PlaceValidationError
+from .errors import (
+    PlaceConflictError,
+    PlaceForbiddenError,
+    PlaceNotFoundError,
+    PlaceValidationError,
+)
 
 __all__ = [
     "Place",
+    "PlaceConflictError",
     "PlaceForbiddenError",
     "PlaceNotFoundError",
     "PlaceValidationError",

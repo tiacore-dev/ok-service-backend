@@ -13,7 +13,12 @@ from sqlalchemy.exc import IntegrityError
 from app.adapters.attachments import list_attachment_view_data
 from app.adapters.places import SQLAlchemyPlaceRepository
 from app.decorators import admin_required, api_key_or_jwt_required
-from app.domain.places import PlaceForbiddenError, PlaceNotFoundError, PlaceValidationError
+from app.domain.places import (
+    PlaceConflictError,
+    PlaceForbiddenError,
+    PlaceNotFoundError,
+    PlaceValidationError,
+)
 from app.schemas.place_schemas import PlaceCreateSchema, PlaceEditSchema
 from app.use_cases.places import (
     CreatePlaceCommand,
@@ -108,6 +113,8 @@ def _response(place) -> dict[str, Any]:
 
 def _error(error: Exception):
     if isinstance(error, PlaceRelationConflictError):
+        return {"msg": str(error)}, 409
+    if isinstance(error, PlaceConflictError):
         return {"msg": str(error)}, 409
     if isinstance(error, PlaceNotFoundError):
         return {"msg": str(error)}, 404

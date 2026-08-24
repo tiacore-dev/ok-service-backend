@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
-from app.domain.places import Place, PlaceForbiddenError, PlaceNotFoundError
+from app.domain.places import (
+    Place,
+    PlaceConflictError,
+    PlaceForbiddenError,
+    PlaceNotFoundError,
+)
 from app.use_cases.places.dto import (
     CreatePlaceCommand,
     PlaceActor,
@@ -88,6 +93,8 @@ class SoftDeletePlaceUseCase:
         current = self.repository.get_place(place_id)
         if current is None:
             raise PlaceNotFoundError("Place not found")
+        if self.repository.has_relations(place_id):
+            raise PlaceConflictError("Place is used by a project or shift")
         updated = current.with_updates(deleted=True)
         result = self.repository.update_place(updated)
         if result is None:

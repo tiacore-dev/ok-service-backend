@@ -12,3 +12,7 @@ class PlaceNotFoundError(PlaceError):
 
 class PlaceForbiddenError(PlaceError):
     """Raised when an actor cannot change a place."""
+
+
+class PlaceConflictError(PlaceError):
+    """Raised when a place cannot be changed because dependent relations exist."""

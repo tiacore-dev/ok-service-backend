@@ -4,6 +4,7 @@ from uuid import UUID
 
 from app.adapters._typing import normalize_result, require_uuid
 from app.database.managers.objects_managers import PlacesManager
+from app.database.models import ProjectPlaceRelations, ShiftPlaceRelations
 from app.domain.places import Place
 from app.use_cases.places.dto import PlaceRepository
 
@@ -55,6 +56,19 @@ class SQLAlchemyPlaceRepository(PlaceRepository):
 
     def delete_place(self, place_id: UUID) -> bool:
         return self.manager.delete(place_id) is not None
+
+    def has_relations(self, place_id: UUID) -> bool:
+        with self.manager.session_scope() as session:
+            return (
+                session.query(ProjectPlaceRelations)
+                .filter(ProjectPlaceRelations.place_id == place_id)
+                .first()
+                is not None
+                or session.query(ShiftPlaceRelations)
+                .filter(ShiftPlaceRelations.place_id == place_id)
+                .first()
+                is not None
+            )
 
     def list_places(self) -> list[Place]:
         records = self.manager.get_all(offset=0, limit=None)

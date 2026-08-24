@@ -1,9 +1,15 @@
 from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.adapters.places.repository import _entity
-from app.domain.places import Place, PlaceForbiddenError, PlaceValidationError
+from app.domain.places import (
+    Place,
+    PlaceConflictError,
+    PlaceForbiddenError,
+    PlaceValidationError,
+)
 from app.use_cases.places import (
     CreatePlaceCommand,
     CreatePlaceUseCase,
@@ -15,6 +21,7 @@ from app.use_cases.places import (
     UpdatePlaceUseCase,
 )
 from app.use_cases.places.dto import PlaceRepository
+from app.web.places.routes import _error
 
 
 class FakePlaceRepository(PlaceRepository):
@@ -24,6 +31,7 @@ class FakePlaceRepository(PlaceRepository):
         self.updated: Place | None = None
         self.deleted: UUID | None = None
         self.listed_object_id: UUID | None = None
+        self.relations_exist = False
 
     def create_place(self, place: Place) -> Place:
         self.created = place
@@ -41,6 +49,9 @@ class FakePlaceRepository(PlaceRepository):
     def delete_place(self, place_id: UUID) -> bool:
         self.deleted = place_id
         return self.place is not None and self.place.place_id == place_id
+
+    def has_relations(self, place_id: UUID) -> bool:
+        return self.relations_exist
 
     def list_places(self) -> list[Place]:
         return [self.place] if self.place else []
@@ -95,6 +106,22 @@ def test_update_and_delete_places_are_admin_only():
         UpdatePlaceUseCase(FakePlaceRepository(place)).execute(
             UpdatePlaceCommand(place.place_id, name="Nope"), PlaceActor(role="user")
         )
+
+
+def test_soft_delete_place_rejects_existing_relations():
+    place = _place()
+    repository = FakePlaceRepository(place)
+    repository.relations_exist = True
+
+    with pytest.raises(PlaceConflictError, match="used by a project or shift"):
+        SoftDeletePlaceUseCase(repository).execute(place.place_id, PlaceActor(role="admin"))
+
+
+def test_place_hard_delete_integrity_error_maps_to_conflict():
+    response, status = _error(IntegrityError("fk", {}, Exception("dependent data")))
+
+    assert status == 409
+    assert response == {"msg": "Cannot delete place: dependent data exists."}
 
 
 def test_update_rejects_empty_name_when_name_is_changed():

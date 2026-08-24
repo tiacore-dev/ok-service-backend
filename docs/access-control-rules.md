@@ -105,6 +105,10 @@
 смены разрешён `admin`, `manager`, любому `project-leader` и владельцу смены с
 ролью `user`. Редактирование project-place связей запрещено всем ролям.
 
+Soft delete места запрещён, если место используется хотя бы в одной связи
+`project_place_relations` или `shift_place_relations`; endpoint возвращает `409`.
+Сначала необходимо удалить соответствующие связи.
+
 ## Проверки для API key
 
 Если endpoint доступен по API key:
