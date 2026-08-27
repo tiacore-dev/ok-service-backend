@@ -9,6 +9,10 @@
   без обязательной переменной `S3_CA_CERT_HOST_PATH`. Новых миграций и изменений
   API нет.
 
+- Исправлена цепочка Alembic: миграция `20260827120000_add_price_to_project_works`
+  теперь продолжает актуальную голову `20260818_place_rel_bulk`, поэтому
+  `alembic upgrade head` не сталкивается с несколькими головами.
+
 - В `project_works` добавлено nullable-поле `price`; POST и PATCH принимают цену,
   а `summ` рассчитывается как `price * quantity`. Оба поля возвращаются в GET;
   добавлена миграция `20260827120000_add_price_to_project_works`.

@@ -1,7 +1,7 @@
 """add price to project works
 
 Revision ID: 20260827120000
-Revises: 5ea2fe712409
+Revises: 20260818_place_rel_bulk
 Create Date: 2026-08-27 12:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 revision: str = "20260827120000"
-down_revision: Union[str, None] = "5ea2fe712409"
+down_revision: Union[str, None] = "20260818_place_rel_bulk"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
