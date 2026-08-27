@@ -4,6 +4,11 @@
 
 ### Добавлено
 
+- Production-деплой (ветка `master`) теперь подключает `docker-compose.prod.yaml`
+  с `AWS_CA_BUNDLE` и сертификатом S3; dev и stage используют базовый Compose
+  без обязательной переменной `S3_CA_CERT_HOST_PATH`. Новых миграций и изменений
+  API нет.
+
 - В `project_works` добавлено nullable-поле `price`; POST и PATCH принимают цену,
   а `summ` рассчитывается как `price * quantity`. Оба поля возвращаются в GET;
   добавлена миграция `20260827120000_add_price_to_project_works`.
