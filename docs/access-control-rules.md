@@ -74,6 +74,13 @@
 - при согласовании сервер заполняет `signed_by` текущим пользователем и `signed_at` текущим Unix timestamp в миллисекундах;
 - обычный `PATCH /shift_reports/{id}/edit` не создаёт данные аудита при `signed=true`, но при `signed=false` очищает `signed_by` и `signed_at`.
 
+### Материалы project
+
+`project_materials` добавлять, редактировать и удалять могут `admin`, `manager`
+и project leader только в project, где он указан в `projects.project_leader`.
+В чужой project project leader не может выполнять эти операции; ответом
+остаётся `403`.
+
 ## Проверки для API key
 
 Если endpoint доступен по API key:

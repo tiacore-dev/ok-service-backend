@@ -131,6 +131,19 @@ def _parse_project_material_id(project_material_id: str) -> UUID:
         raise ValueError("Invalid UUID format") from exc
 
 
+def _actor(current_user: dict[str, Any]) -> ProjectMaterialActor:
+    return ProjectMaterialActor(
+        role=(
+            "admin"
+            if getattr(g, "auth_via_api_key", False)
+            else str(current_user.get("role", ""))
+        ),
+        user_id=get_required_uuid(
+            current_user, "user_id", "Current user id is required"
+        ),
+    )
+
+
 def _map_error(error: Exception):
     if isinstance(error, ProjectMaterialNotFoundError):
         return {"msg": str(error)}, 404
@@ -174,15 +187,7 @@ class ProjectMaterialAdd(Resource):
                 ),
             )
             record = CreateProjectMaterialUseCase(repository=_repository()).execute(
-                command,
-                ProjectMaterialActor(
-                    role=(
-                        "admin"
-                        if getattr(g, "auth_via_api_key", False)
-                        else str(current_user.get("role", ""))
-                    ),
-                    user_id=command.created_by,
-                ),
+                command, _actor(current_user)
             )
             return {
                 "msg": "Project material added successfully",
@@ -224,7 +229,6 @@ class ProjectMaterialView(Resource):
 @project_material_ns.route("/<string:project_material_id>/delete/hard")
 class ProjectMaterialHardDelete(Resource):
     @api_key_or_jwt_required
-    @admin_required
     @project_material_ns.marshal_with(project_material_msg_model)
     def delete(self, project_material_id):
         current_user = _get_current_user()
@@ -234,7 +238,7 @@ class ProjectMaterialHardDelete(Resource):
         )
         try:
             deleted = DeleteProjectMaterialUseCase(repository=_repository()).execute(
-                _parse_project_material_id(project_material_id)
+                _parse_project_material_id(project_material_id), _actor(current_user)
             )
             if not deleted:
                 raise ProjectMaterialNotFoundError("Project material not found")
@@ -255,7 +259,6 @@ class ProjectMaterialHardDelete(Resource):
 @project_material_ns.route("/<string:project_material_id>/edit")
 class ProjectMaterialEdit(Resource):
     @api_key_or_jwt_required
-    @admin_required
     @project_material_ns.expect(project_material_edit_model, validate=False)
     @project_material_ns.marshal_with(project_material_msg_model)
     def patch(self, project_material_id):
@@ -282,7 +285,8 @@ class ProjectMaterialEdit(Resource):
                     quantity_is_set=has_field(data, "quantity"),
                     project_work=get_optional_uuid(data, "project_work"),
                     project_work_is_set=has_field(data, "project_work"),
-                )
+                ),
+                _actor(current_user),
             )
             return {
                 "msg": "Project material edited successfully",
