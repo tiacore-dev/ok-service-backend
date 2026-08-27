@@ -17,7 +17,7 @@ class CreateProjectWorkCommand:
     project_work_name: str | None
     work: UUID
     quantity: Decimal
-    summ: Decimal | None = None
+    price: Decimal | None = None
     signed: bool | None = None
     created_by: UUID | None = None
 
@@ -34,7 +34,7 @@ class UpdateProjectWorkCommand:
     project_work_name: str | None = None
     work: UUID | None = None
     quantity: Decimal | None = None
-    summ: Decimal | None = None
+    price: Decimal | None = None
     signed: bool | None = None
 
 

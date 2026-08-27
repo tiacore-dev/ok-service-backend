@@ -19,7 +19,7 @@ def test_add_project_work(
         "project_work_name": "Test project_work",
         "work": seed_work["work_id"],
         "quantity": 200.0,
-        "summ": 10000.0,
+        "price": 50.0,
         "signed": False
     }
     headers = {"Authorization": f"Bearer {jwt_token_leader}"}
@@ -34,6 +34,7 @@ def test_add_project_work(
     assert str(
         project_work.project_work_id) == response.json['project_work_id']
     assert project_work.quantity == 200.0
+    assert project_work.price == 50.0
     assert project_work.summ == 10000.0
     assert project_work.signed is False
 
@@ -151,7 +152,7 @@ def test_edit_project_work(
 
     data = {
         "quantity": 300.0,
-        "summ": 15000.0,
+        "price": 50.0,
         "signed": True
     }
     headers = {"Authorization": f"Bearer {jwt_token_leader}"}
@@ -166,6 +167,7 @@ def test_edit_project_work(
         project_work_id=seed_project_work_own["project_work_id"]).first()
     assert project_work is not None
     assert project_work.quantity == 300.0
+    assert project_work.price == 50.0
     assert project_work.summ == 15000.0
     assert project_work.signed is True
 
@@ -199,3 +201,5 @@ def test_get_all_project_works(client, jwt_token_leader, seed_project_work_own, 
     assert project_work_data is not None
 
     assert project_work_data["work"] == seed_work["work_id"]
+    assert "price" in project_work_data
+    assert "summ" in project_work_data

@@ -33,6 +33,7 @@ project_work_model = Model(
             required=True, description="Work data associated with the project work"
         ),
         "quantity": fields.Float(required=True, description="Quantity of the work"),
+        "price": fields.Float(required=False, description="Price per unit of work"),
         "summ": fields.Float(required=False, description="Sum of the project work"),
         "created_at": fields.Integer(
             required=True,

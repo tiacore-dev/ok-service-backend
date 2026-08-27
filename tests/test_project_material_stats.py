@@ -19,7 +19,6 @@ def test_get_project_stats_by_project_materials(
         "project_work_name": "Test project_work",
         "work": seed_work["work_id"],
         "quantity": 10.0,
-        "summ": 0.0,
         "signed": False,
     }
     headers = {"Authorization": f"Bearer {jwt_token_leader}"}

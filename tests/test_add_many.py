@@ -10,7 +10,7 @@ def test_add_many_project_works(client, jwt_token_leader, db_session, seed_work,
             "project_work_name": "Test name 1",
             "work": seed_work["work_id"],
             "quantity": 200.0,
-            "summ": 10000.0,
+            "price": 50.0,
             "signed": False
         },
         {
@@ -18,7 +18,7 @@ def test_add_many_project_works(client, jwt_token_leader, db_session, seed_work,
             "project_work_name": "Test name 2",
             "work": seed_work["work_id"],
             "quantity": 100.0,
-            "summ": 100.0,
+            "price": 1.0,
             "signed": False
         }
     ]
@@ -39,7 +39,8 @@ def test_add_many_project_works(client, jwt_token_leader, db_session, seed_work,
         assert project_work is not None
         assert str(project_work.project_work_id) == project_work_id
         assert project_work.quantity == work_data["quantity"]
-        assert project_work.summ == work_data["summ"]
+        assert project_work.price == work_data["price"]
+        assert project_work.summ == work_data["price"] * work_data["quantity"]
         assert project_work.signed == work_data["signed"]
 
 

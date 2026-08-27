@@ -24,7 +24,7 @@ class ProjectWorkCreateSchema(Schema):
     quantity = fields.Float(
         required=True, error_messages={"required": "Field 'quantity' is required."}
     )
-    summ = fields.Float(required=False)  # Опциональное поле
+    price = fields.Float(required=False, allow_none=True)
     signed = fields.Boolean(
         required=False, error_messages={"required": "Field 'signed' is required."}
     )
@@ -42,7 +42,7 @@ class ProjectWorkEditSchema(Schema):
         required=False, allow_none=True, validate=[validate_work_exists]
     )
     quantity = fields.Float(required=False, allow_none=True)
-    summ = fields.Float(required=False, allow_none=True)  # Опциональное поле
+    price = fields.Float(required=False, allow_none=True)
     signed = fields.Boolean(required=False, allow_none=True)
 
 

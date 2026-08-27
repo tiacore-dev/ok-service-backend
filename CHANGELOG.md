@@ -4,6 +4,10 @@
 
 ### Добавлено
 
+- В `project_works` добавлено nullable-поле `price`; POST и PATCH принимают цену,
+  а `summ` рассчитывается как `price * quantity`. Оба поля возвращаются в GET;
+  добавлена миграция `20260827120000_add_price_to_project_works`.
+
 - Реализована матрица доступа для объектов, мест, project-place связей,
   связей смена–место и вложений. Учтены привязка `project-leader` к project,
   владелец смены (`shift_reports.user == current_user`) и состояние `signed`;

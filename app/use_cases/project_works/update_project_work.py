@@ -8,7 +8,7 @@ from app.domain.project_works import (
     ProjectWorkNotFoundError,
 )
 
-from .create_project_work import _owned_project_ids
+from .create_project_work import _calculate_summ, _owned_project_ids
 from .dto import ProjectWorkActor, UpdateProjectWorkCommand
 from .ports import ProjectWorkRepository
 
@@ -41,10 +41,15 @@ class UpdateProjectWorkUseCase:
             changes["work"] = command.work
         if command.quantity is not None:
             changes["quantity"] = command.quantity
-        if command.summ is not None:
-            changes["summ"] = command.summ
+        if command.price is not None:
+            changes["price"] = command.price
         if command.signed is not None:
             changes["signed"] = command.signed
+
+        if command.price is not None or command.quantity is not None:
+            price = command.price if command.price is not None else current.price
+            quantity = command.quantity if command.quantity is not None else current.quantity
+            changes["summ"] = _calculate_summ(price, quantity)
 
         if not changes:
             return current

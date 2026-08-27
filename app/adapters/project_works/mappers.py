@@ -14,6 +14,11 @@ def project_work_dict_to_entity(payload: dict[str, Any]) -> ProjectWork:
         project=require_uuid(payload["project"], "project"),
         work=require_uuid(payload["work"], "work"),
         quantity=Decimal(str(payload["quantity"])),
+        price=(
+            Decimal(str(payload["price"]))
+            if payload.get("price") is not None
+            else None
+        ),
         summ=(
             Decimal(str(payload["summ"]))
             if payload.get("summ") is not None
@@ -34,6 +39,7 @@ def project_work_entity_to_create_payload(
         "project": project_work.project,
         "work": project_work.work,
         "quantity": project_work.quantity,
+        "price": project_work.price,
         "summ": project_work.summ,
         "created_by": project_work.created_by,
         "created_at": project_work.created_at,
@@ -48,6 +54,7 @@ def project_work_entity_to_response(project_work: ProjectWork) -> dict[str, Any]
         "project": str(project_work.project),
         "work": str(project_work.work),
         "quantity": float(project_work.quantity),
+        "price": float(project_work.price) if project_work.price is not None else None,
         "summ": float(project_work.summ) if project_work.summ is not None else None,
         "created_by": str(project_work.created_by),
         "created_at": project_work.created_at,
