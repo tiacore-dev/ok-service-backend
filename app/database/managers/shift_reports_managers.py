@@ -14,6 +14,7 @@ from app.database.models import (
     ShiftReportDetails,
     ShiftReportMaterials,
     ShiftReports,
+    ProjectWorks,
     Users,
     WorkMaterialRelations,
     WorkPrices,
@@ -150,11 +151,39 @@ class ShiftReportsManager(ShiftManager):
                     ShiftReports,
                     ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
                 )
-                .filter(ShiftReports.shift_report_id == shift_report_id)
+                .filter(
+                    ShiftReports.shift_report_id == shift_report_id,
+                    ShiftReports.signed.is_(True),
+                    ShiftReports.deleted.is_(False),
+                )
                 .scalar()
             )
 
             return result or 0  # Если записей нет, возвращаем 0
+
+    def get_total_sum_by_estimate_for_shift_report(self, shift_report_id):
+        """Возвращает стоимость факта смены по сметным ценам."""
+        with self.session_scope() as session:
+            result = (
+                session.query(
+                    func.sum(ShiftReportDetails.quantity * ProjectWorks.price)
+                )
+                .join(
+                    ShiftReports,
+                    ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
+                )
+                .outerjoin(
+                    ProjectWorks,
+                    ProjectWorks.project_work_id == ShiftReportDetails.project_work,
+                )
+                .filter(
+                    ShiftReports.shift_report_id == shift_report_id,
+                    ShiftReports.signed.is_(True),
+                    ShiftReports.deleted.is_(False),
+                )
+                .scalar()
+            )
+            return result or 0
 
     def add_shift_report_with_details(self, data, created_by):
         """Добавляет shift_report и shift_report_details в одной транзакции"""

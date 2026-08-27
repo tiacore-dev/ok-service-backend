@@ -14,10 +14,16 @@
 
 1. `project_work_quantity` — сумма `ProjectWorks.quantity` всех строк
    спецификации проекта с этим `work_id`.
-2. `shift_report_details_quantity` — сумма `ShiftReportDetails.quantity` с этим
+2. `project_work_summ` — сумма `ProjectWorks.price * ProjectWorks.quantity`;
+   строки с `price = null` в сметную сумму не входят.
+3. `shift_report_details_quantity` — сумма `ShiftReportDetails.quantity` с этим
    `work_id` только из сменных отчётов данного проекта, у которых `signed = true`
    и `deleted = false`. Удалённые смены в факт не входят.
-3. `acceptance_status` не хранится отдельно: он детерминированно выводится при
+4. `shift_report_details_summ` — сумма сохранённых `ShiftReportDetails.summ`, то
+   есть фактическая сумма исполнителю.
+5. `shift_report_details_summ_by_estimate` — сумма `quantity * ProjectWorks.price`
+   для фактически выполненных деталей. Детали без сметной цены не участвуют.
+6. `acceptance_status` не хранится отдельно: он детерминированно выводится при
    формировании ответа: `not_checked` при факте `0`, `partial` при факте больше
    `0` и меньше плана, иначе `accepted`.
 
@@ -64,8 +70,9 @@ flask --app app:create_app rebuild-project-work-statistics
 
 `GET /project_works/all`, `GET /shift_report_details/all` и
 `POST /shift_report_details/all-by-reports` используют параметр `with_stat`.
-При `true` ответы содержат `project_work_quantity`,
-`shift_report_details_quantity` и `acceptance_status` из Redis-агрегата; при
+При `true` ответы содержат `project_work_quantity`, `project_work_summ`,
+`shift_report_details_quantity`, `shift_report_details_summ`,
+`shift_report_details_summ_by_estimate` и `acceptance_status` из Redis-агрегата; при
 отсутствующем параметре или `false` эти поля не добавляются. Значение
 `acceptance_status` вычисляется только из уже прочитанных агрегатов.
 

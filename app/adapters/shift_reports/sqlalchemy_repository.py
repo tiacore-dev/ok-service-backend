@@ -122,7 +122,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         )
         if record is None:
             return None
-        return shift_report_dict_to_entity(record)
+        entity = shift_report_dict_to_entity(record)
+        self._recalculate(entity.project)
+        return entity
 
     def delete_shift_report(self, shift_report_id: UUID) -> bool:
         current = self.get_shift_report(shift_report_id)
@@ -141,6 +143,13 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
 
     def get_total_sum_by_shift_report(self, shift_report_id: UUID) -> int | float:
         return self.reports_manager.get_total_sum_by_shift_report(shift_report_id)
+
+    def get_total_sum_by_estimate_for_shift_report(
+        self, shift_report_id: UUID
+    ) -> int | float:
+        return self.reports_manager.get_total_sum_by_estimate_for_shift_report(
+            shift_report_id
+        )
 
     def get_project_stats(self, project_id: UUID) -> dict:
         if self.statistics is None:

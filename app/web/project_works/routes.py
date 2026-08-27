@@ -143,7 +143,14 @@ def _response_with_stats(project_work, stats: dict[str, Any]) -> dict[str, Any]:
     actual = float(work_stats.get("shift_report_details_quantity", 0) or 0)
     response.update(
         project_work_quantity=planned,
+        project_work_summ=float(work_stats.get("project_work_summ", 0) or 0),
         shift_report_details_quantity=actual,
+        shift_report_details_summ=float(
+            work_stats.get("shift_report_details_summ", 0) or 0
+        ),
+        shift_report_details_summ_by_estimate=float(
+            work_stats.get("shift_report_details_summ_by_estimate", 0) or 0
+        ),
         acceptance_status=(
             "not_checked"
             if actual == 0

@@ -173,6 +173,7 @@ class ProjectsManager(BaseDBManager):
                     session.query(
                         ProjectWorks.work,
                         func.sum(ProjectWorks.quantity),
+                        func.sum(ProjectWorks.price * ProjectWorks.quantity),
                         func.max(ProjectWorks.project_work_name),
                     )
                     .filter(ProjectWorks.project == project_id)
@@ -182,19 +183,28 @@ class ProjectsManager(BaseDBManager):
                 result = {
                     str(work_id): {
                         "project_work_quantity": float(quantity or 0),
+                        "project_work_summ": float(summ or 0),
                         "shift_report_details_quantity": 0.0,
+                        "shift_report_details_summ": 0.0,
+                        "shift_report_details_summ_by_estimate": 0.0,
                         "project_work_name": name,
                     }
-                    for work_id, quantity, name in plan_rows
+                    for work_id, quantity, summ, name in plan_rows
                 }
                 actual_rows = (
                     session.query(
                         ShiftReportDetails.work,
                         func.sum(ShiftReportDetails.quantity),
+                        func.sum(ShiftReportDetails.summ),
+                        func.sum(ShiftReportDetails.quantity * ProjectWorks.price),
                     )
                     .join(
                         ShiftReports,
                         ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
+                    )
+                    .outerjoin(
+                        ProjectWorks,
+                        ProjectWorks.project_work_id == ShiftReportDetails.project_work,
                     )
                     .filter(
                         ShiftReports.project == project_id,
@@ -204,10 +214,14 @@ class ProjectsManager(BaseDBManager):
                     .group_by(ShiftReportDetails.work)
                     .all()
                 )
-                for work_id, quantity in actual_rows:
+                for work_id, quantity, summ, estimated_summ in actual_rows:
                     stats = result.get(str(work_id))
                     if stats is not None:
                         stats["shift_report_details_quantity"] = float(quantity or 0)
+                        stats["shift_report_details_summ"] = float(summ or 0)
+                        stats["shift_report_details_summ_by_estimate"] = float(
+                            estimated_summ or 0
+                        )
                 return result
         except Exception as e:
             logger.error(

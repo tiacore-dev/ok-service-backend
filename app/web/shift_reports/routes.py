@@ -387,6 +387,11 @@ class ShiftReportView(Resource):
             response["shift_report_details_sum"] = (
                 _repository().get_total_sum_by_shift_report(report.shift_report_id)
             )
+            response["shift_report_details_summ_by_estimate"] = (
+                _repository().get_total_sum_by_estimate_for_shift_report(
+                    report.shift_report_id
+                )
+            )
             return {
                 "msg": "Shift report found successfully",
                 "shift_report": response,
@@ -637,6 +642,11 @@ class ShiftReportAll(Resource):
                 payload = shift_report_entity_to_response(report)
                 payload["shift_report_details_sum"] = (
                     repository.get_total_sum_by_shift_report(report.shift_report_id)
+                )
+                payload["shift_report_details_summ_by_estimate"] = (
+                    repository.get_total_sum_by_estimate_for_shift_report(
+                        report.shift_report_id
+                    )
                 )
                 response_reports.append(payload)
             return {

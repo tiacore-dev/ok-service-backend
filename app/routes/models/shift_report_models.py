@@ -110,6 +110,10 @@ shift_report_model = Model(
         "shift_report_details_sum": fields.Float(
             required=False, description="Sum of shift_report_details"
         ),
+        "shift_report_details_summ_by_estimate": fields.Float(
+            required=False,
+            description="Actual shift work sum calculated using the estimate price",
+        ),
     },
 )
 

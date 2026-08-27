@@ -60,7 +60,10 @@ project_stats_model = Model(
     "ProjectStats",
     {
         "project_work_quantity": fields.Float(required=True),
+        "project_work_summ": fields.Float(required=True),
         "shift_report_details_quantity": fields.Float(required=True),
+        "shift_report_details_summ": fields.Float(required=True),
+        "shift_report_details_summ_by_estimate": fields.Float(required=True),
         "project_work_name": fields.String(required=False),
     },
 )

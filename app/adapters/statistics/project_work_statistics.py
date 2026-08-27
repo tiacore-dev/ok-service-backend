@@ -16,6 +16,11 @@ from app.use_cases.projects.dto import ProjectStatsMap
 from .redis_client import RedisClient
 
 KEY_PREFIX = "project-work-stats"
+REQUIRED_STAT_FIELDS = {
+    "project_work_summ",
+    "shift_report_details_summ",
+    "shift_report_details_summ_by_estimate",
+}
 logger = logging.getLogger("ok_service")
 
 
@@ -51,9 +56,13 @@ class RedisProjectWorkStatistics:
                 if isinstance(raw, bytes):
                     raw = raw.decode("utf-8")
                 loaded = json.loads(raw)
-                if isinstance(loaded, dict):
+                if isinstance(loaded, dict) and all(
+                    isinstance(value, dict)
+                    and REQUIRED_STAT_FIELDS <= value.keys()
+                    for value in loaded.values()
+                ):
                     return loaded
-                logger.warning("Invalid project-work statistics cache payload")
+                logger.info("Refreshing outdated project-work statistics cache payload")
         except (RedisError, UnicodeDecodeError, json.JSONDecodeError) as error:
             logger.warning("Redis statistics read failed: %s", error)
         return self.recalculate(project_id)

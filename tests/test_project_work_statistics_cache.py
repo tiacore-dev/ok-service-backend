@@ -49,7 +49,10 @@ def test_recalculate_replaces_one_project_stats_without_ttl():
     expected = {
         str(uuid4()): {
             "project_work_quantity": 12.0,
+            "project_work_summ": 1200.0,
             "shift_report_details_quantity": 5.0,
+            "shift_report_details_summ": 500.0,
+            "shift_report_details_summ_by_estimate": 600.0,
             "project_work_name": "Монтаж",
         }
     }
@@ -78,3 +81,23 @@ def test_cache_miss_and_redis_failure_fall_back_to_database_stats():
     )
 
     assert service.get_project_stats(project_id) == expected
+
+
+def test_outdated_cache_payload_is_recalculated():
+    project_id = uuid4()
+    client = FakeRedis()
+    key = f"project-work-stats:{project_id}"
+    client.values[key] = '{"work": {"project_work_quantity": 5.0}}'
+    expected = {
+        "work": {
+            "project_work_quantity": 5.0,
+            "project_work_summ": 100.0,
+            "shift_report_details_quantity": 2.0,
+            "shift_report_details_summ": 80.0,
+            "shift_report_details_summ_by_estimate": 90.0,
+        }
+    }
+
+    assert RedisProjectWorkStatistics(
+        client, FakeProjectsManager(expected)
+    ).get_project_stats(project_id) == expected
