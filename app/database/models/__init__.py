@@ -5,6 +5,7 @@ from .attachments import PlaceAttachments as PlaceAttachments
 from .attachments import ProjectAttachments as ProjectAttachments
 from .attachments import ShiftReportAttachments as ShiftReportAttachments
 from .acceptances import Acceptances as Acceptances
+from .acceptance_status_history import AcceptanceStatusHistory as AcceptanceStatusHistory
 from .cities import Cities as Cities
 from .key_permission_type_relations import (
     KeyPermissionTypeRelations as KeyPermissionTypeRelations,

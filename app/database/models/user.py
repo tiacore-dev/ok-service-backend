@@ -159,6 +159,9 @@ class Users(Base):
     updated_leaves = relationship(
         "Leaves", back_populates="updated_by_user", foreign_keys="[Leaves.updated_by]"
     )
+    acceptance_status_history = relationship(
+        "AcceptanceStatusHistory", back_populates="changed_by_user"
+    )
 
     # Самореференсная связь
     creator = relationship("Users", remote_side=[user_id], backref="created_users")

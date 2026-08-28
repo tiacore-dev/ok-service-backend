@@ -34,3 +34,11 @@ class AcceptanceFilterSchema(Schema):
     limit = fields.Int(load_default=1000, validate=validate.Range(min=1))
     project_id = fields.String(required=False)
     status = fields.String(required=False, validate=validate.OneOf(ACCEPTANCE_STATUSES))
+
+
+class AcceptanceHistoryFilterSchema(Schema):
+    class Meta:
+        unknown = "exclude"
+
+    offset = fields.Int(load_default=0, validate=validate.Range(min=0))
+    limit = fields.Int(load_default=1000, validate=validate.Range(min=1))

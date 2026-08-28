@@ -8,6 +8,7 @@ from app.domain.acceptances import (
     AcceptanceForbiddenError,
     AcceptanceNotFoundError,
     AcceptanceStatus,
+    AcceptanceStatusHistory,
 )
 from app.use_cases.time_utils import utc_epoch_milliseconds
 
@@ -17,6 +18,7 @@ from .ports import AcceptanceRepository
 @dataclass(frozen=True, slots=True)
 class AcceptanceActor:
     role: str
+    user_id: UUID
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +45,13 @@ class AcceptanceListQuery:
     limit: int | None = 1000
     project_id: UUID | None = None
     status: AcceptanceStatus | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AcceptanceHistoryListQuery:
+    acceptance_id: UUID
+    offset: int = 0
+    limit: int | None = 1000
 
 
 def _ensure_mutation(actor: AcceptanceActor) -> None:
@@ -97,7 +106,20 @@ class UpdateAcceptanceUseCase:
         )
         if command.comment_provided:
             updated = updated.with_updates(comment=command.comment)
-        result = self.repository.update_acceptance(updated)
+        if updated.status != existing.status:
+            history = AcceptanceStatusHistory(
+                id=uuid4(),
+                acceptance_id=existing.id,
+                changed_at=utc_epoch_milliseconds(),
+                changed_by=actor.user_id,
+                from_status=existing.status,
+                to_status=updated.status,
+            )
+            result = self.repository.update_acceptance_with_status_history(
+                updated, history
+            )
+        else:
+            result = self.repository.update_acceptance(updated)
         if result is None:
             raise AcceptanceNotFoundError("Acceptance not found")
         return result
@@ -110,3 +132,11 @@ class DeleteAcceptanceUseCase:
     def execute(self, acceptance_id: UUID, actor: AcceptanceActor) -> bool:
         _ensure_mutation(actor)
         return self.repository.delete_acceptance(acceptance_id)
+
+
+@dataclass(slots=True)
+class ListAcceptanceHistoryUseCase:
+    repository: AcceptanceRepository
+
+    def execute(self, query: AcceptanceHistoryListQuery) -> list[AcceptanceStatusHistory]:
+        return self.repository.list_acceptance_history(query)

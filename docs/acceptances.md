@@ -9,8 +9,9 @@
 Приёмка хранит дату, статус и комментарий. Состав предъявленных работ хранится
 отдельно в `work_acceptance_relations`.
 
-Расчёт прогресса работ и вложения в этот срез не входят и будут добавлены
-отдельно.
+История изменения статусов входит в отдельную таблицу
+`acceptance_status_history`. Расчёт прогресса работ и вложения в этот срез не
+входят и будут добавлены отдельно.
 
 ## Модель данных
 
@@ -38,6 +39,22 @@
 Удаление приёмки каскадно удаляет её связи с работами. Уникальность пары
 `acceptance_id`/`work_id` и ограничение общей предъявленной величины пока не
 вводятся.
+
+### `acceptance_status_history`
+
+| Поле | Тип | Описание |
+| --- | --- | --- |
+| `id` | UUID | Первичный ключ записи истории |
+| `acceptance_id` | UUID | Внешний ключ на `acceptances.id` |
+| `changed_at` | BIGINT | Дата и время изменения в Unix ms |
+| `changed_by` | UUID | Пользователь, изменивший статус |
+| `from_status` | string | Предыдущий статус |
+| `to_status` | string | Новый статус |
+
+История не удаляется автоматически при удалении приёмки. Поэтому наличие
+истории блокирует удаление приёмки ограничением внешнего ключа. История не
+создаётся при создании приёмки — первая запись появляется только при изменении
+статуса.
 
 ## Статусы
 
@@ -124,6 +141,32 @@
 - `project_id` — фильтр по проекту;
 - `status` — фильтр по enum-статусу.
 
+### История статусов
+
+`GET /acceptances/{id}/history`
+
+Доступно только ролям `admin` и `manager`. Endpoint сначала проверяет наличие
+приёмки, затем возвращает список изменений:
+
+```json
+{
+  "msg": "Acceptance status history found successfully",
+  "history": [
+    {
+      "id": "history-uuid",
+      "acceptance_id": "acceptance-uuid",
+      "changed_at": 1754006400123,
+      "changed_by": "user-uuid",
+      "from_status": "presented",
+      "to_status": "accepted_on_site"
+    }
+  ]
+}
+```
+
+История сортируется по `changed_at` от новых записей к старым. Поддерживаются
+параметры `offset` и `limit`.
+
 ## API связей с работами
 
 Маршруты используют namespace `/work-acceptance-relations` и тот же CRUD-стиль:
@@ -154,7 +197,7 @@
 Фича разделена на слои:
 
 - `app/domain/acceptances` и `app/domain/work_acceptance_relations` — сущности,
-  enum и доменные проверки;
+  enum, история и доменные проверки;
 - `app/use_cases/acceptances` и `app/use_cases/work_acceptance_relations` — CRUD
   сценарии и repository Protocol;
 - `app/adapters/acceptances` и `app/adapters/work_acceptance_relations` — SQLAlchemy
@@ -162,8 +205,9 @@
 - `app/web/acceptances` и `app/web/work_acceptance_relations` — Flask-RESTX
   namespace, Marshmallow validation, Swagger-модели и преобразование ошибок.
 
-Таблицы добавляются миграцией
-`alembic/versions/20260827150000_acceptances.py`.
+Таблицы приёмок добавляются миграцией
+`alembic/versions/20260827150000_acceptances.py`, таблица истории — миграцией
+`alembic/versions/20260828100000_acceptance_status_history.py`.
 
 ## Тестирование
 
@@ -173,6 +217,8 @@
 - запрет нулевого количества в relation;
 - разрешение mutation для `manager`;
 - запрет mutation для `project-leader`.
+- создание записи истории при изменении статуса;
+- отсутствие записи при повторной установке того же статуса.
 
 Будущие изменения прав, вложений, переходов статусов и прогресса должны
 дополняться отдельными тестами API и use-case.

@@ -8,6 +8,7 @@ from app.database.models import (
     WorkMaterialRelations,
     Acceptances,
     WorkAcceptanceRelations,
+    AcceptanceStatusHistory,
 )
 
 logger = logging.getLogger("ok_service")
@@ -41,6 +42,41 @@ class AcceptancesManager(BaseDBManager):
     @property
     def model(self):
         return Acceptances
+
+    def update_with_status_history(
+        self, acceptance_id, *, date, project_id, status, comment,
+        history_id, changed_at, changed_by, from_status, to_status
+    ):
+        with self.session_scope() as session:
+            record = session.query(self.model).filter(self.model.id == acceptance_id).first()
+            if record is None:
+                return None
+            record.date = date
+            record.project_id = project_id
+            record.status = status
+            record.comment = comment
+            session.add(AcceptanceStatusHistory(
+                id=history_id,
+                acceptance_id=acceptance_id,
+                changed_at=changed_at,
+                changed_by=changed_by,
+                from_status=from_status,
+                to_status=to_status,
+            ))
+            session.flush()
+            return record.to_dict()
+
+    def get_status_history(self, acceptance_id, *, offset=0, limit=1000):
+        with self.session_scope() as session:
+            records = (
+                session.query(AcceptanceStatusHistory)
+                .filter(AcceptanceStatusHistory.acceptance_id == acceptance_id)
+                .order_by(AcceptanceStatusHistory.changed_at.desc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
+            return [record.to_dict() for record in records]
 
 
 class WorkAcceptanceRelationsManager(BaseDBManager):

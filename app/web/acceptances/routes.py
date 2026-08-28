@@ -13,13 +13,13 @@ from sqlalchemy.exc import IntegrityError
 from app.adapters.acceptances import SQLAlchemyAcceptanceRepository
 from app.decorators import admin_or_manager_required, api_key_or_jwt_required
 from app.domain.acceptances import AcceptanceStatus, AcceptanceForbiddenError, AcceptanceNotFoundError, AcceptanceValidationError
-from app.routes.models.acceptance_models import acceptance_all_response, acceptance_create_model, acceptance_edit_model, acceptance_filter_parser, acceptance_model, acceptance_msg_model, acceptance_response
-from app.schemas.acceptance_schemas import AcceptanceCreateSchema, AcceptanceEditSchema, AcceptanceFilterSchema
-from app.use_cases.acceptances import AcceptanceActor, AcceptanceListQuery, CreateAcceptanceCommand, CreateAcceptanceUseCase, DeleteAcceptanceUseCase, GetAcceptanceUseCase, ListAcceptancesUseCase, UpdateAcceptanceCommand, UpdateAcceptanceUseCase
+from app.routes.models.acceptance_models import acceptance_all_response, acceptance_create_model, acceptance_edit_model, acceptance_filter_parser, acceptance_history_filter_parser, acceptance_history_model, acceptance_history_response, acceptance_model, acceptance_msg_model, acceptance_response
+from app.schemas.acceptance_schemas import AcceptanceCreateSchema, AcceptanceEditSchema, AcceptanceFilterSchema, AcceptanceHistoryFilterSchema
+from app.use_cases.acceptances import AcceptanceActor, AcceptanceHistoryListQuery, AcceptanceListQuery, CreateAcceptanceCommand, CreateAcceptanceUseCase, DeleteAcceptanceUseCase, GetAcceptanceUseCase, ListAcceptanceHistoryUseCase, ListAcceptancesUseCase, UpdateAcceptanceCommand, UpdateAcceptanceUseCase
 from app.web._typing import get_optional_int, get_optional_str, get_required_int, get_required_str, get_required_uuid, optional_uuid
 
 acceptance_ns = Namespace("acceptances", description="Acceptances management operations")
-for model in (acceptance_create_model, acceptance_edit_model, acceptance_model, acceptance_msg_model, acceptance_response, acceptance_all_response):
+for model in (acceptance_create_model, acceptance_edit_model, acceptance_model, acceptance_msg_model, acceptance_response, acceptance_all_response, acceptance_history_model, acceptance_history_response):
     acceptance_ns.models[model.name] = model
 
 
@@ -44,6 +44,11 @@ class AcceptanceFilterPayload(TypedDict, total=False):
     status: str
 
 
+class AcceptanceHistoryFilterPayload(TypedDict, total=False):
+    offset: int
+    limit: int
+
+
 def _user() -> dict[str, Any]:
     identity = getattr(g, "api_key_identity_json", None) if getattr(g, "auth_via_api_key", False) else get_jwt_identity()
     if isinstance(identity, dict):
@@ -62,7 +67,10 @@ def _id(value: str) -> UUID:
 
 
 def _actor(user: dict[str, Any]) -> AcceptanceActor:
-    return AcceptanceActor(role=str(user.get("role", "")))
+    return AcceptanceActor(
+        role=str(user.get("role", "")),
+        user_id=get_required_uuid(user, "user_id", "Current user id is required"),
+    )
 
 
 def _repo() -> SQLAlchemyAcceptanceRepository:
@@ -78,6 +86,17 @@ def _json_payload() -> dict[str, Any]:
 
 def _response(item):
     return {"id": str(item.id), "date": item.date, "project_id": str(item.project_id), "status": item.status.value, "comment": item.comment}
+
+
+def _history_response(item):
+    return {
+        "id": str(item.id),
+        "acceptance_id": str(item.acceptance_id),
+        "changed_at": item.changed_at,
+        "changed_by": str(item.changed_by),
+        "from_status": item.from_status.value,
+        "to_status": item.to_status.value,
+    }
 
 
 def _error(error: Exception):
@@ -160,3 +179,30 @@ class AcceptanceAll(Resource):
                 status=AcceptanceStatus(status) if status else None))
             return {"msg": "Acceptances found successfully", "acceptances": [_response(item) for item in items]}, 200
         except Exception as error: return _error(error)
+
+
+@acceptance_ns.route("/<string:acceptance_id>/history")
+class AcceptanceHistory(Resource):
+    @api_key_or_jwt_required
+    @admin_or_manager_required
+    @acceptance_ns.expect(acceptance_history_filter_parser)
+    @acceptance_ns.marshal_with(acceptance_history_response)
+    def get(self, acceptance_id):
+        try:
+            acceptance_uuid = _id(acceptance_id)
+            GetAcceptanceUseCase(_repo()).execute(acceptance_uuid)
+            raw_data = AcceptanceHistoryFilterSchema().load(request.args.to_dict())
+            data = cast(AcceptanceHistoryFilterPayload, raw_data)
+            history = ListAcceptanceHistoryUseCase(_repo()).execute(
+                AcceptanceHistoryListQuery(
+                    acceptance_id=acceptance_uuid,
+                    offset=data.get("offset", 0),
+                    limit=data.get("limit", 1000),
+                )
+            )
+            return {
+                "msg": "Acceptance status history found successfully",
+                "history": [_history_response(item) for item in history],
+            }, 200
+        except Exception as error:
+            return _error(error)

@@ -1,4 +1,5 @@
 from .entities import Acceptance, AcceptanceStatus
+from .history import AcceptanceStatusHistory
 from .errors import (
     AcceptanceForbiddenError,
     AcceptanceNotFoundError,
@@ -11,4 +12,5 @@ __all__ = [
     "AcceptanceForbiddenError",
     "AcceptanceNotFoundError",
     "AcceptanceValidationError",
+    "AcceptanceStatusHistory",
 ]

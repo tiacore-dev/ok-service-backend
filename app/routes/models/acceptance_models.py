@@ -17,3 +17,19 @@ acceptance_filter_parser.add_argument("offset", type=int, default=0)
 acceptance_filter_parser.add_argument("limit", type=int, default=1000)
 acceptance_filter_parser.add_argument("project_id", type=str)
 acceptance_filter_parser.add_argument("status", type=str, choices=ACCEPTANCE_STATUSES)
+
+acceptance_history_model = Model("AcceptanceStatusHistory", {
+    "id": fields.String(required=True),
+    "acceptance_id": fields.String(required=True),
+    "changed_at": fields.Integer(required=True),
+    "changed_by": fields.String(required=True),
+    "from_status": fields.String(required=True, enum=ACCEPTANCE_STATUSES),
+    "to_status": fields.String(required=True, enum=ACCEPTANCE_STATUSES),
+})
+acceptance_history_response = Model("AcceptanceHistoryResponse", {
+    "msg": fields.String(required=True),
+    "history": fields.List(fields.Nested(acceptance_history_model), required=True),
+})
+acceptance_history_filter_parser = reqparse.RequestParser()
+acceptance_history_filter_parser.add_argument("offset", type=int, default=0)
+acceptance_history_filter_parser.add_argument("limit", type=int, default=1000)

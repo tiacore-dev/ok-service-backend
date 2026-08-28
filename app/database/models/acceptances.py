@@ -20,7 +20,9 @@ class Acceptances(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
     date = Column(BigInteger, nullable=False)
     project_id = Column(
-        UUID(as_uuid=True), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("projects.project_id", ondelete="CASCADE"),
+        nullable=False,
     )
     status = Column(String, nullable=False, default=AcceptanceStatusDB.PRESENTED.value)
     comment = Column(String, nullable=True)
@@ -34,7 +36,12 @@ class Acceptances(Base):
 
     project = relationship("Projects", back_populates="acceptances")
     work_acceptance_relations = relationship(
-        "WorkAcceptanceRelations", back_populates="acceptance", cascade="all, delete-orphan"
+        "WorkAcceptanceRelations",
+        back_populates="acceptance",
+        cascade="all, delete-orphan",
+    )
+    status_history = relationship(
+        "AcceptanceStatusHistory", back_populates="acceptance"
     )
 
     def to_dict(self):
