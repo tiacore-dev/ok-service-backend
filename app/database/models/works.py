@@ -41,6 +41,9 @@ class Works(Base):
     project_schedule = relationship("ProjectSchedules", back_populates="works")
     shift_report_details = relationship("ShiftReportDetails", back_populates="works")
     material_works = relationship("WorkMaterialRelations", back_populates="works")
+    work_acceptance_relations = relationship(
+        "WorkAcceptanceRelations", back_populates="work"
+    )
 
     work_creator = relationship("Users", back_populates="created_works")
 

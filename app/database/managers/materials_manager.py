@@ -6,6 +6,8 @@ from app.database.models import (
     ProjectMaterials,
     ShiftReportMaterials,
     WorkMaterialRelations,
+    Acceptances,
+    WorkAcceptanceRelations,
 )
 
 logger = logging.getLogger("ok_service")
@@ -33,3 +35,15 @@ class ShiftReportMaterialsManager(BaseDBManager):
     @property
     def model(self):
         return ShiftReportMaterials
+
+
+class AcceptancesManager(BaseDBManager):
+    @property
+    def model(self):
+        return Acceptances
+
+
+class WorkAcceptanceRelationsManager(BaseDBManager):
+    @property
+    def model(self):
+        return WorkAcceptanceRelations

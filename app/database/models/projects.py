@@ -52,6 +52,9 @@ class Projects(Base):
     project_attachments = relationship(
         "ProjectAttachments", back_populates="project", passive_deletes=True
     )
+    acceptances = relationship(
+        "Acceptances", back_populates="project", cascade="all, delete-orphan", passive_deletes=True
+    )
 
     def __repr__(self):
         return (

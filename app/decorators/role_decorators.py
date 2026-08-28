@@ -40,6 +40,21 @@ def admin_required(func):
     return wrapper
 
 
+def admin_or_manager_required(func):
+    """Allow mutation only to administrators and managers."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if getattr(g, "auth_via_api_key", False):
+            return func(*args, **kwargs)
+        current_user = _get_current_user()
+        if current_user.get("role") not in {"admin", "manager"}:
+            return {"msg": "Forbidden"}, 403
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def user_forbidden(func):
     """Декоратор для проверки, что текущий пользователь — администратор."""
 

@@ -13,3 +13,4 @@
 - [docs/project-work-statistics-cache.md](./docs/project-work-statistics-cache.md) - проектирование Redis-кэша агрегированной статистики по работам проекта.
 - [docs/time-contract.md](./docs/time-contract.md) - единый контракт Unix timestamp в миллисекундах.
 - [docs/attachments.md](./docs/attachments.md) - хранение, API, права и валидация вложений.
+- [docs/acceptances.md](./docs/acceptances.md) - сущности приёмок, связи с работами, CRUD API и права доступа.

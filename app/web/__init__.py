@@ -29,6 +29,8 @@ from .template_generation.routes import template_ns
 from .users.routes import user_ns
 from .work_categories.routes import work_category_ns
 from .work_material_relations.routes import work_material_relation_ns
+from .acceptances.routes import acceptance_ns
+from .work_acceptance_relations.routes import work_acceptance_relation_ns
 from .work_prices.routes import work_price_ns
 from .works.routes import work_ns
 
@@ -61,6 +63,8 @@ def register_namespaces(api: Api):
     api.add_namespace(project_work_ns)
     api.add_namespace(work_category_ns)
     api.add_namespace(work_material_relation_ns)
+    api.add_namespace(acceptance_ns)
+    api.add_namespace(work_acceptance_relation_ns)
     api.add_namespace(shift_report_material_ns)
     api.add_namespace(work_price_ns)
     api.add_namespace(work_ns)

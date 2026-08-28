@@ -1,0 +1,16 @@
+from __future__ import annotations
+
+from typing import Protocol, TYPE_CHECKING
+from uuid import UUID
+
+from app.domain.acceptances import Acceptance
+if TYPE_CHECKING:
+    from .use_cases import AcceptanceListQuery
+
+
+class AcceptanceRepository(Protocol):
+    def create_acceptance(self, acceptance: Acceptance) -> Acceptance: ...
+    def get_acceptance(self, acceptance_id: UUID) -> Acceptance | None: ...
+    def update_acceptance(self, acceptance: Acceptance) -> Acceptance | None: ...
+    def delete_acceptance(self, acceptance_id: UUID) -> bool: ...
+    def list_acceptances(self, query: AcceptanceListQuery) -> list[Acceptance]: ...
