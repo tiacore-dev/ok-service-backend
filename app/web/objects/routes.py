@@ -19,6 +19,7 @@ from app.adapters.attachments import list_attachment_view_data
 from app.adapters.places import SQLAlchemyPlaceRepository, place_entity_to_response
 from app.decorators import api_key_or_jwt_required
 from app.domain.objects import (
+    ObjectStatus,
     ObjectForbiddenError,
     ObjectNotFoundError,
     ObjectValidationError,
@@ -61,6 +62,8 @@ from .models import (
     object_msg_model,
     object_response,
     object_view_model,
+    object_status_item_model,
+    object_statuses_response,
 )
 
 logger = logging.getLogger("ok_service")
@@ -74,7 +77,23 @@ object_ns.models[object_response.name] = object_response
 object_ns.models[object_all_response.name] = object_all_response
 object_ns.models[object_model.name] = object_model
 object_ns.models[object_view_model.name] = object_view_model
+object_ns.models[object_status_item_model.name] = object_status_item_model
+object_ns.models[object_statuses_response.name] = object_statuses_response
 object_ns.models[attachment_view_model.name] = attachment_view_model
+
+
+@object_ns.route("/statuses")
+class ObjectStatuses(Resource):
+    @api_key_or_jwt_required
+    @object_ns.marshal_with(object_statuses_response)
+    def get(self):
+        return {
+            "msg": "Object statuses found successfully",
+            "statuses": [
+                {"value": status.value, "label": status.label}
+                for status in ObjectStatus
+            ],
+        }, 200
 
 
 class ObjectCreatePayload(TypedDict):

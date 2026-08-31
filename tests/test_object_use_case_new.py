@@ -27,6 +27,7 @@ class FakeObjectRepository:
     deleted: UUID | None = None
     listed_query: ObjectListQuery | None = None
     listed_actor: ObjectActor | None = None
+    project_statuses: list[str] | None = None
 
     def create_object(self, obj: Object) -> Object:
         self.created = obj
@@ -41,6 +42,15 @@ class FakeObjectRepository:
         self.obj = obj
         return obj
 
+    def update_object_with_projects_closed(self, obj: Object) -> Object | None:
+        if self.obj is None:
+            return None
+        if any(status != "closed" for status in self.project_statuses or []):
+            raise ValueError(
+                "Object can be completed only when all its projects are closed"
+            )
+        return self.update_object(obj)
+
     def delete_object(self, object_id: UUID) -> bool:
         self.deleted = object_id
         return self.obj is not None and self.obj.object_id == object_id
@@ -49,6 +59,9 @@ class FakeObjectRepository:
         self.listed_query = query
         self.listed_actor = actor
         return [self.obj] if self.obj is not None else []
+
+    def get_project_statuses(self, object_id: UUID) -> list[str]:
+        return self.project_statuses or []
 
 
 def _object(*, status: str = "active") -> Object:
@@ -66,6 +79,29 @@ def _object(*, status: str = "active") -> Object:
         created_at=1,
         deleted=False,
     )
+
+
+def test_update_object_rejects_completion_when_project_is_not_closed():
+    obj = _object(status="active")
+    repository = FakeObjectRepository(obj=obj, project_statuses=["in_progress"])
+
+    with pytest.raises(ValueError, match="all its projects are closed"):
+        UpdateObjectUseCase(repository).execute(
+            UpdateObjectCommand(object_id=obj.object_id, status="completed"),
+            ObjectActor(role="admin", user_id=uuid4()),
+        )
+
+
+def test_update_object_allows_completion_when_all_projects_are_closed():
+    obj = _object(status="active")
+    repository = FakeObjectRepository(obj=obj, project_statuses=["closed", "closed"])
+
+    result = UpdateObjectUseCase(repository).execute(
+        UpdateObjectCommand(object_id=obj.object_id, status="completed"),
+        ObjectActor(role="admin", user_id=uuid4()),
+    )
+
+    assert result.status == "completed"
 
 
 def test_create_object_use_case_sets_created_by_from_actor():

@@ -20,6 +20,7 @@ from app.database.models import (
     ShiftReports,
     WorkMaterialRelations,
 )
+from app.domain.projects import ProjectStatus, ProjectValidationError
 
 logger = logging.getLogger("ok_service")
 
@@ -233,6 +234,45 @@ class ProjectsManager(BaseDBManager):
     def get_all_project_ids(self) -> list[UUID]:
         with self.session_scope() as session:
             return [project_id for (project_id,) in session.query(Projects.project_id)]
+
+    def get_project_statuses_by_object(self, object_id: UUID) -> list[str]:
+        with self.session_scope() as session:
+            return [
+                status.value if hasattr(status, "value") else str(status)
+                for (status,) in session.query(Projects.status)
+                .filter(Projects.object == object_id, Projects.deleted.is_(False))
+                .all()
+            ]
+
+    def update_status_if_current(
+        self,
+        project_id: UUID,
+        expected_status: ProjectStatus,
+        new_status: ProjectStatus,
+    ) -> dict[str, Any] | None:
+        with self.session_scope() as session:
+            project = (
+                session.query(Projects)
+                .filter(Projects.project_id == project_id)
+                .with_for_update()
+                .first()
+            )
+            if project is None or project.status != expected_status:
+                return None
+            if new_status is ProjectStatus.CLOSED:
+                project_works = (
+                    session.query(ProjectWorks)
+                    .filter(ProjectWorks.project == project_id)
+                    .with_for_update()
+                    .all()
+                )
+                if any(not project_work.signed for project_work in project_works):
+                    raise ProjectValidationError(
+                        "Project cannot be closed until all project works are signed"
+                    )
+            project.status = new_status
+            session.flush()
+            return project.to_dict()
 
     def get_project_stats_by_project_work(self, project_id):
         try:

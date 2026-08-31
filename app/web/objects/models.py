@@ -3,10 +3,27 @@ from flask_restx import Model, fields, reqparse
 from app.routes.models.place_models import place_model
 from app.web.attachments.contract import attachment_view_model
 from app.schemas.object_schemas import ObjectCreateSchema, ObjectEditSchema
+from app.domain.objects import ObjectStatus
 from app.utils.helpers import generate_swagger_model
 
 object_create_model = generate_swagger_model(ObjectCreateSchema(), "ObjectCreate")
 object_edit_model = generate_swagger_model(ObjectEditSchema(), "ObjectEdit")
+object_status_item_model = Model(
+    "ObjectStatusItem",
+    {
+        "value": fields.String(required=True),
+        "label": fields.String(required=True),
+    },
+)
+object_statuses_response = Model(
+    "ObjectStatusesResponse",
+    {
+        "msg": fields.String(required=True),
+        "statuses": fields.List(
+            fields.Nested(object_status_item_model), required=True
+        ),
+    },
+)
 
 
 object_model = Model(

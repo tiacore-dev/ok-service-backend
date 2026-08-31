@@ -214,6 +214,21 @@ class ShiftReportsManager(ShiftManager):
 
         with self.session_scope() as session:
             try:
+                project = (
+                    session.query(Projects)
+                    .filter(Projects.project_id == shift_report_data["project"])
+                    .with_for_update()
+                    .first()
+                )
+                project_status = (
+                    project.status.value
+                    if project is not None and hasattr(project.status, "value")
+                    else project.status if project is not None else None
+                )
+                if project_status != "in_progress":
+                    raise ShiftReportConflictError(
+                        "Shift report can be created only for a project in progress"
+                    )
                 self._check_leave_conflict(
                     session,
                     shift_report_data["user"],

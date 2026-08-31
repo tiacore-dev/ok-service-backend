@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+from app.domain.projects import ProjectStatus
+
 
 @dataclass(frozen=True, slots=True)
 class ProjectActor:
@@ -44,6 +46,7 @@ class ProjectListQuery:
     project_leader: UUID | None = None
     created_by: UUID | None = None
     created_at: int | None = None
+    status: ProjectStatus | None = None
 
 
 ProjectStatsMap = dict[str, dict[str, Any]]

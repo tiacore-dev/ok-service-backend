@@ -86,3 +86,19 @@ class SQLAlchemyObjectRepository(ObjectRepository):
                 created_at=query.created_at,
             )
         return [object_dict_to_entity(record) for record in records]
+
+    def update_object_with_projects_closed(self, obj: Object) -> Object | None:
+        updated = self.manager.update_with_projects_closed(
+            record_id=obj.object_id,
+            name=obj.name,
+            address=obj.address,
+            description=obj.description,
+            city_id=obj.city_id,
+            status=obj.status,
+            manager=obj.manager,
+            lng=obj.lng,
+            ltd=obj.ltd,
+            deleted=obj.deleted,
+        )
+        record = normalize_result(updated)
+        return object_dict_to_entity(record) if record is not None else None

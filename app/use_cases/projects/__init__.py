@@ -10,6 +10,7 @@ from .get_project import GetProjectStatsByMaterialsUseCase, GetProjectStatsUseCa
 from .list_projects import ListProjectsUseCase
 from .ports import ProjectRepository
 from .update_project import UpdateProjectUseCase
+from .update_project_status import UpdateProjectStatusUseCase
 
 __all__ = [
     "CreateProjectCommand",
@@ -25,4 +26,5 @@ __all__ = [
     "SoftDeleteProjectUseCase",
     "UpdateProjectCommand",
     "UpdateProjectUseCase",
+    "UpdateProjectStatusUseCase",
 ]

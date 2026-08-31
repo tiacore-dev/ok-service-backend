@@ -606,6 +606,7 @@ def seed_project(db_session, seed_user, seed_object):
         project_leader=UUID(seed_user["user_id"]),
         created_by=seed_user["user_id"],
         deleted=False,
+        status="in_progress",
     )
     db_session.add(project)
     db_session.commit()

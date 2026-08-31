@@ -24,7 +24,9 @@ from app.use_cases.projects import (
     SoftDeleteProjectUseCase,
     UpdateProjectCommand,
     UpdateProjectUseCase,
+    UpdateProjectStatusUseCase,
 )
+from app.domain.projects import ProjectStatus
 
 
 @dataclass
@@ -37,6 +39,7 @@ class FakeProjectRepository:
     listed_actor: ProjectActor | None = None
     stats: dict[str, dict[str, object]] | None = None
     stats_by_materials: dict[str, dict[str, object]] | None = None
+    project_work_signed: list[bool] | None = None
 
     def create_project(self, project: Project) -> Project:
         self.created = project
@@ -55,6 +58,26 @@ class FakeProjectRepository:
         self.updated = project
         self.project = project
         return project
+
+    def update_project_status(
+        self,
+        project_id: UUID,
+        expected_status: ProjectStatus,
+        status: ProjectStatus,
+    ) -> Project | None:
+        if self.project is None or self.project.project_id != project_id:
+            return None
+        if self.project.status != expected_status:
+            return None
+        if status is ProjectStatus.CLOSED and any(
+            not signed for signed in self.project_work_signed or []
+        ):
+            raise ProjectValidationError(
+                "Project cannot be closed until all project works are signed"
+            )
+        self.project = self.project.with_updates(status=status)
+        self.updated = self.project
+        return self.project
 
     def delete_project(self, project_id: UUID) -> bool:
         self.deleted = project_id
@@ -97,6 +120,52 @@ def _project() -> Project:
         created_at=1,
         deleted=False,
     )
+
+
+def test_project_starts_pending_and_status_can_move_forward_or_back():
+    project = _project()
+    assert project.status is ProjectStatus.PENDING
+    repository = FakeProjectRepository(project=project)
+    actor = ProjectActor(role="manager", user_id=uuid4())
+
+    updated = UpdateProjectStatusUseCase(repository).execute(
+        project.project_id, ProjectStatus.IN_PROGRESS, actor
+    )
+    assert updated.status is ProjectStatus.IN_PROGRESS
+    updated = UpdateProjectStatusUseCase(repository).execute(
+        project.project_id, ProjectStatus.PENDING, actor
+    )
+    assert updated.status is ProjectStatus.PENDING
+
+
+def test_project_status_change_requires_admin_or_manager_and_adjacent_status():
+    project = _project()
+    repository = FakeProjectRepository(project=project)
+
+    with pytest.raises(ProjectForbiddenError):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id, ProjectStatus.IN_PROGRESS,
+            ProjectActor(role="project-leader", user_id=uuid4()),
+        )
+    with pytest.raises(ValueError, match="adjacent"):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id, ProjectStatus.WORKS_COMPLETED,
+            ProjectActor(role="admin", user_id=uuid4()),
+        )
+
+
+def test_project_cannot_be_closed_until_all_project_works_are_signed():
+    project = _project().with_updates(status=ProjectStatus.WORKS_COMPLETED)
+    repository = FakeProjectRepository(
+        project=project, project_work_signed=[True, False]
+    )
+
+    with pytest.raises(ProjectValidationError, match="all project works are signed"):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id,
+            ProjectStatus.CLOSED,
+            ProjectActor(role="manager", user_id=uuid4()),
+        )
 
 
 def test_create_project_use_case_forces_project_leader_for_project_leader_role():
@@ -261,6 +330,20 @@ def test_project_mapper_treats_string_none_as_missing_created_by():
 
     assert project.project_id == project_id
     assert project.created_by is None
+
+
+@pytest.mark.parametrize("invalid_status", ["", False, 0])
+def test_project_mapper_rejects_invalid_falsy_status(invalid_status):
+    payload = {
+        "project_id": str(uuid4()),
+        "name": "Project",
+        "object": str(uuid4()),
+        "created_at": 1,
+        "status": invalid_status,
+    }
+
+    with pytest.raises(ValueError):
+        project_dict_to_entity(payload)
 
 
 def test_project_repository_list_keeps_invalid_legacy_records_for_reads():

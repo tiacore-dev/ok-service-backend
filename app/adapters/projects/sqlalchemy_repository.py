@@ -6,7 +6,7 @@ from uuid import UUID
 from app.adapters._typing import normalize_result
 from app.adapters.statistics import ProjectWorkStatistics
 from app.database.managers.projects_managers import ProjectsManager
-from app.domain.projects import Project
+from app.domain.projects import Project, ProjectStatus
 from app.use_cases.projects.dto import ProjectActor, ProjectListQuery, ProjectStatsMap
 from app.use_cases.projects.ports import ProjectRepository
 
@@ -43,6 +43,7 @@ class SQLAlchemyProjectRepository(ProjectRepository):
             night_shift_available=project.night_shift_available,
             extreme_conditions_available=project.extreme_conditions_available,
             deleted=project.deleted,
+            status=project.status,
         )
         record = normalize_result(updated)
         if record is None:
@@ -78,6 +79,7 @@ class SQLAlchemyProjectRepository(ProjectRepository):
             project_leader=query.project_leader,
             created_by=query.created_by,
             created_at=query.created_at,
+            status=query.status.value if query.status is not None else None,
         )
 
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap:
@@ -87,3 +89,12 @@ class SQLAlchemyProjectRepository(ProjectRepository):
 
     def get_project_stats_by_materials(self, project_id: UUID) -> ProjectStatsMap:
         return self.manager.get_project_stats_by_project_materials(project_id)
+
+    def update_project_status(
+        self, project_id: UUID, expected_status: ProjectStatus, status: ProjectStatus
+    ) -> Project | None:
+        updated = self.manager.update_status_if_current(
+            project_id, expected_status, status
+        )
+        record = normalize_result(updated)
+        return project_dict_to_entity(record) if record is not None else None

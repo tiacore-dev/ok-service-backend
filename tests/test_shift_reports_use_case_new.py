@@ -3,8 +3,9 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
-import app.use_cases.shift_reports.update_shift_report_time as shift_report_time_module
 
+import app.use_cases.shift_reports.update_shift_report_time as shift_report_time_module
+from app.domain.projects import ProjectStatus
 from app.domain.shift_reports import (
     ShiftReport,
     ShiftReportConflictError,
@@ -21,13 +22,13 @@ from app.use_cases.shift_reports import (
     GetShiftReportUseCase,
     ListShiftReportsUseCase,
     ShiftReportActor,
-    SignShiftReportUseCase,
     ShiftReportListQuery,
-    UpdateShiftReportCommand,
-    UpdateShiftReportUseCase,
-    UpdateShiftReportTimeUseCase,
     ShiftReportTimeCommand,
+    SignShiftReportUseCase,
     SoftDeleteShiftReportUseCase,
+    UpdateShiftReportCommand,
+    UpdateShiftReportTimeUseCase,
+    UpdateShiftReportUseCase,
 )
 
 
@@ -39,16 +40,28 @@ class _FakeRepository:
     listed_filters: dict[str, object] | None = field(default=None, init=False)
     project_ids: list[UUID] = field(default_factory=list)
     signed_by: UUID | None = field(default=None, init=False)
+    project_status: ProjectStatus = ProjectStatus.IN_PROGRESS
+
+    def get_project_status(self, project_id):
+        return self.project_status
 
     def get_shift_report(self, shift_report_id):
         return self.current if shift_report_id == self.current.shift_report_id else None
 
     def update_shift_report(self, command):
         changes = {}
-        for field in ("deleted", "date_start", "date_end", "lng_start", "ltd_start", "lng_end", "ltd_end"):
-            value = getattr(command, field, None)
+        for field_name in (
+            "deleted",
+            "date_start",
+            "date_end",
+            "lng_start",
+            "ltd_start",
+            "lng_end",
+            "ltd_end",
+        ):
+            value = getattr(command, field_name, None)
             if value is not None:
-                changes[field] = value
+                changes[field_name] = value
         return self.current.with_updates(**changes)
 
     def sign_shift_report(self, shift_report_id, signed_by):
@@ -438,6 +451,17 @@ def test_create_shift_report_for_admin_keeps_payload_user():
     assert repository.created_command.user == command.user
     assert repository.created_command.signed is True
     assert repository.created_command.created_by == actor.user_id
+
+
+def test_create_shift_report_rejects_project_not_in_progress():
+    report = _report()
+    repository = _FakeRepository(current=report, project_status=ProjectStatus.PENDING)
+    command = CreateShiftReportCommand(user=uuid4(), date=1, project=uuid4())
+
+    with pytest.raises(ShiftReportValidationError, match="in progress"):
+        CreateShiftReportUseCase(repository).execute(
+            command, ShiftReportActor(role="admin", user_id=uuid4())
+        )
 
 
 def test_list_shift_reports_for_user_forces_own_filter():

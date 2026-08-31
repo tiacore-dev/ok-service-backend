@@ -1,11 +1,12 @@
 from uuid import uuid4
 
-from sqlalchemy import UUID, BigInteger, Boolean, Column, ForeignKey, String
+from sqlalchemy import UUID, BigInteger, Boolean, Column, Enum, ForeignKey, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
 from app.database.db_setup import Base
 from app.database.time_utils import utc_epoch_milliseconds
+from app.domain.projects import ProjectStatus
 
 
 class Projects(Base):
@@ -26,6 +27,16 @@ class Projects(Base):
     )
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)
     deleted = Column(Boolean, nullable=False, default=False)
+    status = Column(
+        Enum(
+            ProjectStatus,
+            native_enum=False,
+            length=32,
+            values_callable=lambda enum: [item.value for item in enum],
+        ),
+        nullable=False,
+        default=ProjectStatus.PENDING,
+    )
 
     objects = relationship("Objects", back_populates="project")
 
@@ -73,4 +84,9 @@ class Projects(Base):
             "created_at": self.created_at,
             "created_by": str(self.created_by),
             "deleted": self.deleted,
+            "status": (
+                self.status.value
+                if isinstance(self.status, ProjectStatus)
+                else self.status
+            ),
         }

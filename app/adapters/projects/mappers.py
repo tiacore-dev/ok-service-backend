@@ -3,10 +3,16 @@ from __future__ import annotations
 from typing import Any
 
 from app.adapters._typing import require_uuid, to_uuid
-from app.domain.projects import Project
+from app.domain.projects import Project, ProjectStatus
 
 
 def project_dict_to_entity(payload: dict[str, Any]) -> Project:
+    raw_status = payload.get("status")
+    status = (
+        ProjectStatus.PENDING
+        if "status" not in payload or raw_status is None
+        else ProjectStatus(raw_status)
+    )
     return Project(
         project_id=require_uuid(payload["project_id"], "project_id"),
         name=str(payload["name"]),
@@ -19,6 +25,7 @@ def project_dict_to_entity(payload: dict[str, Any]) -> Project:
         created_by=to_uuid(payload.get("created_by")),
         created_at=int(payload["created_at"]),
         deleted=bool(payload.get("deleted", False)),
+        status=status,
     )
 
 
@@ -33,6 +40,7 @@ def project_entity_to_create_payload(project: Project) -> dict[str, Any]:
         "created_by": project.created_by,
         "created_at": project.created_at,
         "deleted": project.deleted,
+        "status": project.status.value,
     }
 
 
@@ -49,6 +57,7 @@ def project_entity_to_response(project: Project) -> dict[str, Any]:
         "created_at": project.created_at,
         "created_by": str(project.created_by) if project.created_by else None,
         "deleted": project.deleted,
+        "status": project.status.value,
     }
 
 
@@ -81,4 +90,5 @@ def project_dict_to_response(payload: dict[str, Any]) -> dict[str, Any]:
             else None
         ),
         "deleted": payload.get("deleted"),
+        "status": payload.get("status", ProjectStatus.PENDING.value),
     }

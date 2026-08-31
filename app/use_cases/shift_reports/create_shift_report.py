@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
+from app.domain.projects import ProjectStatus
 from app.domain.shift_reports import (
     ShiftReport,
     ShiftReportForbiddenError,
@@ -21,6 +22,14 @@ class CreateShiftReportUseCase:
     ) -> ShiftReport:
         if actor.role == "user":
             raise ShiftReportForbiddenError("User cannot create shift report")
+        if command.project is not None:
+            project_status = self.repository.get_project_status(command.project)
+            if project_status is None:
+                raise ShiftReportValidationError("Project not found")
+            if project_status is not ProjectStatus.IN_PROGRESS:
+                raise ShiftReportValidationError(
+                    "Shift report can be created only for a project in progress"
+                )
         if (
             command.date_start is not None
             and command.date_end is not None

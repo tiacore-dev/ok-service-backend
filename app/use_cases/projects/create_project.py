@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from app.use_cases.time_utils import utc_epoch_milliseconds
-from app.domain.projects import Project
+from app.domain.projects import Project, ProjectStatus
 
 from .dto import CreateProjectCommand, ProjectActor
 from .ports import ProjectRepository
@@ -28,5 +28,6 @@ class CreateProjectUseCase:
             created_by=command.created_by or actor.user_id,
             created_at=utc_epoch_milliseconds(),
             deleted=False,
+            status=ProjectStatus.PENDING,
         )
         return self.repository.create_project(project)

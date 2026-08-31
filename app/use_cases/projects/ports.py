@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.projects import Project
+from app.domain.projects import Project, ProjectStatus
 
 from .dto import ProjectActor, ProjectListQuery, ProjectStatsMap
 
@@ -28,3 +28,7 @@ class ProjectRepository(Protocol):
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap: ...
 
     def get_project_stats_by_materials(self, project_id: UUID) -> ProjectStatsMap: ...
+
+    def update_project_status(
+        self, project_id: UUID, expected_status: ProjectStatus, status: ProjectStatus
+    ) -> Project | None: ...

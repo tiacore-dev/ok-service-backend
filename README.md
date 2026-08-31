@@ -14,3 +14,5 @@
 - [docs/time-contract.md](./docs/time-contract.md) - единый контракт Unix timestamp в миллисекундах.
 - [docs/attachments.md](./docs/attachments.md) - хранение, API, права и валидация вложений.
 - [docs/acceptances.md](./docs/acceptances.md) - сущности приёмок, связи с работами, CRUD API и права доступа.
+- [docs/project-status-rules.md](./docs/project-status-rules.md) - статусы спецификаций, переходы и ограничения смен/объектов.
+- [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
