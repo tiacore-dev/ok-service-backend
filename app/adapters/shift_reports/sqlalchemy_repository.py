@@ -10,7 +10,6 @@ from app.database.managers.shift_reports_managers import (
     ShiftReportsDetailsManager,
     ShiftReportsManager,
 )
-from app.domain.projects import ProjectStatus
 from app.domain.shift_reports import ShiftReport, ShiftReportDetail
 from app.use_cases.shift_reports.dto import (
     CreateShiftReportCommand,
@@ -141,12 +140,6 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
     def get_project_ids_by_leader(self, user_id: UUID) -> list[UUID]:
         projects = self.reports_manager.get_project_ids_by_leader(user_id)
         return [UUID(str(project)) for project in projects]
-
-    def get_project_status(self, project_id: UUID) -> ProjectStatus | None:
-        record = normalize_result(self.projects_manager.get_by_id(project_id))
-        if record is None or record.get("status") is None:
-            return None
-        return ProjectStatus(record["status"])
 
     def get_total_sum_by_shift_report(self, shift_report_id: UUID) -> int | float:
         return self.reports_manager.get_total_sum_by_shift_report(shift_report_id)

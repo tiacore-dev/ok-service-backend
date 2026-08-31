@@ -76,6 +76,10 @@ class _FakeRepository:
         return self.detail_result
 
     def create_shift_report(self, command):
+        if self.project_status is not ProjectStatus.IN_PROGRESS:
+            raise ShiftReportConflictError(
+                "Shift report can be created only for a project in progress"
+            )
         self.created_command = command
         return self.current
 
@@ -458,7 +462,7 @@ def test_create_shift_report_rejects_project_not_in_progress():
     repository = _FakeRepository(current=report, project_status=ProjectStatus.PENDING)
     command = CreateShiftReportCommand(user=uuid4(), date=1, project=uuid4())
 
-    with pytest.raises(ShiftReportValidationError, match="in progress"):
+    with pytest.raises(ShiftReportConflictError, match="in progress"):
         CreateShiftReportUseCase(repository).execute(
             command, ShiftReportActor(role="admin", user_id=uuid4())
         )

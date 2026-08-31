@@ -48,7 +48,8 @@ def admin_or_manager_required(func):
         if getattr(g, "auth_via_api_key", False):
             return func(*args, **kwargs)
         current_user = _get_current_user()
-        if current_user.get("role") not in {"admin", "manager"}:
+        role = str(current_user.get("role") or "").strip().lower()
+        if role not in {"admin", "manager"}:
             return {"msg": "Forbidden"}, 403
         return func(*args, **kwargs)
 

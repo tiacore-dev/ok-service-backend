@@ -4,7 +4,6 @@ from typing import Protocol
 from uuid import UUID
 
 from app.domain.shift_reports import ShiftReport, ShiftReportDetail
-from app.domain.projects import ProjectStatus
 
 from .dto import (
     CreateShiftReportCommand,
@@ -30,8 +29,6 @@ class ShiftReportRepository(Protocol):
     def list_shift_reports(self, **filters) -> tuple[int, list[ShiftReport]]: ...
 
     def get_project_ids_by_leader(self, user_id: UUID) -> list[UUID]: ...
-
-    def get_project_status(self, project_id: UUID) -> ProjectStatus | None: ...
 
     def get_total_sum_by_shift_report(self, shift_report_id: UUID) -> int | float: ...
 

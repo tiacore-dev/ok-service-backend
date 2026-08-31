@@ -42,4 +42,5 @@ from .work_acceptance_relations import (
     WorkAcceptanceRelations as WorkAcceptanceRelations,
 )
 from .work_prices import WorkPrices as WorkPrices
+from .work_plans import WorkPlans as WorkPlans
 from .works import Works as Works

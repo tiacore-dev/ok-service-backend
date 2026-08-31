@@ -20,6 +20,7 @@ from .positions.routes import position_ns
 from .project_materials.routes import project_material_ns
 from .project_schedules.routes import project_schedule_ns
 from .project_works.routes import project_work_ns
+from .work_plans import work_plan_ns
 from .projects.routes import project_ns
 from .roles.routes import role_ns
 from .shift_report_materials.routes import shift_report_material_ns
@@ -61,6 +62,7 @@ def register_namespaces(api: Api):
     api.add_namespace(material_ns)
     api.add_namespace(measurement_unit_ns)
     api.add_namespace(project_work_ns)
+    api.add_namespace(work_plan_ns)
     api.add_namespace(work_category_ns)
     api.add_namespace(work_material_relation_ns)
     api.add_namespace(acceptance_ns)

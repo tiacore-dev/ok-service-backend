@@ -131,6 +131,7 @@ class Users(Base):
     created_project_materials = relationship(
         "ProjectMaterials", back_populates="project_material_creator"
     )
+    work_plans = relationship("WorkPlans", back_populates="users")
     created_shift_report_materials = relationship(
         "ShiftReportMaterials", back_populates="shift_report_material_creator"
     )
