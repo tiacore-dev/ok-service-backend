@@ -39,10 +39,10 @@ def test_bootstrap_adds_only_missing_permissions_and_is_idempotent(monkeypatch):
         def close(self):
             return None
 
-    monkeypatch.setattr("app.utils.api_key_permissions.db_globals.Session", Session)
-
-    inserted = set_api_key_permissions()
-    repeated_inserted = set_api_key_permissions()
+    with monkeypatch.context() as patch:
+        patch.setattr("app.utils.api_key_permissions.db_globals.Session", Session)
+        inserted = set_api_key_permissions()
+        repeated_inserted = set_api_key_permissions()
 
     assert inserted == len(API_KEY_PERMISSIONS) - 1
     assert repeated_inserted == 0
