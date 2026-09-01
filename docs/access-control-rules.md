@@ -25,6 +25,19 @@
 
 Если запрос идёт по API key, `admin_required` должен не ломать этот сценарий и пропускать его как технически доверенный.
 
+### Bootstrap permission types
+
+Канонический список API-key permissions хранится в
+`app/utils/api_key_permissions.py`. При старте приложения bootstrap
+идемпотентно добавляет отсутствующие записи в `permission_types`, используя
+уникальный `code`; уже существующие записи не перезаписываются и не
+дублируются.
+
+Каждый новый endpoint, защищённый `api_key_or_jwt_required`, обязан одновременно
+получить запись в `API_KEY_PERMISSIONS`: код permission и точное описание
+`METHOD /route` должны соответствовать Flask rule. Без этого API-key запросы к
+endpoint будут получать `403`.
+
 ### `admin_required`
 
 Используется для операций, доступных только администратору.
