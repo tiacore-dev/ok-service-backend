@@ -32,6 +32,9 @@ class FakeObjectRepository:
     def get_object_stats(self, object_id: UUID) -> dict[str, object]:
         return {"total": {}, "projects": []}
 
+    def get_object_stats_details(self, object_id: UUID) -> dict[str, object]:
+        return {"total": {}, "projects": []}
+
     def create_object(self, obj: Object) -> Object:
         self.created = obj
         self.obj = obj

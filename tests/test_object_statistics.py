@@ -4,7 +4,11 @@ import pytest
 
 from app.domain.objects import Object, ObjectForbiddenError, ObjectNotFoundError
 from app.use_cases.objects import ObjectListQuery
-from app.use_cases.objects import GetObjectStatsUseCase, ObjectActor
+from app.use_cases.objects import (
+    GetObjectStatsDetailsUseCase,
+    GetObjectStatsUseCase,
+    ObjectActor,
+)
 
 
 def test_project_stats_summary_preserves_null_acceptance_values():
@@ -81,10 +85,25 @@ class FakeObjectRepository:
     def get_object_stats(self, object_id: UUID) -> dict[str, object]:
         return self.stats
 
+    def get_object_stats_details(self, object_id: UUID) -> dict[str, object]:
+        return self.stats
+
 
 def test_object_stats_use_case_returns_total_and_projects():
     stats = {"total": {"accepted_summ": 120.0}, "projects": []}
     result = GetObjectStatsUseCase(FakeObjectRepository(stats)).execute(
+        uuid4(), ObjectActor("manager", uuid4())
+    )
+
+    assert result == stats
+
+
+def test_object_stats_details_use_case_returns_work_grouped_stats():
+    stats = {
+        "total": {"work-id": {"accepted_quantity": 5.0}},
+        "projects": [],
+    }
+    result = GetObjectStatsDetailsUseCase(FakeObjectRepository(stats)).execute(
         uuid4(), ObjectActor("manager", uuid4())
     )
 

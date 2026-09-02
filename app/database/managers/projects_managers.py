@@ -323,6 +323,38 @@ class ProjectsManager(BaseDBManager):
             self._merge_stats_summary(total, summary)
         return {"total": total, "projects": project_stats}
 
+    def get_object_stats_details(self, object_id):
+        with self.session_scope() as session:
+            projects = (
+                session.query(Projects.project_id, Projects.name)
+                .filter(
+                    Projects.object == object_id,
+                    Projects.deleted.is_(False),
+                )
+                .order_by(Projects.created_at.asc())
+                .all()
+            )
+
+        project_stats = []
+        total = {}
+        for project_id, name in projects:
+            stats = self.get_project_stats(project_id)
+            project_stats.append(
+                {"project_id": str(project_id), "name": name, "stats": stats}
+            )
+            for work_id, work_stats in stats.items():
+                if work_id not in total:
+                    total[work_id] = dict(work_stats)
+                    continue
+                for field, value in work_stats.items():
+                    if isinstance(value, (int, float)):
+                        total[work_id][field] = (
+                            total[work_id].get(field) or 0
+                        ) + value
+                    elif total[work_id].get(field) is None and value is not None:
+                        total[work_id][field] = value
+        return {"total": total, "projects": project_stats}
+
     @staticmethod
     def _stat_summary_fields():
         return (

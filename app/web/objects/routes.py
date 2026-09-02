@@ -34,6 +34,7 @@ from app.use_cases.objects import (
     CreateObjectUseCase,
     GetObjectUseCase,
     GetObjectStatsUseCase,
+    GetObjectStatsDetailsUseCase,
     HardDeleteObjectUseCase,
     ListObjectsUseCase,
     ObjectActor,
@@ -66,6 +67,7 @@ from .models import (
     object_status_item_model,
     object_statuses_response,
     object_stats_response,
+    object_stats_details_response,
 )
 
 logger = logging.getLogger("ok_service")
@@ -82,6 +84,7 @@ object_ns.models[object_view_model.name] = object_view_model
 object_ns.models[object_status_item_model.name] = object_status_item_model
 object_ns.models[object_statuses_response.name] = object_statuses_response
 object_ns.models[object_stats_response.name] = object_stats_response
+object_ns.models[object_stats_details_response.name] = object_stats_details_response
 object_ns.models[attachment_view_model.name] = attachment_view_model
 
 
@@ -112,6 +115,25 @@ class ObjectStats(Resource):
             return {"msg": "Object stats fetched successfully", "stats": stats}, 200
         except Exception as error:
             logger.error("Error getting object stats: %s", error)
+            return _map_error(error)
+
+
+@object_ns.route("/<string:object_id>/get-stat-details")
+class ObjectStatsDetails(Resource):
+    @api_key_or_jwt_required
+    @object_ns.marshal_with(object_stats_details_response)
+    def get(self, object_id):
+        current_user = _get_current_user()
+        try:
+            stats = GetObjectStatsDetailsUseCase(repository=_repository()).execute(
+                _parse_object_id(object_id), _actor(current_user)
+            )
+            return {
+                "msg": "Object detailed stats fetched successfully",
+                "stats": stats,
+            }, 200
+        except Exception as error:
+            logger.error("Error getting detailed object stats: %s", error)
             return _map_error(error)
 
 

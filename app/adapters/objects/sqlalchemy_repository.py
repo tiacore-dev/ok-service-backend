@@ -107,3 +107,6 @@ class SQLAlchemyObjectRepository(ObjectRepository):
 
     def get_object_stats(self, object_id: UUID) -> dict[str, object]:
         return self.projects_manager.get_object_stats(object_id)
+
+    def get_object_stats_details(self, object_id: UUID) -> dict[str, object]:
+        return self.projects_manager.get_object_stats_details(object_id)
