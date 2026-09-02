@@ -29,6 +29,9 @@ class FakeObjectRepository:
     listed_actor: ObjectActor | None = None
     project_statuses: list[str] | None = None
 
+    def get_object_stats(self, object_id: UUID) -> dict[str, object]:
+        return {"total": {}, "projects": []}
+
     def create_object(self, obj: Object) -> Object:
         self.created = obj
         self.obj = obj

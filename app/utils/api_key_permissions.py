@@ -111,6 +111,7 @@ API_KEY_PERMISSIONS = (
     ("projects-delete-soft", "PATCH /projects/{project_id}/delete/soft"),
     ("projects-edit", "PATCH /projects/{project_id}/edit"),
     ("projects-get-stat", "GET /projects/{project_id}/get-stat"),
+    ("objects-get-stat", "GET /objects/{object_id}/get-stat"),
     (
         "projects-get-stat-by-project-materials",
         "GET /projects/{project_id}/get-stat-by-project-materials",

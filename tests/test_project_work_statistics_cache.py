@@ -53,6 +53,10 @@ def test_recalculate_replaces_one_project_stats_without_ttl():
             "shift_report_details_quantity": 5.0,
             "shift_report_details_summ": 500.0,
             "shift_report_details_summ_by_estimate": 600.0,
+            "presented_quantity": None,
+            "presented_summ": None,
+            "accepted_quantity": None,
+            "accepted_summ": None,
             "project_work_name": "Монтаж",
         }
     }
@@ -95,6 +99,10 @@ def test_outdated_cache_payload_is_recalculated():
             "shift_report_details_quantity": 2.0,
             "shift_report_details_summ": 80.0,
             "shift_report_details_summ_by_estimate": 90.0,
+            "presented_quantity": None,
+            "presented_summ": None,
+            "accepted_quantity": None,
+            "accepted_summ": None,
         }
     }
 

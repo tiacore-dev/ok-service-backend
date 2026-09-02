@@ -20,6 +20,10 @@ REQUIRED_STAT_FIELDS = {
     "project_work_summ",
     "shift_report_details_summ",
     "shift_report_details_summ_by_estimate",
+    "presented_quantity",
+    "presented_summ",
+    "accepted_quantity",
+    "accepted_summ",
 }
 logger = logging.getLogger("ok_service")
 

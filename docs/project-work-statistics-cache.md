@@ -26,6 +26,10 @@
 6. `acceptance_status` не хранится отдельно: он детерминированно выводится при
    формировании ответа: `not_checked` при факте `0`, `partial` при факте больше
    `0` и меньше плана, иначе `accepted`.
+7. `presented_quantity` и `presented_summ` — агрегаты всех существующих
+   `work_acceptance_relations` приемок проекта.
+8. `accepted_quantity` и `accepted_summ` — агрегаты тех же связей для приемок
+   со статусом `documents_signed`.
 
 Таким образом, показатели относятся к работе в спецификации проекта, а не к
 одной строке `project_works` (`project_work_id`).
@@ -61,6 +65,9 @@ flask --app app:create_app rebuild-project-work-statistics
   `project_work` и `shift_report`;
 - создании, изменении и удалении строки `project_works`, включая изменение
   `work`, `quantity` и `project`.
+- создании, изменении и удалении `acceptances` и
+  `work_acceptance_relations`, включая перенос приемки или связи между
+  проектами.
 
 Если запись переносится между проектами или работами, пересчитываются и старые,
 и новые затронутые агрегаты. Это предотвращает устаревшие значения.
@@ -72,7 +79,7 @@ flask --app app:create_app rebuild-project-work-statistics
 `POST /shift_report_details/all-by-reports` используют параметр `with_stat`.
 При `true` ответы содержат `project_work_quantity`, `project_work_summ`,
 `shift_report_details_quantity`, `shift_report_details_summ`,
-`shift_report_details_summ_by_estimate` и `acceptance_status` из Redis-агрегата; при
+`shift_report_details_summ_by_estimate`, acceptance-поля и `acceptance_status` из Redis-агрегата; при
 отсутствующем параметре или `false` эти поля не добавляются. Значение
 `acceptance_status` вычисляется только из уже прочитанных агрегатов.
 

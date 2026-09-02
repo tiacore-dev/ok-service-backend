@@ -4,13 +4,14 @@ import json
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from app.adapters.acceptances import SQLAlchemyAcceptanceRepository
+from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import admin_or_manager_required, api_key_or_jwt_required
 from app.domain.acceptances import AcceptanceStatus, AcceptanceForbiddenError, AcceptanceNotFoundError, AcceptanceValidationError
 from app.routes.models.acceptance_models import acceptance_all_response, acceptance_create_model, acceptance_edit_model, acceptance_filter_parser, acceptance_history_filter_parser, acceptance_history_model, acceptance_history_response, acceptance_model, acceptance_msg_model, acceptance_response
@@ -74,7 +75,9 @@ def _actor(user: dict[str, Any]) -> AcceptanceActor:
 
 
 def _repo() -> SQLAlchemyAcceptanceRepository:
-    return SQLAlchemyAcceptanceRepository()
+    return SQLAlchemyAcceptanceRepository(
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+    )
 
 
 def _json_payload() -> dict[str, Any]:

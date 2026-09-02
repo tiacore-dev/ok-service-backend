@@ -78,8 +78,24 @@ class AcceptancesManager(BaseDBManager):
             )
             return [record.to_dict() for record in records]
 
+    def get_project_id(self, acceptance_id):
+        with self.session_scope() as session:
+            return session.query(self.model.project_id).filter(
+                self.model.id == acceptance_id
+            ).scalar()
+
 
 class WorkAcceptanceRelationsManager(BaseDBManager):
     @property
     def model(self):
         return WorkAcceptanceRelations
+
+    def get_project_id(self, relation_id):
+        with self.session_scope() as session:
+            record = (
+                session.query(WorkAcceptanceRelations)
+                .join(Acceptances)
+                .filter(WorkAcceptanceRelations.id == relation_id)
+                .first()
+            )
+            return record.acceptance.project_id if record is not None else None

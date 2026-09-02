@@ -91,6 +91,17 @@ object_all_response = Model(
     },
 )
 
+object_stats_response = Model(
+    "ObjectStatsResponse",
+    {
+        "msg": fields.String(required=True),
+        "stats": fields.Raw(
+            required=True,
+            description="Object total and statistics grouped by project",
+        ),
+    },
+)
+
 object_filter_parser = reqparse.RequestParser()
 object_filter_parser.add_argument(
     "offset", type=int, default=0, help="Offset for pagination"

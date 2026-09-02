@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, asc, desc, func
+from sqlalchemy import and_, asc, case, desc, func
 from sqlalchemy.orm import joinedload
 
 # Предполагается, что BaseDBManager в другом файле
@@ -19,6 +19,8 @@ from app.database.models import (
     ShiftReportMaterials,
     ShiftReports,
     WorkMaterialRelations,
+    Acceptances,
+    WorkAcceptanceRelations,
 )
 from app.domain.projects import ProjectStatus, ProjectValidationError
 
@@ -188,6 +190,10 @@ class ProjectsManager(BaseDBManager):
                         "shift_report_details_quantity": 0.0,
                         "shift_report_details_summ": 0.0,
                         "shift_report_details_summ_by_estimate": 0.0,
+                        "presented_quantity": None,
+                        "presented_summ": None,
+                        "accepted_quantity": None,
+                        "accepted_summ": None,
                         "project_work_name": name,
                     }
                     for work_id, quantity, summ, name in plan_rows
@@ -223,6 +229,69 @@ class ProjectsManager(BaseDBManager):
                         stats["shift_report_details_summ_by_estimate"] = float(
                             estimated_summ or 0
                         )
+
+                project_work_prices = (
+                    session.query(
+                        ProjectWorks.project.label("project_id"),
+                        ProjectWorks.work.label("work_id"),
+                        (
+                            func.sum(ProjectWorks.price * ProjectWorks.quantity)
+                            / func.nullif(func.sum(ProjectWorks.quantity), 0)
+                        ).label("price"),
+                    )
+                    .filter(ProjectWorks.project == project_id)
+                    .group_by(ProjectWorks.project, ProjectWorks.work)
+                    .subquery()
+                )
+                acceptance_rows = (
+                    session.query(
+                        WorkAcceptanceRelations.work_id,
+                        func.sum(WorkAcceptanceRelations.quantity),
+                        func.sum(
+                            WorkAcceptanceRelations.quantity * project_work_prices.c.price
+                        ),
+                        func.sum(
+                            case(
+                                (
+                                    Acceptances.status == "documents_signed",
+                                    WorkAcceptanceRelations.quantity,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                        func.sum(
+                            case(
+                                (
+                                    Acceptances.status == "documents_signed",
+                                    WorkAcceptanceRelations.quantity * project_work_prices.c.price,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                    )
+                    .join(
+                        Acceptances,
+                        Acceptances.id == WorkAcceptanceRelations.acceptance_id,
+                    )
+                    .outerjoin(
+                        project_work_prices,
+                        and_(
+                            project_work_prices.c.project_id == Acceptances.project_id,
+                            project_work_prices.c.work_id == WorkAcceptanceRelations.work_id,
+                        ),
+                    )
+                    .filter(Acceptances.project_id == project_id)
+                    .group_by(WorkAcceptanceRelations.work_id)
+                    .all()
+                )
+                for work_id, presented_qty, presented_summ, accepted_qty, accepted_summ in acceptance_rows:
+                    stats = result.get(str(work_id))
+                    if stats is None:
+                        continue
+                    stats["presented_quantity"] = float(presented_qty) if presented_qty is not None else None
+                    stats["presented_summ"] = float(presented_summ) if presented_summ is not None else None
+                    stats["accepted_quantity"] = float(accepted_qty) if accepted_qty is not None else None
+                    stats["accepted_summ"] = float(accepted_summ) if accepted_summ is not None else None
                 return result
         except Exception as e:
             logger.error(
@@ -230,6 +299,60 @@ class ProjectsManager(BaseDBManager):
                 extra={"login": "database"},
             )
             return {}
+
+    def get_object_stats(self, object_id):
+        with self.session_scope() as session:
+            projects = (
+                session.query(Projects.project_id, Projects.name)
+                .filter(
+                    Projects.object == object_id,
+                    Projects.deleted.is_(False),
+                )
+                .order_by(Projects.created_at.asc())
+                .all()
+            )
+
+        project_stats = []
+        total = {field: None for field in self._stat_summary_fields()}
+        for project_id, name in projects:
+            stats = self.get_project_stats(project_id)
+            summary = self._summarize_project_stats(stats)
+            project_stats.append(
+                {"project_id": str(project_id), "name": name, "stats": summary}
+            )
+            self._merge_stats_summary(total, summary)
+        return {"total": total, "projects": project_stats}
+
+    @staticmethod
+    def _stat_summary_fields():
+        return (
+            "project_work_quantity",
+            "project_work_summ",
+            "shift_report_details_quantity",
+            "shift_report_details_summ",
+            "shift_report_details_summ_by_estimate",
+            "presented_quantity",
+            "presented_summ",
+            "accepted_quantity",
+            "accepted_summ",
+        )
+
+    @classmethod
+    def _summarize_project_stats(cls, stats):
+        fields = cls._stat_summary_fields()
+        summary = {field: None for field in fields}
+        for item in stats.values():
+            for field in fields:
+                value = item.get(field)
+                if value is not None:
+                    summary[field] = (summary[field] or 0) + value
+        return summary
+
+    @staticmethod
+    def _merge_stats_summary(total, summary):
+        for field, value in summary.items():
+            if value is not None:
+                total[field] = (total.get(field) or 0) + value
 
     def get_all_project_ids(self) -> list[UUID]:
         with self.session_scope() as session:
@@ -253,11 +376,14 @@ class ProjectsManager(BaseDBManager):
         with self.session_scope() as session:
             project = (
                 session.query(Projects)
-                .filter(Projects.project_id == project_id)
+                .filter(
+                    Projects.project_id == project_id,
+                    Projects.status == expected_status,
+                )
                 .with_for_update()
                 .first()
             )
-            if project is None or project.status != expected_status:
+            if project is None:
                 return None
             if new_status is ProjectStatus.CLOSED:
                 project_works = (

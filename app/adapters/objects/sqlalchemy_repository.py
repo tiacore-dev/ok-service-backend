@@ -5,6 +5,7 @@ from uuid import UUID
 
 from app.adapters._typing import normalize_result
 from app.database.managers.objects_managers import ObjectsManager
+from app.database.managers.projects_managers import ProjectsManager
 from app.domain.objects import Object
 from app.use_cases.objects.dto import ObjectActor, ObjectListQuery
 from app.use_cases.objects.ports import ObjectRepository
@@ -15,6 +16,7 @@ from .mappers import object_dict_to_entity, object_entity_to_create_payload
 @dataclass(slots=True)
 class SQLAlchemyObjectRepository(ObjectRepository):
     manager: ObjectsManager = field(default_factory=ObjectsManager)
+    projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
 
     def create_object(self, obj: Object) -> Object:
         created = self.manager.add(**object_entity_to_create_payload(obj))
@@ -102,3 +104,6 @@ class SQLAlchemyObjectRepository(ObjectRepository):
         )
         record = normalize_result(updated)
         return object_dict_to_entity(record) if record is not None else None
+
+    def get_object_stats(self, object_id: UUID) -> dict[str, object]:
+        return self.projects_manager.get_object_stats(object_id)

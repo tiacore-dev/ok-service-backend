@@ -3,12 +3,13 @@ from __future__ import annotations
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from flask import request
+from flask import current_app, request
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from app.adapters.work_acceptance_relations import SQLAlchemyWorkAcceptanceRelationRepository
+from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import admin_or_manager_required, api_key_or_jwt_required
 from app.domain.work_acceptance_relations import WorkAcceptanceRelationNotFoundError, WorkAcceptanceRelationValidationError
 from app.routes.models.work_acceptance_relation_models import work_acceptance_relation_all_response, work_acceptance_relation_create_model, work_acceptance_relation_edit_model, work_acceptance_relation_filter_parser, work_acceptance_relation_model, work_acceptance_relation_msg_model, work_acceptance_relation_response
@@ -21,6 +22,12 @@ work_acceptance_relation_ns = Namespace(
     description="Work acceptance relations management operations",
     path="/work-acceptance-relations",
 )
+
+
+def _repo() -> SQLAlchemyWorkAcceptanceRelationRepository:
+    return SQLAlchemyWorkAcceptanceRelationRepository(
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+    )
 for model in (work_acceptance_relation_create_model, work_acceptance_relation_edit_model, work_acceptance_relation_model, work_acceptance_relation_msg_model, work_acceptance_relation_response, work_acceptance_relation_all_response):
     work_acceptance_relation_ns.models[model.name] = model
 
@@ -75,7 +82,7 @@ class RelationAdd(Resource):
     def post(self):
         try:
             data = cast(RelationCreatePayload, WorkAcceptanceRelationCreateSchema().load(_json_payload()))
-            item = CreateWorkAcceptanceRelationUseCase(SQLAlchemyWorkAcceptanceRelationRepository()).execute(CreateWorkAcceptanceRelationCommand(
+            item = CreateWorkAcceptanceRelationUseCase(_repo()).execute(CreateWorkAcceptanceRelationCommand(
                 acceptance_id=get_required_uuid(data, "acceptance_id", "Acceptance id is required"),
                 work_id=get_required_uuid(data, "work_id", "Work id is required"),
                 quantity=get_required_decimal(data, "quantity", "Quantity is required")))
@@ -88,7 +95,7 @@ class RelationView(Resource):
     @api_key_or_jwt_required
     @work_acceptance_relation_ns.marshal_with(work_acceptance_relation_response)
     def get(self, relation_id):
-        try: return {"msg": "Work acceptance relation found successfully", "work_acceptance_relation": _response(GetWorkAcceptanceRelationUseCase(SQLAlchemyWorkAcceptanceRelationRepository()).execute(_id(relation_id)))}, 200
+        try: return {"msg": "Work acceptance relation found successfully", "work_acceptance_relation": _response(GetWorkAcceptanceRelationUseCase(_repo()).execute(_id(relation_id)))}, 200
         except Exception as error: return _error(error)
 
 
@@ -101,7 +108,7 @@ class RelationEdit(Resource):
     def patch(self, relation_id):
         try:
             data = cast(RelationEditPayload, WorkAcceptanceRelationEditSchema().load(_json_payload()))
-            item = UpdateWorkAcceptanceRelationUseCase(SQLAlchemyWorkAcceptanceRelationRepository()).execute(UpdateWorkAcceptanceRelationCommand(
+            item = UpdateWorkAcceptanceRelationUseCase(_repo()).execute(UpdateWorkAcceptanceRelationCommand(
                 id=_id(relation_id), acceptance_id=optional_uuid(data.get("acceptance_id")), work_id=optional_uuid(data.get("work_id")), quantity=get_optional_decimal(data, "quantity")))
             return {"msg": "Work acceptance relation edited successfully", "id": str(item.id)}, 200
         except Exception as error: return _error(error)
@@ -114,7 +121,7 @@ class RelationDelete(Resource):
     @work_acceptance_relation_ns.marshal_with(work_acceptance_relation_msg_model)
     def delete(self, relation_id):
         try:
-            deleted = DeleteWorkAcceptanceRelationUseCase(SQLAlchemyWorkAcceptanceRelationRepository()).execute(_id(relation_id))
+            deleted = DeleteWorkAcceptanceRelationUseCase(_repo()).execute(_id(relation_id))
             if not deleted: raise WorkAcceptanceRelationNotFoundError("Work acceptance relation not found")
             return {"msg": "Work acceptance relation deleted successfully", "id": relation_id}, 200
         except Exception as error: return _error(error)
@@ -128,7 +135,7 @@ class RelationAll(Resource):
     def get(self):
         try:
             data = cast(RelationFilterPayload, WorkAcceptanceRelationFilterSchema().load(request.args.to_dict()))
-            items = ListWorkAcceptanceRelationsUseCase(SQLAlchemyWorkAcceptanceRelationRepository()).execute(WorkAcceptanceRelationListQuery(
+            items = ListWorkAcceptanceRelationsUseCase(_repo()).execute(WorkAcceptanceRelationListQuery(
                 offset=data.get("offset", 0), limit=data.get("limit", 1000), acceptance_id=optional_uuid(data.get("acceptance_id")), work_id=optional_uuid(data.get("work_id"))))
             return {"msg": "Work acceptance relations found successfully", "work_acceptance_relations": [_response(item) for item in items]}, 200
         except Exception as error: return _error(error)
