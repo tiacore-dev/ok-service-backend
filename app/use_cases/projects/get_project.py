@@ -38,3 +38,27 @@ class GetProjectStatsByMaterialsUseCase:
         if actor.role == "user":
             raise ProjectForbiddenError("Forbidden")
         return self.repository.get_project_stats_by_materials(project_id)
+
+
+@dataclass(slots=True)
+class GetProjectLeaderStatsUseCase:
+    repository: ProjectRepository
+
+    def execute(self, project_leader_id: UUID, actor: ProjectActor) -> dict[str, object]:
+        if actor.role == "project-leader" and actor.user_id != project_leader_id:
+            raise ProjectForbiddenError("Forbidden")
+        if actor.role not in {"admin", "manager", "project-leader"}:
+            raise ProjectForbiddenError("Forbidden")
+        return self.repository.get_project_leader_stats(project_leader_id)
+
+
+@dataclass(slots=True)
+class GetProjectLeaderStatsDetailsUseCase:
+    repository: ProjectRepository
+
+    def execute(self, project_leader_id: UUID, actor: ProjectActor) -> dict[str, object]:
+        if actor.role == "project-leader" and actor.user_id != project_leader_id:
+            raise ProjectForbiddenError("Forbidden")
+        if actor.role not in {"admin", "manager", "project-leader"}:
+            raise ProjectForbiddenError("Forbidden")
+        return self.repository.get_project_leader_stats_details(project_leader_id)

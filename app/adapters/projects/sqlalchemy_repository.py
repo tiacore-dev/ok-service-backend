@@ -90,6 +90,12 @@ class SQLAlchemyProjectRepository(ProjectRepository):
     def get_project_stats_by_materials(self, project_id: UUID) -> ProjectStatsMap:
         return self.manager.get_project_stats_by_project_materials(project_id)
 
+    def get_project_leader_stats(self, project_leader_id: UUID) -> dict[str, object]:
+        return self.manager.get_project_leader_stats(project_leader_id)
+
+    def get_project_leader_stats_details(self, project_leader_id: UUID) -> dict[str, object]:
+        return self.manager.get_project_leader_stats_details(project_leader_id)
+
     def update_project_status(
         self, project_id: UUID, expected_status: ProjectStatus, status: ProjectStatus
     ) -> Project | None:

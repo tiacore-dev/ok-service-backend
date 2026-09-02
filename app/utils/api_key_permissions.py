@@ -113,6 +113,8 @@ API_KEY_PERMISSIONS = (
     ("projects-get-stat", "GET /projects/{project_id}/get-stat"),
     ("objects-get-stat", "GET /objects/{object_id}/get-stat"),
     ("objects-get-stat-details", "GET /objects/{object_id}/get-stat-details"),
+    ("project-leaders-get-stat", "GET /project-leaders/{project_leader_id}/get-stat"),
+    ("project-leaders-get-stat-details", "GET /project-leaders/{project_leader_id}/get-stat-details"),
     (
         "projects-get-stat-by-project-materials",
         "GET /projects/{project_id}/get-stat-by-project-materials",

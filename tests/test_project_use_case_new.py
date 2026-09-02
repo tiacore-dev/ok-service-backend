@@ -107,6 +107,14 @@ class FakeProjectRepository:
             str(project_id): {"project_work_quantity": 0}
         }
 
+    def get_project_leader_stats(self, project_leader_id: UUID) -> dict[str, object]:
+        return {"total": {}, "projects": []}
+
+    def get_project_leader_stats_details(
+        self, project_leader_id: UUID
+    ) -> dict[str, object]:
+        return {"total": {}, "projects": []}
+
 
 def _project() -> Project:
     return Project(

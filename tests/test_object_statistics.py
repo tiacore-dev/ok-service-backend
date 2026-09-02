@@ -41,6 +41,20 @@ def test_project_stats_summary_preserves_null_acceptance_values():
     }
 
 
+def test_grouped_object_stats_return_same_empty_shape_without_projects():
+    from app.database.managers.projects_managers import ProjectsManager
+
+    manager = ProjectsManager()
+
+    assert manager._build_grouped_project_stats([], detailed=False) == {
+        "total": {},
+        "projects": [],
+    }
+    assert manager._build_grouped_project_stats([], detailed=True) == {
+        "total": {},
+        "projects": [],
+    }
+
 class FakeObjectRepository:
     def __init__(self, stats: dict[str, object] | None = None, exists: bool = True):
         self.stats: dict[str, object] = stats or {"total": {}, "projects": []}
