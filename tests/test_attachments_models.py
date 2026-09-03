@@ -14,6 +14,7 @@ from app.web.attachments import (
     shift_report_attachment_ns,
 )
 from app.web.attachments.contract import attachment_view_model
+from app.web.acceptances import acceptance_ns
 
 MIGRATION_PATH = (
     Path(__file__).parents[1] / "alembic/versions/20260811_attachments.py"
@@ -133,3 +134,7 @@ def test_work_acceptance_attachment_migration_declares_relation_and_permissions(
 
 def test_attachment_view_contract_excludes_preview_url():
     assert "download_url" not in attachment_view_model
+
+
+def test_acceptance_detail_model_is_registered_for_swagger():
+    assert "AcceptanceView" in acceptance_ns.models

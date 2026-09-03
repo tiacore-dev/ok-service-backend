@@ -15,13 +15,13 @@ from app.adapters.attachments import list_attachment_view_data
 from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import admin_or_manager_required, api_key_or_jwt_required
 from app.domain.acceptances import AcceptanceStatus, AcceptanceForbiddenError, AcceptanceNotFoundError, AcceptanceValidationError
-from app.routes.models.acceptance_models import acceptance_all_response, acceptance_create_model, acceptance_edit_model, acceptance_filter_parser, acceptance_history_filter_parser, acceptance_history_model, acceptance_history_response, acceptance_model, acceptance_msg_model, acceptance_response
+from app.routes.models.acceptance_models import acceptance_all_response, acceptance_create_model, acceptance_edit_model, acceptance_filter_parser, acceptance_history_filter_parser, acceptance_history_model, acceptance_history_response, acceptance_model, acceptance_msg_model, acceptance_response, acceptance_view_model
 from app.schemas.acceptance_schemas import AcceptanceCreateSchema, AcceptanceEditSchema, AcceptanceFilterSchema, AcceptanceHistoryFilterSchema
 from app.use_cases.acceptances import AcceptanceActor, AcceptanceHistoryListQuery, AcceptanceListQuery, CreateAcceptanceCommand, CreateAcceptanceUseCase, DeleteAcceptanceUseCase, GetAcceptanceUseCase, ListAcceptanceHistoryUseCase, ListAcceptancesUseCase, UpdateAcceptanceCommand, UpdateAcceptanceUseCase
 from app.web._typing import get_optional_int, get_optional_str, get_required_int, get_required_str, get_required_uuid, optional_uuid
 
 acceptance_ns = Namespace("acceptances", description="Acceptances management operations")
-for model in (acceptance_create_model, acceptance_edit_model, acceptance_model, acceptance_msg_model, acceptance_response, acceptance_all_response, acceptance_history_model, acceptance_history_response):
+for model in (acceptance_create_model, acceptance_edit_model, acceptance_model, acceptance_view_model, acceptance_msg_model, acceptance_response, acceptance_all_response, acceptance_history_model, acceptance_history_response):
     acceptance_ns.models[model.name] = model
 
 
