@@ -3,7 +3,7 @@
 ## Хранение
 
 Вложения хранятся в S3-совместимом хранилище и связаны ровно с одной сущностью:
-проектом, сменным отчётом, объектом или местом. Повторное связывание уже созданного
+проектом, сменным отчётом, объектом, местом или приёмкой работ. Повторное связывание уже созданного
 `attachment` не поддерживается API.
 
 S3 key формируется по шаблонам:
@@ -12,6 +12,7 @@ S3 key формируется по шаблонам:
 - `ok-service/shift_reports/{shift_report_id}/{attachment_id}_{filename}`;
 - `ok-service/objects/{object_id}/{attachment_id}_{filename}`.
 - `ok-service/places/{place_id}/{attachment_id}_{filename}`.
+- `ok-service/acceptances/{acceptance_id}/{attachment_id}_{filename}`.
 
 UUID предотвращает перезапись файлов с одинаковыми именами. Исходные данные файла
 хранятся в `attachments`: нормализованное имя, размер, SHA-256 checksum, MIME-тип,
@@ -29,7 +30,7 @@ GET    /projects/{project_id}/attachments/{attachment_id}/download
 DELETE /projects/{project_id}/attachments/{attachment_id}
 ```
 
-Префикс `projects` заменяется на `shift_reports`, `objects` или `places` для
+Префикс `projects` заменяется на `shift_reports`, `objects`, `places` или `acceptances` для
 соответствующей сущности.
 
 Загрузка использует `multipart/form-data`. Каждый файл передаётся повторяемым полем
@@ -46,6 +47,8 @@ The array is empty when the entity has no attachments. `/all` responses are
 unchanged. Access follows the original entity view endpoint. To preview or
 download bytes, call the attachment `/download` endpoint.
 
+`GET /acceptances/{acceptance_id}/view` также включает массив `attachments`.
+
 ## Права
 
 - Вложения проекта: `admin` и `manager` — любой проект; `project-leader` — только
@@ -60,6 +63,8 @@ download bytes, call the attachment `/download` endpoint.
   согласования (`signed=true`) добавлять и удалять вложения могут `admin`,
   любой `manager` и project leader текущего project. Отчёт, связанный с
   отсутствием через `leave_id`, не изменяется.
+- Вложения приёмки работ: просматривать и скачивать могут все аутентифицированные
+  пользователи; добавлять и удалять — только `admin` и `manager`.
 - Удалённые сущности не принимают изменения вложений.
 
 Hard delete сущности с вложениями блокируется внешним ключом. Сначала вложения

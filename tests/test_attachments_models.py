@@ -7,6 +7,7 @@ from flask_restx import Api
 
 from app.database.db_setup import Base
 from app.web.attachments import (
+    acceptance_attachment_ns,
     object_attachment_ns,
     place_attachment_ns,
     project_attachment_ns,
@@ -27,6 +28,7 @@ def test_attachment_tables_follow_project_identifier_contract():
             "shift_report_attachments",
             "object_attachments",
             "place_attachments",
+            "work_acceptance_attachments",
         }
     )
     assert "attachment_id" in Base.metadata.tables["attachments"].c
@@ -36,6 +38,9 @@ def test_attachment_tables_follow_project_identifier_contract():
     ].c
     assert "object_attachment_id" in Base.metadata.tables["object_attachments"].c
     assert "place_attachment_id" in Base.metadata.tables["place_attachments"].c
+    assert "work_acceptance_attachment_id" in Base.metadata.tables[
+        "work_acceptance_attachments"
+    ].c
     assert "company_id" not in Base.metadata.tables["attachments"].c
 
 
@@ -61,6 +66,7 @@ def test_attachment_swagger_contract_exposes_all_target_routes():
         shift_report_attachment_ns,
         object_attachment_ns,
         place_attachment_ns,
+        acceptance_attachment_ns,
     ):
         api.add_namespace(namespace)
 
@@ -76,6 +82,7 @@ def test_attachment_swagger_contract_exposes_all_target_routes():
             ("shift_reports", "shift_report_id"),
             ("objects", "object_id"),
             ("places", "place_id"),
+            ("acceptances", "acceptance_id"),
         )
         for suffix in ("", "/{attachment_id}", "/{attachment_id}/download")
     }
@@ -102,6 +109,25 @@ def test_place_attachment_migration_declares_relation_and_permissions():
     assert (
         "places-attachments-upload",
         "POST /places/{place_id}/attachments",
+    ) in migration.PERMISSIONS
+
+
+def test_work_acceptance_attachment_migration_declares_relation_and_permissions():
+    migration_path = (
+        Path(__file__).parents[1]
+        / "alembic/versions/20260903090000_work_acceptance_attachments.py"
+    )
+    spec = spec_from_file_location("work_acceptance_attachments_migration", migration_path)
+    assert spec is not None and spec.loader is not None
+    migration = module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+    assert migration.down_revision == "20260831130000"
+    assert len(migration.PERMISSIONS) == 4
+    assert "key_permission_type_relations" not in migration_path.read_text()
+    assert (
+        "acceptances-attachments-upload",
+        "POST /acceptances/{acceptance_id}/attachments",
     ) in migration.PERMISSIONS
 
 

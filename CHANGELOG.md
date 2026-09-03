@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- Добавлены вложения для приёмок работ: relation-таблица
+  `work_acceptance_attachments`, четыре стандартных endpoint-а под
+  `/acceptances/{acceptance_id}/attachments`, наследование прав приёмки и массив
+  вложений в detail-ответе. Добавлена миграция и четыре API-key permissions;
+  связи этих permissions с API-ключами миграцией не создаются; формат
+  существующих endpoint-ов не изменён.
+
 - Актуализированы тестовые fake-репозитории после расширения `ObjectRepository`:
   добавлены методы статистики и точные типы, устраняющие предупреждения Pylance.
 

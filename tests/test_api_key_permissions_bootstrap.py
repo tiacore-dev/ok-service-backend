@@ -8,6 +8,10 @@ def test_api_key_permission_seed_has_unique_codes_and_descriptions():
     assert len(codes) == len(set(codes))
     assert len(descriptions) == len(set(descriptions))
     assert ("acceptances-history-list", "GET /acceptances/{acceptance_id}/history") in API_KEY_PERMISSIONS
+    assert (
+        "acceptances-attachments-upload",
+        "POST /acceptances/{acceptance_id}/attachments",
+    ) in API_KEY_PERMISSIONS
     assert ("work-plans-list", "GET /work_plans/all") in API_KEY_PERMISSIONS
 
 

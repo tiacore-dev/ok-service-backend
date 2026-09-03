@@ -14,6 +14,8 @@ from app.database.models import (
     Projects,
     ShiftReportAttachments,
     ShiftReports,
+    WorkAcceptanceAttachments,
+    Acceptances,
 )
 from app.domain.attachments import Attachment, AttachmentTarget
 
@@ -35,6 +37,7 @@ class SQLAlchemyAttachmentRepository:
         "shift_report": (ShiftReportAttachments, "shift_report_id", ShiftReports),
         "object": (ObjectAttachments, "object_id", Objects),
         "place": (PlaceAttachments, "place_id", Places),
+        "acceptance": (WorkAcceptanceAttachments, "acceptance_id", Acceptances),
     }
 
     @staticmethod
@@ -106,6 +109,15 @@ class SQLAlchemyAttachmentRepository:
                     target_id=target_id,
                     deleted=place.deleted,
                     owner_id=owner_id,
+                )
+            if target_type == "acceptance":
+                acceptance = session.get(Acceptances, target_id)
+                if acceptance is None:
+                    return None
+                return AttachmentTarget(
+                    target_type=target_type,
+                    target_id=target_id,
+                    deleted=False,
                 )
             return None
         finally:

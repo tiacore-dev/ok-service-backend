@@ -3,6 +3,7 @@ from .routes import (
     place_attachment_ns,
     project_attachment_ns,
     shift_report_attachment_ns,
+    acceptance_attachment_ns,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "place_attachment_ns",
     "project_attachment_ns",
     "shift_report_attachment_ns",
+    "acceptance_attachment_ns",
 ]

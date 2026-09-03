@@ -112,8 +112,21 @@
 
 `GET /acceptances/{id}/view`
 
-Ответ содержит объект `acceptance` с полями `id`, `date`, `project_id`, `status`
-и `comment`.
+Ответ содержит объект `acceptance` с полями `id`, `date`, `project_id`, `status`,
+`comment` и массивом `attachments`.
+
+Для файлов используются стандартные маршруты attachment API:
+
+```text
+POST   /acceptances/{acceptance_id}/attachments
+GET    /acceptances/{acceptance_id}/attachments
+GET    /acceptances/{acceptance_id}/attachments/{attachment_id}/download
+DELETE /acceptances/{acceptance_id}/attachments/{attachment_id}
+```
+
+Загрузка доступна только `admin` и `manager`; просмотр и скачивание — всем
+аутентифицированным пользователям. Валидация и хранение соответствуют
+`docs/attachments.md`.
 
 ### Редактирование
 
@@ -220,5 +233,5 @@
 - создание записи истории при изменении статуса;
 - отсутствие записи при повторной установке того же статуса.
 
-Будущие изменения прав, вложений, переходов статусов и прогресса должны
-дополняться отдельными тестами API и use-case.
+Будущие изменения прав, переходов статусов и прогресса должны дополняться
+отдельными тестами API и use-case.

@@ -11,6 +11,7 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from app.adapters.acceptances import SQLAlchemyAcceptanceRepository
+from app.adapters.attachments import list_attachment_view_data
 from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import admin_or_manager_required, api_key_or_jwt_required
 from app.domain.acceptances import AcceptanceStatus, AcceptanceForbiddenError, AcceptanceNotFoundError, AcceptanceValidationError
@@ -87,8 +88,11 @@ def _json_payload() -> dict[str, Any]:
     return cast(dict[str, Any], payload)
 
 
-def _response(item):
-    return {"id": str(item.id), "date": item.date, "project_id": str(item.project_id), "status": item.status.value, "comment": item.comment}
+def _response(item, *, include_attachments: bool = False):
+    response = {"id": str(item.id), "date": item.date, "project_id": str(item.project_id), "status": item.status.value, "comment": item.comment}
+    if include_attachments:
+        response["attachments"] = list_attachment_view_data("acceptance", item.id)
+    return response
 
 
 def _history_response(item):
@@ -133,7 +137,7 @@ class AcceptanceView(Resource):
     @api_key_or_jwt_required
     @acceptance_ns.marshal_with(acceptance_response)
     def get(self, acceptance_id):
-        try: return {"msg": "Acceptance found successfully", "acceptance": _response(GetAcceptanceUseCase(_repo()).execute(_id(acceptance_id)))}, 200
+        try: return {"msg": "Acceptance found successfully", "acceptance": _response(GetAcceptanceUseCase(_repo()).execute(_id(acceptance_id)), include_attachments=True)}, 200
         except Exception as error: return _error(error)
 
 

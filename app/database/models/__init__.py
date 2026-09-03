@@ -4,6 +4,7 @@ from .attachments import ObjectAttachments as ObjectAttachments
 from .attachments import PlaceAttachments as PlaceAttachments
 from .attachments import ProjectAttachments as ProjectAttachments
 from .attachments import ShiftReportAttachments as ShiftReportAttachments
+from .attachments import WorkAcceptanceAttachments as WorkAcceptanceAttachments
 from .acceptances import Acceptances as Acceptances
 from .acceptance_status_history import AcceptanceStatusHistory as AcceptanceStatusHistory
 from .cities import Cities as Cities

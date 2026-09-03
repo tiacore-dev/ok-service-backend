@@ -42,6 +42,11 @@ object_attachment_ns = Namespace(
 place_attachment_ns = Namespace(
     "place_attachments", path="/places", description="Place attachments"
 )
+acceptance_attachment_ns = Namespace(
+    "work_acceptance_attachments",
+    path="/acceptances",
+    description="Work acceptance attachments",
+)
 
 attachment_model = Model(
     "Attachment",
@@ -75,6 +80,7 @@ for namespace in (
     shift_report_attachment_ns,
     object_attachment_ns,
     place_attachment_ns,
+    acceptance_attachment_ns,
 ):
     for model in (
         attachment_model,
@@ -347,3 +353,4 @@ _register_routes(project_attachment_ns, "project", "project_id")
 _register_routes(shift_report_attachment_ns, "shift_report", "shift_report_id")
 _register_routes(object_attachment_ns, "object", "object_id")
 _register_routes(place_attachment_ns, "place", "place_id")
+_register_routes(acceptance_attachment_ns, "acceptance", "acceptance_id")

@@ -43,6 +43,9 @@ class Acceptances(Base):
     status_history = relationship(
         "AcceptanceStatusHistory", back_populates="acceptance"
     )
+    work_acceptance_attachments = relationship(
+        "WorkAcceptanceAttachments", back_populates="acceptance", passive_deletes=True
+    )
 
     def to_dict(self):
         return {

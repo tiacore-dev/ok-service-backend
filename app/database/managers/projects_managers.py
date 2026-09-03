@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import (
+    Acceptances,
     Objects,
     ProjectMaterials,
     Projects,
@@ -18,9 +19,8 @@ from app.database.models import (
     ShiftReportDetails,
     ShiftReportMaterials,
     ShiftReports,
-    WorkMaterialRelations,
-    Acceptances,
     WorkAcceptanceRelations,
+    WorkMaterialRelations,
 )
 from app.domain.projects import ProjectStatus, ProjectValidationError
 
@@ -248,7 +248,8 @@ class ProjectsManager(BaseDBManager):
                         WorkAcceptanceRelations.work_id,
                         func.sum(WorkAcceptanceRelations.quantity),
                         func.sum(
-                            WorkAcceptanceRelations.quantity * project_work_prices.c.price
+                            WorkAcceptanceRelations.quantity
+                            * project_work_prices.c.price
                         ),
                         func.sum(
                             case(
@@ -263,7 +264,8 @@ class ProjectsManager(BaseDBManager):
                             case(
                                 (
                                     Acceptances.status == "documents_signed",
-                                    WorkAcceptanceRelations.quantity * project_work_prices.c.price,
+                                    WorkAcceptanceRelations.quantity
+                                    * project_work_prices.c.price,
                                 ),
                                 else_=0,
                             )
@@ -277,21 +279,36 @@ class ProjectsManager(BaseDBManager):
                         project_work_prices,
                         and_(
                             project_work_prices.c.project_id == Acceptances.project_id,
-                            project_work_prices.c.work_id == WorkAcceptanceRelations.work_id,
+                            project_work_prices.c.work_id
+                            == WorkAcceptanceRelations.work_id,
                         ),
                     )
                     .filter(Acceptances.project_id == project_id)
                     .group_by(WorkAcceptanceRelations.work_id)
                     .all()
                 )
-                for work_id, presented_qty, presented_summ, accepted_qty, accepted_summ in acceptance_rows:
+                for (
+                    work_id,
+                    presented_qty,
+                    presented_summ,
+                    accepted_qty,
+                    accepted_summ,
+                ) in acceptance_rows:
                     stats = result.get(str(work_id))
                     if stats is None:
                         continue
-                    stats["presented_quantity"] = float(presented_qty) if presented_qty is not None else None
-                    stats["presented_summ"] = float(presented_summ) if presented_summ is not None else None
-                    stats["accepted_quantity"] = float(accepted_qty) if accepted_qty is not None else None
-                    stats["accepted_summ"] = float(accepted_summ) if accepted_summ is not None else None
+                    stats["presented_quantity"] = (
+                        float(presented_qty) if presented_qty is not None else None
+                    )
+                    stats["presented_summ"] = (
+                        float(presented_summ) if presented_summ is not None else None
+                    )
+                    stats["accepted_quantity"] = (
+                        float(accepted_qty) if accepted_qty is not None else None
+                    )
+                    stats["accepted_summ"] = (
+                        float(accepted_summ) if accepted_summ is not None else None
+                    )
                 return result
         except Exception as e:
             logger.error(
@@ -386,7 +403,8 @@ class ProjectsManager(BaseDBManager):
                         WorkAcceptanceRelations.work_id,
                         func.sum(WorkAcceptanceRelations.quantity),
                         func.sum(
-                            WorkAcceptanceRelations.quantity * project_work_prices.c.price
+                            WorkAcceptanceRelations.quantity
+                            * project_work_prices.c.price
                         ),
                         func.sum(
                             case(
@@ -401,7 +419,8 @@ class ProjectsManager(BaseDBManager):
                             case(
                                 (
                                     Acceptances.status == "documents_signed",
-                                    WorkAcceptanceRelations.quantity * project_work_prices.c.price,
+                                    WorkAcceptanceRelations.quantity
+                                    * project_work_prices.c.price,
                                 ),
                                 else_=0,
                             )
@@ -415,20 +434,38 @@ class ProjectsManager(BaseDBManager):
                         project_work_prices,
                         and_(
                             project_work_prices.c.project_id == Acceptances.project_id,
-                            project_work_prices.c.work_id == WorkAcceptanceRelations.work_id,
+                            project_work_prices.c.work_id
+                            == WorkAcceptanceRelations.work_id,
                         ),
                     )
                     .filter(Acceptances.project_id.in_(project_ids))
                     .group_by(Acceptances.project_id, WorkAcceptanceRelations.work_id)
                     .all()
                 )
-                for project_id, work_id, presented_qty, presented_summ, accepted_qty, accepted_summ in acceptance_rows:
+                for (
+                    project_id,
+                    work_id,
+                    presented_qty,
+                    presented_summ,
+                    accepted_qty,
+                    accepted_summ,
+                ) in acceptance_rows:
                     stats = stats_by_project[project_id].get(str(work_id))
                     if stats is not None:
-                        stats["presented_quantity"] = float(presented_qty) if presented_qty is not None else None
-                        stats["presented_summ"] = float(presented_summ) if presented_summ is not None else None
-                        stats["accepted_quantity"] = float(accepted_qty) if accepted_qty is not None else None
-                        stats["accepted_summ"] = float(accepted_summ) if accepted_summ is not None else None
+                        stats["presented_quantity"] = (
+                            float(presented_qty) if presented_qty is not None else None
+                        )
+                        stats["presented_summ"] = (
+                            float(presented_summ)
+                            if presented_summ is not None
+                            else None
+                        )
+                        stats["accepted_quantity"] = (
+                            float(accepted_qty) if accepted_qty is not None else None
+                        )
+                        stats["accepted_summ"] = (
+                            float(accepted_summ) if accepted_summ is not None else None
+                        )
                 return stats_by_project
         except Exception as error:
             logger.error("Error fetching batched project statistics: %s", error)

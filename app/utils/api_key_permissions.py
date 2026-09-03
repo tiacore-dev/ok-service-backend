@@ -250,6 +250,16 @@ API_KEY_PERMISSIONS = (
     ("acceptances-history-list", "GET /acceptances/{acceptance_id}/history"),
     ("acceptances-list", "GET /acceptances/all"),
     ("acceptances-view", "GET /acceptances/{acceptance_id}/view"),
+    (
+        "acceptances-attachments-delete",
+        "DELETE /acceptances/{acceptance_id}/attachments/{attachment_id}",
+    ),
+    (
+        "acceptances-attachments-download",
+        "GET /acceptances/{acceptance_id}/attachments/{attachment_id}/download",
+    ),
+    ("acceptances-attachments-list", "GET /acceptances/{acceptance_id}/attachments"),
+    ("acceptances-attachments-upload", "POST /acceptances/{acceptance_id}/attachments"),
     ("work-acceptance-relations-create", "POST /work-acceptance-relations/add"),
     (
         "work-acceptance-relations-delete-hard",

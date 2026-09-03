@@ -35,6 +35,10 @@ def _ensure_view_access(target: AttachmentTarget, actor: AttachmentActor) -> Non
         if actor.role in {"admin", "manager", "project-leader", "user"}:
             return
         raise AttachmentForbiddenError("Forbidden")
+    if target.target_type == "acceptance":
+        if actor.role in {"admin", "manager", "project-leader", "user"}:
+            return
+        raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "shift_report":
         if actor.role == "user":
             if target.owner_id != actor.user_id:
@@ -51,6 +55,10 @@ def _ensure_mutation_access(
 ) -> None:
     if target.deleted:
         raise AttachmentConflictError("Deleted entity cannot be changed")
+    if target.target_type == "acceptance":
+        if actor.role in {"admin", "manager"}:
+            return
+        raise AttachmentForbiddenError("Forbidden")
     if target.target_type in {"object", "place"}:
         if actor.role == "admin":
             return

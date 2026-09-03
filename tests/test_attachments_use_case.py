@@ -176,6 +176,27 @@ def test_place_attachment_requires_admin_for_upload():
         )
 
 
+@pytest.mark.parametrize("role", ["user", "project-leader"])
+def test_acceptance_attachment_mutation_is_restricted_to_admin_and_manager(role):
+    target = AttachmentTarget("acceptance", uuid4(), False)
+
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+            "acceptance", target.target_id, [_file()], AttachmentActor(uuid4(), role)
+        )
+
+
+@pytest.mark.parametrize("role", ["admin", "manager"])
+def test_admin_and_manager_can_upload_acceptance_attachment(role):
+    target = AttachmentTarget("acceptance", uuid4(), False)
+
+    result = AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+        "acceptance", target.target_id, [_file()], AttachmentActor(uuid4(), role)
+    )
+
+    assert len(result) == 1
+
+
 def test_unassigned_manager_cannot_upload_place_attachment():
     target = AttachmentTarget("place", uuid4(), False, owner_id=uuid4())
 

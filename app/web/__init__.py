@@ -7,6 +7,7 @@ from .attachments import (
     place_attachment_ns,
     project_attachment_ns,
     shift_report_attachment_ns,
+    acceptance_attachment_ns,
 )
 from .cities.routes import city_ns
 from .leaves.routes import leave_ns
@@ -43,6 +44,7 @@ def register_namespaces(api: Api):
     api.add_namespace(shift_report_attachment_ns)
     api.add_namespace(object_attachment_ns)
     api.add_namespace(place_attachment_ns)
+    api.add_namespace(acceptance_attachment_ns)
     api.add_namespace(role_ns)
     api.add_namespace(subscription_ns)
     api.add_namespace(api_key_ns)
