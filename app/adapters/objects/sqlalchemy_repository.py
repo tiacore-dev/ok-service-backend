@@ -7,7 +7,7 @@ from app.adapters._typing import normalize_result
 from app.database.managers.objects_managers import ObjectsManager
 from app.database.managers.projects_managers import ProjectsManager
 from app.domain.objects import Object
-from app.use_cases.objects.dto import ObjectActor, ObjectListQuery
+from app.use_cases.objects.dto import ObjectActor, ObjectListQuery, ObjectStatsListQuery
 from app.use_cases.objects.ports import ObjectRepository
 
 from .mappers import object_dict_to_entity, object_entity_to_create_payload
@@ -110,3 +110,8 @@ class SQLAlchemyObjectRepository(ObjectRepository):
 
     def get_object_stats_details(self, object_id: UUID) -> dict[str, object]:
         return self.projects_manager.get_object_stats_details(object_id)
+
+    def get_all_objects_stats(self, query: ObjectStatsListQuery) -> dict[str, object]:
+        return self.projects_manager.get_all_objects_stats(
+            offset=query.offset, limit=query.limit, search=query.search
+        )

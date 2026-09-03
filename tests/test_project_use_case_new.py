@@ -16,10 +16,12 @@ from app.use_cases.projects import (
     CreateProjectUseCase,
     GetProjectStatsByMaterialsUseCase,
     GetProjectStatsUseCase,
+    GetAllProjectLeadersStatsUseCase,
     GetProjectUseCase,
     HardDeleteProjectUseCase,
     ListProjectsUseCase,
     ProjectActor,
+    ProjectLeaderStatsListQuery,
     ProjectListQuery,
     SoftDeleteProjectUseCase,
     UpdateProjectCommand,
@@ -40,6 +42,7 @@ class FakeProjectRepository:
     stats: dict[str, dict[str, object]] | None = None
     stats_by_materials: dict[str, dict[str, object]] | None = None
     project_work_signed: list[bool] | None = None
+    leader_stats_query: ProjectLeaderStatsListQuery | None = None
 
     def create_project(self, project: Project) -> Project:
         self.created = project
@@ -115,6 +118,12 @@ class FakeProjectRepository:
     ) -> dict[str, object]:
         return {"total": {}, "projects": []}
 
+    def get_all_project_leaders_stats(
+        self, query: ProjectLeaderStatsListQuery
+    ) -> dict[str, object]:
+        self.leader_stats_query = query
+        return {"total": {}, "project_leaders": []}
+
 
 def _project() -> Project:
     return Project(
@@ -128,6 +137,23 @@ def _project() -> Project:
         created_at=1,
         deleted=False,
     )
+
+
+def test_all_project_leader_stats_requires_admin_or_manager():
+    repository = FakeProjectRepository()
+    query = ProjectLeaderStatsListQuery(offset=5, limit=2, search="ivan")
+
+    result = GetAllProjectLeadersStatsUseCase(repository).execute(
+        query, ProjectActor("admin", uuid4())
+    )
+
+    assert result == {"total": {}, "project_leaders": []}
+    assert repository.leader_stats_query == query
+
+    with pytest.raises(ProjectForbiddenError):
+        GetAllProjectLeadersStatsUseCase(repository).execute(
+            query, ProjectActor("project-leader", uuid4())
+        )
 
 
 def test_project_starts_pending_and_status_can_move_forward_or_back():

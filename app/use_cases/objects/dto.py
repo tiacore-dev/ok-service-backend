@@ -53,3 +53,10 @@ class ObjectListQuery:
     ltd: float | None = None
     created_by: UUID | None = None
     created_at: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectStatsListQuery:
+    offset: int = 0
+    limit: int = 10
+    search: str | None = None

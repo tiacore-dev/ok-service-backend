@@ -113,6 +113,43 @@ object_stats_details_response = Model(
     },
 )
 
+stats_collection_filter_parser = reqparse.RequestParser()
+stats_collection_filter_parser.add_argument("offset", type=int, default=0)
+stats_collection_filter_parser.add_argument("limit", type=int, default=10)
+stats_collection_filter_parser.add_argument("search", type=str, required=False)
+
+object_stats_collection_item = Model(
+    "ObjectStatsCollectionItem",
+    {
+        "object_id": fields.String(required=True),
+        "name": fields.String(required=True),
+        "stats": fields.Raw(required=True),
+    },
+)
+project_leader_stats_collection_item = Model(
+    "ProjectLeaderStatsCollectionItem",
+    {
+        "user_id": fields.String(required=True),
+        "login": fields.String(required=True),
+        "name": fields.String(required=True),
+        "stats": fields.Raw(required=True),
+    },
+)
+object_stats_collection_response = Model(
+    "ObjectStatsCollectionResponse",
+    {
+        "msg": fields.String(required=True),
+        "stats": fields.Raw(required=True),
+    },
+)
+project_leader_stats_collection_response = Model(
+    "ProjectLeaderStatsCollectionResponse",
+    {
+        "msg": fields.String(required=True),
+        "stats": fields.Raw(required=True),
+    },
+)
+
 object_filter_parser = reqparse.RequestParser()
 object_filter_parser.add_argument(
     "offset", type=int, default=0, help="Offset for pagination"

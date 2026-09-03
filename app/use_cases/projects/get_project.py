@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.domain.projects import ProjectForbiddenError, ProjectNotFoundError
 
-from .dto import ProjectActor
+from .dto import ProjectActor, ProjectLeaderStatsListQuery
 from .ports import ProjectRepository
 
 
@@ -62,3 +62,15 @@ class GetProjectLeaderStatsDetailsUseCase:
         if actor.role not in {"admin", "manager", "project-leader"}:
             raise ProjectForbiddenError("Forbidden")
         return self.repository.get_project_leader_stats_details(project_leader_id)
+
+
+@dataclass(slots=True)
+class GetAllProjectLeadersStatsUseCase:
+    repository: ProjectRepository
+
+    def execute(
+        self, query: ProjectLeaderStatsListQuery, actor: ProjectActor
+    ) -> dict[str, object]:
+        if actor.role not in {"admin", "manager"}:
+            raise ProjectForbiddenError("Forbidden")
+        return self.repository.get_all_project_leaders_stats(query)

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Добавлены коллекционные endpoint-ы `GET /objects/get-stat` и
+  `GET /project-leaders/get-stat` с общей статистикой, пагинацией и поиском.
+  Удалённые объекты исключаются, а прорабы возвращаются вместе с
+  `user_id`, `login` и `name`, включая прорабов без проектов. Добавлены
+  соответствующие API-key permissions; миграции и новые настройки не нужны.
+
 - Добавлены вложения для приёмок работ: relation-таблица
   `work_acceptance_attachments`, четыре стандартных endpoint-а под
   `/acceptances/{acceptance_id}/attachments`, наследование прав приёмки и массив

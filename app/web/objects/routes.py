@@ -34,7 +34,9 @@ from app.use_cases.objects import (
     CreateObjectUseCase,
     GetObjectUseCase,
     GetObjectStatsUseCase,
+    GetAllObjectsStatsUseCase,
     GetObjectStatsDetailsUseCase,
+    ObjectStatsListQuery,
     HardDeleteObjectUseCase,
     ListObjectsUseCase,
     ObjectActor,
@@ -68,6 +70,8 @@ from .models import (
     object_statuses_response,
     object_stats_response,
     object_stats_details_response,
+    object_stats_collection_response,
+    stats_collection_filter_parser,
 )
 
 logger = logging.getLogger("ok_service")
@@ -85,6 +89,7 @@ object_ns.models[object_status_item_model.name] = object_status_item_model
 object_ns.models[object_statuses_response.name] = object_statuses_response
 object_ns.models[object_stats_response.name] = object_stats_response
 object_ns.models[object_stats_details_response.name] = object_stats_details_response
+object_ns.models[object_stats_collection_response.name] = object_stats_collection_response
 object_ns.models[attachment_view_model.name] = attachment_view_model
 
 
@@ -115,6 +120,29 @@ class ObjectStats(Resource):
             return {"msg": "Object stats fetched successfully", "stats": stats}, 200
         except Exception as error:
             logger.error("Error getting object stats: %s", error)
+            return _map_error(error)
+
+
+@object_ns.route("/get-stat")
+class AllObjectsStats(Resource):
+    @api_key_or_jwt_required
+    @object_ns.expect(stats_collection_filter_parser)
+    @object_ns.marshal_with(object_stats_collection_response)
+    def get(self):
+        current_user = _get_current_user()
+        try:
+            data = stats_collection_filter_parser.parse_args()
+            if data.offset < 0 or data.limit < 1:
+                raise ValueError("offset must be non-negative and limit must be positive")
+            stats = GetAllObjectsStatsUseCase(repository=_repository()).execute(
+                ObjectStatsListQuery(
+                    offset=data.offset, limit=data.limit, search=data.search
+                ),
+                _actor(current_user),
+            )
+            return {"msg": "Objects stats fetched successfully", "stats": stats}, 200
+        except Exception as error:
+            logger.error("Error getting all objects stats: %s", error)
             return _map_error(error)
 
 

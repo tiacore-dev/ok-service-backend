@@ -8,6 +8,7 @@ from app.adapters.statistics import ProjectWorkStatistics
 from app.database.managers.projects_managers import ProjectsManager
 from app.domain.projects import Project, ProjectStatus
 from app.use_cases.projects.dto import ProjectActor, ProjectListQuery, ProjectStatsMap
+from app.use_cases.projects.dto import ProjectLeaderStatsListQuery
 from app.use_cases.projects.ports import ProjectRepository
 
 from .mappers import project_dict_to_entity, project_entity_to_create_payload
@@ -95,6 +96,13 @@ class SQLAlchemyProjectRepository(ProjectRepository):
 
     def get_project_leader_stats_details(self, project_leader_id: UUID) -> dict[str, object]:
         return self.manager.get_project_leader_stats_details(project_leader_id)
+
+    def get_all_project_leaders_stats(
+        self, query: ProjectLeaderStatsListQuery
+    ) -> dict[str, object]:
+        return self.manager.get_all_project_leaders_stats(
+            offset=query.offset, limit=query.limit, search=query.search
+        )
 
     def update_project_status(
         self, project_id: UUID, expected_status: ProjectStatus, status: ProjectStatus

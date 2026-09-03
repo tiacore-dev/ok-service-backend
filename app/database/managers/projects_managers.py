@@ -21,6 +21,7 @@ from app.database.models import (
     ShiftReports,
     WorkAcceptanceRelations,
     WorkMaterialRelations,
+    Users,
 )
 from app.domain.projects import ProjectStatus, ProjectValidationError
 
@@ -525,6 +526,86 @@ class ProjectsManager(BaseDBManager):
             )
         return self._build_grouped_project_stats(projects, detailed=True)
 
+    def get_all_objects_stats(self, *, offset=0, limit=10, search=None):
+        with self.session_scope() as session:
+            query = session.query(Objects.object_id, Objects.name).filter(
+                Objects.deleted.is_(False)
+            )
+            if search:
+                query = query.filter(Objects.name.ilike(f"%{search}%"))
+            objects = query.order_by(Objects.name.asc()).all()
+
+            projects = (
+                session.query(Projects.project_id, Projects.object)
+                .filter(
+                    Projects.object.in_([object_id for object_id, _ in objects]),
+                    Projects.deleted.is_(False),
+                )
+                .all()
+            ) if objects else []
+            stats_by_project = self.get_project_stats_many(
+                [project_id for project_id, _ in projects]
+            )
+            by_object = {object_id: [] for object_id, _ in objects}
+            for project_id, object_id in projects:
+                by_object[object_id].append(stats_by_project.get(project_id, {}))
+
+            items = []
+            total = {field: None for field in self._stat_summary_fields()}
+            for object_id, name in objects:
+                summary = self._summarize_stats_maps(by_object[object_id])
+                self._merge_stats_summary(total, summary)
+                items.append({"object_id": str(object_id), "name": name, "stats": summary})
+
+            return {
+                "total": total,
+                "objects": items[offset : offset + limit],
+                "total_count": len(items),
+            }
+
+    def get_all_project_leaders_stats(self, *, offset=0, limit=10, search=None):
+        with self.session_scope() as session:
+            query = session.query(Users.user_id, Users.login, Users.name).filter(
+                Users.role == "project-leader", Users.deleted.is_(False)
+            )
+            if search:
+                pattern = f"%{search}%"
+                query = query.filter((Users.login.ilike(pattern)) | (Users.name.ilike(pattern)))
+            leaders = query.order_by(Users.name.asc(), Users.login.asc()).all()
+            leader_ids = [user_id for user_id, _, _ in leaders]
+            projects = (
+                session.query(Projects.project_id, Projects.project_leader)
+                .filter(
+                    Projects.project_leader.in_(leader_ids),
+                    Projects.deleted.is_(False),
+                )
+                .all()
+            ) if leaders else []
+            stats_by_project = self.get_project_stats_many(
+                [project_id for project_id, _ in projects]
+            )
+            by_leader = {user_id: [] for user_id, _, _ in leaders}
+            for project_id, leader_id in projects:
+                by_leader[leader_id].append(stats_by_project.get(project_id, {}))
+
+            items = []
+            total = {field: None for field in self._stat_summary_fields()}
+            for user_id, login, name in leaders:
+                summary = self._summarize_stats_maps(by_leader[user_id])
+                self._merge_stats_summary(total, summary)
+                items.append({
+                    "user_id": str(user_id),
+                    "login": login,
+                    "name": name,
+                    "stats": summary,
+                })
+
+            return {
+                "total": total,
+                "project_leaders": items[offset : offset + limit],
+                "total_count": len(items),
+            }
+
     def _build_grouped_project_stats(self, projects, *, detailed):
         if not projects:
             return {"total": {}, "projects": []}
@@ -582,6 +663,13 @@ class ProjectsManager(BaseDBManager):
                 value = item.get(field)
                 if value is not None:
                     summary[field] = (summary[field] or 0) + value
+        return summary
+
+    @classmethod
+    def _summarize_stats_maps(cls, stats_maps):
+        summary = {field: None for field in cls._stat_summary_fields()}
+        for stats in stats_maps:
+            cls._merge_stats_summary(summary, cls._summarize_project_stats(stats))
         return summary
 
     @staticmethod

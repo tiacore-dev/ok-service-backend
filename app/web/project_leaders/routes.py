@@ -15,9 +15,16 @@ from app.domain.projects import ProjectForbiddenError
 from app.use_cases.projects import (
     GetProjectLeaderStatsDetailsUseCase,
     GetProjectLeaderStatsUseCase,
+    GetAllProjectLeadersStatsUseCase,
+    ProjectLeaderStatsListQuery,
     ProjectActor,
 )
-from app.web.objects.models import object_stats_details_response, object_stats_response
+from app.web.objects.models import (
+    object_stats_details_response,
+    object_stats_response,
+    project_leader_stats_collection_response,
+    stats_collection_filter_parser,
+)
 from app.web._typing import get_required_uuid
 
 project_leader_ns = Namespace(
@@ -27,6 +34,9 @@ project_leader_ns = Namespace(
 )
 for model in (object_stats_response, object_stats_details_response):
     project_leader_ns.models[model.name] = model
+project_leader_ns.models[
+    project_leader_stats_collection_response.name
+] = project_leader_stats_collection_response
 
 
 def _identity() -> dict[str, Any]:
@@ -86,6 +96,30 @@ class ProjectLeaderStats(Resource):
                 _id(project_leader_id), _actor()
             )
             return {"msg": "Project leader stats fetched successfully", "stats": stats}, 200
+        except Exception as error:
+            return _error(error)
+
+
+@project_leader_ns.route("/get-stat")
+class AllProjectLeadersStats(Resource):
+    @api_key_or_jwt_required
+    @project_leader_ns.expect(stats_collection_filter_parser)
+    @project_leader_ns.marshal_with(project_leader_stats_collection_response)
+    def get(self):
+        try:
+            data = stats_collection_filter_parser.parse_args()
+            if data.offset < 0 or data.limit < 1:
+                raise ValueError("offset must be non-negative and limit must be positive")
+            stats = GetAllProjectLeadersStatsUseCase(_repository()).execute(
+                ProjectLeaderStatsListQuery(
+                    offset=data.offset, limit=data.limit, search=data.search
+                ),
+                _actor(),
+            )
+            return {
+                "msg": "Project leaders stats fetched successfully",
+                "stats": stats,
+            }, 200
         except Exception as error:
             return _error(error)
 

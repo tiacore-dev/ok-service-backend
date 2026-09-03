@@ -49,4 +49,11 @@ class ProjectListQuery:
     status: ProjectStatus | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class ProjectLeaderStatsListQuery:
+    offset: int = 0
+    limit: int = 10
+    search: str | None = None
+
+
 ProjectStatsMap = dict[str, dict[str, Any]]

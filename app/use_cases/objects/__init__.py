@@ -1,7 +1,14 @@
 from .create_object import CreateObjectUseCase
 from .delete_object import HardDeleteObjectUseCase, SoftDeleteObjectUseCase
-from .dto import CreateObjectCommand, ObjectActor, ObjectListQuery, UpdateObjectCommand
+from .dto import (
+    CreateObjectCommand,
+    ObjectActor,
+    ObjectListQuery,
+    ObjectStatsListQuery,
+    UpdateObjectCommand,
+)
 from .get_object import (
+    GetAllObjectsStatsUseCase,
     GetObjectStatsDetailsUseCase,
     GetObjectStatsUseCase,
     GetObjectUseCase,
@@ -16,10 +23,12 @@ __all__ = [
     "GetObjectUseCase",
     "GetObjectStatsUseCase",
     "GetObjectStatsDetailsUseCase",
+    "GetAllObjectsStatsUseCase",
     "HardDeleteObjectUseCase",
     "ListObjectsUseCase",
     "ObjectActor",
     "ObjectListQuery",
+    "ObjectStatsListQuery",
     "ObjectRepository",
     "SoftDeleteObjectUseCase",
     "UpdateObjectCommand",

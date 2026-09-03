@@ -3,8 +3,9 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.domain.objects import Object, ObjectForbiddenError, ObjectNotFoundError
-from app.use_cases.objects import ObjectListQuery
+from app.use_cases.objects import ObjectListQuery, ObjectStatsListQuery
 from app.use_cases.objects import (
+    GetAllObjectsStatsUseCase,
     GetObjectStatsDetailsUseCase,
     GetObjectStatsUseCase,
     ObjectActor,
@@ -102,6 +103,10 @@ class FakeObjectRepository:
     def get_object_stats_details(self, object_id: UUID) -> dict[str, object]:
         return self.stats
 
+    def get_all_objects_stats(self, query: ObjectStatsListQuery) -> dict[str, object]:
+        self.stats_query = query
+        return self.stats
+
 
 def test_object_stats_use_case_returns_total_and_projects():
     stats = {"total": {"accepted_summ": 120.0}, "projects": []}
@@ -122,6 +127,21 @@ def test_object_stats_details_use_case_returns_work_grouped_stats():
     )
 
     assert result == stats
+
+
+def test_all_object_stats_use_case_requires_admin_or_manager():
+    repository = FakeObjectRepository({"total": {}, "objects": []})
+    query = ObjectStatsListQuery(offset=10, limit=5, search="yard")
+
+    assert GetAllObjectsStatsUseCase(repository).execute(
+        query, ObjectActor("manager", uuid4())
+    ) == repository.stats
+    assert repository.stats_query == query
+
+    with pytest.raises(ObjectForbiddenError):
+        GetAllObjectsStatsUseCase(repository).execute(
+            query, ObjectActor("project-leader", uuid4())
+        )
 
 
 def test_object_stats_use_case_rejects_user():
