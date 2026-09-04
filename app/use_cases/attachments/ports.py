@@ -2,6 +2,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.domain.attachments import Attachment, AttachmentTarget
+from app.use_cases.attachments.dto import StoredFile
 
 
 class AttachmentRepository(Protocol):
@@ -35,7 +36,7 @@ class AttachmentStorage(Protocol):
         attachment_id: UUID,
         filename: str,
         content_type: str | None,
-    ) -> tuple[str, str, str]: ...
+    ) -> StoredFile: ...
 
     def delete(self, key: str) -> None: ...
 

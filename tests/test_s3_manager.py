@@ -4,6 +4,7 @@ from asyncio import run
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import Mock
+from uuid import uuid4
 
 import pytest
 from botocore.exceptions import EndpointConnectionError
@@ -11,6 +12,7 @@ from flask import Flask
 from flask_restx import Api
 
 import app.s3.s3_manager as s3_manager
+from app.adapters.attachments.s3_storage import S3AttachmentStorage
 from app.s3.s3_manager import AsyncS3Manager, FileValidationError, logger
 from app.web.auth.routes import login_ns
 
@@ -62,6 +64,70 @@ def test_validate_attachment_accepts_allowed_file_types(
 
     assert normalized_filename == filename
     assert detected_content_type == expected_content_type
+
+
+@pytest.mark.parametrize("source_format", ["PNG", "JPEG"])
+def test_png_and_jpeg_are_converted_to_webp_before_storage(
+    source_format, monkeypatch
+) -> None:
+    from PIL import Image
+
+    source = BytesIO()
+    Image.new("RGB", (2, 2), "red").save(source, format=source_format)
+    manager = AsyncS3Manager()
+
+    async def upload_bytes(*args, **kwargs):
+        return kwargs["key"]
+
+    monkeypatch.setattr(manager, "upload_bytes", upload_bytes)
+    stored = S3AttachmentStorage(manager).upload(
+        source.getvalue(),
+        target_type="project",
+        target_id=uuid4(),
+        attachment_id=uuid4(),
+        filename=f"photo.{source_format.lower() if source_format == 'PNG' else 'jpg'}",
+        content_type="image/png" if source_format == "PNG" else "image/jpeg",
+    )
+
+    assert stored.name == "photo.webp"
+    assert stored.content_type == "image/webp"
+    assert stored.content.startswith(b"RIFF")
+    assert stored.content[8:12] == b"WEBP"
+
+
+def test_jpeg_exif_orientation_is_applied_before_webp_conversion(monkeypatch) -> None:
+    from PIL import Image
+    from PIL import ImageDraw
+
+    source = BytesIO()
+    image = Image.new("RGB", (20, 10), "red")
+    ImageDraw.Draw(image).rectangle((10, 0, 19, 9), fill="blue")
+    exif = image.getexif()
+    exif[274] = 6
+    image.save(source, format="JPEG", exif=exif)
+    manager = AsyncS3Manager()
+
+    async def upload_bytes(*args, **kwargs):
+        return kwargs["key"]
+
+    monkeypatch.setattr(manager, "upload_bytes", upload_bytes)
+    stored = S3AttachmentStorage(manager).upload(
+        source.getvalue(),
+        target_type="project",
+        target_id=uuid4(),
+        attachment_id=uuid4(),
+        filename="oriented.jpg",
+        content_type="image/jpeg",
+    )
+
+    with Image.open(BytesIO(stored.content)) as converted:
+        assert converted.size == (10, 20)
+        top_pixel = converted.getpixel((5, 4))
+        bottom_pixel = converted.getpixel((5, 15))
+        assert isinstance(top_pixel, tuple)
+        assert isinstance(bottom_pixel, tuple)
+        assert top_pixel[0] > top_pixel[2]
+        assert bottom_pixel[2] > bottom_pixel[0]
 
 
 def test_validate_attachment_accepts_zip_archive() -> None:

@@ -103,7 +103,7 @@ class AttachmentUseCase:
         try:
             for file in files:
                 attachment_id = uuid4()
-                key, normalized_name, content_type = self.storage.upload(
+                stored_file = self.storage.upload(
                     file.content,
                     target_type=target_type,
                     target_id=target_id,
@@ -114,13 +114,13 @@ class AttachmentUseCase:
                 uploaded.append(
                     Attachment(
                         attachment_id=attachment_id,
-                        name=normalized_name,
-                        s3_key=key,
-                        file_size=len(file.content),
-                        checksum=sha256(file.content).hexdigest(),
+                        name=stored_file.name,
+                        s3_key=stored_file.key,
+                        file_size=len(stored_file.content),
+                        checksum=sha256(stored_file.content).hexdigest(),
                         meta={
-                            "content_type": content_type,
-                            "extension": normalized_name.rsplit(".", 1)[-1].lower(),
+                            "content_type": stored_file.content_type,
+                            "extension": stored_file.name.rsplit(".", 1)[-1].lower(),
                         },
                         created_at=utc_epoch_milliseconds(),
                         created_by=actor.user_id,

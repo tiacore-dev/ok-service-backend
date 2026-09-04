@@ -13,6 +13,7 @@ from app.use_cases.objects import (
     ListObjectsUseCase,
     ObjectActor,
     ObjectListQuery,
+    ObjectStatsListQuery,
     SoftDeleteObjectUseCase,
     UpdateObjectCommand,
     UpdateObjectUseCase,
@@ -68,6 +69,9 @@ class FakeObjectRepository:
 
     def get_project_statuses(self, object_id: UUID) -> list[str]:
         return self.project_statuses or []
+
+    def get_all_objects_stats(self, query: ObjectStatsListQuery) -> dict[str, object]:
+        return {"total": {}, "objects": []}
 
 
 def _object(*, status: str = "active") -> Object:

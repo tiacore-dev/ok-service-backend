@@ -13,3 +13,11 @@ class UploadFile:
     name: str
     content: bytes
     content_type: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class StoredFile:
+    key: str
+    name: str
+    content: bytes
+    content_type: str

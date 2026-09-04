@@ -1,4 +1,4 @@
-from .dto import AttachmentActor, UploadFile
+from .dto import AttachmentActor, StoredFile, UploadFile
 from .manage_attachments import AttachmentUseCase
 from .ports import AttachmentRepository, AttachmentStorage
 
@@ -8,4 +8,5 @@ __all__ = [
     "AttachmentStorage",
     "AttachmentUseCase",
     "UploadFile",
+    "StoredFile",
 ]

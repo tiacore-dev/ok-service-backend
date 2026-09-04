@@ -9,6 +9,7 @@ from app.domain.attachments import (
     AttachmentTarget,
 )
 from app.use_cases.attachments import AttachmentActor, AttachmentUseCase, UploadFile
+from app.use_cases.attachments.dto import StoredFile
 from app.use_cases.attachments.ports import AttachmentRepository, AttachmentStorage
 
 
@@ -62,7 +63,9 @@ class FakeStorage(AttachmentStorage):
         normalized_name = filename.replace(" ", "_")
         key = f"ok-service/{target_type}s/{target_id}/{attachment_id}_{normalized_name}"
         self.uploaded_keys.append(key)
-        return key, normalized_name, content_type or "application/pdf"
+        return StoredFile(
+            key, normalized_name, content, content_type or "application/pdf"
+        )
 
     def delete(self, key):
         self.deleted_keys.append(key)
