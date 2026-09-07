@@ -118,7 +118,7 @@ class FakeProjectRepository:
     ) -> dict[str, object]:
         return {"total": {}, "projects": []}
 
-    def get_all_project_leaders_stats(
+    def get_all_project_leaders_fact_stats(
         self, query: ProjectLeaderStatsListQuery
     ) -> dict[str, object]:
         self.leader_stats_query = query
@@ -141,7 +141,9 @@ def _project() -> Project:
 
 def test_all_project_leader_stats_requires_admin_or_manager():
     repository = FakeProjectRepository()
-    query = ProjectLeaderStatsListQuery(offset=5, limit=2, search="ivan")
+    query = ProjectLeaderStatsListQuery(
+        offset=5, limit=2, search="ivan", date_from=100, date_to=200
+    )
 
     result = GetAllProjectLeadersStatsUseCase(repository).execute(
         query, ProjectActor("admin", uuid4())
@@ -153,6 +155,14 @@ def test_all_project_leader_stats_requires_admin_or_manager():
     with pytest.raises(ProjectForbiddenError):
         GetAllProjectLeadersStatsUseCase(repository).execute(
             query, ProjectActor("project-leader", uuid4())
+        )
+
+
+def test_all_project_leader_stats_rejects_reversed_date_range():
+    with pytest.raises(ValueError, match="date_from"):
+        GetAllProjectLeadersStatsUseCase(FakeProjectRepository()).execute(
+            ProjectLeaderStatsListQuery(date_from=200, date_to=100),
+            ProjectActor("manager", uuid4()),
         )
 
 

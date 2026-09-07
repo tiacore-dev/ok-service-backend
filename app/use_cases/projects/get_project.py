@@ -73,4 +73,7 @@ class GetAllProjectLeadersStatsUseCase:
     ) -> dict[str, object]:
         if actor.role not in {"admin", "manager"}:
             raise ProjectForbiddenError("Forbidden")
-        return self.repository.get_all_project_leaders_stats(query)
+        if query.date_from is not None and query.date_to is not None:
+            if query.date_from > query.date_to:
+                raise ValueError("date_from must not be greater than date_to")
+        return self.repository.get_all_project_leaders_fact_stats(query)

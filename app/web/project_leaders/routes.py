@@ -23,9 +23,13 @@ from app.web.objects.models import (
     object_stats_details_response,
     object_stats_response,
     project_leader_stats_collection_response,
-    stats_collection_filter_parser,
+    project_leader_stats_collection_item,
+    project_leader_stats_collection_payload,
+    project_leader_fact_stats,
+    project_leader_fact_project,
+    project_leader_fact_stats_filter_parser,
 )
-from app.web._typing import get_required_uuid
+from app.web._typing import get_optional_uuid_list, get_required_uuid
 
 project_leader_ns = Namespace(
     "project_leaders",
@@ -34,9 +38,14 @@ project_leader_ns = Namespace(
 )
 for model in (object_stats_response, object_stats_details_response):
     project_leader_ns.models[model.name] = model
-project_leader_ns.models[
-    project_leader_stats_collection_response.name
-] = project_leader_stats_collection_response
+for model in (
+    project_leader_stats_collection_response,
+    project_leader_stats_collection_item,
+    project_leader_stats_collection_payload,
+    project_leader_fact_stats,
+    project_leader_fact_project,
+):
+    project_leader_ns.models[model.name] = model
 
 
 def _identity() -> dict[str, Any]:
@@ -103,16 +112,28 @@ class ProjectLeaderStats(Resource):
 @project_leader_ns.route("/get-stat")
 class AllProjectLeadersStats(Resource):
     @api_key_or_jwt_required
-    @project_leader_ns.expect(stats_collection_filter_parser)
+    @project_leader_ns.expect(project_leader_fact_stats_filter_parser)
     @project_leader_ns.marshal_with(project_leader_stats_collection_response)
     def get(self):
         try:
-            data = stats_collection_filter_parser.parse_args()
+            data = project_leader_fact_stats_filter_parser.parse_args()
             if data.offset < 0 or data.limit < 1:
                 raise ValueError("offset must be non-negative and limit must be positive")
             stats = GetAllProjectLeadersStatsUseCase(_repository()).execute(
                 ProjectLeaderStatsListQuery(
-                    offset=data.offset, limit=data.limit, search=data.search
+                    offset=data.offset,
+                    limit=data.limit,
+                    search=data.search,
+                    date_from=data.date_from,
+                    date_to=data.date_to,
+                    project_leader_ids=tuple(
+                        get_optional_uuid_list(
+                            {"project_leader_ids": data.project_leader_ids},
+                            "project_leader_ids",
+                        )
+                        or []
+                    )
+                    or None,
                 ),
                 _actor(),
             )

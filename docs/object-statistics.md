@@ -75,7 +75,21 @@
 
 Удалённые объекты не возвращаются. В список прорабов входят все неудалённые
 пользователи с ролью `project-leader`, в том числе без назначенных проектов.
-Для каждого прораба возвращаются `user_id`, `login`, `name` и агрегат `stats`.
+Для каждого прораба возвращаются `user_id`, `login`, `name` и список проектов.
+
+Статистика коллекционного метода `GET /project-leaders/get-stat` является
+отдельным фактическим агрегатором и не использует `work_acceptance_relations`.
+Для каждого проекта возвращаются:
+
+- `shift_report_details_quantity`;
+- `shift_report_details_summ`;
+- `shift_report_details_summ_by_estimate`.
+
+В расчёт входят только детали сменных отчётов, для которых
+`shift_reports.deleted = false` и `shift_reports.signed = true`. Параметры
+`date_from` и `date_to` фильтруют `shift_reports.date` включительно и задаются
+в Unix milliseconds. Параметр `project_leader_ids` можно передавать несколько
+раз для выборки конкретных прорабов.
 
 Для статистики по прорабу используются отдельные маршруты:
 

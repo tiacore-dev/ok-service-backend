@@ -97,11 +97,16 @@ class SQLAlchemyProjectRepository(ProjectRepository):
     def get_project_leader_stats_details(self, project_leader_id: UUID) -> dict[str, object]:
         return self.manager.get_project_leader_stats_details(project_leader_id)
 
-    def get_all_project_leaders_stats(
+    def get_all_project_leaders_fact_stats(
         self, query: ProjectLeaderStatsListQuery
     ) -> dict[str, object]:
-        return self.manager.get_all_project_leaders_stats(
-            offset=query.offset, limit=query.limit, search=query.search
+        return self.manager.get_all_project_leaders_fact_stats(
+            offset=query.offset,
+            limit=query.limit,
+            search=query.search,
+            date_from=query.date_from,
+            date_to=query.date_to,
+            project_leader_ids=query.project_leader_ids,
         )
 
     def update_project_status(

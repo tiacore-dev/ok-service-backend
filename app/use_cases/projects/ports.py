@@ -33,7 +33,7 @@ class ProjectRepository(Protocol):
 
     def get_project_leader_stats_details(self, project_leader_id: UUID) -> dict[str, object]: ...
 
-    def get_all_project_leaders_stats(
+    def get_all_project_leaders_fact_stats(
         self, query: ProjectLeaderStatsListQuery
     ) -> dict[str, object]: ...
 

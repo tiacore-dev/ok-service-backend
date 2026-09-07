@@ -563,7 +563,16 @@ class ProjectsManager(BaseDBManager):
                 "total_count": len(items),
             }
 
-    def get_all_project_leaders_stats(self, *, offset=0, limit=10, search=None):
+    def get_all_project_leaders_fact_stats(
+        self,
+        *,
+        offset=0,
+        limit=10,
+        search=None,
+        date_from=None,
+        date_to=None,
+        project_leader_ids=None,
+    ):
         with self.session_scope() as session:
             query = session.query(Users.user_id, Users.login, Users.name).filter(
                 Users.role == "project-leader", Users.deleted.is_(False)
@@ -571,40 +580,106 @@ class ProjectsManager(BaseDBManager):
             if search:
                 pattern = f"%{search}%"
                 query = query.filter((Users.login.ilike(pattern)) | (Users.name.ilike(pattern)))
+            if project_leader_ids:
+                query = query.filter(Users.user_id.in_(project_leader_ids))
             leaders = query.order_by(Users.name.asc(), Users.login.asc()).all()
             leader_ids = [user_id for user_id, _, _ in leaders]
             projects = (
-                session.query(Projects.project_id, Projects.project_leader)
+                session.query(Projects.project_id, Projects.project_leader, Projects.name)
                 .filter(
                     Projects.project_leader.in_(leader_ids),
                     Projects.deleted.is_(False),
                 )
                 .all()
             ) if leaders else []
-            stats_by_project = self.get_project_stats_many(
-                [project_id for project_id, _ in projects]
-            )
-            by_leader = {user_id: [] for user_id, _, _ in leaders}
-            for project_id, leader_id in projects:
-                by_leader[leader_id].append(stats_by_project.get(project_id, {}))
+
+            project_ids = [project_id for project_id, _, _ in projects]
+            by_project = {
+                project_id: {
+                    "shift_report_details_quantity": 0.0,
+                    "shift_report_details_summ": 0.0,
+                    "shift_report_details_summ_by_estimate": 0.0,
+                }
+                for project_id in project_ids
+            }
+            if project_ids:
+                fact_query = (
+                    session.query(
+                        ShiftReports.project,
+                        func.sum(ShiftReportDetails.quantity),
+                        func.sum(ShiftReportDetails.summ),
+                        func.sum(ShiftReportDetails.quantity * ProjectWorks.price),
+                    )
+                    .join(
+                        ShiftReportDetails,
+                        ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
+                    )
+                    .outerjoin(
+                        ProjectWorks,
+                        ProjectWorks.project_work_id == ShiftReportDetails.project_work,
+                    )
+                    .filter(
+                        ShiftReports.project.in_(project_ids),
+                        ShiftReports.deleted.is_(False),
+                        ShiftReports.signed.is_(True),
+                    )
+                )
+                if date_from is not None:
+                    fact_query = fact_query.filter(ShiftReports.date >= date_from)
+                if date_to is not None:
+                    fact_query = fact_query.filter(ShiftReports.date <= date_to)
+                for project_id, quantity, summ, estimated_summ in fact_query.group_by(
+                    ShiftReports.project
+                ).all():
+                    by_project[project_id] = {
+                        "shift_report_details_quantity": float(quantity or 0),
+                        "shift_report_details_summ": float(summ or 0),
+                        "shift_report_details_summ_by_estimate": float(
+                            estimated_summ or 0
+                        ),
+                    }
 
             items = []
-            total = {field: None for field in self._stat_summary_fields()}
+            total = {field: 0.0 for field in self._leader_fact_stat_fields()}
+            by_leader = {user_id: [] for user_id in leader_ids}
+            for project_id, leader_id, name in projects:
+                by_leader[leader_id].append(
+                    {"project_id": str(project_id), "name": name, "stats": by_project[project_id]}
+                )
             for user_id, login, name in leaders:
-                summary = self._summarize_stats_maps(by_leader[user_id])
-                self._merge_stats_summary(total, summary)
-                items.append({
-                    "user_id": str(user_id),
-                    "login": login,
-                    "name": name,
-                    "stats": summary,
-                })
+                leader_projects = by_leader[user_id]
+                leader_total = {field: 0.0 for field in self._leader_fact_stat_fields()}
+                for project in leader_projects:
+                    self._merge_fact_stats(leader_total, project["stats"])
+                self._merge_fact_stats(total, leader_total)
+                items.append(
+                    {
+                        "user_id": str(user_id),
+                        "login": login,
+                        "name": name,
+                        "stats": leader_total,
+                        "projects": leader_projects,
+                    }
+                )
 
             return {
                 "total": total,
                 "project_leaders": items[offset : offset + limit],
                 "total_count": len(items),
             }
+
+    @staticmethod
+    def _leader_fact_stat_fields():
+        return (
+            "shift_report_details_quantity",
+            "shift_report_details_summ",
+            "shift_report_details_summ_by_estimate",
+        )
+
+    @classmethod
+    def _merge_fact_stats(cls, total, stats):
+        for field in cls._leader_fact_stat_fields():
+            total[field] += stats.get(field, 0.0) or 0.0
 
     def _build_grouped_project_stats(self, projects, *, detailed):
         if not projects:
