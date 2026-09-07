@@ -108,12 +108,12 @@ jobs:
             echo "SSH_USER=${{ secrets.SSH_USER_MASTER }}" >> $GITHUB_ENV
             echo "COMPOSE_FILES=-f docker-compose.app.yaml -f docker-compose.prod.yaml" >> $GITHUB_ENV
           elif [[ "${{ github.ref_name }}" == "dev" ]]; then
-            echo "DEPLOY_PATH=apps/ok-service-backend-dev" >> $GITHUB_ENV
+            echo "DEPLOY_PATH=/opt/apps/ok-service-backend-dev" >> $GITHUB_ENV
             echo "SERVER_IP=${{ secrets.SERVER_IP_DEV }}" >> $GITHUB_ENV
             echo "SSH_USER=${{ secrets.SSH_USER_DEV }}" >> $GITHUB_ENV
             echo "COMPOSE_FILES=-f docker-compose.app.yaml" >> $GITHUB_ENV
           else
-            echo "DEPLOY_PATH=apps/ok-service-backend-stage" >> $GITHUB_ENV
+            echo "DEPLOY_PATH=/opt/apps/ok-service-backend-stage" >> $GITHUB_ENV
             echo "SERVER_IP=${{ secrets.SERVER_IP_STAGE }}" >> $GITHUB_ENV
             echo "SSH_USER=${{ secrets.SSH_USER_STAGE }}" >> $GITHUB_ENV
             echo "COMPOSE_FILES=-f docker-compose.app.yaml" >> $GITHUB_ENV
