@@ -59,12 +59,21 @@ def _ensure_mutation(actor: AcceptanceActor) -> None:
         raise AcceptanceForbiddenError("Forbidden")
 
 
+def _ensure_object_not_waiting(repository: AcceptanceRepository, project_id: UUID) -> None:
+    get_status = getattr(repository, "get_project_object_status", None)
+    if get_status is not None and get_status(project_id) == "waiting":
+        raise ValueError(
+            "Acceptances cannot be created or edited while the object is waiting"
+        )
+
+
 @dataclass(slots=True)
 class CreateAcceptanceUseCase:
     repository: AcceptanceRepository
 
     def execute(self, command: CreateAcceptanceCommand, actor: AcceptanceActor) -> Acceptance:
         _ensure_mutation(actor)
+        _ensure_object_not_waiting(self.repository, command.project_id)
         return self.repository.create_acceptance(
             Acceptance(uuid4(), command.date, command.project_id, command.status, command.comment)
         )
@@ -98,6 +107,9 @@ class UpdateAcceptanceUseCase:
         existing = self.repository.get_acceptance(command.id)
         if existing is None:
             raise AcceptanceNotFoundError("Acceptance not found")
+        _ensure_object_not_waiting(
+            self.repository, command.project_id or existing.project_id
+        )
         updated = existing.with_updates(
             **{key: value for key, value in {
                 "date": command.date, "project_id": command.project_id,

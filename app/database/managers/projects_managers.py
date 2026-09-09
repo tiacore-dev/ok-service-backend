@@ -766,6 +766,12 @@ class ProjectsManager(BaseDBManager):
                 .all()
             ]
 
+    def get_object_status(self, object_id: UUID) -> str | None:
+        with self.session_scope() as session:
+            return session.query(Objects.status).filter(
+                Objects.object_id == object_id
+            ).scalar()
+
     def update_status_if_current(
         self,
         project_id: UUID,
@@ -784,6 +790,13 @@ class ProjectsManager(BaseDBManager):
             )
             if project is None:
                 return None
+            object_status = session.query(Objects.status).filter(
+                Objects.object_id == project.object
+            ).scalar()
+            if object_status == "waiting":
+                raise ProjectValidationError(
+                    "Project status cannot be changed while the object is waiting"
+                )
             if new_status is ProjectStatus.CLOSED:
                 project_works = (
                     session.query(ProjectWorks)
@@ -794,6 +807,15 @@ class ProjectsManager(BaseDBManager):
                 if any(not project_work.signed for project_work in project_works):
                     raise ProjectValidationError(
                         "Project cannot be closed until all project works are signed"
+                    )
+                acceptances = (
+                    session.query(Acceptances.status)
+                    .filter(Acceptances.project_id == project_id)
+                    .all()
+                )
+                if any(status != "documents_signed" for (status,) in acceptances):
+                    raise ProjectValidationError(
+                        "Project cannot be closed until all acceptances have signed documents"
                     )
             project.status = new_status
             session.flush()

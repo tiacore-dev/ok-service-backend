@@ -47,6 +47,9 @@ class SQLAlchemyAcceptanceRepository(AcceptanceRepository):
         self._recalculate(acceptance.project_id)
         return _entity(record)
 
+    def get_project_object_status(self, project_id: UUID) -> str | None:
+        return self.manager.get_project_object_status(project_id)
+
     def get_acceptance(self, acceptance_id: UUID) -> Acceptance | None:
         record = normalize_result(self.manager.get_by_id(acceptance_id))
         return _entity(record) if record else None

@@ -8,6 +8,7 @@ from app.domain.projects import (
     ProjectConflictError,
     ProjectForbiddenError,
     ProjectNotFoundError,
+    ProjectValidationError,
     ProjectStatus,
 )
 
@@ -29,6 +30,11 @@ class UpdateProjectStatusUseCase:
         current = self.repository.get_project(project_id)
         if current is None or current.deleted:
             raise ProjectNotFoundError("Project not found")
+        get_object_status = getattr(self.repository, "get_object_status", None)
+        if get_object_status is not None and get_object_status(current.object) == "waiting":
+            raise ProjectValidationError(
+                "Project status cannot be changed while the object is waiting"
+            )
         if status != current.status and status not in ProjectStatus.neighbours(
             current.status
         ):

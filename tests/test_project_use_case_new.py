@@ -42,6 +42,8 @@ class FakeProjectRepository:
     stats: dict[str, dict[str, object]] | None = None
     stats_by_materials: dict[str, dict[str, object]] | None = None
     project_work_signed: list[bool] | None = None
+    acceptance_statuses: list[str] | None = None
+    object_status: str | None = None
     leader_stats_query: ProjectLeaderStatsListQuery | None = None
 
     def create_project(self, project: Project) -> Project:
@@ -51,6 +53,9 @@ class FakeProjectRepository:
 
     def get_project(self, project_id: UUID) -> Project | None:
         return self.project if self.project and self.project.project_id == project_id else None
+
+    def get_object_status(self, object_id: UUID) -> str | None:
+        return self.object_status
 
     def get_project_record(self, project_id: UUID) -> dict[str, object] | None:
         if self.project is None or self.project.project_id != project_id:
@@ -77,6 +82,13 @@ class FakeProjectRepository:
         ):
             raise ProjectValidationError(
                 "Project cannot be closed until all project works are signed"
+            )
+        if status is ProjectStatus.CLOSED and any(
+            acceptance_status != "documents_signed"
+            for acceptance_status in self.acceptance_statuses or []
+        ):
+            raise ProjectValidationError(
+                "Project cannot be closed until all acceptances have signed documents"
             )
         self.project = self.project.with_updates(status=status)
         self.updated = self.project
@@ -198,6 +210,18 @@ def test_project_status_change_requires_admin_or_manager_and_adjacent_status():
         )
 
 
+def test_project_status_change_is_blocked_for_waiting_object():
+    project = _project()
+    repository = FakeProjectRepository(project=project, object_status="waiting")
+
+    with pytest.raises(ProjectValidationError, match="object is waiting"):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id,
+            ProjectStatus.IN_PROGRESS,
+            ProjectActor(role="manager", user_id=uuid4()),
+        )
+
+
 def test_project_cannot_be_closed_until_all_project_works_are_signed():
     project = _project().with_updates(status=ProjectStatus.WORKS_COMPLETED)
     repository = FakeProjectRepository(
@@ -205,6 +229,22 @@ def test_project_cannot_be_closed_until_all_project_works_are_signed():
     )
 
     with pytest.raises(ProjectValidationError, match="all project works are signed"):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id,
+            ProjectStatus.CLOSED,
+            ProjectActor(role="manager", user_id=uuid4()),
+        )
+
+
+def test_project_cannot_be_closed_until_all_acceptances_are_signed():
+    project = _project().with_updates(status=ProjectStatus.WORKS_COMPLETED)
+    repository = FakeProjectRepository(
+        project=project,
+        project_work_signed=[True],
+        acceptance_statuses=["presented", "documents_signed"],
+    )
+
+    with pytest.raises(ProjectValidationError, match="all acceptances"):
         UpdateProjectStatusUseCase(repository).execute(
             project.project_id,
             ProjectStatus.CLOSED,

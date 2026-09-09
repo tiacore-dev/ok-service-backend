@@ -4,6 +4,8 @@ from uuid import uuid4
 import pytest
 
 from app.domain.acceptances import Acceptance, AcceptanceForbiddenError, AcceptanceStatus
+from app.database.managers.materials_manager import AcceptancesManager
+from app.database.models import Acceptances, Objects
 from app.domain.work_acceptance_relations import (
     WorkAcceptanceRelation,
     WorkAcceptanceRelationValidationError,
@@ -33,6 +35,8 @@ def test_acceptance_mutation_is_allowed_for_manager():
         def create_acceptance(self, acceptance):
             return acceptance
 
+        def get_project_object_status(self, project_id): return "active"
+
         def get_acceptance(self, acceptance_id): return None
         def update_acceptance(self, acceptance): return acceptance
         def update_acceptance_with_status_history(self, acceptance, history): return acceptance
@@ -52,6 +56,8 @@ def test_acceptance_mutation_is_forbidden_for_project_leader():
         def create_acceptance(self, acceptance):
             return acceptance
 
+        def get_project_object_status(self, project_id): return "active"
+
         def get_acceptance(self, acceptance_id): return None
         def update_acceptance(self, acceptance): return acceptance
         def update_acceptance_with_status_history(self, acceptance, history): return acceptance
@@ -64,6 +70,58 @@ def test_acceptance_mutation_is_forbidden_for_project_leader():
             CreateAcceptanceCommand(1, uuid4(), AcceptanceStatus.PRESENTED, None),
             AcceptanceActor("project-leader", uuid4()),
         )
+
+
+def test_acceptance_mutation_is_blocked_for_waiting_object():
+    class Repository:
+        def get_project_object_status(self, project_id): return "waiting"
+
+        def create_acceptance(self, acceptance): return acceptance
+        def get_acceptance(self, acceptance_id): return None
+        def update_acceptance(self, acceptance): return acceptance
+        def update_acceptance_with_status_history(self, acceptance, history): return acceptance
+        def delete_acceptance(self, acceptance_id): return True
+        def list_acceptances(self, query): return []
+        def list_acceptance_history(self, query): return []
+
+    with pytest.raises(ValueError, match="object is waiting"):
+        CreateAcceptanceUseCase(Repository()).execute(
+            CreateAcceptanceCommand(1, uuid4(), AcceptanceStatus.PRESENTED, None),
+            AcceptanceActor("manager", uuid4()),
+        )
+
+
+def test_acceptance_manager_clears_comment_when_explicitly_set_to_none():
+    acceptance_id = uuid4()
+
+    class Record:
+        comment = "old comment"
+        project_id = uuid4()
+
+        def to_dict(self):
+            return {"id": str(acceptance_id), "comment": self.comment}
+
+    record = Record()
+
+    class Query:
+        def __init__(self, result): self.result = result
+        def filter(self, *args): return self
+        def join(self, *args): return self
+        def first(self): return self.result
+        def scalar(self): return "active"
+
+    class Session:
+        def query(self, model):
+            return Query(record if model is Acceptances else "active")
+
+        def flush(self): pass
+
+    updated = AcceptancesManager(session=Session()).update(
+        acceptance_id, comment=None
+    )
+
+    assert record.comment is None
+    assert updated["comment"] is None
 
 
 class HistoryRepository:

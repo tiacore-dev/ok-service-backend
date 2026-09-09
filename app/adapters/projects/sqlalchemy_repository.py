@@ -32,6 +32,9 @@ class SQLAlchemyProjectRepository(ProjectRepository):
             return None
         return project_dict_to_entity(record)
 
+    def get_object_status(self, object_id: UUID) -> str | None:
+        return self.manager.get_object_status(object_id)
+
     def get_project_record(self, project_id: UUID) -> dict[str, object] | None:
         return normalize_result(self.manager.get_by_id(project_id))
 
