@@ -200,6 +200,33 @@ def test_admin_and_manager_can_upload_acceptance_attachment(role):
     assert len(result) == 1
 
 
+def test_project_leader_can_view_only_own_acceptance_attachment():
+    leader_id = uuid4()
+    target = AttachmentTarget(
+        "acceptance", uuid4(), False, project_leader_id=leader_id
+    )
+    use_case = AttachmentUseCase(FakeRepository(target), FakeStorage())
+
+    use_case.list(
+        "acceptance", target.target_id, AttachmentActor(leader_id, "project-leader")
+    )
+
+    with pytest.raises(AttachmentForbiddenError):
+        use_case.list(
+            "acceptance", target.target_id,
+            AttachmentActor(uuid4(), "project-leader"),
+        )
+
+
+def test_user_cannot_view_acceptance_attachment():
+    target = AttachmentTarget("acceptance", uuid4(), False, project_leader_id=uuid4())
+
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).list(
+            "acceptance", target.target_id, AttachmentActor(uuid4(), "user")
+        )
+
+
 def test_unassigned_manager_cannot_upload_place_attachment():
     target = AttachmentTarget("place", uuid4(), False, owner_id=uuid4())
 

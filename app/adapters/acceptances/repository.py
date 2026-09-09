@@ -54,6 +54,10 @@ class SQLAlchemyAcceptanceRepository(AcceptanceRepository):
         record = normalize_result(self.manager.get_by_id(acceptance_id))
         return _entity(record) if record else None
 
+    def get_project_leader_id(self, project_id: UUID) -> UUID | None:
+        value = self.manager.get_project_leader_id(project_id)
+        return UUID(str(value)) if value is not None else None
+
     def update_acceptance(self, acceptance: Acceptance) -> Acceptance | None:
         current = self.get_acceptance(acceptance.id)
         record = normalize_result(self.manager.update(
@@ -95,6 +99,7 @@ class SQLAlchemyAcceptanceRepository(AcceptanceRepository):
         records = self.manager.get_all_filtered(
             offset=query.offset, limit=query.limit, project_id=query.project_id,
             status=query.status.value if query.status else None,
+            project_leader_id=query.project_leader_id,
         )
         return [_entity(record) for record in records]
 

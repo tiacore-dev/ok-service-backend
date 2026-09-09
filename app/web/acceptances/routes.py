@@ -137,7 +137,7 @@ class AcceptanceView(Resource):
     @api_key_or_jwt_required
     @acceptance_ns.marshal_with(acceptance_response)
     def get(self, acceptance_id):
-        try: return {"msg": "Acceptance found successfully", "acceptance": _response(GetAcceptanceUseCase(_repo()).execute(_id(acceptance_id)), include_attachments=True)}, 200
+        try: return {"msg": "Acceptance found successfully", "acceptance": _response(GetAcceptanceUseCase(_repo()).execute(_id(acceptance_id), _actor(_user())), include_attachments=True)}, 200
         except Exception as error: return _error(error)
 
 
@@ -183,7 +183,7 @@ class AcceptanceAll(Resource):
             items = ListAcceptancesUseCase(_repo()).execute(AcceptanceListQuery(
                 offset=data.get("offset", 0), limit=data.get("limit", 1000),
                 project_id=optional_uuid(data.get("project_id")),
-                status=AcceptanceStatus(status) if status else None))
+                status=AcceptanceStatus(status) if status else None), _actor(_user()))
             return {"msg": "Acceptances found successfully", "acceptances": [_response(item) for item in items]}, 200
         except Exception as error: return _error(error)
 

@@ -121,7 +121,22 @@ def test_acceptance_manager_clears_comment_when_explicitly_set_to_none():
     )
 
     assert record.comment is None
+    assert updated is not None
     assert updated["comment"] is None
+
+
+def test_only_admin_can_edit_signed_documents_acceptance():
+    acceptance = Acceptance(
+        uuid4(), 1, uuid4(), AcceptanceStatus.DOCUMENTS_SIGNED, "comment"
+    )
+
+    with pytest.raises(AcceptanceForbiddenError, match="Only admin"):
+        UpdateAcceptanceUseCase(HistoryRepository(acceptance)).execute(
+            UpdateAcceptanceCommand(
+                id=acceptance.id, comment="new comment", comment_provided=True
+            ),
+            AcceptanceActor("manager", uuid4()),
+        )
 
 
 class HistoryRepository:

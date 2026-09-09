@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import UUID, uuid4
 
 from app.domain.acceptances import (
@@ -45,6 +45,7 @@ class AcceptanceListQuery:
     limit: int | None = 1000
     project_id: UUID | None = None
     status: AcceptanceStatus | None = None
+    project_leader_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +68,16 @@ def _ensure_object_not_waiting(repository: AcceptanceRepository, project_id: UUI
         )
 
 
+def _ensure_leader_access(repository: AcceptanceRepository, project_id: UUID, actor: AcceptanceActor) -> None:
+    if actor.role != "project-leader":
+        if actor.role in {"admin", "manager"}:
+            return
+        raise AcceptanceForbiddenError("Forbidden")
+    get_leader_id = getattr(repository, "get_project_leader_id", None)
+    if get_leader_id is None or get_leader_id(project_id) != actor.user_id:
+        raise AcceptanceForbiddenError("Forbidden")
+
+
 @dataclass(slots=True)
 class CreateAcceptanceUseCase:
     repository: AcceptanceRepository
@@ -83,10 +94,12 @@ class CreateAcceptanceUseCase:
 class GetAcceptanceUseCase:
     repository: AcceptanceRepository
 
-    def execute(self, acceptance_id: UUID) -> Acceptance:
+    def execute(self, acceptance_id: UUID, actor: AcceptanceActor | None = None) -> Acceptance:
         result = self.repository.get_acceptance(acceptance_id)
         if result is None:
             raise AcceptanceNotFoundError("Acceptance not found")
+        if actor is not None:
+            _ensure_leader_access(self.repository, result.project_id, actor)
         return result
 
 
@@ -94,7 +107,11 @@ class GetAcceptanceUseCase:
 class ListAcceptancesUseCase:
     repository: AcceptanceRepository
 
-    def execute(self, query: AcceptanceListQuery) -> list[Acceptance]:
+    def execute(self, query: AcceptanceListQuery, actor: AcceptanceActor | None = None) -> list[Acceptance]:
+        if actor is not None and actor.role not in {"admin", "manager", "project-leader"}:
+            raise AcceptanceForbiddenError("Forbidden")
+        if actor is not None and actor.role == "project-leader":
+            query = replace(query, project_leader_id=actor.user_id)
         return self.repository.list_acceptances(query)
 
 
@@ -107,6 +124,10 @@ class UpdateAcceptanceUseCase:
         existing = self.repository.get_acceptance(command.id)
         if existing is None:
             raise AcceptanceNotFoundError("Acceptance not found")
+        if existing.status is AcceptanceStatus.DOCUMENTS_SIGNED and actor.role != "admin":
+            raise AcceptanceForbiddenError(
+                "Only admin can edit an acceptance with signed documents"
+            )
         _ensure_object_not_waiting(
             self.repository, command.project_id or existing.project_id
         )

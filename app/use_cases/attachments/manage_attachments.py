@@ -36,7 +36,9 @@ def _ensure_view_access(target: AttachmentTarget, actor: AttachmentActor) -> Non
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "acceptance":
-        if actor.role in {"admin", "manager", "project-leader", "user"}:
+        if actor.role in {"admin", "manager"}:
+            return
+        if actor.role == "project-leader" and target.project_leader_id == actor.user_id:
             return
         raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "shift_report":

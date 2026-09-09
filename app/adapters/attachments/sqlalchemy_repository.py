@@ -118,6 +118,11 @@ class SQLAlchemyAttachmentRepository:
                     target_type=target_type,
                     target_id=target_id,
                     deleted=False,
+                    project_leader_id=(
+                        acceptance.project.project_leader
+                        if acceptance.project is not None
+                        else None
+                    ),
                 )
             return None
         finally:

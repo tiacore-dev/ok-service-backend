@@ -105,6 +105,41 @@ class AcceptancesManager(BaseDBManager):
                 .scalar()
             )
 
+    def get_project_leader_id(self, project_id):
+        with self.session_scope() as session:
+            return (
+                session.query(Projects.project_leader)
+                .join(Acceptances, Acceptances.project_id == Projects.project_id)
+                .filter(Projects.project_id == project_id)
+                .scalar()
+            )
+
+    def get_all_filtered(
+        self,
+        *,
+        offset=0,
+        limit=None,
+        project_id=None,
+        status=None,
+        project_leader_id=None,
+        **filters,
+    ):
+        with self.session_scope() as session:
+            query = session.query(self.model)
+            if project_leader_id is not None:
+                query = query.join(
+                    Projects, self.model.project_id == Projects.project_id
+                )
+                query = query.filter(Projects.project_leader == project_leader_id)
+            if project_id is not None:
+                query = query.filter(self.model.project_id == project_id)
+            if status is not None:
+                query = query.filter(self.model.status == status)
+            query = query.offset(offset)
+            if limit is not None:
+                query = query.limit(limit)
+            return [record.to_dict() for record in query.all()]
+
     def add(self, **kwargs):
         with self.session_scope() as session:
             self._ensure_project_object_not_waiting(session, kwargs["project_id"])
