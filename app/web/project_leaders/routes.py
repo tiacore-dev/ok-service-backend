@@ -25,7 +25,6 @@ from app.web.objects.models import (
     project_leader_stats_collection_response,
     project_leader_stats_collection_item,
     project_leader_stats_collection_payload,
-    project_leader_fact_stats,
     project_leader_fact_project,
     project_leader_fact_stats_filter_parser,
 )
@@ -42,7 +41,6 @@ for model in (
     project_leader_stats_collection_response,
     project_leader_stats_collection_item,
     project_leader_stats_collection_payload,
-    project_leader_fact_stats,
     project_leader_fact_project,
 ):
     project_leader_ns.models[model.name] = model

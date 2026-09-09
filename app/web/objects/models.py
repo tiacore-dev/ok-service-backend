@@ -136,20 +136,16 @@ object_stats_collection_item = Model(
         "stats": fields.Raw(required=True),
     },
 )
-project_leader_fact_stats = Model(
-    "ProjectLeaderFactStats",
-    {
-        "shift_report_details_quantity": fields.Float(required=True),
-        "shift_report_details_summ": fields.Float(required=True),
-        "shift_report_details_summ_by_estimate": fields.Float(required=True),
-    },
+project_leader_fact_stats = fields.Raw(
+    required=True,
+    description="Statistics grouped by calendar month in YYYY-MM format",
 )
 project_leader_fact_project = Model(
     "ProjectLeaderFactProject",
     {
         "project_id": fields.String(required=True),
         "name": fields.String(required=True),
-        "stats": fields.Nested(project_leader_fact_stats, required=True),
+        "stats": project_leader_fact_stats,
     },
 )
 project_leader_stats_collection_item = Model(
@@ -158,7 +154,7 @@ project_leader_stats_collection_item = Model(
         "user_id": fields.String(required=True),
         "login": fields.String(required=True),
         "name": fields.String(required=True),
-        "stats": fields.Nested(project_leader_fact_stats, required=True),
+        "stats": project_leader_fact_stats,
         "projects": fields.List(
             fields.Nested(project_leader_fact_project), required=True
         ),
@@ -167,7 +163,7 @@ project_leader_stats_collection_item = Model(
 project_leader_stats_collection_payload = Model(
     "ProjectLeaderStatsCollectionPayload",
     {
-        "total": fields.Nested(project_leader_fact_stats, required=True),
+        "total": project_leader_fact_stats,
         "project_leaders": fields.List(
             fields.Nested(project_leader_stats_collection_item), required=True
         ),

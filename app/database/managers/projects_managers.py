@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -594,18 +595,13 @@ class ProjectsManager(BaseDBManager):
             ) if leaders else []
 
             project_ids = [project_id for project_id, _, _ in projects]
-            by_project = {
-                project_id: {
-                    "shift_report_details_quantity": 0.0,
-                    "shift_report_details_summ": 0.0,
-                    "shift_report_details_summ_by_estimate": 0.0,
-                }
-                for project_id in project_ids
-            }
+            by_project = {project_id: {} for project_id in project_ids}
+            month_keys: set[str] = set(self._month_keys(date_from, date_to))
             if project_ids:
                 fact_query = (
                     session.query(
                         ShiftReports.project,
+                        ShiftReports.date,
                         func.sum(ShiftReportDetails.quantity),
                         func.sum(ShiftReportDetails.summ),
                         func.sum(ShiftReportDetails.quantity * ProjectWorks.price),
@@ -628,19 +624,32 @@ class ProjectsManager(BaseDBManager):
                     fact_query = fact_query.filter(ShiftReports.date >= date_from)
                 if date_to is not None:
                     fact_query = fact_query.filter(ShiftReports.date <= date_to)
-                for project_id, quantity, summ, estimated_summ in fact_query.group_by(
-                    ShiftReports.project
+                for project_id, report_date, quantity, summ, estimated_summ in fact_query.group_by(
+                    ShiftReports.project, ShiftReports.date
                 ).all():
-                    by_project[project_id] = {
-                        "shift_report_details_quantity": float(quantity or 0),
-                        "shift_report_details_summ": float(summ or 0),
-                        "shift_report_details_summ_by_estimate": float(
-                            estimated_summ or 0
-                        ),
-                    }
+                    month = self._month_key(report_date)
+                    month_keys.add(month)
+                    by_project[project_id].setdefault(month, self._empty_fact_stats())
+                    self._merge_fact_stats(
+                        by_project[project_id][month],
+                        {
+                            "shift_report_details_quantity": float(quantity or 0),
+                            "shift_report_details_summ": float(summ or 0),
+                            "shift_report_details_summ_by_estimate": float(
+                                estimated_summ or 0
+                            ),
+                        },
+                    )
+
+            ordered_months = sorted(month_keys)
+            for project_id in by_project:
+                by_project[project_id] = {
+                    month: by_project[project_id].get(month, self._empty_fact_stats())
+                    for month in ordered_months
+                }
 
             items = []
-            total = {field: 0.0 for field in self._leader_fact_stat_fields()}
+            total = {month: self._empty_fact_stats() for month in ordered_months}
             by_leader = {user_id: [] for user_id in leader_ids}
             for project_id, leader_id, name in projects:
                 by_leader[leader_id].append(
@@ -648,10 +657,14 @@ class ProjectsManager(BaseDBManager):
                 )
             for user_id, login, name in leaders:
                 leader_projects = by_leader[user_id]
-                leader_total = {field: 0.0 for field in self._leader_fact_stat_fields()}
+                leader_total = {
+                    month: self._empty_fact_stats() for month in ordered_months
+                }
                 for project in leader_projects:
-                    self._merge_fact_stats(leader_total, project["stats"])
-                self._merge_fact_stats(total, leader_total)
+                    for month, stats in project["stats"].items():
+                        self._merge_fact_stats(leader_total[month], stats)
+                for month in ordered_months:
+                    self._merge_fact_stats(total[month], leader_total[month])
                 items.append(
                     {
                         "user_id": str(user_id),
@@ -675,6 +688,42 @@ class ProjectsManager(BaseDBManager):
             "shift_report_details_summ",
             "shift_report_details_summ_by_estimate",
         )
+
+    @staticmethod
+    def _empty_fact_stats():
+        return {
+            "shift_report_details_quantity": 0.0,
+            "shift_report_details_summ": 0.0,
+            "shift_report_details_summ_by_estimate": 0.0,
+        }
+
+    @staticmethod
+    def _month_key(timestamp: int) -> str:
+        return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc).strftime(
+            "%Y-%m"
+        )
+
+    @classmethod
+    def _month_keys(
+        cls, date_from: int | None, date_to: int | None
+    ) -> tuple[str, ...]:
+        if date_from is None or date_to is None:
+            return ()
+        start = datetime.fromtimestamp(date_from / 1000, tz=timezone.utc).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        end = datetime.fromtimestamp(date_to / 1000, tz=timezone.utc).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        months = []
+        current = start
+        while current <= end:
+            months.append(current.strftime("%Y-%m"))
+            if current.month == 12:
+                current = current.replace(year=current.year + 1, month=1)
+            else:
+                current = current.replace(month=current.month + 1)
+        return tuple(months)
 
     @classmethod
     def _merge_fact_stats(cls, total, stats):

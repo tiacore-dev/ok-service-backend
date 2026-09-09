@@ -89,7 +89,47 @@
 `shift_reports.deleted = false` и `shift_reports.signed = true`. Параметры
 `date_from` и `date_to` фильтруют `shift_reports.date` включительно и задаются
 в Unix milliseconds. Параметр `project_leader_ids` можно передавать несколько
-раз для выборки конкретных прорабов.
+раз для выборки конкретных прорабов. Фактические данные группируются по
+календарным месяцам; `date_from` и `date_to` ограничивают набор учитываемых
+сменных отчётов. Ключ месяца имеет формат `YYYY-MM`, например `2025-01`.
+
+Помесячные словари возвращаются в `total`, `project_leaders[].stats` и
+`project_leaders[].projects[].stats`. Каждый месяц содержит все три показателя
+фактической статистики. Для диапазона с 01.01.2025 по 31.12.2025 в ответе будут
+все месяцы с `2025-01` по `2025-12`, включая месяцы с нулевыми значениями.
+
+Пример фрагмента ответа:
+
+```json
+{
+  "total": {
+    "2025-01": {
+      "shift_report_details_quantity": 10,
+      "shift_report_details_summ": 1000,
+      "shift_report_details_summ_by_estimate": 1200
+    }
+  },
+  "project_leaders": [
+    {
+      "user_id": "uuid",
+      "login": "leader",
+      "name": "Прораб",
+      "stats": {"2025-01": {
+        "shift_report_details_quantity": 10,
+        "shift_report_details_summ": 1000,
+        "shift_report_details_summ_by_estimate": 1200
+      }},
+      "projects": [
+        {"project_id": "uuid", "name": "Проект 1", "stats": {"2025-01": {
+          "shift_report_details_quantity": 10,
+          "shift_report_details_summ": 1000,
+          "shift_report_details_summ_by_estimate": 1200
+        }}}
+      ]
+    }
+  ]
+}
+```
 
 Для статистики по прорабу используются отдельные маршруты:
 
