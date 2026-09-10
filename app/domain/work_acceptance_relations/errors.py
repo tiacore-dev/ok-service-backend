@@ -6,5 +6,9 @@ class WorkAcceptanceRelationValidationError(DomainError):
     """Raised when relation data is invalid."""
 
 
+class WorkAcceptanceQuantityExceededError(DomainError):
+    """Raised when accepted quantity exceeds the specification quantity."""
+
+
 class WorkAcceptanceRelationNotFoundError(DomainError):
     """Raised when a relation cannot be found."""

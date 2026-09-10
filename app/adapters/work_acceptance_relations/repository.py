@@ -27,7 +27,7 @@ class SQLAlchemyWorkAcceptanceRelationRepository(WorkAcceptanceRelationRepositor
             self.statistics.recalculate_many({item for item in project_ids if item is not None})
 
     def create_work_acceptance_relation(self, relation: WorkAcceptanceRelation) -> WorkAcceptanceRelation:
-        record = normalize_result(self.manager.add(
+        record = normalize_result(self.manager.add_with_quantity_check(
             id=relation.id, acceptance_id=relation.acceptance_id,
             work_id=relation.work_id, quantity=relation.quantity,
         ))
@@ -43,7 +43,7 @@ class SQLAlchemyWorkAcceptanceRelationRepository(WorkAcceptanceRelationRepositor
 
     def update_work_acceptance_relation(self, relation: WorkAcceptanceRelation) -> WorkAcceptanceRelation | None:
         old_project_id = self.manager.get_project_id(relation.id)
-        record = normalize_result(self.manager.update(
+        record = normalize_result(self.manager.update_with_quantity_check(
             relation.id, acceptance_id=relation.acceptance_id,
             work_id=relation.work_id, quantity=relation.quantity,
         ))

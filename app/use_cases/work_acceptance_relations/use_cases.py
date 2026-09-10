@@ -37,10 +37,13 @@ class WorkAcceptanceRelationListQuery:
 class CreateWorkAcceptanceRelationUseCase:
     repository: WorkAcceptanceRelationRepository
 
-    def execute(self, command: CreateWorkAcceptanceRelationCommand) -> WorkAcceptanceRelation:
-        return self.repository.create_work_acceptance_relation(
-            WorkAcceptanceRelation(uuid4(), command.acceptance_id, command.work_id, command.quantity)
+    def execute(
+        self, command: CreateWorkAcceptanceRelationCommand
+    ) -> WorkAcceptanceRelation:
+        relation = WorkAcceptanceRelation(
+            uuid4(), command.acceptance_id, command.work_id, command.quantity
         )
+        return self.repository.create_work_acceptance_relation(relation)
 
 
 @dataclass(slots=True)
@@ -50,7 +53,9 @@ class GetWorkAcceptanceRelationUseCase:
     def execute(self, relation_id: UUID) -> WorkAcceptanceRelation:
         result = self.repository.get_work_acceptance_relation(relation_id)
         if result is None:
-            raise WorkAcceptanceRelationNotFoundError("Work acceptance relation not found")
+            raise WorkAcceptanceRelationNotFoundError(
+                "Work acceptance relation not found"
+            )
         return result
 
 
@@ -58,7 +63,9 @@ class GetWorkAcceptanceRelationUseCase:
 class ListWorkAcceptanceRelationsUseCase:
     repository: WorkAcceptanceRelationRepository
 
-    def execute(self, query: WorkAcceptanceRelationListQuery) -> list[WorkAcceptanceRelation]:
+    def execute(
+        self, query: WorkAcceptanceRelationListQuery
+    ) -> list[WorkAcceptanceRelation]:
         return self.repository.list_work_acceptance_relations(query)
 
 
@@ -66,17 +73,29 @@ class ListWorkAcceptanceRelationsUseCase:
 class UpdateWorkAcceptanceRelationUseCase:
     repository: WorkAcceptanceRelationRepository
 
-    def execute(self, command: UpdateWorkAcceptanceRelationCommand) -> WorkAcceptanceRelation:
+    def execute(
+        self, command: UpdateWorkAcceptanceRelationCommand
+    ) -> WorkAcceptanceRelation:
         existing = self.repository.get_work_acceptance_relation(command.id)
         if existing is None:
-            raise WorkAcceptanceRelationNotFoundError("Work acceptance relation not found")
-        changes = {key: value for key, value in {
-            "acceptance_id": command.acceptance_id, "work_id": command.work_id,
-            "quantity": command.quantity,
-        }.items() if value is not None}
-        result = self.repository.update_work_acceptance_relation(existing.with_updates(**changes))
+            raise WorkAcceptanceRelationNotFoundError(
+                "Work acceptance relation not found"
+            )
+        changes = {
+            key: value
+            for key, value in {
+                "acceptance_id": command.acceptance_id,
+                "work_id": command.work_id,
+                "quantity": command.quantity,
+            }.items()
+            if value is not None
+        }
+        updated = existing.with_updates(**changes)
+        result = self.repository.update_work_acceptance_relation(updated)
         if result is None:
-            raise WorkAcceptanceRelationNotFoundError("Work acceptance relation not found")
+            raise WorkAcceptanceRelationNotFoundError(
+                "Work acceptance relation not found"
+            )
         return result
 
 

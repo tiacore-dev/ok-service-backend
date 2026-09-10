@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 
 from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import (
@@ -11,7 +12,9 @@ from app.database.models import (
     ShiftReportMaterials,
     WorkAcceptanceRelations,
     WorkMaterialRelations,
+    ProjectWorks,
 )
+from app.domain.work_acceptance_relations import WorkAcceptanceQuantityExceededError
 
 logger = logging.getLogger("ok_service")
 
@@ -205,3 +208,85 @@ class WorkAcceptanceRelationsManager(BaseDBManager):
                 .first()
             )
             return record.acceptance.project_id if record is not None else None
+
+    @staticmethod
+    def _ensure_quantity_available(
+        session, relation, *, exclude_relation_id=None
+    ):
+        project_id = (
+            session.query(Acceptances.project_id)
+            .filter(Acceptances.id == relation.acceptance_id)
+            .scalar()
+        )
+        if project_id is None:
+            return
+
+        # Lock every matching specification row. A missing work has a zero
+        # limit and cannot be accepted, so it does not need a lock.
+        specification_rows = (
+            session.query(ProjectWorks.quantity)
+            .filter(
+                ProjectWorks.project == project_id,
+                ProjectWorks.work == relation.work_id,
+            )
+            .with_for_update()
+            .all()
+        )
+        specification_quantity = sum(
+            (Decimal(str(row.quantity)) for row in specification_rows),
+            Decimal("0"),
+        )
+        accepted_query = (
+            session.query(WorkAcceptanceRelations.quantity)
+            .join(
+                Acceptances,
+                Acceptances.id == WorkAcceptanceRelations.acceptance_id,
+            )
+            .filter(
+                Acceptances.project_id == project_id,
+                WorkAcceptanceRelations.work_id == relation.work_id,
+            )
+        )
+        if exclude_relation_id is not None:
+            accepted_query = accepted_query.filter(
+                WorkAcceptanceRelations.id != exclude_relation_id
+            )
+        accepted_quantity = sum(
+            (Decimal(str(row.quantity)) for row in accepted_query.all()),
+            Decimal("0"),
+        )
+        if accepted_quantity + relation.quantity > specification_quantity:
+            raise WorkAcceptanceQuantityExceededError(
+                "Work acceptance relation quantity exceeds the available quantity "
+                f"for work {relation.work_id}"
+            )
+
+    def add_with_quantity_check(self, **kwargs):
+        with self.session_scope() as session:
+            relation = self.model(**kwargs)
+            self._ensure_quantity_available(session, relation)
+            session.add(relation)
+            session.flush()
+            return relation.to_dict()
+
+    def update_with_quantity_check(self, record_id, **kwargs):
+        filtered_kwargs = {
+            key: value for key, value in kwargs.items() if value is not None
+        }
+        if not filtered_kwargs:
+            return None
+        with self.session_scope() as session:
+            relation = (
+                session.query(self.model)
+                .filter(self.model.id == record_id)
+                .first()
+            )
+            if relation is None:
+                return None
+            for field, value in filtered_kwargs.items():
+                setattr(relation, field, value)
+            self._ensure_quantity_available(
+                session, relation, exclude_relation_id=record_id
+            )
+            session.flush()
+            return relation.to_dict()

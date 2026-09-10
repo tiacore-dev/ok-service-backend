@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from app.adapters.work_acceptance_relations import SQLAlchemyWorkAcceptanceRelationRepository
 from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import admin_or_manager_required, api_key_or_jwt_required
-from app.domain.work_acceptance_relations import WorkAcceptanceRelationNotFoundError, WorkAcceptanceRelationValidationError
+from app.domain.work_acceptance_relations import WorkAcceptanceQuantityExceededError, WorkAcceptanceRelationNotFoundError, WorkAcceptanceRelationValidationError
 from app.routes.models.work_acceptance_relation_models import work_acceptance_relation_all_response, work_acceptance_relation_create_model, work_acceptance_relation_edit_model, work_acceptance_relation_filter_parser, work_acceptance_relation_model, work_acceptance_relation_msg_model, work_acceptance_relation_response
 from app.schemas.work_acceptance_relation_schemas import WorkAcceptanceRelationCreateSchema, WorkAcceptanceRelationEditSchema, WorkAcceptanceRelationFilterSchema
 from app.use_cases.work_acceptance_relations import CreateWorkAcceptanceRelationCommand, CreateWorkAcceptanceRelationUseCase, DeleteWorkAcceptanceRelationUseCase, GetWorkAcceptanceRelationUseCase, ListWorkAcceptanceRelationsUseCase, UpdateWorkAcceptanceRelationCommand, UpdateWorkAcceptanceRelationUseCase, WorkAcceptanceRelationListQuery
@@ -68,6 +68,11 @@ def _response(item):
 
 def _error(error: Exception):
     if isinstance(error, WorkAcceptanceRelationNotFoundError): return {"msg": str(error)}, 404
+    if isinstance(error, WorkAcceptanceQuantityExceededError):
+        return {
+            "msg": str(error),
+            "code": "WORK_ACCEPTANCE_QUANTITY_EXCEEDED",
+        }, 409
     if isinstance(error, (WorkAcceptanceRelationValidationError, ValidationError, ValueError)): return {"msg": str(error)}, 400
     if isinstance(error, IntegrityError): return {"msg": "Cannot delete work acceptance relation: dependent data exists."}, 409
     return {"msg": f"Internal error: {error}"}, 500
