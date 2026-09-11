@@ -55,8 +55,16 @@ class RelationRepository:
         accepted_quantity = self.accepted_quantity
         if exclude_relation_id is not None and self.relation is not None:
             accepted_quantity -= self.relation.quantity
-        if accepted_quantity + relation.quantity > self.specification_quantity:
-            raise WorkAcceptanceQuantityExceededError("quantity exceeded")
+        available_quantity = self.specification_quantity - accepted_quantity
+        exceeded_quantity = relation.quantity - available_quantity
+        if exceeded_quantity > 0:
+            raise WorkAcceptanceQuantityExceededError(
+                work_id=relation.work_id,
+                specification_quantity=self.specification_quantity,
+                available_quantity=available_quantity,
+                requested_quantity=relation.quantity,
+                exceeded_quantity=exceeded_quantity,
+            )
 
     def create_work_acceptance_relation(self, relation):
         self._ensure_quantity_available(relation)
@@ -81,12 +89,17 @@ class RelationRepository:
 def test_work_acceptance_relation_creation_rejects_quantity_above_work_limit():
     repository = RelationRepository(accepted_quantity=Decimal("8"))
 
-    with pytest.raises(WorkAcceptanceQuantityExceededError):
+    with pytest.raises(WorkAcceptanceQuantityExceededError) as error_info:
         CreateWorkAcceptanceRelationUseCase(repository).execute(
             CreateWorkAcceptanceRelationCommand(uuid4(), uuid4(), Decimal("3"))
         )
 
     assert repository.created is None
+    error = error_info.value
+    assert error.specification_quantity == Decimal("10")
+    assert error.available_quantity == Decimal("2")
+    assert error.requested_quantity == Decimal("3")
+    assert error.exceeded_quantity == Decimal("1")
 
 
 def test_work_acceptance_relation_creation_allows_quantity_within_work_limit():

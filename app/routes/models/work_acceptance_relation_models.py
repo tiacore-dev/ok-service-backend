@@ -8,7 +8,12 @@ work_acceptance_relation_model = Model("WorkAcceptanceRelation", {
     "id": fields.String(required=True), "acceptance_id": fields.String(required=True),
     "work_id": fields.String(required=True), "quantity": fields.Float(required=True),
 })
-work_acceptance_relation_msg_model = Model("WorkAcceptanceRelationMessage", {"msg": fields.String(required=True), "id": fields.String(), "code": fields.String()})
+work_acceptance_relation_msg_model = Model("WorkAcceptanceRelationMessage", {
+    "msg": fields.String(required=True), "id": fields.String(), "code": fields.String(),
+    "work_id": fields.String(), "specification_quantity": fields.Float(),
+    "available_quantity": fields.Float(), "requested_quantity": fields.Float(),
+    "exceeded_quantity": fields.Float(),
+})
 work_acceptance_relation_response = Model("WorkAcceptanceRelationResponse", {"msg": fields.String(required=True), "work_acceptance_relation": fields.Nested(work_acceptance_relation_model, required=True)})
 work_acceptance_relation_all_response = Model("WorkAcceptanceRelationAllResponse", {"msg": fields.String(required=True), "work_acceptance_relations": fields.List(fields.Nested(work_acceptance_relation_model))})
 work_acceptance_relation_filter_parser = reqparse.RequestParser()

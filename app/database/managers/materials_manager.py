@@ -255,10 +255,15 @@ class WorkAcceptanceRelationsManager(BaseDBManager):
             (Decimal(str(row.quantity)) for row in accepted_query.all()),
             Decimal("0"),
         )
-        if accepted_quantity + relation.quantity > specification_quantity:
+        available_quantity = specification_quantity - accepted_quantity
+        exceeded_quantity = relation.quantity - available_quantity
+        if exceeded_quantity > 0:
             raise WorkAcceptanceQuantityExceededError(
-                "Work acceptance relation quantity exceeds the available quantity "
-                f"for work {relation.work_id}"
+                work_id=relation.work_id,
+                specification_quantity=specification_quantity,
+                available_quantity=available_quantity,
+                requested_quantity=relation.quantity,
+                exceeded_quantity=exceeded_quantity,
             )
 
     def add_with_quantity_check(self, **kwargs):

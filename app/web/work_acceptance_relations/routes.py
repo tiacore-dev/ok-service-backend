@@ -72,6 +72,11 @@ def _error(error: Exception):
         return {
             "msg": str(error),
             "code": "WORK_ACCEPTANCE_QUANTITY_EXCEEDED",
+            "work_id": str(error.work_id),
+            "specification_quantity": float(error.specification_quantity),
+            "available_quantity": float(error.available_quantity),
+            "requested_quantity": float(error.requested_quantity),
+            "exceeded_quantity": float(error.exceeded_quantity),
         }, 409
     if isinstance(error, (WorkAcceptanceRelationValidationError, ValidationError, ValueError)): return {"msg": str(error)}, 400
     if isinstance(error, IntegrityError): return {"msg": "Cannot delete work acceptance relation: dependent data exists."}, 409

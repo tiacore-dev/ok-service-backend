@@ -217,6 +217,8 @@ DELETE /acceptances/{acceptance_id}/attachments/{attachment_id}
 связей с этой работой. При редактировании текущая связь исключается из суммы.
 Если новый итог превышает количество спецификации, запись не сохраняется и API
 возвращает `409` с кодом `WORK_ACCEPTANCE_QUANTITY_EXCEEDED`.
+Ответ ошибки также содержит `work_id`, `specification_quantity`,
+`available_quantity`, `requested_quantity` и `exceeded_quantity`.
 Проверка и запись выполняются в одной транзакции; строки спецификации для
 проверяемых `project` и `work_id` блокируются на время операции.
 
