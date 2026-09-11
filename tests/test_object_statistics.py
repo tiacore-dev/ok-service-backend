@@ -129,18 +129,19 @@ def test_object_stats_details_use_case_returns_work_grouped_stats():
     assert result == stats
 
 
-def test_all_object_stats_use_case_requires_admin_or_manager():
+def test_all_object_stats_use_case_allows_admin_manager_and_project_leader():
     repository = FakeObjectRepository({"total": {}, "objects": []})
     query = ObjectStatsListQuery(offset=10, limit=5, search="yard")
 
-    assert GetAllObjectsStatsUseCase(repository).execute(
-        query, ObjectActor("manager", uuid4())
-    ) == repository.stats
+    for role in ("admin", "manager", "project-leader"):
+        assert GetAllObjectsStatsUseCase(repository).execute(
+            query, ObjectActor(role, uuid4())
+        ) == repository.stats
     assert repository.stats_query == query
 
     with pytest.raises(ObjectForbiddenError):
         GetAllObjectsStatsUseCase(repository).execute(
-            query, ObjectActor("project-leader", uuid4())
+            query, ObjectActor("user", uuid4())
         )
 
 

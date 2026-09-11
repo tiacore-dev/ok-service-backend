@@ -49,6 +49,6 @@ class GetAllObjectsStatsUseCase:
     repository: ObjectRepository
 
     def execute(self, query: ObjectStatsListQuery, actor: ObjectActor) -> dict[str, object]:
-        if actor.role not in {"admin", "manager"}:
+        if actor.role not in {"admin", "manager", "project-leader"}:
             raise ObjectForbiddenError("Forbidden")
         return self.repository.get_all_objects_stats(query)
