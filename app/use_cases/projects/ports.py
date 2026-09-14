@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.projects import Project
+from app.domain.projects import Project, ProjectStatus
 
-from .dto import ProjectActor, ProjectListQuery, ProjectStatsMap
+from .dto import ProjectActor, ProjectLeaderStatsListQuery, ProjectListQuery, ProjectStatsMap
 
 
 class ProjectRepository(Protocol):
@@ -28,3 +28,15 @@ class ProjectRepository(Protocol):
     def get_project_stats(self, project_id: UUID) -> ProjectStatsMap: ...
 
     def get_project_stats_by_materials(self, project_id: UUID) -> ProjectStatsMap: ...
+
+    def get_project_leader_stats(self, project_leader_id: UUID) -> dict[str, object]: ...
+
+    def get_project_leader_stats_details(self, project_leader_id: UUID) -> dict[str, object]: ...
+
+    def get_all_project_leaders_fact_stats(
+        self, query: ProjectLeaderStatsListQuery
+    ) -> dict[str, object]: ...
+
+    def update_project_status(
+        self, project_id: UUID, expected_status: ProjectStatus, status: ProjectStatus
+    ) -> Project | None: ...

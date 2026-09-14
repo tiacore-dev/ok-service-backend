@@ -75,7 +75,7 @@ def test_create_project_work_for_leader_forces_signed_false():
         project_work_name="Test work",
         work=uuid4(),
         quantity=Decimal("2.5"),
-        summ=Decimal("10.0"),
+        price=Decimal("4.0"),
         signed=True,
         created_by=uuid4(),
     )
@@ -85,6 +85,7 @@ def test_create_project_work_for_leader_forces_signed_false():
     )
 
     assert result.signed is False
+    assert result.summ == Decimal("10.0")
     assert repository.created[0].signed is False
 
 
@@ -141,7 +142,7 @@ def test_update_project_work_use_case():
         project=uuid4(),
         work=uuid4(),
         quantity=Decimal("3.0"),
-        summ=Decimal("12.0"),
+        price=Decimal("4.0"),
         created_by=uuid4(),
         created_at=1,
         signed=False,
@@ -157,6 +158,7 @@ def test_update_project_work_use_case():
     )
 
     assert result.quantity == Decimal("4.0")
+    assert result.summ == Decimal("16.0")
 
 
 def test_update_project_work_forbidden_for_foreign_project_leader():
@@ -166,7 +168,7 @@ def test_update_project_work_forbidden_for_foreign_project_leader():
         project=uuid4(),
         work=uuid4(),
         quantity=Decimal("3.0"),
-        summ=Decimal("12.0"),
+        price=Decimal("4.0"),
         created_by=uuid4(),
         created_at=1,
         signed=False,
@@ -190,7 +192,7 @@ def test_soft_delete_project_work_use_case():
         project=uuid4(),
         work=uuid4(),
         quantity=Decimal("3.0"),
-        summ=Decimal("12.0"),
+        price=Decimal("4.0"),
         created_by=uuid4(),
         created_at=1,
         signed=True,
@@ -212,7 +214,7 @@ def test_delete_project_work_use_case():
         project=uuid4(),
         work=uuid4(),
         quantity=Decimal("3.0"),
-        summ=Decimal("12.0"),
+        price=Decimal("4.0"),
         created_by=uuid4(),
         created_at=1,
         signed=False,

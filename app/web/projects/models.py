@@ -1,12 +1,37 @@
 from flask_restx import Model, fields, reqparse
 
 from app.schemas.project_schemas import ProjectCreateSchema, ProjectEditSchema
+from app.domain.projects import ProjectStatus
 from app.utils.helpers import generate_swagger_model
 from app.routes.models.place_models import place_model
 from app.web.attachments.contract import attachment_view_model
 
 project_create_model = generate_swagger_model(ProjectCreateSchema(), "ProjectCreate")
 project_edit_model = generate_swagger_model(ProjectEditSchema(), "ProjectEdit")
+project_status_model = Model(
+    "ProjectStatusUpdate",
+    {
+        "status": fields.String(
+            required=True, enum=[item.value for item in ProjectStatus]
+        )
+    },
+)
+project_status_item_model = Model(
+    "ProjectStatusItem",
+    {
+        "value": fields.String(required=True),
+        "label": fields.String(required=True),
+    },
+)
+project_statuses_response = Model(
+    "ProjectStatusesResponse",
+    {
+        "msg": fields.String(required=True),
+        "statuses": fields.List(
+            fields.Nested(project_status_item_model), required=True
+        ),
+    },
+)
 
 project_model = Model(
     "Project",
@@ -20,6 +45,9 @@ project_model = Model(
         "created_at": fields.Integer(required=False, description="Unix epoch milliseconds: project creation time"),
         "created_by": fields.String(required=False, description="Creator of project"),
         "deleted": fields.Boolean(required=False, description="Deletion status"),
+        "status": fields.String(
+            required=True, enum=[item.value for item in ProjectStatus]
+        ),
     },
 )
 
@@ -60,7 +88,14 @@ project_stats_model = Model(
     "ProjectStats",
     {
         "project_work_quantity": fields.Float(required=True),
+        "project_work_summ": fields.Float(required=True),
         "shift_report_details_quantity": fields.Float(required=True),
+        "shift_report_details_summ": fields.Float(required=True),
+        "shift_report_details_summ_by_estimate": fields.Float(required=True),
+        "presented_quantity": fields.Float(required=False, allow_null=True),
+        "presented_summ": fields.Float(required=False, allow_null=True),
+        "accepted_quantity": fields.Float(required=False, allow_null=True),
+        "accepted_summ": fields.Float(required=False, allow_null=True),
         "project_work_name": fields.String(required=False),
     },
 )
@@ -88,6 +123,13 @@ project_filter_parser.add_argument(
     type=lambda x: x.lower() in ["true", "1"],
     required=False,
     help="Flag filter",
+)
+project_filter_parser.add_argument(
+    "status",
+    type=str,
+    required=False,
+    choices=[item.value for item in ProjectStatus],
+    help="Filter by specification status",
 )
 project_filter_parser.add_argument(
     "extreme_conditions_available",

@@ -16,15 +16,19 @@ from app.use_cases.projects import (
     CreateProjectUseCase,
     GetProjectStatsByMaterialsUseCase,
     GetProjectStatsUseCase,
+    GetAllProjectLeadersStatsUseCase,
     GetProjectUseCase,
     HardDeleteProjectUseCase,
     ListProjectsUseCase,
     ProjectActor,
+    ProjectLeaderStatsListQuery,
     ProjectListQuery,
     SoftDeleteProjectUseCase,
     UpdateProjectCommand,
     UpdateProjectUseCase,
+    UpdateProjectStatusUseCase,
 )
+from app.domain.projects import ProjectStatus
 
 
 @dataclass
@@ -37,6 +41,10 @@ class FakeProjectRepository:
     listed_actor: ProjectActor | None = None
     stats: dict[str, dict[str, object]] | None = None
     stats_by_materials: dict[str, dict[str, object]] | None = None
+    project_work_signed: list[bool] | None = None
+    acceptance_statuses: list[str] | None = None
+    object_status: str | None = None
+    leader_stats_query: ProjectLeaderStatsListQuery | None = None
 
     def create_project(self, project: Project) -> Project:
         self.created = project
@@ -45,6 +53,9 @@ class FakeProjectRepository:
 
     def get_project(self, project_id: UUID) -> Project | None:
         return self.project if self.project and self.project.project_id == project_id else None
+
+    def get_object_status(self, object_id: UUID) -> str | None:
+        return self.object_status
 
     def get_project_record(self, project_id: UUID) -> dict[str, object] | None:
         if self.project is None or self.project.project_id != project_id:
@@ -55,6 +66,33 @@ class FakeProjectRepository:
         self.updated = project
         self.project = project
         return project
+
+    def update_project_status(
+        self,
+        project_id: UUID,
+        expected_status: ProjectStatus,
+        status: ProjectStatus,
+    ) -> Project | None:
+        if self.project is None or self.project.project_id != project_id:
+            return None
+        if self.project.status != expected_status:
+            return None
+        if status is ProjectStatus.CLOSED and any(
+            not signed for signed in self.project_work_signed or []
+        ):
+            raise ProjectValidationError(
+                "Project cannot be closed until all project works are signed"
+            )
+        if status is ProjectStatus.CLOSED and any(
+            acceptance_status != "documents_signed"
+            for acceptance_status in self.acceptance_statuses or []
+        ):
+            raise ProjectValidationError(
+                "Project cannot be closed until all acceptances have signed documents"
+            )
+        self.project = self.project.with_updates(status=status)
+        self.updated = self.project
+        return self.project
 
     def delete_project(self, project_id: UUID) -> bool:
         self.deleted = project_id
@@ -84,6 +122,20 @@ class FakeProjectRepository:
             str(project_id): {"project_work_quantity": 0}
         }
 
+    def get_project_leader_stats(self, project_leader_id: UUID) -> dict[str, object]:
+        return {"total": {}, "projects": []}
+
+    def get_project_leader_stats_details(
+        self, project_leader_id: UUID
+    ) -> dict[str, object]:
+        return {"total": {}, "projects": []}
+
+    def get_all_project_leaders_fact_stats(
+        self, query: ProjectLeaderStatsListQuery
+    ) -> dict[str, object]:
+        self.leader_stats_query = query
+        return {"total": {}, "project_leaders": []}
+
 
 def _project() -> Project:
     return Project(
@@ -97,6 +149,115 @@ def _project() -> Project:
         created_at=1,
         deleted=False,
     )
+
+
+def test_all_project_leader_stats_allows_admin_manager_and_project_leader():
+    repository = FakeProjectRepository()
+    query = ProjectLeaderStatsListQuery(
+        offset=5, limit=2, search="ivan", date_from=100, date_to=200
+    )
+
+    for role in ("admin", "manager", "project-leader"):
+        result = GetAllProjectLeadersStatsUseCase(repository).execute(
+            query, ProjectActor(role, uuid4())
+        )
+        assert result == {"total": {}, "project_leaders": []}
+    assert repository.leader_stats_query == query
+
+    with pytest.raises(ProjectForbiddenError):
+        GetAllProjectLeadersStatsUseCase(repository).execute(
+            query, ProjectActor("user", uuid4())
+        )
+
+
+def test_all_project_leader_stats_rejects_reversed_date_range():
+    with pytest.raises(ValueError, match="date_from"):
+        GetAllProjectLeadersStatsUseCase(FakeProjectRepository()).execute(
+            ProjectLeaderStatsListQuery(date_from=200, date_to=100),
+            ProjectActor("manager", uuid4()),
+        )
+
+
+def test_project_leader_fact_stats_month_helpers_use_utc_yyyy_mm_keys():
+    assert ProjectsManager._month_key(1735689600000) == "2025-01"
+    assert ProjectsManager._month_keys(1735689600000, 1767225599999) == (
+        "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06",
+        "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12",
+    )
+
+
+def test_project_starts_pending_and_status_can_move_forward_or_back():
+    project = _project()
+    assert project.status is ProjectStatus.PENDING
+    repository = FakeProjectRepository(project=project)
+    actor = ProjectActor(role="manager", user_id=uuid4())
+
+    updated = UpdateProjectStatusUseCase(repository).execute(
+        project.project_id, ProjectStatus.IN_PROGRESS, actor
+    )
+    assert updated.status is ProjectStatus.IN_PROGRESS
+    updated = UpdateProjectStatusUseCase(repository).execute(
+        project.project_id, ProjectStatus.PENDING, actor
+    )
+    assert updated.status is ProjectStatus.PENDING
+
+
+def test_project_status_change_requires_admin_or_manager_and_adjacent_status():
+    project = _project()
+    repository = FakeProjectRepository(project=project)
+
+    with pytest.raises(ProjectForbiddenError):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id, ProjectStatus.IN_PROGRESS,
+            ProjectActor(role="project-leader", user_id=uuid4()),
+        )
+    with pytest.raises(ValueError, match="adjacent"):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id, ProjectStatus.WORKS_COMPLETED,
+            ProjectActor(role="admin", user_id=uuid4()),
+        )
+
+
+def test_project_status_change_is_blocked_for_waiting_object():
+    project = _project()
+    repository = FakeProjectRepository(project=project, object_status="waiting")
+
+    with pytest.raises(ProjectValidationError, match="object is waiting"):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id,
+            ProjectStatus.IN_PROGRESS,
+            ProjectActor(role="manager", user_id=uuid4()),
+        )
+
+
+def test_project_cannot_be_closed_until_all_project_works_are_signed():
+    project = _project().with_updates(status=ProjectStatus.WORKS_COMPLETED)
+    repository = FakeProjectRepository(
+        project=project, project_work_signed=[True, False]
+    )
+
+    with pytest.raises(ProjectValidationError, match="all project works are signed"):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id,
+            ProjectStatus.CLOSED,
+            ProjectActor(role="manager", user_id=uuid4()),
+        )
+
+
+def test_project_cannot_be_closed_until_all_acceptances_are_signed():
+    project = _project().with_updates(status=ProjectStatus.WORKS_COMPLETED)
+    repository = FakeProjectRepository(
+        project=project,
+        project_work_signed=[True],
+        acceptance_statuses=["presented", "documents_signed"],
+    )
+
+    with pytest.raises(ProjectValidationError, match="all acceptances"):
+        UpdateProjectStatusUseCase(repository).execute(
+            project.project_id,
+            ProjectStatus.CLOSED,
+            ProjectActor(role="manager", user_id=uuid4()),
+        )
 
 
 def test_create_project_use_case_forces_project_leader_for_project_leader_role():
@@ -261,6 +422,20 @@ def test_project_mapper_treats_string_none_as_missing_created_by():
 
     assert project.project_id == project_id
     assert project.created_by is None
+
+
+@pytest.mark.parametrize("invalid_status", ["", False, 0])
+def test_project_mapper_rejects_invalid_falsy_status(invalid_status):
+    payload = {
+        "project_id": str(uuid4()),
+        "name": "Project",
+        "object": str(uuid4()),
+        "created_at": 1,
+        "status": invalid_status,
+    }
+
+    with pytest.raises(ValueError):
+        project_dict_to_entity(payload)
 
 
 def test_project_repository_list_keeps_invalid_legacy_records_for_reads():

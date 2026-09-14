@@ -1,0 +1,16 @@
+from __future__ import annotations
+
+from typing import Protocol, TYPE_CHECKING
+from uuid import UUID
+
+from app.domain.work_acceptance_relations import WorkAcceptanceRelation
+if TYPE_CHECKING:
+    from .use_cases import WorkAcceptanceRelationListQuery
+
+
+class WorkAcceptanceRelationRepository(Protocol):
+    def create_work_acceptance_relation(self, relation: WorkAcceptanceRelation) -> WorkAcceptanceRelation: ...
+    def get_work_acceptance_relation(self, relation_id: UUID) -> WorkAcceptanceRelation | None: ...
+    def update_work_acceptance_relation(self, relation: WorkAcceptanceRelation) -> WorkAcceptanceRelation | None: ...
+    def delete_work_acceptance_relation(self, relation_id: UUID) -> bool: ...
+    def list_work_acceptance_relations(self, query: WorkAcceptanceRelationListQuery) -> list[WorkAcceptanceRelation]: ...

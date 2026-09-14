@@ -33,6 +33,7 @@ project_work_model = Model(
             required=True, description="Work data associated with the project work"
         ),
         "quantity": fields.Float(required=True, description="Quantity of the work"),
+        "price": fields.Float(required=False, description="Price per unit of work"),
         "summ": fields.Float(required=False, description="Sum of the project work"),
         "created_at": fields.Integer(
             required=True,
@@ -45,7 +46,10 @@ project_work_model = Model(
             required=True, description="If the project work is signed"
         ),
         "project_work_quantity": fields.Float(required=False),
+        "project_work_summ": fields.Float(required=False),
         "shift_report_details_quantity": fields.Float(required=False),
+        "shift_report_details_summ": fields.Float(required=False),
+        "shift_report_details_summ_by_estimate": fields.Float(required=False),
         "acceptance_status": fields.String(
             required=False, enum=["not_checked", "partial", "accepted"]
         ),

@@ -45,7 +45,7 @@ def test_project_leader_can_edit_own_work(client, jwt_token_leader, seed_project
     Проверяет, что project-leader может редактировать свою работу.
     """
     headers = {"Authorization": f"Bearer {jwt_token_leader}"}
-    data = {"summ": "1"}
+    data = {"price": "1"}
 
     response = client.patch(
         f"/project_works/{seed_project_work_own['project_work_id']}/edit",

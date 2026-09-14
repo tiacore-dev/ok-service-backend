@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 from uuid import UUID
 
 from .errors import ProjectValidationError
+from .statuses import ProjectStatus
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,11 +18,13 @@ class Project:
     created_by: UUID | None
     created_at: int
     deleted: bool = False
+    status: ProjectStatus = ProjectStatus.PENDING
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "name", str(self.name).strip())
         object.__setattr__(self, "created_at", int(self.created_at))
         object.__setattr__(self, "deleted", bool(self.deleted))
+        object.__setattr__(self, "status", ProjectStatus(self.status))
         object.__setattr__(self, "night_shift_available", bool(self.night_shift_available))
         object.__setattr__(
             self,
@@ -40,6 +43,7 @@ class Project:
         night_shift_available: bool | None = None,
         extreme_conditions_available: bool | None = None,
         deleted: bool | None = None,
+        status: ProjectStatus | None = None,
     ) -> "Project":
         return replace(
             self,
@@ -55,4 +59,5 @@ class Project:
             if extreme_conditions_available is None
             else extreme_conditions_available,
             deleted=self.deleted if deleted is None else deleted,
+            status=self.status if status is None else status,
         )

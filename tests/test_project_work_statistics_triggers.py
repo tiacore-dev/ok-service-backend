@@ -101,11 +101,17 @@ def test_project_work_response_uses_cached_stat_and_acceptance_status():
         {
             str(item.work): {
                 "project_work_quantity": 10.0,
+                "project_work_summ": 1000.0,
                 "shift_report_details_quantity": 5.0,
+                "shift_report_details_summ": 500.0,
+                "shift_report_details_summ_by_estimate": 600.0,
             }
         },
     )
 
     assert response["project_work_quantity"] == 10.0
+    assert response["project_work_summ"] == 1000.0
     assert response["shift_report_details_quantity"] == 5.0
+    assert response["shift_report_details_summ"] == 500.0
+    assert response["shift_report_details_summ_by_estimate"] == 600.0
     assert response["acceptance_status"] == "partial"

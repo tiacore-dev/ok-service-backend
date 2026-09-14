@@ -29,7 +29,11 @@ class UpdateObjectUseCase:
             lng=command.lng,
             ltd=command.ltd,
         )
-        result = self.repository.update_object(updated)
+        result = (
+            self.repository.update_object_with_projects_closed(updated)
+            if command.status == "completed"
+            else self.repository.update_object(updated)
+        )
         if result is None:
             raise ObjectNotFoundError("Object not found")
         return result

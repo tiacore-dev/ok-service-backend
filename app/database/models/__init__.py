@@ -4,6 +4,9 @@ from .attachments import ObjectAttachments as ObjectAttachments
 from .attachments import PlaceAttachments as PlaceAttachments
 from .attachments import ProjectAttachments as ProjectAttachments
 from .attachments import ShiftReportAttachments as ShiftReportAttachments
+from .attachments import WorkAcceptanceAttachments as WorkAcceptanceAttachments
+from .acceptances import Acceptances as Acceptances
+from .acceptance_status_history import AcceptanceStatusHistory as AcceptanceStatusHistory
 from .cities import Cities as Cities
 from .key_permission_type_relations import (
     KeyPermissionTypeRelations as KeyPermissionTypeRelations,
@@ -36,5 +39,9 @@ from .work_categories import WorkCategories as WorkCategories
 from .work_material_relations import (
     WorkMaterialRelations as WorkMaterialRelations,
 )
+from .work_acceptance_relations import (
+    WorkAcceptanceRelations as WorkAcceptanceRelations,
+)
 from .work_prices import WorkPrices as WorkPrices
+from .work_plans import WorkPlans as WorkPlans
 from .works import Works as Works

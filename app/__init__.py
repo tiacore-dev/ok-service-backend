@@ -21,7 +21,11 @@ from app.database import init_db, set_db_globals, setup_listeners
 from app.database.vacuum import start_background_task
 from app.error_handlers import setup_error_handlers
 from app.routes import register_namespaces, register_routes
-from app.utils.db_setting_tables import set_object_status, set_roles
+from app.utils.db_setting_tables import (
+    set_api_key_permissions,
+    set_object_status,
+    set_roles,
+)
 from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
 
@@ -115,6 +119,8 @@ def create_app(config_name="development"):
     # Инициализация ролей и админа
 
     set_roles()
+
+    set_api_key_permissions()
 
     set_object_status()
 

@@ -35,6 +35,12 @@ def _ensure_view_access(target: AttachmentTarget, actor: AttachmentActor) -> Non
         if actor.role in {"admin", "manager", "project-leader", "user"}:
             return
         raise AttachmentForbiddenError("Forbidden")
+    if target.target_type == "acceptance":
+        if actor.role in {"admin", "manager"}:
+            return
+        if actor.role == "project-leader" and target.project_leader_id == actor.user_id:
+            return
+        raise AttachmentForbiddenError("Forbidden")
     if target.target_type == "shift_report":
         if actor.role == "user":
             if target.owner_id != actor.user_id:
@@ -51,6 +57,10 @@ def _ensure_mutation_access(
 ) -> None:
     if target.deleted:
         raise AttachmentConflictError("Deleted entity cannot be changed")
+    if target.target_type == "acceptance":
+        if actor.role in {"admin", "manager"}:
+            return
+        raise AttachmentForbiddenError("Forbidden")
     if target.target_type in {"object", "place"}:
         if actor.role == "admin":
             return
@@ -95,7 +105,7 @@ class AttachmentUseCase:
         try:
             for file in files:
                 attachment_id = uuid4()
-                key, normalized_name, content_type = self.storage.upload(
+                stored_file = self.storage.upload(
                     file.content,
                     target_type=target_type,
                     target_id=target_id,
@@ -106,13 +116,13 @@ class AttachmentUseCase:
                 uploaded.append(
                     Attachment(
                         attachment_id=attachment_id,
-                        name=normalized_name,
-                        s3_key=key,
-                        file_size=len(file.content),
-                        checksum=sha256(file.content).hexdigest(),
+                        name=stored_file.name,
+                        s3_key=stored_file.key,
+                        file_size=len(stored_file.content),
+                        checksum=sha256(stored_file.content).hexdigest(),
                         meta={
-                            "content_type": content_type,
-                            "extension": normalized_name.rsplit(".", 1)[-1].lower(),
+                            "content_type": stored_file.content_type,
+                            "extension": stored_file.name.rsplit(".", 1)[-1].lower(),
                         },
                         created_at=utc_epoch_milliseconds(),
                         created_by=actor.user_id,

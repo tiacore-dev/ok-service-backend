@@ -86,6 +86,7 @@ class SQLAlchemyProjectWorkRepository(ProjectWorkRepository):
             project=project_work.project,
             work=project_work.work,
             quantity=project_work.quantity,
+            price=project_work.price,
             summ=project_work.summ,
             signed=project_work.signed,
         )

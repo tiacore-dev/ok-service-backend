@@ -131,6 +131,7 @@ class Users(Base):
     created_project_materials = relationship(
         "ProjectMaterials", back_populates="project_material_creator"
     )
+    work_plans = relationship("WorkPlans", back_populates="users")
     created_shift_report_materials = relationship(
         "ShiftReportMaterials", back_populates="shift_report_material_creator"
     )
@@ -158,6 +159,9 @@ class Users(Base):
     )
     updated_leaves = relationship(
         "Leaves", back_populates="updated_by_user", foreign_keys="[Leaves.updated_by]"
+    )
+    acceptance_status_history = relationship(
+        "AcceptanceStatusHistory", back_populates="changed_by_user"
     )
 
     # Самореференсная связь

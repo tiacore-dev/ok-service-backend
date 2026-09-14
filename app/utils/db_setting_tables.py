@@ -32,6 +32,12 @@ def set_roles():
             db.add(role_id=ids[i], name=names[i])
 
 
+def set_api_key_permissions():
+    from app.utils.api_key_permissions import set_api_key_permissions as bootstrap
+
+    return bootstrap()
+
+
 def set_object_status():
     from app.database.managers.objects_managers import ObjectStatusesManager
 

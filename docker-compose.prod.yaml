@@ -1,0 +1,7 @@
+services:
+
+  web:
+    environment:
+      - AWS_CA_BUNDLE=/etc/ssl/custom/caddy-fire-loc.crt
+    volumes:
+      - ${S3_CA_CERT_HOST_PATH}:/etc/ssl/custom/caddy-fire-loc.crt:ro

@@ -16,3 +16,7 @@ class ProjectForbiddenError(ProjectError):
 
 class ProjectAlreadyExistsError(ProjectError):
     """Raised when project already exists."""
+
+
+class ProjectConflictError(ProjectError):
+    """Raised when a project changed before a conditional update."""

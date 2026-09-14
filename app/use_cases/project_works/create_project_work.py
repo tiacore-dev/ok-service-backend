@@ -10,6 +10,10 @@ from .ports import ProjectWorkRepository
 from ..time_utils import utc_epoch_milliseconds
 
 
+def _calculate_summ(price, quantity):
+    return price * quantity if price is not None else None
+
+
 def _owned_project_ids(repository: ProjectWorkRepository, actor: ProjectWorkActor) -> set:
     return set(repository.get_project_ids_by_leader(actor.user_id))
 
@@ -43,7 +47,8 @@ class CreateProjectWorkUseCase:
             project=command.project,
             work=command.work,
             quantity=command.quantity,
-            summ=command.summ,
+            price=command.price,
+            summ=_calculate_summ(command.price, command.quantity),
             created_by=command.created_by or actor.user_id,
             created_at=utc_epoch_milliseconds(),
             signed=False if actor.role == "project-leader" else bool(command.signed),
@@ -73,7 +78,8 @@ class BulkCreateProjectWorksUseCase:
                 project=item.project,
                 work=item.work,
                 quantity=item.quantity,
-                summ=item.summ,
+                price=item.price,
+                summ=_calculate_summ(item.price, item.quantity),
                 created_by=item.created_by or actor.user_id,
                 created_at=utc_epoch_milliseconds(),
                 signed=False if actor.role == "project-leader" else bool(item.signed),

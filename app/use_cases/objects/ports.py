@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.domain.objects import Object
 
-from .dto import ObjectActor, ObjectListQuery
+from .dto import ObjectActor, ObjectListQuery, ObjectStatsListQuery
 
 
 class ObjectRepository(Protocol):
@@ -18,3 +18,11 @@ class ObjectRepository(Protocol):
     def delete_object(self, object_id: UUID) -> bool: ...
 
     def list_objects(self, query: ObjectListQuery, actor: ObjectActor) -> list[Object]: ...
+
+    def update_object_with_projects_closed(self, obj: Object) -> Object | None: ...
+
+    def get_object_stats(self, object_id: UUID) -> dict[str, object]: ...
+
+    def get_object_stats_details(self, object_id: UUID) -> dict[str, object]: ...
+
+    def get_all_objects_stats(self, query: ObjectStatsListQuery) -> dict[str, object]: ...

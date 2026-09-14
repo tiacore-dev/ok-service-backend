@@ -3,10 +3,27 @@ from flask_restx import Model, fields, reqparse
 from app.routes.models.place_models import place_model
 from app.web.attachments.contract import attachment_view_model
 from app.schemas.object_schemas import ObjectCreateSchema, ObjectEditSchema
+from app.domain.objects import ObjectStatus
 from app.utils.helpers import generate_swagger_model
 
 object_create_model = generate_swagger_model(ObjectCreateSchema(), "ObjectCreate")
 object_edit_model = generate_swagger_model(ObjectEditSchema(), "ObjectEdit")
+object_status_item_model = Model(
+    "ObjectStatusItem",
+    {
+        "value": fields.String(required=True),
+        "label": fields.String(required=True),
+    },
+)
+object_statuses_response = Model(
+    "ObjectStatusesResponse",
+    {
+        "msg": fields.String(required=True),
+        "statuses": fields.List(
+            fields.Nested(object_status_item_model), required=True
+        ),
+    },
+)
 
 
 object_model = Model(
@@ -71,6 +88,100 @@ object_all_response = Model(
         "objects": fields.List(
             fields.Nested(object_model), description="List of objects"
         ),
+    },
+)
+
+object_stats_response = Model(
+    "ObjectStatsResponse",
+    {
+        "msg": fields.String(required=True),
+        "stats": fields.Raw(
+            required=True,
+            description="Object total and statistics grouped by project",
+        ),
+    },
+)
+
+object_stats_details_response = Model(
+    "ObjectStatsDetailsResponse",
+    {
+        "msg": fields.String(required=True),
+        "stats": fields.Raw(
+            required=True,
+            description="Object statistics grouped by project and work_id",
+        ),
+    },
+)
+
+stats_collection_filter_parser = reqparse.RequestParser()
+stats_collection_filter_parser.add_argument("offset", type=int, default=0)
+stats_collection_filter_parser.add_argument("limit", type=int, default=10)
+stats_collection_filter_parser.add_argument("search", type=str, required=False)
+
+project_leader_fact_stats_filter_parser = reqparse.RequestParser()
+project_leader_fact_stats_filter_parser.add_argument("offset", type=int, default=0)
+project_leader_fact_stats_filter_parser.add_argument("limit", type=int, default=10)
+project_leader_fact_stats_filter_parser.add_argument("search", type=str, required=False)
+project_leader_fact_stats_filter_parser.add_argument("date_from", type=int, required=False)
+project_leader_fact_stats_filter_parser.add_argument("date_to", type=int, required=False)
+project_leader_fact_stats_filter_parser.add_argument(
+    "project_leader_ids", type=str, action="append", required=False
+)
+
+object_stats_collection_item = Model(
+    "ObjectStatsCollectionItem",
+    {
+        "object_id": fields.String(required=True),
+        "name": fields.String(required=True),
+        "stats": fields.Raw(required=True),
+    },
+)
+project_leader_fact_stats = fields.Raw(
+    required=True,
+    description="Statistics grouped by calendar month in YYYY-MM format",
+)
+project_leader_fact_project = Model(
+    "ProjectLeaderFactProject",
+    {
+        "project_id": fields.String(required=True),
+        "name": fields.String(required=True),
+        "stats": project_leader_fact_stats,
+    },
+)
+project_leader_stats_collection_item = Model(
+    "ProjectLeaderStatsCollectionItem",
+    {
+        "user_id": fields.String(required=True),
+        "login": fields.String(required=True),
+        "name": fields.String(required=True),
+        "stats": project_leader_fact_stats,
+        "projects": fields.List(
+            fields.Nested(project_leader_fact_project), required=True
+        ),
+    },
+)
+project_leader_stats_collection_payload = Model(
+    "ProjectLeaderStatsCollectionPayload",
+    {
+        "total": project_leader_fact_stats,
+        "project_leaders": fields.List(
+            fields.Nested(project_leader_stats_collection_item), required=True
+        ),
+        "total_count": fields.Integer(required=True),
+    },
+)
+object_stats_collection_response = Model(
+    "ObjectStatsCollectionResponse",
+    {
+        "msg": fields.String(required=True),
+        "stats": fields.Raw(required=True),
+    },
+)
+project_leader_stats_collection_response = Model(
+    "ProjectLeaderStatsCollectionResponse",
+    {
+        "msg": fields.String(required=True),
+        "stats": fields.Nested(project_leader_stats_collection_payload, required=True),
     },
 )
 

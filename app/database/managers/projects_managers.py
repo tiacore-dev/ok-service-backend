@@ -1,15 +1,17 @@
 import logging
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, asc, desc, func
+from sqlalchemy import and_, asc, case, desc, func
 from sqlalchemy.orm import joinedload
 
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import (
+    Acceptances,
     Objects,
     ProjectMaterials,
     Projects,
@@ -18,8 +20,11 @@ from app.database.models import (
     ShiftReportDetails,
     ShiftReportMaterials,
     ShiftReports,
+    WorkAcceptanceRelations,
     WorkMaterialRelations,
+    Users,
 )
+from app.domain.projects import ProjectStatus, ProjectValidationError
 
 logger = logging.getLogger("ok_service")
 
@@ -173,6 +178,7 @@ class ProjectsManager(BaseDBManager):
                     session.query(
                         ProjectWorks.work,
                         func.sum(ProjectWorks.quantity),
+                        func.sum(ProjectWorks.price * ProjectWorks.quantity),
                         func.max(ProjectWorks.project_work_name),
                     )
                     .filter(ProjectWorks.project == project_id)
@@ -182,19 +188,32 @@ class ProjectsManager(BaseDBManager):
                 result = {
                     str(work_id): {
                         "project_work_quantity": float(quantity or 0),
+                        "project_work_summ": float(summ or 0),
                         "shift_report_details_quantity": 0.0,
+                        "shift_report_details_summ": 0.0,
+                        "shift_report_details_summ_by_estimate": 0.0,
+                        "presented_quantity": None,
+                        "presented_summ": None,
+                        "accepted_quantity": None,
+                        "accepted_summ": None,
                         "project_work_name": name,
                     }
-                    for work_id, quantity, name in plan_rows
+                    for work_id, quantity, summ, name in plan_rows
                 }
                 actual_rows = (
                     session.query(
                         ShiftReportDetails.work,
                         func.sum(ShiftReportDetails.quantity),
+                        func.sum(ShiftReportDetails.summ),
+                        func.sum(ShiftReportDetails.quantity * ProjectWorks.price),
                     )
                     .join(
                         ShiftReports,
                         ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
+                    )
+                    .outerjoin(
+                        ProjectWorks,
+                        ProjectWorks.project_work_id == ShiftReportDetails.project_work,
                     )
                     .filter(
                         ShiftReports.project == project_id,
@@ -204,10 +223,94 @@ class ProjectsManager(BaseDBManager):
                     .group_by(ShiftReportDetails.work)
                     .all()
                 )
-                for work_id, quantity in actual_rows:
+                for work_id, quantity, summ, estimated_summ in actual_rows:
                     stats = result.get(str(work_id))
                     if stats is not None:
                         stats["shift_report_details_quantity"] = float(quantity or 0)
+                        stats["shift_report_details_summ"] = float(summ or 0)
+                        stats["shift_report_details_summ_by_estimate"] = float(
+                            estimated_summ or 0
+                        )
+
+                project_work_prices = (
+                    session.query(
+                        ProjectWorks.project.label("project_id"),
+                        ProjectWorks.work.label("work_id"),
+                        (
+                            func.sum(ProjectWorks.price * ProjectWorks.quantity)
+                            / func.nullif(func.sum(ProjectWorks.quantity), 0)
+                        ).label("price"),
+                    )
+                    .filter(ProjectWorks.project == project_id)
+                    .group_by(ProjectWorks.project, ProjectWorks.work)
+                    .subquery()
+                )
+                acceptance_rows = (
+                    session.query(
+                        WorkAcceptanceRelations.work_id,
+                        func.sum(WorkAcceptanceRelations.quantity),
+                        func.sum(
+                            WorkAcceptanceRelations.quantity
+                            * project_work_prices.c.price
+                        ),
+                        func.sum(
+                            case(
+                                (
+                                    Acceptances.status == "documents_signed",
+                                    WorkAcceptanceRelations.quantity,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                        func.sum(
+                            case(
+                                (
+                                    Acceptances.status == "documents_signed",
+                                    WorkAcceptanceRelations.quantity
+                                    * project_work_prices.c.price,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                    )
+                    .join(
+                        Acceptances,
+                        Acceptances.id == WorkAcceptanceRelations.acceptance_id,
+                    )
+                    .outerjoin(
+                        project_work_prices,
+                        and_(
+                            project_work_prices.c.project_id == Acceptances.project_id,
+                            project_work_prices.c.work_id
+                            == WorkAcceptanceRelations.work_id,
+                        ),
+                    )
+                    .filter(Acceptances.project_id == project_id)
+                    .group_by(WorkAcceptanceRelations.work_id)
+                    .all()
+                )
+                for (
+                    work_id,
+                    presented_qty,
+                    presented_summ,
+                    accepted_qty,
+                    accepted_summ,
+                ) in acceptance_rows:
+                    stats = result.get(str(work_id))
+                    if stats is None:
+                        continue
+                    stats["presented_quantity"] = (
+                        float(presented_qty) if presented_qty is not None else None
+                    )
+                    stats["presented_summ"] = (
+                        float(presented_summ) if presented_summ is not None else None
+                    )
+                    stats["accepted_quantity"] = (
+                        float(accepted_qty) if accepted_qty is not None else None
+                    )
+                    stats["accepted_summ"] = (
+                        float(accepted_summ) if accepted_summ is not None else None
+                    )
                 return result
         except Exception as e:
             logger.error(
@@ -216,9 +319,556 @@ class ProjectsManager(BaseDBManager):
             )
             return {}
 
+    def get_project_stats_many(self, project_ids):
+        """Load plan, shift and acceptance aggregates for all projects in a batch."""
+        project_ids = list(project_ids)
+        if not project_ids:
+            return {}
+        try:
+            with self.session_scope() as session:
+                stats_by_project = {project_id: {} for project_id in project_ids}
+                plan_rows = (
+                    session.query(
+                        ProjectWorks.project,
+                        ProjectWorks.work,
+                        func.sum(ProjectWorks.quantity),
+                        func.sum(ProjectWorks.price * ProjectWorks.quantity),
+                        func.max(ProjectWorks.project_work_name),
+                    )
+                    .filter(ProjectWorks.project.in_(project_ids))
+                    .group_by(ProjectWorks.project, ProjectWorks.work)
+                    .all()
+                )
+                for project_id, work_id, quantity, summ, name in plan_rows:
+                    stats_by_project[project_id][str(work_id)] = {
+                        "project_work_quantity": float(quantity or 0),
+                        "project_work_summ": float(summ or 0),
+                        "shift_report_details_quantity": 0.0,
+                        "shift_report_details_summ": 0.0,
+                        "shift_report_details_summ_by_estimate": 0.0,
+                        "presented_quantity": None,
+                        "presented_summ": None,
+                        "accepted_quantity": None,
+                        "accepted_summ": None,
+                        "project_work_name": name,
+                    }
+
+                actual_rows = (
+                    session.query(
+                        ShiftReports.project,
+                        ShiftReportDetails.work,
+                        func.sum(ShiftReportDetails.quantity),
+                        func.sum(ShiftReportDetails.summ),
+                        func.sum(ShiftReportDetails.quantity * ProjectWorks.price),
+                    )
+                    .join(
+                        ShiftReports,
+                        ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
+                    )
+                    .outerjoin(
+                        ProjectWorks,
+                        ProjectWorks.project_work_id == ShiftReportDetails.project_work,
+                    )
+                    .filter(
+                        ShiftReports.project.in_(project_ids),
+                        ShiftReports.signed.is_(True),
+                        ShiftReports.deleted.is_(False),
+                    )
+                    .group_by(ShiftReports.project, ShiftReportDetails.work)
+                    .all()
+                )
+                for project_id, work_id, quantity, summ, estimated_summ in actual_rows:
+                    stats = stats_by_project[project_id].get(str(work_id))
+                    if stats is not None:
+                        stats["shift_report_details_quantity"] = float(quantity or 0)
+                        stats["shift_report_details_summ"] = float(summ or 0)
+                        stats["shift_report_details_summ_by_estimate"] = float(
+                            estimated_summ or 0
+                        )
+
+                project_work_prices = (
+                    session.query(
+                        ProjectWorks.project.label("project_id"),
+                        ProjectWorks.work.label("work_id"),
+                        (
+                            func.sum(ProjectWorks.price * ProjectWorks.quantity)
+                            / func.nullif(func.sum(ProjectWorks.quantity), 0)
+                        ).label("price"),
+                    )
+                    .filter(ProjectWorks.project.in_(project_ids))
+                    .group_by(ProjectWorks.project, ProjectWorks.work)
+                    .subquery()
+                )
+                acceptance_rows = (
+                    session.query(
+                        Acceptances.project_id,
+                        WorkAcceptanceRelations.work_id,
+                        func.sum(WorkAcceptanceRelations.quantity),
+                        func.sum(
+                            WorkAcceptanceRelations.quantity
+                            * project_work_prices.c.price
+                        ),
+                        func.sum(
+                            case(
+                                (
+                                    Acceptances.status == "documents_signed",
+                                    WorkAcceptanceRelations.quantity,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                        func.sum(
+                            case(
+                                (
+                                    Acceptances.status == "documents_signed",
+                                    WorkAcceptanceRelations.quantity
+                                    * project_work_prices.c.price,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                    )
+                    .join(
+                        Acceptances,
+                        Acceptances.id == WorkAcceptanceRelations.acceptance_id,
+                    )
+                    .outerjoin(
+                        project_work_prices,
+                        and_(
+                            project_work_prices.c.project_id == Acceptances.project_id,
+                            project_work_prices.c.work_id
+                            == WorkAcceptanceRelations.work_id,
+                        ),
+                    )
+                    .filter(Acceptances.project_id.in_(project_ids))
+                    .group_by(Acceptances.project_id, WorkAcceptanceRelations.work_id)
+                    .all()
+                )
+                for (
+                    project_id,
+                    work_id,
+                    presented_qty,
+                    presented_summ,
+                    accepted_qty,
+                    accepted_summ,
+                ) in acceptance_rows:
+                    stats = stats_by_project[project_id].get(str(work_id))
+                    if stats is not None:
+                        stats["presented_quantity"] = (
+                            float(presented_qty) if presented_qty is not None else None
+                        )
+                        stats["presented_summ"] = (
+                            float(presented_summ)
+                            if presented_summ is not None
+                            else None
+                        )
+                        stats["accepted_quantity"] = (
+                            float(accepted_qty) if accepted_qty is not None else None
+                        )
+                        stats["accepted_summ"] = (
+                            float(accepted_summ) if accepted_summ is not None else None
+                        )
+                return stats_by_project
+        except Exception as error:
+            logger.error("Error fetching batched project statistics: %s", error)
+            return {project_id: {} for project_id in project_ids}
+
+    def get_object_stats(self, object_id):
+        with self.session_scope() as session:
+            projects = (
+                session.query(Projects.project_id, Projects.name)
+                .filter(
+                    Projects.object == object_id,
+                    Projects.deleted.is_(False),
+                )
+                .order_by(Projects.created_at.asc())
+                .all()
+            )
+
+        return self._build_grouped_project_stats(projects, detailed=False)
+
+    def get_object_stats_details(self, object_id):
+        with self.session_scope() as session:
+            projects = (
+                session.query(Projects.project_id, Projects.name)
+                .filter(
+                    Projects.object == object_id,
+                    Projects.deleted.is_(False),
+                )
+                .order_by(Projects.created_at.asc())
+                .all()
+            )
+
+        return self._build_grouped_project_stats(projects, detailed=True)
+
+    def get_project_leader_stats(self, project_leader_id):
+        with self.session_scope() as session:
+            projects = (
+                session.query(Projects.project_id, Projects.name)
+                .filter(
+                    Projects.project_leader == project_leader_id,
+                    Projects.deleted.is_(False),
+                )
+                .order_by(Projects.created_at.asc())
+                .all()
+            )
+        return self._build_grouped_project_stats(projects, detailed=False)
+
+    def get_project_leader_stats_details(self, project_leader_id):
+        with self.session_scope() as session:
+            projects = (
+                session.query(Projects.project_id, Projects.name)
+                .filter(
+                    Projects.project_leader == project_leader_id,
+                    Projects.deleted.is_(False),
+                )
+                .order_by(Projects.created_at.asc())
+                .all()
+            )
+        return self._build_grouped_project_stats(projects, detailed=True)
+
+    def get_all_objects_stats(self, *, offset=0, limit=10, search=None):
+        with self.session_scope() as session:
+            query = session.query(Objects.object_id, Objects.name).filter(
+                Objects.deleted.is_(False)
+            )
+            if search:
+                query = query.filter(Objects.name.ilike(f"%{search}%"))
+            objects = query.order_by(Objects.name.asc()).all()
+
+            projects = (
+                session.query(Projects.project_id, Projects.object)
+                .filter(
+                    Projects.object.in_([object_id for object_id, _ in objects]),
+                    Projects.deleted.is_(False),
+                )
+                .all()
+            ) if objects else []
+            stats_by_project = self.get_project_stats_many(
+                [project_id for project_id, _ in projects]
+            )
+            by_object = {object_id: [] for object_id, _ in objects}
+            for project_id, object_id in projects:
+                by_object[object_id].append(stats_by_project.get(project_id, {}))
+
+            items = []
+            total = {field: None for field in self._stat_summary_fields()}
+            for object_id, name in objects:
+                summary = self._summarize_stats_maps(by_object[object_id])
+                self._merge_stats_summary(total, summary)
+                items.append({"object_id": str(object_id), "name": name, "stats": summary})
+
+            return {
+                "total": total,
+                "objects": items[offset : offset + limit],
+                "total_count": len(items),
+            }
+
+    def get_all_project_leaders_fact_stats(
+        self,
+        *,
+        offset=0,
+        limit=10,
+        search=None,
+        date_from=None,
+        date_to=None,
+        project_leader_ids=None,
+    ):
+        with self.session_scope() as session:
+            query = session.query(Users.user_id, Users.login, Users.name).filter(
+                Users.role == "project-leader", Users.deleted.is_(False)
+            )
+            if search:
+                pattern = f"%{search}%"
+                query = query.filter((Users.login.ilike(pattern)) | (Users.name.ilike(pattern)))
+            if project_leader_ids:
+                query = query.filter(Users.user_id.in_(project_leader_ids))
+            leaders = query.order_by(Users.name.asc(), Users.login.asc()).all()
+            leader_ids = [user_id for user_id, _, _ in leaders]
+            projects = (
+                session.query(Projects.project_id, Projects.project_leader, Projects.name)
+                .filter(
+                    Projects.project_leader.in_(leader_ids),
+                    Projects.deleted.is_(False),
+                )
+                .all()
+            ) if leaders else []
+
+            project_ids = [project_id for project_id, _, _ in projects]
+            by_project = {project_id: {} for project_id in project_ids}
+            month_keys: set[str] = set(self._month_keys(date_from, date_to))
+            if project_ids:
+                fact_query = (
+                    session.query(
+                        ShiftReports.project,
+                        ShiftReports.date,
+                        func.sum(ShiftReportDetails.quantity),
+                        func.sum(ShiftReportDetails.summ),
+                        func.sum(ShiftReportDetails.quantity * ProjectWorks.price),
+                    )
+                    .join(
+                        ShiftReportDetails,
+                        ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
+                    )
+                    .outerjoin(
+                        ProjectWorks,
+                        ProjectWorks.project_work_id == ShiftReportDetails.project_work,
+                    )
+                    .filter(
+                        ShiftReports.project.in_(project_ids),
+                        ShiftReports.deleted.is_(False),
+                        ShiftReports.signed.is_(True),
+                    )
+                )
+                if date_from is not None:
+                    fact_query = fact_query.filter(ShiftReports.date >= date_from)
+                if date_to is not None:
+                    fact_query = fact_query.filter(ShiftReports.date <= date_to)
+                for project_id, report_date, quantity, summ, estimated_summ in fact_query.group_by(
+                    ShiftReports.project, ShiftReports.date
+                ).all():
+                    month = self._month_key(report_date)
+                    month_keys.add(month)
+                    by_project[project_id].setdefault(month, self._empty_fact_stats())
+                    self._merge_fact_stats(
+                        by_project[project_id][month],
+                        {
+                            "shift_report_details_quantity": float(quantity or 0),
+                            "shift_report_details_summ": float(summ or 0),
+                            "shift_report_details_summ_by_estimate": float(
+                                estimated_summ or 0
+                            ),
+                        },
+                    )
+
+            ordered_months = sorted(month_keys)
+            for project_id in by_project:
+                by_project[project_id] = {
+                    month: by_project[project_id].get(month, self._empty_fact_stats())
+                    for month in ordered_months
+                }
+
+            items = []
+            total = {month: self._empty_fact_stats() for month in ordered_months}
+            by_leader = {user_id: [] for user_id in leader_ids}
+            for project_id, leader_id, name in projects:
+                by_leader[leader_id].append(
+                    {"project_id": str(project_id), "name": name, "stats": by_project[project_id]}
+                )
+            for user_id, login, name in leaders:
+                leader_projects = by_leader[user_id]
+                leader_total = {
+                    month: self._empty_fact_stats() for month in ordered_months
+                }
+                for project in leader_projects:
+                    for month, stats in project["stats"].items():
+                        self._merge_fact_stats(leader_total[month], stats)
+                for month in ordered_months:
+                    self._merge_fact_stats(total[month], leader_total[month])
+                items.append(
+                    {
+                        "user_id": str(user_id),
+                        "login": login,
+                        "name": name,
+                        "stats": leader_total,
+                        "projects": leader_projects,
+                    }
+                )
+
+            return {
+                "total": total,
+                "project_leaders": items[offset : offset + limit],
+                "total_count": len(items),
+            }
+
+    @staticmethod
+    def _leader_fact_stat_fields():
+        return (
+            "shift_report_details_quantity",
+            "shift_report_details_summ",
+            "shift_report_details_summ_by_estimate",
+        )
+
+    @staticmethod
+    def _empty_fact_stats():
+        return {
+            "shift_report_details_quantity": 0.0,
+            "shift_report_details_summ": 0.0,
+            "shift_report_details_summ_by_estimate": 0.0,
+        }
+
+    @staticmethod
+    def _month_key(timestamp: int) -> str:
+        return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc).strftime(
+            "%Y-%m"
+        )
+
+    @classmethod
+    def _month_keys(
+        cls, date_from: int | None, date_to: int | None
+    ) -> tuple[str, ...]:
+        if date_from is None or date_to is None:
+            return ()
+        start = datetime.fromtimestamp(date_from / 1000, tz=timezone.utc).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        end = datetime.fromtimestamp(date_to / 1000, tz=timezone.utc).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        months = []
+        current = start
+        while current <= end:
+            months.append(current.strftime("%Y-%m"))
+            if current.month == 12:
+                current = current.replace(year=current.year + 1, month=1)
+            else:
+                current = current.replace(month=current.month + 1)
+        return tuple(months)
+
+    @classmethod
+    def _merge_fact_stats(cls, total, stats):
+        for field in cls._leader_fact_stat_fields():
+            total[field] += stats.get(field, 0.0) or 0.0
+
+    def _build_grouped_project_stats(self, projects, *, detailed):
+        if not projects:
+            return {"total": {}, "projects": []}
+        project_stats = []
+        total = {}
+        if not detailed:
+            total = {field: None for field in self._stat_summary_fields()}
+        stats_by_project = self.get_project_stats_many(
+            [project_id for project_id, _ in projects]
+        )
+        for project_id, name in projects:
+            stats = stats_by_project.get(project_id, {})
+            value = stats if detailed else self._summarize_project_stats(stats)
+            project_stats.append(
+                {"project_id": str(project_id), "name": name, "stats": value}
+            )
+            if detailed:
+                self._merge_detailed_stats(total, stats)
+            else:
+                self._merge_stats_summary(total, value)
+        return {"total": total, "projects": project_stats}
+
+    @staticmethod
+    def _merge_detailed_stats(total, stats):
+        for work_id, work_stats in stats.items():
+            if work_id not in total:
+                total[work_id] = dict(work_stats)
+                continue
+            for field, value in work_stats.items():
+                if isinstance(value, (int, float)):
+                    total[work_id][field] = (total[work_id].get(field) or 0) + value
+                elif total[work_id].get(field) is None and value is not None:
+                    total[work_id][field] = value
+
+    @staticmethod
+    def _stat_summary_fields():
+        return (
+            "project_work_quantity",
+            "project_work_summ",
+            "shift_report_details_quantity",
+            "shift_report_details_summ",
+            "shift_report_details_summ_by_estimate",
+            "presented_quantity",
+            "presented_summ",
+            "accepted_quantity",
+            "accepted_summ",
+        )
+
+    @classmethod
+    def _summarize_project_stats(cls, stats):
+        fields = cls._stat_summary_fields()
+        summary = {field: None for field in fields}
+        for item in stats.values():
+            for field in fields:
+                value = item.get(field)
+                if value is not None:
+                    summary[field] = (summary[field] or 0) + value
+        return summary
+
+    @classmethod
+    def _summarize_stats_maps(cls, stats_maps):
+        summary = {field: None for field in cls._stat_summary_fields()}
+        for stats in stats_maps:
+            cls._merge_stats_summary(summary, cls._summarize_project_stats(stats))
+        return summary
+
+    @staticmethod
+    def _merge_stats_summary(total, summary):
+        for field, value in summary.items():
+            if value is not None:
+                total[field] = (total.get(field) or 0) + value
+
     def get_all_project_ids(self) -> list[UUID]:
         with self.session_scope() as session:
             return [project_id for (project_id,) in session.query(Projects.project_id)]
+
+    def get_project_statuses_by_object(self, object_id: UUID) -> list[str]:
+        with self.session_scope() as session:
+            return [
+                status.value if hasattr(status, "value") else str(status)
+                for (status,) in session.query(Projects.status)
+                .filter(Projects.object == object_id, Projects.deleted.is_(False))
+                .all()
+            ]
+
+    def get_object_status(self, object_id: UUID) -> str | None:
+        with self.session_scope() as session:
+            return session.query(Objects.status).filter(
+                Objects.object_id == object_id
+            ).scalar()
+
+    def update_status_if_current(
+        self,
+        project_id: UUID,
+        expected_status: ProjectStatus,
+        new_status: ProjectStatus,
+    ) -> dict[str, Any] | None:
+        with self.session_scope() as session:
+            project = (
+                session.query(Projects)
+                .filter(
+                    Projects.project_id == project_id,
+                    Projects.status == expected_status,
+                )
+                .with_for_update()
+                .first()
+            )
+            if project is None:
+                return None
+            object_status = session.query(Objects.status).filter(
+                Objects.object_id == project.object
+            ).scalar()
+            if object_status == "waiting":
+                raise ProjectValidationError(
+                    "Project status cannot be changed while the object is waiting"
+                )
+            if new_status is ProjectStatus.CLOSED:
+                project_works = (
+                    session.query(ProjectWorks)
+                    .filter(ProjectWorks.project == project_id)
+                    .with_for_update()
+                    .all()
+                )
+                if any(not project_work.signed for project_work in project_works):
+                    raise ProjectValidationError(
+                        "Project cannot be closed until all project works are signed"
+                    )
+                acceptances = (
+                    session.query(Acceptances.status)
+                    .filter(Acceptances.project_id == project_id)
+                    .all()
+                )
+                if any(status != "documents_signed" for (status,) in acceptances):
+                    raise ProjectValidationError(
+                        "Project cannot be closed until all acceptances have signed documents"
+                    )
+            project.status = new_status
+            session.flush()
+            return project.to_dict()
 
     def get_project_stats_by_project_work(self, project_id):
         try:

@@ -9,6 +9,7 @@ from app.domain.attachments import (
     AttachmentTarget,
 )
 from app.use_cases.attachments import AttachmentActor, AttachmentUseCase, UploadFile
+from app.use_cases.attachments.dto import StoredFile
 from app.use_cases.attachments.ports import AttachmentRepository, AttachmentStorage
 
 
@@ -62,7 +63,9 @@ class FakeStorage(AttachmentStorage):
         normalized_name = filename.replace(" ", "_")
         key = f"ok-service/{target_type}s/{target_id}/{attachment_id}_{normalized_name}"
         self.uploaded_keys.append(key)
-        return key, normalized_name, content_type or "application/pdf"
+        return StoredFile(
+            key, normalized_name, content, content_type or "application/pdf"
+        )
 
     def delete(self, key):
         self.deleted_keys.append(key)
@@ -173,6 +176,54 @@ def test_place_attachment_requires_admin_for_upload():
     with pytest.raises(AttachmentForbiddenError):
         AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
             "place", target.target_id, [_file()], AttachmentActor(manager_id, "manager")
+        )
+
+
+@pytest.mark.parametrize("role", ["user", "project-leader"])
+def test_acceptance_attachment_mutation_is_restricted_to_admin_and_manager(role):
+    target = AttachmentTarget("acceptance", uuid4(), False)
+
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+            "acceptance", target.target_id, [_file()], AttachmentActor(uuid4(), role)
+        )
+
+
+@pytest.mark.parametrize("role", ["admin", "manager"])
+def test_admin_and_manager_can_upload_acceptance_attachment(role):
+    target = AttachmentTarget("acceptance", uuid4(), False)
+
+    result = AttachmentUseCase(FakeRepository(target), FakeStorage()).upload(
+        "acceptance", target.target_id, [_file()], AttachmentActor(uuid4(), role)
+    )
+
+    assert len(result) == 1
+
+
+def test_project_leader_can_view_only_own_acceptance_attachment():
+    leader_id = uuid4()
+    target = AttachmentTarget(
+        "acceptance", uuid4(), False, project_leader_id=leader_id
+    )
+    use_case = AttachmentUseCase(FakeRepository(target), FakeStorage())
+
+    use_case.list(
+        "acceptance", target.target_id, AttachmentActor(leader_id, "project-leader")
+    )
+
+    with pytest.raises(AttachmentForbiddenError):
+        use_case.list(
+            "acceptance", target.target_id,
+            AttachmentActor(uuid4(), "project-leader"),
+        )
+
+
+def test_user_cannot_view_acceptance_attachment():
+    target = AttachmentTarget("acceptance", uuid4(), False, project_leader_id=uuid4())
+
+    with pytest.raises(AttachmentForbiddenError):
+        AttachmentUseCase(FakeRepository(target), FakeStorage()).list(
+            "acceptance", target.target_id, AttachmentActor(uuid4(), "user")
         )
 
 

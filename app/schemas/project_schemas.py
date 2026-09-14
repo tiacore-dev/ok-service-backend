@@ -50,3 +50,4 @@ class ProjectFilterSchema(Schema):
     night_shift_available = fields.Boolean(required=False)
     extreme_conditions_available = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False)
+    status = fields.String(required=False)

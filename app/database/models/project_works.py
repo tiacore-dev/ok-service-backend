@@ -20,6 +20,7 @@ class ProjectWorks(Base):
         UUID, ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False
     )
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
+    price = Column(Numeric(precision=10, scale=2), nullable=True)
     summ = Column(Numeric(precision=10, scale=2), nullable=True)
     signed = Column(Boolean, nullable=False, default=False)
     created_at = Column(
@@ -54,7 +55,8 @@ class ProjectWorks(Base):
             "work": str(self.work),
             "project": str(self.project),
             "quantity": self.quantity,
-            "summ": self.summ if self.summ else None,  # type: ignore
+            "price": self.price if self.price is not None else None,
+            "summ": self.summ if self.summ is not None else None,  # type: ignore
             "created_by": str(self.created_by),
             "created_at": self.created_at,
             "signed": self.signed,

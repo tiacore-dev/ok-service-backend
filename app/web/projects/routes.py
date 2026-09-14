@@ -23,7 +23,9 @@ from app.adapters.statistics import RedisProjectWorkStatistics
 from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.domain.projects import (
     ProjectForbiddenError,
+    ProjectConflictError,
     ProjectNotFoundError,
+    ProjectStatus,
     ProjectValidationError,
 )
 from app.schemas.project_schemas import (
@@ -44,9 +46,11 @@ from app.use_cases.projects import (
     SoftDeleteProjectUseCase,
     UpdateProjectCommand,
     UpdateProjectUseCase,
+    UpdateProjectStatusUseCase,
 )
 from app.web._typing import (
     get_optional_bool,
+    get_optional_str,
     get_optional_uuid,
     get_required_uuid,
     to_plain_dict,
@@ -63,6 +67,9 @@ from .models import (
     project_view_model,
     project_stats_model,
     project_stats_response,
+    project_status_model,
+    project_status_item_model,
+    project_statuses_response,
 )
 
 logger = logging.getLogger("ok_service")
@@ -78,6 +85,9 @@ project_ns.models[project_model.name] = project_model
 project_ns.models[project_view_model.name] = project_view_model
 project_ns.models[project_stats_model.name] = project_stats_model
 project_ns.models[project_stats_response.name] = project_stats_response
+project_ns.models[project_status_model.name] = project_status_model
+project_ns.models[project_status_item_model.name] = project_status_item_model
+project_ns.models[project_statuses_response.name] = project_statuses_response
 project_ns.models[attachment_view_model.name] = attachment_view_model
 
 
@@ -111,6 +121,7 @@ class ProjectFilterPayload(TypedDict, total=False):
     night_shift_available: bool
     extreme_conditions_available: bool
     deleted: bool
+    status: str
 
 
 def get_jwt_identity():
@@ -158,6 +169,8 @@ def _map_error(error: Exception):
         return {"msg": str(error)}, 409
     if isinstance(error, ProjectNotFoundError):
         return {"msg": str(error)}, 404
+    if isinstance(error, ProjectConflictError):
+        return {"msg": str(error)}, 409
     if isinstance(error, ProjectForbiddenError):
         return {"msg": str(error)}, 403
     if isinstance(error, ProjectValidationError):
@@ -365,6 +378,7 @@ class ProjectAll(Resource):
         try:
             raw_args = to_plain_dict(request.args, "Request query is required")
             data = cast(ProjectFilterPayload, schema.load(raw_args))
+            status_value = data.get("status")
             projects = ListProjectsUseCase(repository=_repository()).execute(
                 ProjectListQuery(
                     offset=data.get("offset", 0),
@@ -377,6 +391,7 @@ class ProjectAll(Resource):
                     project_leader=get_optional_uuid(data, "project_leader"),
                     created_by=get_optional_uuid(data, "created_by"),
                     created_at=data.get("created_at"),
+                    status=ProjectStatus(status_value) if status_value is not None else None,
                 ),
                 _actor(current_user),
             )
@@ -390,6 +405,48 @@ class ProjectAll(Resource):
             logger.error(
                 f"Error fetching projects: {error}", extra={"login": current_user}
             )
+            return _map_error(error)
+
+
+@project_ns.route("/statuses")
+class ProjectStatuses(Resource):
+    @api_key_or_jwt_required
+    @project_ns.marshal_with(project_statuses_response)
+    def get(self):
+        return {
+            "msg": "Project statuses found successfully",
+            "statuses": [
+                {"value": status.value, "label": status.label}
+                for status in ProjectStatus
+            ],
+        }, 200
+
+
+@project_ns.route("/<string:project_id>/status")
+class ProjectStatusUpdate(Resource):
+    @api_key_or_jwt_required
+    @project_ns.expect(project_status_model)
+    @project_ns.marshal_with(project_msg_model)
+    def patch(self, project_id):
+        current_user = _get_current_user()
+        try:
+            raw_payload = to_plain_dict(
+                request.get_json(silent=True), "Request body is required"
+            )
+            raw_status = get_optional_str(raw_payload, "status")
+            if raw_status is None:
+                raise ValueError("Field 'status' is required")
+            status = ProjectStatus(raw_status)
+            project = UpdateProjectStatusUseCase(repository=_repository()).execute(
+                _parse_project_id(project_id), status, _actor(current_user)
+            )
+            return {
+                "msg": "Project status updated successfully",
+                "project_id": str(project.project_id),
+            }, 200
+        except (TypeError, ValueError) as error:
+            return _map_error(error)
+        except Exception as error:
             return _map_error(error)
 
 

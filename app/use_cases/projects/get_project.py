@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.domain.projects import ProjectForbiddenError, ProjectNotFoundError
 
-from .dto import ProjectActor
+from .dto import ProjectActor, ProjectLeaderStatsListQuery
 from .ports import ProjectRepository
 
 
@@ -38,3 +38,42 @@ class GetProjectStatsByMaterialsUseCase:
         if actor.role == "user":
             raise ProjectForbiddenError("Forbidden")
         return self.repository.get_project_stats_by_materials(project_id)
+
+
+@dataclass(slots=True)
+class GetProjectLeaderStatsUseCase:
+    repository: ProjectRepository
+
+    def execute(self, project_leader_id: UUID, actor: ProjectActor) -> dict[str, object]:
+        if actor.role == "project-leader" and actor.user_id != project_leader_id:
+            raise ProjectForbiddenError("Forbidden")
+        if actor.role not in {"admin", "manager", "project-leader"}:
+            raise ProjectForbiddenError("Forbidden")
+        return self.repository.get_project_leader_stats(project_leader_id)
+
+
+@dataclass(slots=True)
+class GetProjectLeaderStatsDetailsUseCase:
+    repository: ProjectRepository
+
+    def execute(self, project_leader_id: UUID, actor: ProjectActor) -> dict[str, object]:
+        if actor.role == "project-leader" and actor.user_id != project_leader_id:
+            raise ProjectForbiddenError("Forbidden")
+        if actor.role not in {"admin", "manager", "project-leader"}:
+            raise ProjectForbiddenError("Forbidden")
+        return self.repository.get_project_leader_stats_details(project_leader_id)
+
+
+@dataclass(slots=True)
+class GetAllProjectLeadersStatsUseCase:
+    repository: ProjectRepository
+
+    def execute(
+        self, query: ProjectLeaderStatsListQuery, actor: ProjectActor
+    ) -> dict[str, object]:
+        if actor.role not in {"admin", "manager", "project-leader"}:
+            raise ProjectForbiddenError("Forbidden")
+        if query.date_from is not None and query.date_to is not None:
+            if query.date_from > query.date_to:
+                raise ValueError("date_from must not be greater than date_to")
+        return self.repository.get_all_project_leaders_fact_stats(query)

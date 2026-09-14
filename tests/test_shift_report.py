@@ -107,6 +107,7 @@ def test_view_shift_report(
         == seed_shift_report["distance_end"]
     )
     assert response.json["shift_report"]["comment"] == seed_shift_report["comment"]
+    assert "shift_report_details_summ_by_estimate" in response.json["shift_report"]
 
 
 def test_soft_delete_shift_report(client, jwt_token_admin, seed_shift_report):

@@ -14,16 +14,19 @@ class ProjectWork:
     project: UUID
     work: UUID
     quantity: Decimal
-    summ: Decimal | None
     created_by: UUID
     created_at: int
     signed: bool = False
+    price: Decimal | None = None
+    summ: Decimal | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "quantity", Decimal(str(self.quantity)))
         object.__setattr__(self, "created_at", int(self.created_at))
         if self.summ is not None:
             object.__setattr__(self, "summ", Decimal(str(self.summ)))
+        if self.price is not None:
+            object.__setattr__(self, "price", Decimal(str(self.price)))
         if self.quantity < 0:
             raise ProjectWorkValidationError("Project work quantity must be non-negative.")
         object.__setattr__(self, "signed", bool(self.signed))

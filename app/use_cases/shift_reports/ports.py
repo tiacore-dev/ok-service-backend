@@ -32,6 +32,10 @@ class ShiftReportRepository(Protocol):
 
     def get_total_sum_by_shift_report(self, shift_report_id: UUID) -> int | float: ...
 
+    def get_total_sum_by_estimate_for_shift_report(
+        self, shift_report_id: UUID
+    ) -> int | float: ...
+
     def get_project_stats(self, project_id: UUID) -> dict: ...
 
     def create_shift_report_detail(

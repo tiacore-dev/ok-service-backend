@@ -31,6 +31,9 @@ class Attachments(Base):
     )
     object_attachments = relationship("ObjectAttachments", back_populates="attachment")
     place_attachments = relationship("PlaceAttachments", back_populates="attachment")
+    work_acceptance_attachments = relationship(
+        "WorkAcceptanceAttachments", back_populates="attachment"
+    )
     creator = relationship("Users", back_populates="created_attachments")
 
 
@@ -122,3 +125,29 @@ class PlaceAttachments(Base):
 
     place = relationship("Places", back_populates="place_attachments")
     attachment = relationship("Attachments", back_populates="place_attachments")
+
+
+class WorkAcceptanceAttachments(Base):
+    __tablename__ = "work_acceptance_attachments"
+    __table_args__ = (
+        UniqueConstraint(
+            "acceptance_id", "attachment_id", name="uq_work_acceptance_attachments"
+        ),
+    )
+
+    work_acceptance_attachment_id = Column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    acceptance_id = Column(
+        UUID(as_uuid=True), ForeignKey("acceptances.id"), nullable=False
+    )
+    attachment_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("attachments.attachment_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    acceptance = relationship("Acceptances", back_populates="work_acceptance_attachments")
+    attachment = relationship(
+        "Attachments", back_populates="work_acceptance_attachments"
+    )

@@ -82,7 +82,7 @@ class ProjectWorkCreatePayload(TypedDict):
     project_work_name: str
     work: str
     quantity: float | int
-    summ: NotRequired[float | int | None]
+    price: NotRequired[float | int | None]
     signed: NotRequired[bool]
 
 
@@ -91,7 +91,7 @@ class ProjectWorkEditPayload(TypedDict, total=False):
     project_work_name: str
     work: str
     quantity: float | int
-    summ: float | int | None
+    price: float | int | None
     signed: bool
 
 
@@ -143,7 +143,14 @@ def _response_with_stats(project_work, stats: dict[str, Any]) -> dict[str, Any]:
     actual = float(work_stats.get("shift_report_details_quantity", 0) or 0)
     response.update(
         project_work_quantity=planned,
+        project_work_summ=float(work_stats.get("project_work_summ", 0) or 0),
         shift_report_details_quantity=actual,
+        shift_report_details_summ=float(
+            work_stats.get("shift_report_details_summ", 0) or 0
+        ),
+        shift_report_details_summ_by_estimate=float(
+            work_stats.get("shift_report_details_summ_by_estimate", 0) or 0
+        ),
         acceptance_status=(
             "not_checked"
             if actual == 0
@@ -213,7 +220,7 @@ class ProjectWorkAddBulk(Resource):
                     quantity=get_required_decimal(
                         item, "quantity", "Quantity is required"
                     ),
-                    summ=get_optional_decimal(item, "summ"),
+                    price=get_optional_decimal(item, "price"),
                     signed=get_optional_bool(item, "signed"),
                     created_by=get_optional_uuid(current_user, "user_id"),
                 )
@@ -255,7 +262,7 @@ class ProjectWorkAdd(Resource):
                 project_work_name=get_optional_str(data, "project_work_name"),
                 work=get_required_uuid(data, "work", "Work is required"),
                 quantity=get_required_decimal(data, "quantity", "Quantity is required"),
-                summ=get_optional_decimal(data, "summ"),
+                price=get_optional_decimal(data, "price"),
                 signed=get_optional_bool(data, "signed"),
                 created_by=get_optional_uuid(current_user, "user_id"),
             )
@@ -391,7 +398,7 @@ class ProjectWorkEdit(Resource):
                     project_work_name=get_optional_str(data, "project_work_name"),
                     work=get_optional_uuid(data, "work"),
                     quantity=get_optional_decimal(data, "quantity"),
-                    summ=get_optional_decimal(data, "summ"),
+                    price=get_optional_decimal(data, "price"),
                     signed=get_optional_bool(data, "signed"),
                 ),
                 _actor(current_user),

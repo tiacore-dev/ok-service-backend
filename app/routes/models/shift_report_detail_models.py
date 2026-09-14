@@ -22,7 +22,10 @@ project_work_brief_model = Model(
         "project_work_id": fields.String(required=True, description="Project work ID"),
         "name": fields.String(required=False, description="Project work name"),
         "project_work_quantity": fields.Float(required=False),
+        "project_work_summ": fields.Float(required=False),
         "shift_report_details_quantity": fields.Float(required=False),
+        "shift_report_details_summ": fields.Float(required=False),
+        "shift_report_details_summ_by_estimate": fields.Float(required=False),
         "acceptance_status": fields.String(
             required=False, enum=["not_checked", "partial", "accepted"]
         ),
