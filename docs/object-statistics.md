@@ -65,10 +65,8 @@
 - `GET /objects/get-stat`;
 - `GET /project-leaders/get-stat`.
 
-`GET /objects/get-stat` доступен ролям `admin`, `manager` и
-`project-leader`. `GET /project-leaders/get-stat` доступен только ролям
-`admin` и `manager`. Для JWT и API-key запросов используются отдельные права
-с точными маршрутами.
+Оба метода доступны ролям `admin`, `manager` и `project-leader`. Для JWT и
+API-key запросов используются отдельные права с точными маршрутами.
 
 Поддерживаются параметры `offset` (по умолчанию `0`), `limit` (по умолчанию
 `10`) и `search`. Поиск объектов выполняется по имени, поиск прорабов — по

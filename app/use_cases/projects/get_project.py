@@ -71,7 +71,7 @@ class GetAllProjectLeadersStatsUseCase:
     def execute(
         self, query: ProjectLeaderStatsListQuery, actor: ProjectActor
     ) -> dict[str, object]:
-        if actor.role not in {"admin", "manager"}:
+        if actor.role not in {"admin", "manager", "project-leader"}:
             raise ProjectForbiddenError("Forbidden")
         if query.date_from is not None and query.date_to is not None:
             if query.date_from > query.date_to:

@@ -151,22 +151,22 @@ def _project() -> Project:
     )
 
 
-def test_all_project_leader_stats_requires_admin_or_manager():
+def test_all_project_leader_stats_allows_admin_manager_and_project_leader():
     repository = FakeProjectRepository()
     query = ProjectLeaderStatsListQuery(
         offset=5, limit=2, search="ivan", date_from=100, date_to=200
     )
 
-    result = GetAllProjectLeadersStatsUseCase(repository).execute(
-        query, ProjectActor("admin", uuid4())
-    )
-
-    assert result == {"total": {}, "project_leaders": []}
+    for role in ("admin", "manager", "project-leader"):
+        result = GetAllProjectLeadersStatsUseCase(repository).execute(
+            query, ProjectActor(role, uuid4())
+        )
+        assert result == {"total": {}, "project_leaders": []}
     assert repository.leader_stats_query == query
 
     with pytest.raises(ProjectForbiddenError):
         GetAllProjectLeadersStatsUseCase(repository).execute(
-            query, ProjectActor("project-leader", uuid4())
+            query, ProjectActor("user", uuid4())
         )
 
 
