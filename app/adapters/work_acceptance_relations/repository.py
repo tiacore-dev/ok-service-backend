@@ -37,6 +37,12 @@ class SQLAlchemyWorkAcceptanceRelationRepository(WorkAcceptanceRelationRepositor
         self._recalculate(project_id)
         return _entity(record)
 
+    def create_work_acceptance_relations(self, relations: list[WorkAcceptanceRelation]) -> list[WorkAcceptanceRelation]:
+        records = self.manager.add_many_with_quantity_check(relations)
+        project_id = self.manager.get_project_id(relations[0].id) if records else None
+        self._recalculate(project_id)
+        return [_entity(record) for record in records]
+
     def get_work_acceptance_relation(self, relation_id: UUID) -> WorkAcceptanceRelation | None:
         record = normalize_result(self.manager.get_by_id(relation_id))
         return _entity(record) if record else None
@@ -57,6 +63,11 @@ class SQLAlchemyWorkAcceptanceRelationRepository(WorkAcceptanceRelationRepositor
         deleted = self.manager.delete(relation_id) is not None
         if deleted:
             self._recalculate(project_id)
+        return deleted
+
+    def delete_work_acceptance_relations(self, relation_ids: list[UUID]) -> int:
+        deleted, project_ids = self.manager.delete_many(relation_ids)
+        self._recalculate(*project_ids)
         return deleted
 
     def list_work_acceptance_relations(self, query: WorkAcceptanceRelationListQuery) -> list[WorkAcceptanceRelation]:

@@ -197,6 +197,8 @@ DELETE /acceptances/{acceptance_id}/attachments/{attachment_id}
 | Редактирование | `PATCH /work-acceptance-relations/{id}/edit` |
 | Удаление | `DELETE /work-acceptance-relations/{id}/delete/hard` |
 | Список | `GET /work-acceptance-relations/all` |
+| Массовое создание | `POST /work-acceptance-relations/add-bulk` |
+| Массовое удаление | `DELETE /work-acceptance-relations/delete-bulk` |
 
 Создание принимает:
 
@@ -221,6 +223,27 @@ DELETE /acceptances/{acceptance_id}/attachments/{attachment_id}
 `available_quantity`, `requested_quantity` и `exceeded_quantity`.
 Проверка и запись выполняются в одной транзакции; строки спецификации для
 проверяемых `project` и `work_id` блокируются на время операции.
+
+Массовое создание принимает один `acceptance_id` и список `works`. Для каждого
+элемента создаётся отдельная связь; одинаковый `work_id` не объединяется.
+Проверка количества учитывает сумму всех элементов списка и существующих
+связей. Операция атомарна: при ошибке валидации, отсутствии приёмки или работы,
+либо превышении лимита не создаётся ни одна связь.
+
+```json
+{
+  "acceptance_id": "acceptance-uuid",
+  "works": [
+    {"work_id": "work-uuid", "quantity": 12.5},
+    {"work_id": "work-uuid", "quantity": 1.0}
+  ]
+}
+```
+
+Успешный ответ содержит `ids` созданных связей и `created_count`.
+
+Массовое удаление принимает `relation_ids`. Несуществующие ID пропускаются,
+повторяющиеся учитываются один раз, а ответ содержит `deleted_count`.
 
 ## Архитектура реализации
 
