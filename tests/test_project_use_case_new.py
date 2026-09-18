@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -178,12 +180,26 @@ def test_all_project_leader_stats_rejects_reversed_date_range():
         )
 
 
-def test_project_leader_fact_stats_month_helpers_use_utc_yyyy_mm_keys():
-    assert ProjectsManager._month_key(1735689600000) == "2025-01"
-    assert ProjectsManager._month_keys(1735689600000, 1767225599999) == (
+def test_project_leader_fact_stats_month_helpers_use_novosibirsk_yyyy_mm_keys():
+    novosibirsk = ZoneInfo("Asia/Novosibirsk")
+    date_from = int(datetime(2025, 1, 1, tzinfo=novosibirsk).timestamp() * 1000)
+    date_to = int(
+        datetime(2025, 12, 31, 23, 59, 59, 999000, tzinfo=novosibirsk).timestamp() * 1000
+    )
+
+    assert ProjectsManager._month_key(date_from) == "2025-01"
+    assert ProjectsManager._month_keys(date_from, date_to) == (
         "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06",
         "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12",
     )
+
+
+def test_project_leader_fact_stats_keep_novosibirsk_calendar_date_in_month():
+    date = int(
+        datetime(2025, 7, 1, tzinfo=ZoneInfo("Asia/Novosibirsk")).timestamp() * 1000
+    )
+
+    assert ProjectsManager._month_key(date) == "2025-07"
 
 
 def test_project_starts_pending_and_status_can_move_forward_or_back():
