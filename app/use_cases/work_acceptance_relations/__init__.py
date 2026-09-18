@@ -1,4 +1,9 @@
 from .use_cases import (
+    BulkCreateWorkAcceptanceRelationsCommand,
+    BulkCreateWorkAcceptanceRelationsUseCase,
+    BulkDeleteWorkAcceptanceRelationsCommand,
+    BulkDeleteWorkAcceptanceRelationsUseCase,
+    BulkWorkAcceptanceRelationItem,
     CreateWorkAcceptanceRelationCommand,
     CreateWorkAcceptanceRelationUseCase,
     DeleteWorkAcceptanceRelationUseCase,
@@ -10,6 +15,9 @@ from .use_cases import (
 )
 
 __all__ = [
+    "BulkCreateWorkAcceptanceRelationsCommand", "BulkCreateWorkAcceptanceRelationsUseCase",
+    "BulkDeleteWorkAcceptanceRelationsCommand", "BulkDeleteWorkAcceptanceRelationsUseCase",
+    "BulkWorkAcceptanceRelationItem",
     "CreateWorkAcceptanceRelationCommand", "CreateWorkAcceptanceRelationUseCase",
     "DeleteWorkAcceptanceRelationUseCase", "GetWorkAcceptanceRelationUseCase",
     "ListWorkAcceptanceRelationsUseCase", "UpdateWorkAcceptanceRelationCommand",

@@ -23,6 +23,11 @@ from app.use_cases.acceptances import (
     UpdateAcceptanceUseCase,
 )
 from app.use_cases.work_acceptance_relations import (
+    BulkCreateWorkAcceptanceRelationsCommand,
+    BulkCreateWorkAcceptanceRelationsUseCase,
+    BulkDeleteWorkAcceptanceRelationsCommand,
+    BulkDeleteWorkAcceptanceRelationsUseCase,
+    BulkWorkAcceptanceRelationItem,
     CreateWorkAcceptanceRelationCommand,
     CreateWorkAcceptanceRelationUseCase,
     UpdateWorkAcceptanceRelationCommand,
@@ -84,6 +89,100 @@ class RelationRepository:
 
     def list_work_acceptance_relations(self, query):
         return []
+
+    def create_work_acceptance_relations(self, relations):
+        quantities_by_work = {}
+        for relation in relations:
+            quantities_by_work[relation.work_id] = (
+                quantities_by_work.get(relation.work_id, Decimal("0"))
+                + relation.quantity
+            )
+        for relation in relations:
+            if quantities_by_work[relation.work_id] == relation.quantity:
+                self._ensure_quantity_available(relation)
+            else:
+                self._ensure_quantity_available(
+                    relation.with_updates(quantity=quantities_by_work[relation.work_id])
+                )
+        self.created = relations
+        return relations
+
+    def delete_work_acceptance_relations(self, relation_ids):
+        self.deleted_ids = relation_ids
+        return len(relation_ids)
+
+
+def test_bulk_relation_creation_preserves_duplicate_work_rows():
+    repository = RelationRepository(specification_quantity=Decimal("10"))
+    work_id = uuid4()
+
+    created = BulkCreateWorkAcceptanceRelationsUseCase(repository).execute(
+        BulkCreateWorkAcceptanceRelationsCommand(
+            acceptance_id=uuid4(),
+            works=[
+                BulkWorkAcceptanceRelationItem(work_id, Decimal("2")),
+                BulkWorkAcceptanceRelationItem(work_id, Decimal("3")),
+            ],
+        )
+    )
+
+    assert len(created) == 2
+    assert repository.created == created
+    assert [item.work_id for item in created] == [work_id, work_id]
+
+
+def test_bulk_relation_creation_validates_all_items_before_repository_write():
+    repository = RelationRepository()
+
+    with pytest.raises(WorkAcceptanceRelationValidationError):
+        BulkCreateWorkAcceptanceRelationsUseCase(repository).execute(
+            BulkCreateWorkAcceptanceRelationsCommand(
+                acceptance_id=uuid4(),
+                works=[
+                    BulkWorkAcceptanceRelationItem(uuid4(), Decimal("2")),
+                    BulkWorkAcceptanceRelationItem(uuid4(), Decimal("0")),
+                ],
+            )
+        )
+
+    assert repository.created is None
+
+
+def test_bulk_relation_creation_rejects_sum_of_duplicate_work_rows():
+    repository = RelationRepository(specification_quantity=Decimal("10"))
+    work_id = uuid4()
+
+    with pytest.raises(WorkAcceptanceQuantityExceededError) as exc_info:
+        BulkCreateWorkAcceptanceRelationsUseCase(repository).execute(
+            BulkCreateWorkAcceptanceRelationsCommand(
+                acceptance_id=uuid4(),
+                works=[
+                    BulkWorkAcceptanceRelationItem(work_id, Decimal("6")),
+                    BulkWorkAcceptanceRelationItem(work_id, Decimal("5")),
+                    BulkWorkAcceptanceRelationItem(work_id, Decimal("7")),
+                ],
+            )
+        )
+
+    assert repository.created is None
+    error = exc_info.value
+    assert error.requested_quantity == Decimal("18")
+    assert error.exceeded_quantity == Decimal("8")
+
+
+def test_bulk_relation_deletion_deduplicates_relation_ids():
+    repository = RelationRepository()
+    first_id = uuid4()
+    second_id = uuid4()
+
+    deleted = BulkDeleteWorkAcceptanceRelationsUseCase(repository).execute(
+        BulkDeleteWorkAcceptanceRelationsCommand(
+            relation_ids=[first_id, first_id, second_id]
+        )
+    )
+
+    assert deleted == 2
+    assert repository.deleted_ids == [first_id, second_id]
 
 
 def test_work_acceptance_relation_creation_rejects_quantity_above_work_limit():

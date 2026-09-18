@@ -9,10 +9,11 @@ from app.database.models import (
     Objects,
     ProjectMaterials,
     Projects,
+    ProjectWorks,
     ShiftReportMaterials,
     WorkAcceptanceRelations,
     WorkMaterialRelations,
-    ProjectWorks,
+    Works,
 )
 from app.domain.work_acceptance_relations import WorkAcceptanceQuantityExceededError
 
@@ -210,9 +211,7 @@ class WorkAcceptanceRelationsManager(BaseDBManager):
             return record.acceptance.project_id if record is not None else None
 
     @staticmethod
-    def _ensure_quantity_available(
-        session, relation, *, exclude_relation_id=None
-    ):
+    def _ensure_quantity_available(session, relation, *, exclude_relation_id=None):
         project_id = (
             session.query(Acceptances.project_id)
             .filter(Acceptances.id == relation.acceptance_id)
@@ -274,6 +273,114 @@ class WorkAcceptanceRelationsManager(BaseDBManager):
             session.flush()
             return relation.to_dict()
 
+    def add_many_with_quantity_check(self, relations):
+        with self.session_scope() as session:
+            acceptance_id = relations[0].acceptance_id
+            project_id = (
+                session.query(Acceptances.project_id)
+                .filter(Acceptances.id == acceptance_id)
+                .scalar()
+            )
+            if project_id is None:
+                raise ValueError("Acceptance does not exist")
+            if any(item.acceptance_id != acceptance_id for item in relations):
+                raise ValueError("All relations must belong to the same acceptance")
+
+            work_ids = sorted({item.work_id for item in relations}, key=str)
+            existing_work_ids = {
+                row[0]
+                for row in session.query(Works.work_id)
+                .filter(Works.work_id.in_(work_ids))
+                .all()
+            }
+            missing_work_ids = [
+                item for item in work_ids if item not in existing_work_ids
+            ]
+            if missing_work_ids:
+                raise ValueError(f"Work with id={missing_work_ids[0]} does not exist")
+
+            specification_rows = (
+                session.query(ProjectWorks.work, ProjectWorks.quantity)
+                .filter(
+                    ProjectWorks.project == project_id,
+                    ProjectWorks.work.in_(work_ids),
+                )
+                .with_for_update()
+                .all()
+            )
+            specification_quantities = {work_id: Decimal("0") for work_id in work_ids}
+            for work_id, quantity in specification_rows:
+                specification_quantities[work_id] += Decimal(str(quantity))
+
+            accepted_rows = (
+                session.query(
+                    WorkAcceptanceRelations.work_id,
+                    WorkAcceptanceRelations.quantity,
+                )
+                .join(
+                    Acceptances, Acceptances.id == WorkAcceptanceRelations.acceptance_id
+                )
+                .filter(
+                    Acceptances.project_id == project_id,
+                    WorkAcceptanceRelations.work_id.in_(work_ids),
+                )
+                .all()
+            )
+            accepted_quantities = {work_id: Decimal("0") for work_id in work_ids}
+            for work_id, quantity in accepted_rows:
+                accepted_quantities[work_id] += Decimal(str(quantity))
+
+            requested_quantities = {work_id: Decimal("0") for work_id in work_ids}
+            for item in relations:
+                requested_quantities[item.work_id] += item.quantity
+
+            for work_id, requested_quantity in requested_quantities.items():
+                available_quantity = (
+                    specification_quantities[work_id] - accepted_quantities[work_id]
+                )
+                if requested_quantity > available_quantity:
+                    raise WorkAcceptanceQuantityExceededError(
+                        work_id=work_id,
+                        specification_quantity=specification_quantities[work_id],
+                        available_quantity=available_quantity,
+                        requested_quantity=requested_quantity,
+                        exceeded_quantity=requested_quantity - available_quantity,
+                    )
+
+            records = [
+                self.model(
+                    id=item.id,
+                    acceptance_id=item.acceptance_id,
+                    work_id=item.work_id,
+                    quantity=item.quantity,
+                )
+                for item in relations
+            ]
+            session.add_all(records)
+            session.flush()
+            return [record.to_dict() for record in records]
+
+    def delete_many(self, relation_ids):
+        with self.session_scope() as session:
+            project_ids = {
+                row[0]
+                for row in session.query(Acceptances.project_id)
+                .join(
+                    WorkAcceptanceRelations,
+                    Acceptances.id == WorkAcceptanceRelations.acceptance_id,
+                )
+                .filter(WorkAcceptanceRelations.id.in_(relation_ids))
+                .distinct()
+                .all()
+            }
+            deleted = (
+                session.query(self.model)
+                .filter(self.model.id.in_(relation_ids))
+                .delete(synchronize_session=False)
+            )
+            session.flush()
+            return deleted, project_ids
+
     def update_with_quantity_check(self, record_id, **kwargs):
         filtered_kwargs = {
             key: value for key, value in kwargs.items() if value is not None
@@ -282,9 +389,7 @@ class WorkAcceptanceRelationsManager(BaseDBManager):
             return None
         with self.session_scope() as session:
             relation = (
-                session.query(self.model)
-                .filter(self.model.id == record_id)
-                .first()
+                session.query(self.model).filter(self.model.id == record_id).first()
             )
             if relation is None:
                 return None

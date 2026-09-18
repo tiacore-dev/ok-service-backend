@@ -18,6 +18,23 @@ class CreateWorkAcceptanceRelationCommand:
 
 
 @dataclass(frozen=True, slots=True)
+class BulkWorkAcceptanceRelationItem:
+    work_id: UUID
+    quantity: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class BulkCreateWorkAcceptanceRelationsCommand:
+    acceptance_id: UUID
+    works: list[BulkWorkAcceptanceRelationItem]
+
+
+@dataclass(frozen=True, slots=True)
+class BulkDeleteWorkAcceptanceRelationsCommand:
+    relation_ids: list[UUID]
+
+
+@dataclass(frozen=True, slots=True)
 class UpdateWorkAcceptanceRelationCommand:
     id: UUID
     acceptance_id: UUID | None = None
@@ -44,6 +61,20 @@ class CreateWorkAcceptanceRelationUseCase:
             uuid4(), command.acceptance_id, command.work_id, command.quantity
         )
         return self.repository.create_work_acceptance_relation(relation)
+
+
+@dataclass(slots=True)
+class BulkCreateWorkAcceptanceRelationsUseCase:
+    repository: WorkAcceptanceRelationRepository
+
+    def execute(
+        self, command: BulkCreateWorkAcceptanceRelationsCommand
+    ) -> list[WorkAcceptanceRelation]:
+        relations = [
+            WorkAcceptanceRelation(uuid4(), command.acceptance_id, item.work_id, item.quantity)
+            for item in command.works
+        ]
+        return self.repository.create_work_acceptance_relations(relations)
 
 
 @dataclass(slots=True)
@@ -105,3 +136,12 @@ class DeleteWorkAcceptanceRelationUseCase:
 
     def execute(self, relation_id: UUID) -> bool:
         return self.repository.delete_work_acceptance_relation(relation_id)
+
+
+@dataclass(slots=True)
+class BulkDeleteWorkAcceptanceRelationsUseCase:
+    repository: WorkAcceptanceRelationRepository
+
+    def execute(self, command: BulkDeleteWorkAcceptanceRelationsCommand) -> int:
+        relation_ids = list(dict.fromkeys(command.relation_ids))
+        return self.repository.delete_work_acceptance_relations(relation_ids)

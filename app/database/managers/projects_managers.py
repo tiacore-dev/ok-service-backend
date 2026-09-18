@@ -1,9 +1,10 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, asc, case, desc, func
 from sqlalchemy.orm import joinedload
@@ -27,6 +28,8 @@ from app.database.models import (
 from app.domain.projects import ProjectStatus, ProjectValidationError
 
 logger = logging.getLogger("ok_service")
+
+STATISTICS_TIMEZONE = ZoneInfo("Asia/Novosibirsk")
 
 EXACT_MATCH_FIELDS = {"status"}
 
@@ -699,7 +702,7 @@ class ProjectsManager(BaseDBManager):
 
     @staticmethod
     def _month_key(timestamp: int) -> str:
-        return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc).strftime(
+        return datetime.fromtimestamp(timestamp / 1000, tz=STATISTICS_TIMEZONE).strftime(
             "%Y-%m"
         )
 
@@ -709,10 +712,10 @@ class ProjectsManager(BaseDBManager):
     ) -> tuple[str, ...]:
         if date_from is None or date_to is None:
             return ()
-        start = datetime.fromtimestamp(date_from / 1000, tz=timezone.utc).replace(
+        start = datetime.fromtimestamp(date_from / 1000, tz=STATISTICS_TIMEZONE).replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
-        end = datetime.fromtimestamp(date_to / 1000, tz=timezone.utc).replace(
+        end = datetime.fromtimestamp(date_to / 1000, tz=STATISTICS_TIMEZONE).replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
         months = []
