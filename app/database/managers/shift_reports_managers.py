@@ -21,7 +21,10 @@ from app.database.models import (
     ShiftPlaceRelations,
 )
 from app.database.time_utils import utc_epoch_milliseconds
-from app.domain.shift_reports import ShiftReportConflictError
+from app.domain.shift_reports import (
+    ShiftReportConflictError,
+    calculate_distance_meters,
+)
 
 logger = logging.getLogger("ok_service")
 
@@ -185,6 +188,61 @@ class ShiftReportsManager(ShiftManager):
             )
             return result or 0
 
+    @staticmethod
+    def _fill_missing_distances(session, data, record=None):
+        """Calculate absent shift distances from the linked object's coordinates."""
+        project_id = data.get("project") or (record.project if record else None)
+        if project_id is None:
+            return
+
+        project = (
+            session.query(Projects)
+            .filter(Projects.project_id == project_id)
+            .first()
+        )
+        object_record = project.objects if project is not None else None
+        if (
+            object_record is None
+            or object_record.lng is None
+            or object_record.ltd is None
+        ):
+            return
+
+        for suffix in ("start", "end"):
+            distance_key = f"distance_{suffix}"
+            if data.get(distance_key) is not None:
+                continue
+
+            lng_key = f"lng_{suffix}"
+            ltd_key = f"ltd_{suffix}"
+            lng = data.get(lng_key)
+            ltd = data.get(ltd_key)
+            previous_lng = getattr(record, lng_key, None) if record else None
+            previous_ltd = getattr(record, ltd_key, None) if record else None
+            previous_distance = (
+                getattr(record, distance_key, None) if record else None
+            )
+            coordinates_changed = record is None or (
+                (lng is not None and lng != previous_lng)
+                or (ltd is not None and ltd != previous_ltd)
+            )
+
+            if previous_distance is not None and not coordinates_changed:
+                continue
+            if lng is None:
+                lng = previous_lng
+            if ltd is None:
+                ltd = previous_ltd
+            if lng is None or ltd is None:
+                continue
+
+            data[distance_key] = calculate_distance_meters(
+                float(lng),
+                float(ltd),
+                float(object_record.lng),
+                float(object_record.ltd),
+            )
+
     def add_shift_report_with_details(self, data, created_by):
         """Добавляет shift_report и shift_report_details в одной транзакции"""
 
@@ -234,6 +292,8 @@ class ShiftReportsManager(ShiftManager):
                     shift_report_data["user"],
                     date=shift_report_data["date"],
                 )
+
+                self._fill_missing_distances(session, shift_report_data)
 
                 # 1. Создаем `shift_report`
                 new_report = ShiftReports(**shift_report_data)
@@ -296,6 +356,8 @@ class ShiftReportsManager(ShiftManager):
                 )
                 if not record:
                     return None
+
+                self._fill_missing_distances(session, data, record)
 
                 if not record.deleted:
                     user = data.get("user") or record.user

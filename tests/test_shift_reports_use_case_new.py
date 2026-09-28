@@ -12,6 +12,7 @@ from app.domain.shift_reports import (
     ShiftReportDetail,
     ShiftReportForbiddenError,
     ShiftReportValidationError,
+    calculate_distance_meters,
 )
 from app.use_cases.shift_reports import (
     CreateShiftReportCommand,
@@ -151,6 +152,12 @@ def _detail(report: ShiftReport) -> ShiftReportDetail:
         shift_report_date=report.date,
         project_work_name=None,
     )
+
+
+def test_calculate_distance_meters_uses_straight_line_distance():
+    distance = calculate_distance_meters(0.0, 0.0, 0.01, 0.0)
+
+    assert distance == pytest.approx(1111.95, rel=1e-4)
 
 
 def test_update_shift_report_forbids_foreign_user():
