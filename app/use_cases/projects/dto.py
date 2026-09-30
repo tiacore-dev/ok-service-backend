@@ -20,6 +20,7 @@ class CreateProjectCommand:
     project_leader: UUID | None = None
     night_shift_available: bool = False
     extreme_conditions_available: bool = False
+    payroll_plan: float | None = None
     created_by: UUID | None = None
 
 
@@ -32,6 +33,7 @@ class UpdateProjectCommand:
     night_shift_available: bool | None = None
     extreme_conditions_available: bool | None = None
     deleted: bool | None = None
+    payroll_plan: float | None = None
 
 
 @dataclass(frozen=True, slots=True)

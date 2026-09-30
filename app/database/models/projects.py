@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sqlalchemy import UUID, BigInteger, Boolean, Column, Enum, ForeignKey, String
+from sqlalchemy import UUID, BigInteger, Boolean, Column, Enum, Float, ForeignKey, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
@@ -20,6 +20,7 @@ class Projects(Base):
     project_leader = Column(UUID, ForeignKey("users.user_id"), nullable=True)
     night_shift_available = Column(Boolean, nullable=False, default=False)
     extreme_conditions_available = Column(Boolean, nullable=False, default=False)
+    payroll_plan = Column(Float, nullable=True)
     created_at = Column(
         BigInteger,
         default=utc_epoch_milliseconds,
@@ -81,6 +82,7 @@ class Projects(Base):
             "project_leader": str(self.project_leader),
             "night_shift_available": self.night_shift_available,
             "extreme_conditions_available": self.extreme_conditions_available,
+            "payroll_plan": self.payroll_plan,
             "created_at": self.created_at,
             "created_by": str(self.created_by),
             "deleted": self.deleted,

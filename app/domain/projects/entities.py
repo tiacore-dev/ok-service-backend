@@ -19,6 +19,7 @@ class Project:
     created_at: int
     deleted: bool = False
     status: ProjectStatus = ProjectStatus.PENDING
+    payroll_plan: float | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "name", str(self.name).strip())
@@ -30,6 +31,11 @@ class Project:
             self,
             "extreme_conditions_available",
             bool(self.extreme_conditions_available),
+        )
+        object.__setattr__(
+            self,
+            "payroll_plan",
+            None if self.payroll_plan is None else float(self.payroll_plan),
         )
         if not self.name:
             raise ProjectValidationError("Project name is required.")
@@ -44,6 +50,7 @@ class Project:
         extreme_conditions_available: bool | None = None,
         deleted: bool | None = None,
         status: ProjectStatus | None = None,
+        payroll_plan: float | None = None,
     ) -> "Project":
         return replace(
             self,
@@ -60,4 +67,5 @@ class Project:
             else extreme_conditions_available,
             deleted=self.deleted if deleted is None else deleted,
             status=self.status if status is None else status,
+            payroll_plan=self.payroll_plan if payroll_plan is None else payroll_plan,
         )

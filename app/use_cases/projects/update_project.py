@@ -26,6 +26,7 @@ class UpdateProjectUseCase:
             project_leader=command.project_leader,
             night_shift_available=command.night_shift_available,
             extreme_conditions_available=command.extreme_conditions_available,
+            payroll_plan=command.payroll_plan,
             deleted=command.deleted,
         )
         result = self.repository.update_project(updated)

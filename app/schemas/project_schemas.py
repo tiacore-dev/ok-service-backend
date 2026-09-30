@@ -14,6 +14,7 @@ class ProjectCreateSchema(Schema):
         required=False, validate=[validate_user_exists])
     night_shift_available = fields.Boolean(required=False)
     extreme_conditions_available = fields.Boolean(required=False)
+    payroll_plan = fields.Float(required=False, allow_none=True)
 
 
 class ProjectEditSchema(Schema):
@@ -29,6 +30,7 @@ class ProjectEditSchema(Schema):
     extreme_conditions_available = fields.Boolean(
         required=False, allow_none=True)
     deleted = fields.Boolean(required=False, allow_none=True)
+    payroll_plan = fields.Float(required=False, allow_none=True)
 
 
 class ProjectFilterSchema(Schema):

@@ -46,6 +46,7 @@ class SQLAlchemyProjectRepository(ProjectRepository):
             project_leader=project.project_leader,
             night_shift_available=project.night_shift_available,
             extreme_conditions_available=project.extreme_conditions_available,
+            payroll_plan=project.payroll_plan,
             deleted=project.deleted,
             status=project.status,
         )
