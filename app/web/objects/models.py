@@ -40,6 +40,10 @@ object_model = Model(
         "manager": fields.String(required=False, description="Manager of the object"),
         "lng": fields.Float(required=False, description="Longitude of the object"),
         "ltd": fields.Float(required=False, description="Latitude of the object"),
+        "contract_start_date": fields.Date(required=False),
+        "contract_end_date": fields.Date(required=False),
+        "order_number": fields.String(required=False),
+        "monthly_ks_closing_date": fields.Integer(required=False),
         "created_at": fields.Integer(
             required=True, description="Unix epoch milliseconds: object creation time"
         ),

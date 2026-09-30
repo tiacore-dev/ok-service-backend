@@ -42,6 +42,10 @@ class SQLAlchemyObjectRepository(ObjectRepository):
             manager=obj.manager,
             lng=obj.lng,
             ltd=obj.ltd,
+            contract_start_date=obj.contract_start_date,
+            contract_end_date=obj.contract_end_date,
+            order_number=obj.order_number,
+            monthly_ks_closing_date=obj.monthly_ks_closing_date,
             deleted=obj.deleted,
         )
         record = normalize_result(updated)
@@ -100,6 +104,10 @@ class SQLAlchemyObjectRepository(ObjectRepository):
             manager=obj.manager,
             lng=obj.lng,
             ltd=obj.ltd,
+            contract_start_date=obj.contract_start_date,
+            contract_end_date=obj.contract_end_date,
+            order_number=obj.order_number,
+            monthly_ks_closing_date=obj.monthly_ks_closing_date,
             deleted=obj.deleted,
         )
         record = normalize_result(updated)

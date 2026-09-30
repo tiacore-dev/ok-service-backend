@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from uuid import UUID
 
 
@@ -20,6 +21,10 @@ class CreateObjectCommand:
     city: UUID | None = None
     lng: float | None = None
     ltd: float | None = None
+    contract_start_date: date | None = None
+    contract_end_date: date | None = None
+    order_number: str | None = None
+    monthly_ks_closing_date: int | None = None
     created_by: UUID | None = None
 
 
@@ -35,6 +40,10 @@ class UpdateObjectCommand:
     city: UUID | None = None
     lng: float | None = None
     ltd: float | None = None
+    contract_start_date: date | None = None
+    contract_end_date: date | None = None
+    order_number: str | None = None
+    monthly_ks_closing_date: int | None = None
 
 
 @dataclass(frozen=True, slots=True)

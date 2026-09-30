@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- В `Object` добавлены необязательные поля `contract_start_date`, `contract_end_date`, `order_number` и `monthly_ks_closing_date`; они доступны в create/edit/response API-схемах. Добавлена Alembic-миграция, настройки и другие API-контракты не изменялись.
+
 - Для `shift_reports` добавлен расчёт `distance_start` и `distance_end` по прямой
   до координат объекта смены. Расстояния хранятся в метрах, переданные значения
   сохраняются без пересчёта, а при отсутствии координат объекта остаются `null`.

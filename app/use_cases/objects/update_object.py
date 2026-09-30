@@ -28,6 +28,10 @@ class UpdateObjectUseCase:
             city_id=command.city,
             lng=command.lng,
             ltd=command.ltd,
+            contract_start_date=command.contract_start_date,
+            contract_end_date=command.contract_end_date,
+            order_number=command.order_number,
+            monthly_ks_closing_date=command.monthly_ks_closing_date,
         )
         result = (
             self.repository.update_object_with_projects_closed(updated)
