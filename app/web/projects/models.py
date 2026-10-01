@@ -42,6 +42,7 @@ project_model = Model(
         "project_leader": fields.String(required=False, description="User data of the project leader"),
         "night_shift_available": fields.Boolean(required=False, description="If night shifts are available"),
         "extreme_conditions_available": fields.Boolean(required=False, description="If extreme conditions are available"),
+        "payroll_plan": fields.Float(required=False, allow_null=True),
         "created_at": fields.Integer(required=False, description="Unix epoch milliseconds: project creation time"),
         "created_by": fields.String(required=False, description="Creator of project"),
         "deleted": fields.Boolean(required=False, description="Deletion status"),

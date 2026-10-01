@@ -9,7 +9,9 @@ from app.database.db_setup import Base
 class WorkPlans(Base):
     __tablename__ = "work_plans"
 
-    work_plan_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False)
+    work_plan_id = Column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False
+    )
     user_id = Column(UUID, ForeignKey("users.user_id"), nullable=True)
     date = Column(Date, nullable=False)
     summ = Column(Numeric(precision=12, scale=2), nullable=False)

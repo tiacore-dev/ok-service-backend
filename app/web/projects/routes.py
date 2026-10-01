@@ -97,6 +97,7 @@ class ProjectCreatePayload(TypedDict):
     project_leader: str | None
     night_shift_available: bool | None
     extreme_conditions_available: bool | None
+    payroll_plan: float | None
 
 
 class ProjectEditPayload(TypedDict, total=False):
@@ -106,6 +107,7 @@ class ProjectEditPayload(TypedDict, total=False):
     night_shift_available: bool | None
     extreme_conditions_available: bool | None
     deleted: bool | None
+    payroll_plan: float | None
 
 
 class ProjectFilterPayload(TypedDict, total=False):
@@ -210,6 +212,7 @@ class ProjectAdd(Resource):
                     extreme_conditions_available=bool(
                         get_optional_bool(data, "extreme_conditions_available")
                     ),
+                    payroll_plan=data.get("payroll_plan"),
                     created_by=get_required_uuid(
                         current_user, "user_id", "Current user id is required"
                     ),
@@ -351,6 +354,7 @@ class ProjectEdit(Resource):
                     extreme_conditions_available=get_optional_bool(
                         data, "extreme_conditions_available"
                     ),
+                    payroll_plan=data.get("payroll_plan"),
                     deleted=get_optional_bool(data, "deleted"),
                 ),
                 _actor(current_user),

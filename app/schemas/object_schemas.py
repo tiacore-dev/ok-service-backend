@@ -29,6 +29,10 @@ class ObjectCreateSchema(Schema):
     )
     lng = fields.Float(required=False, allow_none=True)
     ltd = fields.Float(required=False, allow_none=True)
+    contract_start_date = fields.Date(required=False, allow_none=True)
+    contract_end_date = fields.Date(required=False, allow_none=True)
+    order_number = fields.String(required=False, allow_none=True)
+    monthly_ks_closing_date = fields.Int(required=False, allow_none=True)
 
 
 class ObjectEditSchema(Schema):
@@ -50,6 +54,10 @@ class ObjectEditSchema(Schema):
     )
     lng = fields.Float(required=False, allow_none=True)
     ltd = fields.Float(required=False, allow_none=True)
+    contract_start_date = fields.Date(required=False, allow_none=True)
+    contract_end_date = fields.Date(required=False, allow_none=True)
+    order_number = fields.String(required=False, allow_none=True)
+    monthly_ks_closing_date = fields.Int(required=False, allow_none=True)
 
 
 class ObjectFilterSchema(Schema):

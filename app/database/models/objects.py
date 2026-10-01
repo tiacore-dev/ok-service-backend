@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sqlalchemy import UUID, BigInteger, Boolean, Column, Float, ForeignKey, String
+from sqlalchemy import UUID, BigInteger, Boolean, Column, Date, Float, ForeignKey, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
@@ -28,6 +28,10 @@ class Objects(Base):
     manager = Column(UUID, ForeignKey("users.user_id"), nullable=True)
     lng = Column(Float, nullable=True)
     ltd = Column(Float, nullable=True)
+    contract_start_date = Column(Date, nullable=True)
+    contract_end_date = Column(Date, nullable=True)
+    order_number = Column(Text, nullable=True)
+    monthly_ks_closing_date = Column(BigInteger, nullable=True)
     created_at = Column(
         BigInteger,
         default=utc_epoch_milliseconds,
@@ -70,6 +74,10 @@ class Objects(Base):
             "manager": str(self.manager),
             "lng": self.lng,
             "ltd": self.ltd,
+            "contract_start_date": self.contract_start_date,
+            "contract_end_date": self.contract_end_date,
+            "order_number": self.order_number,
+            "monthly_ks_closing_date": self.monthly_ks_closing_date,
             "created_at": self.created_at,
             "created_by": str(self.created_by),
             "deleted": self.deleted,

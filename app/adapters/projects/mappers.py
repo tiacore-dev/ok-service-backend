@@ -22,6 +22,7 @@ def project_dict_to_entity(payload: dict[str, Any]) -> Project:
         extreme_conditions_available=bool(
             payload.get("extreme_conditions_available", False)
         ),
+        payroll_plan=payload.get("payroll_plan"),
         created_by=to_uuid(payload.get("created_by")),
         created_at=int(payload["created_at"]),
         deleted=bool(payload.get("deleted", False)),
@@ -37,6 +38,7 @@ def project_entity_to_create_payload(project: Project) -> dict[str, Any]:
         "project_leader": project.project_leader,
         "night_shift_available": project.night_shift_available,
         "extreme_conditions_available": project.extreme_conditions_available,
+        "payroll_plan": project.payroll_plan,
         "created_by": project.created_by,
         "created_at": project.created_at,
         "deleted": project.deleted,
@@ -54,6 +56,7 @@ def project_entity_to_response(project: Project) -> dict[str, Any]:
         ),
         "night_shift_available": project.night_shift_available,
         "extreme_conditions_available": project.extreme_conditions_available,
+        "payroll_plan": project.payroll_plan,
         "created_at": project.created_at,
         "created_by": str(project.created_by) if project.created_by else None,
         "deleted": project.deleted,
@@ -83,6 +86,7 @@ def project_dict_to_response(payload: dict[str, Any]) -> dict[str, Any]:
         ),
         "night_shift_available": payload.get("night_shift_available"),
         "extreme_conditions_available": payload.get("extreme_conditions_available"),
+        "payroll_plan": payload.get("payroll_plan"),
         "created_at": payload.get("created_at"),
         "created_by": (
             str(payload["created_by"])

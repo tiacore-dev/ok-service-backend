@@ -25,6 +25,7 @@ class CreateProjectUseCase:
             project_leader=project_leader,
             night_shift_available=command.night_shift_available,
             extreme_conditions_available=command.extreme_conditions_available,
+            payroll_plan=command.payroll_plan,
             created_by=command.created_by or actor.user_id,
             created_at=utc_epoch_milliseconds(),
             deleted=False,

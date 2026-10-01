@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import date
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
@@ -174,6 +175,10 @@ class ObjectCreatePayload(TypedDict):
     city: str
     lng: float | None
     ltd: float | None
+    contract_start_date: date | None
+    contract_end_date: date | None
+    order_number: str | None
+    monthly_ks_closing_date: int | None
 
 
 class ObjectEditPayload(TypedDict, total=False):
@@ -186,6 +191,10 @@ class ObjectEditPayload(TypedDict, total=False):
     city: str | None
     lng: float | None
     ltd: float | None
+    contract_start_date: date | None
+    contract_end_date: date | None
+    order_number: str | None
+    monthly_ks_closing_date: int | None
 
 
 class ObjectFilterPayload(TypedDict, total=False):
@@ -289,6 +298,10 @@ class ObjectAdd(Resource):
                     city=get_required_uuid(data, "city", "City is required"),
                     lng=get_optional_float(data, "lng"),
                     ltd=get_optional_float(data, "ltd"),
+                    contract_start_date=data.get("contract_start_date"),
+                    contract_end_date=data.get("contract_end_date"),
+                    order_number=data.get("order_number"),
+                    monthly_ks_closing_date=data.get("monthly_ks_closing_date"),
                     created_by=get_required_uuid(
                         current_user, "user_id", "Current user id is required"
                     ),
@@ -425,6 +438,10 @@ class ObjectEdit(Resource):
                     city=get_optional_uuid(data, "city"),
                     lng=get_optional_float(data, "lng"),
                     ltd=get_optional_float(data, "ltd"),
+                    contract_start_date=data.get("contract_start_date"),
+                    contract_end_date=data.get("contract_end_date"),
+                    order_number=data.get("order_number"),
+                    monthly_ks_closing_date=data.get("monthly_ks_closing_date"),
                 ),
                 _actor(current_user),
             )
