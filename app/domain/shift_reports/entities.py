@@ -28,6 +28,7 @@ class ShiftReport:
     night_shift: bool
     extreme_conditions: bool
     number: int
+    short_shift: bool = False
     leave_id: UUID | None = None
     comment: str | None = None
     signed_at: int | None = None
@@ -42,6 +43,7 @@ class ShiftReport:
         object.__setattr__(self, "deleted", bool(self.deleted))
         object.__setattr__(self, "night_shift", bool(self.night_shift))
         object.__setattr__(self, "extreme_conditions", bool(self.extreme_conditions))
+        object.__setattr__(self, "short_shift", bool(self.short_shift))
         object.__setattr__(self, "number", int(self.number))
         if self.date < 0:
             raise ShiftReportValidationError(

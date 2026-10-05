@@ -67,3 +67,4 @@ def test_shift_report_mapper_reads_legacy_inconsistent_time_range():
 
     assert report.date_start == 1_800_000_000
     assert report.date_end == 1_700_000_000
+    assert report.short_shift is False

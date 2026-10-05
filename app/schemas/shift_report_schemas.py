@@ -75,6 +75,7 @@ class ShiftReportCreateSchema(Schema):
     night_shift = fields.Boolean(required=False)
 
     extreme_conditions = fields.Boolean(required=False)
+    short_shift = fields.Boolean(required=False)
 
     comment = fields.String(required=False, allow_none=True)
 
@@ -131,6 +132,7 @@ class ShiftReportEditSchema(Schema):
     signed = fields.Boolean(required=False, allow_none=True)
     night_shift = fields.Boolean(required=False, allow_none=True)
     extreme_conditions = fields.Boolean(required=False, allow_none=True)
+    short_shift = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False, allow_none=True)
     comment = fields.String(required=False, allow_none=True)
 
@@ -194,6 +196,7 @@ class ShiftReportFilterSchema(Schema):
     distance_end = fields.Float(required=False)
     night_shift = fields.Boolean(required=False)
     extreme_conditions = fields.Boolean(required=False)
+    short_shift = fields.Boolean(required=False)
     signed = fields.Boolean(required=False)
     deleted = fields.Boolean(required=False)
     comment = fields.String(required=False)

@@ -8,7 +8,11 @@ from app.domain.shift_reports import (
     ShiftReportValidationError,
 )
 
-from .dto import CreateShiftReportCommand, ShiftReportActor
+from .dto import (
+    SHORT_SHIFT_EDITOR_ROLES,
+    CreateShiftReportCommand,
+    ShiftReportActor,
+)
 from .ports import ShiftReportRepository
 
 
@@ -21,6 +25,13 @@ class CreateShiftReportUseCase:
     ) -> ShiftReport:
         if actor.role == "user":
             raise ShiftReportForbiddenError("User cannot create shift report")
+        if (
+            command.short_shift is not None
+            and actor.role not in SHORT_SHIFT_EDITOR_ROLES
+        ):
+            raise ShiftReportForbiddenError(
+                "Only admin, manager, and project leader can set short_shift"
+            )
         if (
             command.date_start is not None
             and command.date_end is not None

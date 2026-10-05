@@ -11,6 +11,9 @@ class ShiftReportActor:
     user_id: UUID
 
 
+SHORT_SHIFT_EDITOR_ROLES = frozenset({"admin", "manager", "project-leader"})
+
+
 SHIFT_REPORT_SIGNER_ROLES = frozenset({"admin", "project-leader", "manager"})
 
 
@@ -37,6 +40,7 @@ class CreateShiftReportCommand:
     signed: bool = False
     night_shift: bool = False
     extreme_conditions: bool = False
+    short_shift: bool | None = None
     comment: str | None = None
     details: list[CreateShiftReportDetailCommand] | None = None
     created_by: UUID | None = None
@@ -65,6 +69,7 @@ class ShiftReportListQuery:
     distance_end: float | None = None
     night_shift: bool | None = None
     extreme_conditions: bool | None = None
+    short_shift: bool | None = None
     signed: bool | None = None
     deleted: bool | None = None
     comment: str | None = None
@@ -87,6 +92,7 @@ class UpdateShiftReportCommand:
     signed: bool | None = None
     night_shift: bool | None = None
     extreme_conditions: bool | None = None
+    short_shift: bool | None = None
     deleted: bool | None = None
     comment: str | None = None
     updated_by: UUID | None = None

@@ -56,6 +56,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             "signed": command.signed,
             "night_shift": command.night_shift,
             "extreme_conditions": command.extreme_conditions,
+            "short_shift": (
+                command.short_shift if command.short_shift is not None else False
+            ),
             "comment": command.comment,
             "details": [
                 {
@@ -102,6 +105,7 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             signed=command.signed,
             night_shift=command.night_shift,
             extreme_conditions=command.extreme_conditions,
+            short_shift=command.short_shift,
             deleted=command.deleted,
             comment=command.comment,
             updated_by=command.updated_by,

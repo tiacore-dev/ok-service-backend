@@ -53,6 +53,7 @@ class _FakeRepository:
         changes = {}
         for field_name in (
             "deleted",
+            "short_shift",
             "date_start",
             "date_end",
             "lng_start",
@@ -274,6 +275,38 @@ def test_update_shift_report_sets_audit_user_from_actor():
     assert captured["updated_by"] == actor.user_id
 
 
+@pytest.mark.parametrize("role", ["admin", "manager", "project-leader"])
+def test_allowed_roles_can_change_short_shift(role):
+    report = _report()
+    repository = _FakeRepository(current=report)
+
+    updated = UpdateShiftReportUseCase(repository=repository).execute(
+        UpdateShiftReportCommand(
+            shift_report_id=report.shift_report_id, short_shift=True
+        ),
+        ShiftReportActor(role=role, user_id=uuid4()),
+    )
+
+    assert updated.short_shift is True
+
+
+@pytest.mark.parametrize("short_shift", [False, True])
+def test_user_cannot_change_short_shift(short_shift):
+    report = _report()
+
+    with pytest.raises(ShiftReportForbiddenError, match="short_shift"):
+        UpdateShiftReportUseCase(repository=_FakeRepository(current=report)).execute(
+            UpdateShiftReportCommand(
+                shift_report_id=report.shift_report_id, short_shift=short_shift
+            ),
+            ShiftReportActor(role="user", user_id=report.user),
+        )
+
+
+def test_short_shift_defaults_to_false():
+    assert _report().short_shift is False
+
+
 @pytest.mark.parametrize("role", ["admin", "project-leader", "manager"])
 def test_sign_shift_report_allows_configured_signer_roles(role):
     report = _report()
@@ -462,6 +495,22 @@ def test_create_shift_report_for_admin_keeps_payload_user():
     assert repository.created_command.user == command.user
     assert repository.created_command.signed is True
     assert repository.created_command.created_by == actor.user_id
+
+
+def test_create_shift_report_rejects_short_shift_for_non_editor_role():
+    report = _report()
+    command = CreateShiftReportCommand(
+        user=report.user,
+        date=report.date,
+        project=report.project,
+        short_shift=True,
+    )
+
+    with pytest.raises(ShiftReportForbiddenError, match="short_shift"):
+        CreateShiftReportUseCase(repository=_FakeRepository(current=report)).execute(
+            command,
+            ShiftReportActor(role="accountant", user_id=uuid4()),
+        )
 
 
 def test_create_shift_report_rejects_project_not_in_progress():

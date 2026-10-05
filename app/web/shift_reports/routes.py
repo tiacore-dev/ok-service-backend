@@ -163,6 +163,7 @@ class ShiftReportCreatePayload(TypedDict):
     signed: NotRequired[bool]
     night_shift: NotRequired[bool]
     extreme_conditions: NotRequired[bool]
+    short_shift: NotRequired[bool]
     comment: NotRequired[str | None]
 
 
@@ -181,6 +182,7 @@ class ShiftReportEditPayload(TypedDict, total=False):
     signed: bool
     night_shift: bool
     extreme_conditions: bool
+    short_shift: bool
     deleted: bool
     comment: str | None
 
@@ -273,6 +275,7 @@ def _build_list_query(data: dict[str, Any]) -> ShiftReportListQuery:
         distance_end=get_optional_float(data, "distance_end"),
         night_shift=get_optional_bool(data, "night_shift"),
         extreme_conditions=get_optional_bool(data, "extreme_conditions"),
+        short_shift=get_optional_bool(data, "short_shift"),
         signed=get_optional_bool(data, "signed"),
         deleted=get_optional_bool(data, "deleted"),
         comment=get_optional_str(data, "comment"),
@@ -330,6 +333,7 @@ class ShiftReportAdd(Resource):
                 signed=bool(data.get("signed", False)),
                 night_shift=bool(data.get("night_shift", False)),
                 extreme_conditions=bool(data.get("extreme_conditions", False)),
+                short_shift=data.get("short_shift"),
                 comment=data.get("comment"),
                 details=[
                     CreateShiftReportDetailCommand(
@@ -583,6 +587,7 @@ class ShiftReportEdit(Resource):
                     signed=get_optional_bool(data, "signed"),
                     night_shift=get_optional_bool(data, "night_shift"),
                     extreme_conditions=get_optional_bool(data, "extreme_conditions"),
+                    short_shift=get_optional_bool(data, "short_shift"),
                     deleted=get_optional_bool(data, "deleted"),
                     comment=get_optional_str(data, "comment"),
                 ),

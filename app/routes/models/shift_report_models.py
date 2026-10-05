@@ -104,6 +104,7 @@ shift_report_model = Model(
         "extreme_conditions": fields.Boolean(
             required=True, description="Extreme conditions"
         ),
+        "short_shift": fields.Boolean(required=True, description="Short shift"),
         "comment": fields.String(
             required=False, description="Comment for the shift report"
         ),
@@ -239,6 +240,12 @@ shift_report_filter_parser.add_argument(
     type=lambda x: x.lower() in ["true", "1"],
     required=False,
     help="Флаг для фильтрации по удаленным отчетам",
+)
+shift_report_filter_parser.add_argument(
+    "short_shift",
+    type=lambda x: x.lower() in ["true", "1"],
+    required=False,
+    help="Filter by short shifts",
 )
 
 shift_report_filter_parser.add_argument(

@@ -263,6 +263,7 @@ class ShiftReportsManager(ShiftManager):
             "created_by": self._convert_to_uuid(created_by),
             "extreme_conditions": data.get("extreme_conditions", False),
             "night_shift": data.get("night_shift", False),
+            "short_shift": data.get("short_shift", False),
             "comment": data.get("comment"),
         }
 
