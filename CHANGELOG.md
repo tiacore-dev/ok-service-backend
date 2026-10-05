@@ -375,3 +375,4 @@
 
 - Добавлена сущность `ShiftStandard` со справочным CRUD API без soft delete. Поля `category` уникальны, `standard` должен быть больше нуля, `notification_text` nullable типа Text; добавлены audit-поля, права API key и миграция базы данных.
 - В `shift_reports` добавлены nullable UUID-поля `start_browser_id` и `finish_browser_id`. Backend создаёт HttpOnly cookie `browser_id` сроком на 90 дней и сохраняет её идентификатор при `/start` и `/finish`; API возвращает browser ID, добавлена миграция, а CORS использует существующий `ORIGIN`.
+- Добавлена корректирующая миграция `20261006000000` для баз, где предыдущая миграция была отмечена применённой, но новые поля browser ID фактически не создались. Миграция идемпотентно удаляет старые JSON-поля и добавляет UUID-поля.
