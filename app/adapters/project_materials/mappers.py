@@ -16,14 +16,10 @@ def project_material_dict_to_entity(payload: dict[str, Any]) -> ProjectMaterial:
         material=require_uuid(payload["material"], "material"),
         quantity=Decimal(str(payload["quantity"])),
         price=(
-            Decimal(str(payload["price"]))
-            if payload.get("price") is not None
-            else None
+            Decimal(str(payload["price"])) if payload.get("price") is not None else None
         ),
         summ=(
-            Decimal(str(payload["summ"]))
-            if payload.get("summ") is not None
-            else None
+            Decimal(str(payload["summ"])) if payload.get("summ") is not None else None
         ),
         created_by=require_uuid(payload["created_by"], "created_by"),
         created_at=int(payload["created_at"]),
@@ -56,13 +52,17 @@ def project_material_entity_to_response(
         "material": str(project_material.material),
         "quantity": float(project_material.quantity),
         "price": (
-            float(project_material.price) if project_material.price is not None else None
+            float(project_material.price)
+            if project_material.price is not None
+            else None
         ),
         "summ": (
             float(project_material.summ) if project_material.summ is not None else None
         ),
         "project_work": (
-            str(project_material.project_work) if project_material.project_work else None
+            str(project_material.project_work)
+            if project_material.project_work
+            else None
         ),
         "created_by": str(project_material.created_by),
         "created_at": project_material.created_at,

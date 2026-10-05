@@ -210,6 +210,7 @@ class ObjectFilterPayload(TypedDict, total=False):
     city: str
     lng: float
     ltd: float
+    order_number: str
     created_by: str
     created_at: int
 
@@ -482,6 +483,7 @@ class ObjectAll(Resource):
                 city=get_optional_uuid(data, "city"),
                 lng=get_optional_float(data, "lng"),
                 ltd=get_optional_float(data, "ltd"),
+                order_number=get_optional_str(data, "order_number"),
                 created_by=get_optional_uuid(data, "created_by"),
                 created_at=get_optional_int(data, "created_at"),
             )
@@ -499,6 +501,7 @@ class ObjectAll(Resource):
                     city=query.city,
                     lng=query.lng,
                     ltd=query.ltd,
+                    order_number=query.order_number,
                     created_by=query.created_by,
                     created_at=query.created_at,
                 )

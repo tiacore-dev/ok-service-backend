@@ -71,6 +71,7 @@ class SQLAlchemyObjectRepository(ObjectRepository):
                 city_id=query.city,
                 lng=query.lng,
                 ltd=query.ltd,
+                order_number=query.order_number,
                 created_by=query.created_by,
                 created_at=query.created_at,
             )
@@ -88,6 +89,7 @@ class SQLAlchemyObjectRepository(ObjectRepository):
                 city_id=query.city,
                 lng=query.lng,
                 ltd=query.ltd,
+                order_number=query.order_number,
                 created_by=query.created_by,
                 created_at=query.created_at,
             )

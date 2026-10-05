@@ -60,6 +60,7 @@ class ObjectListQuery:
     city: UUID | None = None
     lng: float | None = None
     ltd: float | None = None
+    order_number: str | None = None
     created_by: UUID | None = None
     created_at: int | None = None
 

@@ -234,6 +234,9 @@ object_filter_parser.add_argument(
     "ltd", type=float, required=False, help="Filter by latitude"
 )
 object_filter_parser.add_argument(
+    "order_number", type=str, required=False, help="Filter by order number"
+)
+object_filter_parser.add_argument(
     "created_by", type=str, required=False, help="Filter by creator ID"
 )
 object_filter_parser.add_argument(

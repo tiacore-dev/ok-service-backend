@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- В `GET /objects/all` добавлен необязательный строковый фильтр `order_number`.
+  Поиск регистронезависимый и выполняется по подстроке; миграции и новые
+  настройки не требуются.
+
 - Для `project_materials` добавлены nullable-поля `price` и вычисляемое `summ = price * quantity`. `price` принимается в create/edit, включая очистку через `null`, а `price` и `summ` возвращаются в GET-ответах. Для `summ` увеличена точность до `Numeric(20, 4)`; добавлена Alembic-миграция, `summ` не принимается от клиента.
 
 - В `Object` добавлены необязательные поля `contract_start_date`, `contract_end_date`, `order_number` и `monthly_ks_closing_date`; они доступны в create/edit/response API-схемах. Добавлена Alembic-миграция, настройки и другие API-контракты не изменялись.
