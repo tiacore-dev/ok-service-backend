@@ -48,6 +48,9 @@ API_KEY_PERMISSIONS = (
     ("objects-edit", "PATCH /objects/{object_id}/edit"),
     ("objects-list", "GET /objects/all"),
     ("object-statuses-list", "GET /object_statuses/all"),
+    ("system-settings-list", "GET /system_settings/all"),
+    ("system-settings-view", "GET /system_settings/{system_setting_id}/view"),
+    ("system-settings-edit", "PATCH /system_settings/{system_setting_id}/edit"),
     ("objects-view", "GET /objects/{object_id}/view"),
     (
         "places-attachments-delete",

@@ -48,3 +48,10 @@ def set_object_status():
     for i in range(0, 3):
         if not db.exists(object_status_id=ids[i]):
             db.add(object_status_id=ids[i], name=names[i])
+
+
+def set_system_settings():
+    from app.database.managers.system_settings_manager import SystemSettingsManager
+
+    db = SystemSettingsManager()
+    db.ensure_system_prompt()

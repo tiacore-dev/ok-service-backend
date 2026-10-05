@@ -25,6 +25,7 @@ from app.utils.db_setting_tables import (
     set_api_key_permissions,
     set_object_status,
     set_roles,
+    set_system_settings,
 )
 from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
@@ -121,6 +122,8 @@ def create_app(config_name="development"):
     set_roles()
 
     set_api_key_permissions()
+
+    set_system_settings()
 
     set_object_status()
 
