@@ -24,6 +24,8 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     API_KEY = os.getenv("API_KEY")
     ORIGIN = os.getenv("ORIGIN")
+    BROWSER_ID_COOKIE_NAME = "browser_id"
+    BROWSER_ID_COOKIE_MAX_AGE = 90 * 24 * 60 * 60
     TEMPLATE_SERVICE_URL = os.getenv("TEMPLATE_SERVICE_URL")
     # Клиент создаётся лениво: соединение с Redis открывается только при команде.
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")

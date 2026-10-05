@@ -60,8 +60,8 @@ class _FakeRepository:
             "ltd_start",
             "lng_end",
             "ltd_end",
-            "start_device_info",
-            "finish_device_info",
+            "start_browser_id",
+            "finish_browser_id",
         ):
             value = getattr(command, field_name, None)
             if value is not None:
@@ -380,7 +380,9 @@ def test_shift_report_time_use_case_rejects_finish_before_start():
 
     with pytest.raises(Exception, match="has not been started"):
         use_case.finish(
-            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            ShiftReportTimeCommand(
+                report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+            ),
             actor,
         )
 
@@ -391,7 +393,9 @@ def test_shift_report_time_use_case_rejects_leave_linked_report(operation):
     repository = _FakeRepository(current=report)
     use_case = UpdateShiftReportTimeUseCase(repository=repository)
     actor = ShiftReportActor(role="admin", user_id=uuid4())
-    command = ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0)
+    command = ShiftReportTimeCommand(
+        report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+    )
 
     with pytest.raises(
         ShiftReportConflictError,
@@ -408,7 +412,9 @@ def test_shift_report_time_use_case_rejects_second_start():
 
     with pytest.raises(Exception, match="already been started"):
         use_case.start(
-            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            ShiftReportTimeCommand(
+                report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+            ),
             actor,
         )
 
@@ -427,22 +433,21 @@ def test_shift_report_time_use_case_uses_current_epoch_for_start(monkeypatch):
     )
 
     updated = use_case.start(
-        ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+        ShiftReportTimeCommand(
+            report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+        ),
         actor,
     )
 
     assert updated.date_start == expected_timestamp
 
 
-def test_shift_report_time_use_case_stores_start_device_info(monkeypatch):
+def test_shift_report_time_use_case_stores_start_browser_id(monkeypatch):
     report = _report()
     repository = _FakeRepository(current=report)
     use_case = UpdateShiftReportTimeUseCase(repository=repository)
     actor = ShiftReportActor(role="admin", user_id=uuid4())
-    device_info: dict[str, str | None] = {
-        "ip": "192.0.2.10",
-        "user_agent": "Test Browser/1.0",
-    }
+    browser_id = uuid4()
 
     monkeypatch.setattr(
         shift_report_time_module,
@@ -456,24 +461,21 @@ def test_shift_report_time_use_case_stores_start_device_info(monkeypatch):
             actor.user_id,
             82.9,
             55.0,
-            device_info,
+            browser_id,
         ),
         actor,
     )
 
-    assert updated.start_device_info == device_info
-    assert updated.finish_device_info is None
+    assert updated.start_browser_id == browser_id
+    assert updated.finish_browser_id is None
 
 
-def test_shift_report_time_use_case_stores_finish_device_info(monkeypatch):
+def test_shift_report_time_use_case_stores_finish_browser_id(monkeypatch):
     report = _report().with_updates(date_start=1_700_000_000_000)
     repository = _FakeRepository(current=report)
     use_case = UpdateShiftReportTimeUseCase(repository=repository)
     actor = ShiftReportActor(role="admin", user_id=uuid4())
-    device_info: dict[str, str | None] = {
-        "ip": "192.0.2.11",
-        "user_agent": "Test Browser/2.0",
-    }
+    browser_id = uuid4()
 
     monkeypatch.setattr(
         shift_report_time_module,
@@ -487,13 +489,13 @@ def test_shift_report_time_use_case_stores_finish_device_info(monkeypatch):
             actor.user_id,
             82.9,
             55.0,
-            device_info,
+            browser_id,
         ),
         actor,
     )
 
-    assert updated.finish_device_info == device_info
-    assert updated.start_device_info is None
+    assert updated.finish_browser_id == browser_id
+    assert updated.start_browser_id is None
 
 
 def test_shift_report_time_use_case_rejects_start_when_end_already_exists():
@@ -504,7 +506,9 @@ def test_shift_report_time_use_case_rejects_start_when_end_already_exists():
 
     with pytest.raises(Exception, match="end time"):
         use_case.start(
-            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            ShiftReportTimeCommand(
+                report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+            ),
             actor,
         )
 

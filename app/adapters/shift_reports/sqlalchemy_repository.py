@@ -110,8 +110,8 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             comment=command.comment,
             updated_by=command.updated_by,
             leave_check_date=command.leave_check_date,
-            start_device_info=command.start_device_info,
-            finish_device_info=command.finish_device_info,
+            start_browser_id=command.start_browser_id,
+            finish_browser_id=command.finish_browser_id,
         )
         record = normalize_result(updated)
         if record is None:

@@ -97,8 +97,8 @@ class UpdateShiftReportCommand:
     comment: str | None = None
     updated_by: UUID | None = None
     leave_check_date: int | None = None
-    start_device_info: dict[str, str | None] | None = None
-    finish_device_info: dict[str, str | None] | None = None
+    start_browser_id: UUID | None = None
+    finish_browser_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,7 +107,7 @@ class ShiftReportTimeCommand:
     actor_id: UUID
     lng: float
     ltd: float
-    device_info: dict[str, str | None] | None = None
+    browser_id: UUID
 
 
 @dataclass(frozen=True, slots=True)

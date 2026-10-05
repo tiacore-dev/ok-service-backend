@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any, NotRequired, TypedDict, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from flask import current_app, g, request
+from flask import after_this_request, current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
@@ -473,15 +473,13 @@ def _update_shift_report_time(
         raw_payload.get("ltd"), bool
     ):
         raise ValueError("Field 'ltd' must be a number")
+    browser_id, should_set_cookie = _get_browser_id()
     command = ShiftReportTimeCommand(
         shift_report_id=_parse_uuid(report_id),
         actor_id=UUID(str(current_user["user_id"])),
         lng=float(raw_payload["lng"]),
         ltd=float(raw_payload["ltd"]),
-        device_info={
-            "ip": request.remote_addr,
-            "user_agent": request.headers.get("User-Agent"),
-        },
+        browser_id=browser_id,
     )
     use_case = UpdateShiftReportTimeUseCase(repository=_repository())
     updated = (
@@ -489,10 +487,37 @@ def _update_shift_report_time(
         if finish
         else use_case.start(command, _actor(current_user))
     )
+    if should_set_cookie:
+        _set_browser_id_cookie(browser_id)
     return {
         "msg": "Shift report updated successfully",
         "shift_report_id": str(updated.shift_report_id),
+        "browser_id": str(browser_id),
     }, 200
+
+
+def _get_browser_id() -> tuple[UUID, bool]:
+    raw_browser_id = request.cookies.get(current_app.config["BROWSER_ID_COOKIE_NAME"])
+    if raw_browser_id:
+        try:
+            return UUID(raw_browser_id), False
+        except ValueError:
+            pass
+    return uuid4(), True
+
+
+def _set_browser_id_cookie(browser_id: UUID) -> None:
+    @after_this_request
+    def set_cookie(response):
+        response.set_cookie(
+            current_app.config["BROWSER_ID_COOKIE_NAME"],
+            str(browser_id),
+            max_age=current_app.config["BROWSER_ID_COOKIE_MAX_AGE"],
+            secure=True,
+            httponly=True,
+            samesite="Lax",
+        )
+        return response
 
 
 @shift_report_ns.route("/<string:report_id>/start")

@@ -1,3 +1,4 @@
+import re
 import time
 
 import click
@@ -201,7 +202,28 @@ def create_app(config_name="development"):
             logger.error(f"Error while logging request: {e}")
         return response
 
-    # Настройка CORS
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    # Cookies from the frontend require an explicit origin and credentials.
+    configured_origin = app.config.get("ORIGIN")
+    frontend_origin = (
+        f"https://{configured_origin}"
+        if configured_origin and "://" not in configured_origin
+        else configured_origin
+    )
+    if frontend_origin:
+        cors_origins = [frontend_origin]
+        if config_name in {"development", "local_development", "testing"}:
+            cors_origins.extend(
+                [
+                    re.compile(r"^https?://localhost(?::[0-9]+)?$"),
+                    re.compile(r"^https?://127\.0\.0\.1(?::[0-9]+)?$"),
+                ]
+            )
+        CORS(
+            app,
+            resources={r"/*": {"origins": cors_origins}},
+            supports_credentials=True,
+        )
+    else:
+        CORS(app, resources={r"/*": {"origins": "*"}})
 
     return app

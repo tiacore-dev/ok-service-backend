@@ -78,15 +78,15 @@ shift_report_model = Model(
         "distance_end": fields.Float(
             required=False, description="Distance at the shift end"
         ),
-        "start_device_info": fields.Raw(
+        "start_browser_id": fields.String(
             required=False,
             allow_null=True,
-            description="IP and User-Agent captured at shift start",
+            description="Browser UUID captured at shift start",
         ),
-        "finish_device_info": fields.Raw(
+        "finish_browser_id": fields.String(
             required=False,
             allow_null=True,
-            description="IP and User-Agent captured at shift finish",
+            description="Browser UUID captured at shift finish",
         ),
         "signed": fields.Boolean(required=True, description="Is the report signed"),
         "deleted": fields.Boolean(
@@ -134,6 +134,7 @@ shift_report_msg_model = Model(
     {
         "msg": fields.String(required=True, description="Response message"),
         "shift_report_id": fields.String(description="ID of shift report"),
+        "browser_id": fields.String(description="Browser UUID used for the operation"),
         "detail": fields.Raw(
             required=False, description="Additional details (e.g., validation errors)"
         ),
