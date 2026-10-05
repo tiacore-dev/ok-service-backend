@@ -78,6 +78,16 @@ shift_report_model = Model(
         "distance_end": fields.Float(
             required=False, description="Distance at the shift end"
         ),
+        "start_device_info": fields.Raw(
+            required=False,
+            allow_null=True,
+            description="IP and User-Agent captured at shift start",
+        ),
+        "finish_device_info": fields.Raw(
+            required=False,
+            allow_null=True,
+            description="IP and User-Agent captured at shift finish",
+        ),
         "signed": fields.Boolean(required=True, description="Is the report signed"),
         "deleted": fields.Boolean(
             required=True, description="Deletion status of the shift report"

@@ -35,6 +35,8 @@ class ShiftReport:
     signed_by: dict[str, str] | None = None
     updated_at: int | None = None
     updated_by: dict[str, str] | None = None
+    start_device_info: dict[str, str | None] | None = None
+    finish_device_info: dict[str, str | None] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "date", int(self.date))

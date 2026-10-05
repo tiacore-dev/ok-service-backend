@@ -374,3 +374,4 @@
 ## 2026-10-05
 
 - Добавлена сущность `ShiftStandard` со справочным CRUD API без soft delete. Поля `category` уникальны, `standard` должен быть больше нуля, `notification_text` nullable типа Text; добавлены audit-поля, права API key и миграция базы данных.
+- В `shift_reports` добавлены поля `start_device_info` и `finish_device_info` типа JSONB. При вызове `/start` и `/finish` сервер сохраняет IP и `User-Agent`, а API возвращает эти данные; добавлена миграция базы данных, новые настройки не требуются.

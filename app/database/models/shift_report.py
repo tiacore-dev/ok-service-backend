@@ -11,6 +11,7 @@ from sqlalchemy import (
     Sequence,
     Text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
@@ -38,6 +39,8 @@ class ShiftReports(Base):
     ltd_end = Column(Float, nullable=True)
     distance_start = Column(Float, nullable=True)
     distance_end = Column(Float, nullable=True)
+    start_device_info = Column(JSONB, nullable=True)
+    finish_device_info = Column(JSONB, nullable=True)
     signed = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         BigInteger,
@@ -121,6 +124,8 @@ class ShiftReports(Base):
             "ltd_end": self.ltd_end,
             "distance_start": self.distance_start,
             "distance_end": self.distance_end,
+            "start_device_info": self.start_device_info,
+            "finish_device_info": self.finish_device_info,
             "signed": self.signed,
             "deleted": self.deleted,
             "leave_id": str(self.leave_id) if self.leave_id is not None else None,

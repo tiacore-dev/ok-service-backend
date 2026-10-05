@@ -478,6 +478,10 @@ def _update_shift_report_time(
         actor_id=UUID(str(current_user["user_id"])),
         lng=float(raw_payload["lng"]),
         ltd=float(raw_payload["ltd"]),
+        device_info={
+            "ip": request.remote_addr,
+            "user_agent": request.headers.get("User-Agent"),
+        },
     )
     use_case = UpdateShiftReportTimeUseCase(repository=_repository())
     updated = (

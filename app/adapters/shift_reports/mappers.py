@@ -52,6 +52,8 @@ def shift_report_dict_to_entity(payload: dict[str, Any]) -> ShiftReport:
         signed_by=payload.get("signed_by"),
         updated_at=payload.get("updated_at"),
         updated_by=payload.get("updated_by"),
+        start_device_info=payload.get("start_device_info"),
+        finish_device_info=payload.get("finish_device_info"),
     )
 
 
@@ -147,4 +149,6 @@ def shift_report_entity_to_response(entity: ShiftReport) -> dict[str, Any]:
         "signed_by": entity.signed_by,
         "updated_at": entity.updated_at,
         "updated_by": entity.updated_by,
+        "start_device_info": entity.start_device_info,
+        "finish_device_info": entity.finish_device_info,
     }
