@@ -81,6 +81,7 @@ class ProjectMaterialCreatePayload(TypedDict):
     project: str
     material: str
     quantity: float | int
+    price: float | int | None
     project_work: str | None
 
 
@@ -88,6 +89,7 @@ class ProjectMaterialEditPayload(TypedDict, total=False):
     project: str
     material: str
     quantity: float | int
+    price: float | int | None
     project_work: str | None
 
 
@@ -181,6 +183,7 @@ class ProjectMaterialAdd(Resource):
                 project=get_required_uuid(data, "project", "Project is required"),
                 material=get_required_uuid(data, "material", "Material is required"),
                 quantity=get_required_decimal(data, "quantity", "Quantity is required"),
+                price=get_optional_decimal(data, "price"),
                 project_work=get_optional_uuid(data, "project_work"),
                 created_by=get_required_uuid(
                     current_user, "user_id", "Current user id is required"
@@ -283,6 +286,8 @@ class ProjectMaterialEdit(Resource):
                     material_is_set=has_field(data, "material"),
                     quantity=get_optional_decimal(data, "quantity"),
                     quantity_is_set=has_field(data, "quantity"),
+                    price=get_optional_decimal(data, "price"),
+                    price_is_set=has_field(data, "price"),
                     project_work=get_optional_uuid(data, "project_work"),
                     project_work_is_set=has_field(data, "project_work"),
                 ),

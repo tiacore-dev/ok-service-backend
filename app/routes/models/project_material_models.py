@@ -23,6 +23,12 @@ project_material_model = Model(
         "project": fields.String(required=True, description="Project ID"),
         "material": fields.String(required=True, description="Material ID"),
         "quantity": fields.Float(required=True, description="Quantity of material"),
+        "price": fields.Float(
+            required=False, description="Price per unit of material"
+        ),
+        "summ": fields.Float(
+            required=False, description="Sum of the project material"
+        ),
         "project_work": fields.String(
             required=False, description="Project work ID (optional)"
         ),

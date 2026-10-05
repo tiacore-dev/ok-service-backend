@@ -11,6 +11,7 @@ class CreateProjectMaterialCommand:
     material: UUID
     quantity: Decimal
     created_by: UUID
+    price: Decimal | None = None
     project_work: UUID | None = None
 
 
@@ -29,6 +30,8 @@ class UpdateProjectMaterialCommand:
     material_is_set: bool = False
     quantity: Decimal | None = None
     quantity_is_set: bool = False
+    price: Decimal | None = None
+    price_is_set: bool = False
     project_work: UUID | None = None
     project_work_is_set: bool = False
 

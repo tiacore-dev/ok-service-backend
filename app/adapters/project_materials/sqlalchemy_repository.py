@@ -46,6 +46,8 @@ class SQLAlchemyProjectMaterialRepository(ProjectMaterialRepository):
             project=project_material.project,
             material=project_material.material,
             quantity=project_material.quantity,
+            price=project_material.price,
+            summ=project_material.summ,
             project_work=project_material.project_work,
         )
         record = normalize_result(updated)

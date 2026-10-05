@@ -8,6 +8,7 @@ from app.domain.project_materials import (
     ProjectMaterialNotFoundError,
 )
 
+from .create_project_material import _calculate_summ
 from .dto import ProjectMaterialActor, UpdateProjectMaterialCommand
 from .ports import ProjectMaterialRepository
 
@@ -42,6 +43,15 @@ class UpdateProjectMaterialUseCase:
             changes["material"] = command.material
         if command.quantity_is_set:
             changes["quantity"] = command.quantity
+        price_is_set = command.price_is_set or command.price is not None
+        if price_is_set:
+            changes["price"] = command.price
+        if price_is_set or command.quantity_is_set:
+            price = command.price if price_is_set else current.price
+            quantity = (
+                command.quantity if command.quantity is not None else current.quantity
+            )
+            changes["summ"] = _calculate_summ(price, quantity)
         if command.project_work_is_set:
             changes["project_work"] = command.project_work
 
