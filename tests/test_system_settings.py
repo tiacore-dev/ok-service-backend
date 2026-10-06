@@ -1,8 +1,10 @@
 from app.database.models import SystemSettings
 
 
-def _seed_system_prompt(db_session, value=None):
-    setting = SystemSettings(system_setting_id="system_prompt", value=value)
+def _seed_system_prompt(db_session, value=None, name="Системный промпт"):
+    setting = SystemSettings(
+        system_setting_id="system_prompt", name=name, value=value
+    )
     db_session.add(setting)
     db_session.commit()
     return setting
@@ -17,6 +19,7 @@ def test_system_settings_can_be_listed_and_viewed(client, jwt_token, db_session)
     assert response.json["system_settings"] == [
         {
             "system_setting_id": "system_prompt",
+            "name": "Системный промпт",
             "value": None,
             "modified_at": None,
             "modified_by": None,
@@ -27,6 +30,7 @@ def test_system_settings_can_be_listed_and_viewed(client, jwt_token, db_session)
     assert response.status_code == 200
     assert response.json["system_setting"] == {
         "system_setting_id": "system_prompt",
+        "name": "Системный промпт",
         "value": None,
         "modified_at": None,
         "modified_by": None,
@@ -54,6 +58,14 @@ def test_admin_can_edit_system_setting_value_including_null(
     assert response.status_code == 200
     assert response.json["system_setting"]["value"] is None
 
+    response = client.patch(
+        "/system_settings/system_prompt/edit",
+        json={"name": "Обновлённый системный промпт"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json["system_setting"]["name"] == "Обновлённый системный промпт"
+
 
 def test_non_admin_cannot_edit_system_setting(client, jwt_token_user, db_session):
     _seed_system_prompt(db_session, "Initial prompt")
@@ -73,6 +85,11 @@ def test_system_setting_edit_validates_value_and_missing_setting(
 
     response = client.patch(
         "/system_settings/system_prompt/edit", json={}, headers=headers
+    )
+    assert response.status_code == 400
+
+    response = client.patch(
+        "/system_settings/system_prompt/edit", json={"name": None}, headers=headers
     )
     assert response.status_code == 400
 

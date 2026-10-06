@@ -26,9 +26,23 @@ class SQLAlchemySystemSettingRepository(SystemSettingRepository):
         return system_setting_dict_to_entity(record) if record is not None else None
 
     def update_system_setting(
-        self, system_setting_id: str, value: str | None, modified_by: UUID
+        self,
+        system_setting_id: str,
+        *,
+        value: str | None,
+        value_is_set: bool,
+        name: str | None,
+        name_is_set: bool,
+        modified_by: UUID,
     ) -> SystemSetting | None:
         record = normalize_result(
-            self.manager.update_value(system_setting_id, value, modified_by)
+            self.manager.update(
+                system_setting_id,
+                value=value,
+                value_is_set=value_is_set,
+                name=name,
+                name_is_set=name_is_set,
+                modified_by=modified_by,
+            )
         )
         return system_setting_dict_to_entity(record) if record is not None else None

@@ -18,7 +18,7 @@ class SystemSettingsManager(BaseDBManager):
             raise RuntimeError("Database session is not initialized")
         with self.session_scope() as session:
             statement = insert(self.model).values(
-                system_setting_id="system_prompt", value=None
+                system_setting_id="system_prompt", name="Системный промпт", value=None
             )
             session.execute(
                 statement.on_conflict_do_nothing(
@@ -26,7 +26,16 @@ class SystemSettingsManager(BaseDBManager):
                 )
             )
 
-    def update_value(self, setting_id: str, value: str | None, modified_by: UUID):
+    def update(
+        self,
+        setting_id: str,
+        *,
+        value: str | None,
+        value_is_set: bool,
+        name: str | None,
+        name_is_set: bool,
+        modified_by: UUID,
+    ):
         with self.session_scope() as session:
             record = (
                 session.query(self.model)
@@ -35,7 +44,12 @@ class SystemSettingsManager(BaseDBManager):
             )
             if record is None:
                 return None
-            record.value = value
+            if value_is_set:
+                record.value = value
+            if name_is_set:
+                if name is None:
+                    raise ValueError("System setting name cannot be null")
+                record.name = name
             record.modified_at = utc_epoch_milliseconds()
             record.modified_by = modified_by
             session.flush()

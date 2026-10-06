@@ -12,5 +12,10 @@ class UpdateSystemSettingUseCase:
 
     def execute(self, command: UpdateSystemSettingCommand) -> SystemSetting | None:
         return self.repository.update_system_setting(
-            command.system_setting_id, command.value, command.modified_by
+            command.system_setting_id,
+            value=command.value,
+            value_is_set=command.value_is_set,
+            name=command.name,
+            name_is_set=command.name_is_set,
+            modified_by=command.modified_by,
         )

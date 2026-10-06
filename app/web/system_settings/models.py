@@ -4,6 +4,7 @@ system_setting_model = Model(
     "SystemSetting",
     {
         "system_setting_id": fields.String(required=True),
+        "name": fields.String(required=True),
         "value": fields.String(required=False, allow_none=True),
         "modified_at": fields.Integer(required=False, allow_none=True),
         "modified_by": fields.String(required=False, allow_none=True),
@@ -25,5 +26,8 @@ system_setting_all_response = Model(
 )
 system_setting_edit_model = Model(
     "SystemSettingEdit",
-    {"value": fields.String(required=True, allow_none=True)},
+    {
+        "value": fields.String(required=False, allow_none=True),
+        "name": fields.String(required=False),
+    },
 )

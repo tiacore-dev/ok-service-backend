@@ -10,5 +10,12 @@ class SystemSettingRepository(Protocol):
     def get_system_setting(self, system_setting_id: str) -> SystemSetting | None: ...
 
     def update_system_setting(
-        self, system_setting_id: str, value: str | None, modified_by: UUID
+        self,
+        system_setting_id: str,
+        *,
+        value: str | None,
+        value_is_set: bool,
+        name: str | None,
+        name_is_set: bool,
+        modified_by: UUID,
     ) -> SystemSetting | None: ...

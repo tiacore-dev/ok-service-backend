@@ -19,7 +19,7 @@ from app.use_cases.system_settings import (
     UpdateSystemSettingCommand,
     UpdateSystemSettingUseCase,
 )
-from app.web._typing import to_plain_dict
+from app.web._typing import has_field, to_plain_dict
 
 from .models import (
     system_setting_all_response,
@@ -125,7 +125,12 @@ class SystemSettingEdit(Resource):
             )
             setting = UpdateSystemSettingUseCase(_repository()).execute(
                 UpdateSystemSettingCommand(
-                    _id(system_setting_id), data["value"], _current_user_id()
+                    system_setting_id=_id(system_setting_id),
+                    value=data.get("value"),
+                    value_is_set=has_field(data, "value"),
+                    name=data.get("name"),
+                    name_is_set=has_field(data, "name"),
+                    modified_by=_current_user_id(),
                 )
             )
             if setting is None:

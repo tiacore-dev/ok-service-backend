@@ -7,6 +7,7 @@ class SystemSettings(Base):
     __tablename__ = "system_settings"
 
     system_setting_id = Column(String, primary_key=True, nullable=False)
+    name = Column(String, nullable=False)
     value = Column(Text, nullable=True)
     modified_at = Column(BigInteger, nullable=True)
     modified_by = Column(ForeignKey("users.user_id"), nullable=True)
@@ -15,6 +16,7 @@ class SystemSettings(Base):
         modified_by = self.modified_by
         return {
             "system_setting_id": self.system_setting_id,
+            "name": self.name,
             "value": self.value,
             "modified_at": self.modified_at,
             "modified_by": str(modified_by) if modified_by is not None else None,
