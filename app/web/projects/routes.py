@@ -19,7 +19,10 @@ from app.adapters.attachments import list_attachment_view_data
 from app.web.attachments.contract import attachment_view_model
 from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
 from app.use_cases.place_relations import PlaceRelationConflictError
-from app.adapters.statistics import RedisProjectWorkStatistics
+from app.adapters.statistics import (
+    RedisProjectMaterialStatistics,
+    RedisProjectWorkStatistics,
+)
 from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.domain.projects import (
     ProjectForbiddenError,
@@ -36,7 +39,6 @@ from app.schemas.project_schemas import (
 from app.use_cases.projects import (
     CreateProjectCommand,
     CreateProjectUseCase,
-    GetProjectStatsByMaterialsUseCase,
     GetProjectStatsUseCase,
     GetProjectUseCase,
     HardDeleteProjectUseCase,
@@ -70,6 +72,7 @@ from .models import (
     project_status_model,
     project_status_item_model,
     project_statuses_response,
+    project_material_stats_model,
 )
 
 logger = logging.getLogger("ok_service")
@@ -84,6 +87,7 @@ project_ns.models[project_all_response.name] = project_all_response
 project_ns.models[project_model.name] = project_model
 project_ns.models[project_view_model.name] = project_view_model
 project_ns.models[project_stats_model.name] = project_stats_model
+project_ns.models[project_material_stats_model.name] = project_material_stats_model
 project_ns.models[project_stats_response.name] = project_stats_response
 project_ns.models[project_status_model.name] = project_status_model
 project_ns.models[project_status_item_model.name] = project_status_item_model
@@ -147,7 +151,10 @@ def _get_current_user() -> dict[str, Any]:
 
 def _repository() -> SQLAlchemyProjectRepository:
     return SQLAlchemyProjectRepository(
-        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"]),
+        material_statistics=RedisProjectMaterialStatistics(
+            current_app.extensions["redis"]
+        ),
     )
 
 
@@ -468,35 +475,10 @@ class ProjectStats(Resource):
             stats = GetProjectStatsUseCase(repository=_repository()).execute(
                 _parse_project_id(project_id), _actor(current_user)
             )
-            return {"msg": "Project stats fetched successfully", "stats": stats}, 200
+            return {"msg": "Project stats fetched successfully", **stats}, 200
         except Exception as error:
             logger.error(
                 f"Error getting stats for project: {error}",
-                extra={"login": current_user},
-            )
-            return _map_error(error)
-
-
-@project_ns.route("/<string:project_id>/get-stat-by-project-materials")
-class ProjectStatsByProjectMaterials(Resource):
-    @api_key_or_jwt_required
-    @project_ns.marshal_with(project_stats_response)
-    def get(self, project_id):
-        current_user = _get_current_user()
-        logger.info(
-            f"Request to get project stats BY PROJECT MATERIALS for project: {
-                project_id
-            }",
-            extra={"login": current_user},
-        )
-        try:
-            stats = GetProjectStatsByMaterialsUseCase(repository=_repository()).execute(
-                _parse_project_id(project_id), _actor(current_user)
-            )
-            return {"msg": "Project stats fetched successfully", "stats": stats}, 200
-        except Exception as error:
-            logger.error(
-                f"Error getting stats for project materials: {error}",
                 extra={"login": current_user},
             )
             return _map_error(error)

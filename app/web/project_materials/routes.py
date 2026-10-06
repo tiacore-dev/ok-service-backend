@@ -5,7 +5,7 @@ import logging
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
@@ -15,6 +15,7 @@ from app.adapters.project_materials import (
     SQLAlchemyProjectMaterialRepository,
     project_material_entity_to_response,
 )
+from app.adapters.statistics import RedisProjectMaterialStatistics
 from app.decorators import admin_required, api_key_or_jwt_required
 from app.domain.project_materials import (
     ProjectMaterialForbiddenError,
@@ -123,7 +124,9 @@ def _get_current_user() -> dict[str, Any]:
 
 
 def _repository() -> SQLAlchemyProjectMaterialRepository:
-    return SQLAlchemyProjectMaterialRepository()
+    return SQLAlchemyProjectMaterialRepository(
+        statistics=RedisProjectMaterialStatistics(current_app.extensions["redis"])
+    )
 
 
 def _parse_project_material_id(project_material_id: str) -> UUID:

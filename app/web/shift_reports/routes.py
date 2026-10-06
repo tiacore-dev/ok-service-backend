@@ -19,7 +19,10 @@ from app.adapters.shift_reports import (
 from app.adapters.attachments import list_attachment_view_data
 from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
 from app.use_cases.place_relations import PlaceRelationConflictError
-from app.adapters.statistics import RedisProjectWorkStatistics
+from app.adapters.statistics import (
+    RedisProjectMaterialStatistics,
+    RedisProjectWorkStatistics,
+)
 from app.decorators import api_key_or_jwt_required
 from app.domain.shift_reports import (
     ShiftReportConflictError,
@@ -208,7 +211,10 @@ def _get_current_user() -> dict[str, Any]:
 
 def _repository() -> SQLAlchemyShiftReportRepository:
     return SQLAlchemyShiftReportRepository(
-        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"]),
+        material_statistics=RedisProjectMaterialStatistics(
+            current_app.extensions["redis"]
+        ),
     )
 
 

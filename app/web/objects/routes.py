@@ -6,7 +6,7 @@ from datetime import date
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
@@ -16,6 +16,7 @@ from app.adapters.objects import (
     SQLAlchemyObjectRepository,
     object_entity_to_response,
 )
+from app.adapters.statistics import RedisProjectMaterialStatistics
 from app.adapters.attachments import list_attachment_view_data
 from app.adapters.places import SQLAlchemyPlaceRepository, place_entity_to_response
 from app.decorators import api_key_or_jwt_required
@@ -72,6 +73,14 @@ from .models import (
     object_stats_response,
     object_stats_details_response,
     object_stats_collection_response,
+    object_stats_payload,
+    object_stats_details_payload,
+    object_project_stats_model,
+    work_stats_summary_model,
+    material_stats_summary_model,
+    material_stats_item_model,
+    object_stats_collection_item,
+    object_stats_collection_payload,
     stats_collection_filter_parser,
 )
 
@@ -91,6 +100,17 @@ object_ns.models[object_statuses_response.name] = object_statuses_response
 object_ns.models[object_stats_response.name] = object_stats_response
 object_ns.models[object_stats_details_response.name] = object_stats_details_response
 object_ns.models[object_stats_collection_response.name] = object_stats_collection_response
+for model in (
+    object_stats_payload,
+    object_stats_details_payload,
+    object_project_stats_model,
+    work_stats_summary_model,
+    material_stats_summary_model,
+    material_stats_item_model,
+    object_stats_collection_item,
+    object_stats_collection_payload,
+):
+    object_ns.models[model.name] = model
 object_ns.models[attachment_view_model.name] = attachment_view_model
 
 
@@ -235,7 +255,11 @@ def _get_current_user() -> dict[str, Any]:
 
 
 def _repository() -> SQLAlchemyObjectRepository:
-    return SQLAlchemyObjectRepository()
+    return SQLAlchemyObjectRepository(
+        material_statistics=RedisProjectMaterialStatistics(
+            current_app.extensions["redis"]
+        )
+    )
 
 
 def _places_repository() -> SQLAlchemyPlaceRepository:

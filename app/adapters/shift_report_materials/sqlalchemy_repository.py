@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
+from app.adapters.statistics import ProjectMaterialStatistics
 from app.database.managers.materials_manager import ShiftReportMaterialsManager
 from app.database.managers.projects_managers import ProjectsManager
 from app.database.managers.shift_reports_managers import ShiftReportsManager
@@ -24,6 +25,19 @@ class SQLAlchemyShiftReportMaterialRepository(ShiftReportMaterialRepository):
     )
     reports_manager: ShiftReportsManager = field(default_factory=ShiftReportsManager)
     projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
+    statistics: ProjectMaterialStatistics | None = None
+
+    def _project_id_for_report(self, shift_report_id: UUID) -> UUID | None:
+        report = normalize_result(self.reports_manager.get_by_id(shift_report_id))
+        if report is None:
+            return None
+        return UUID(str(report["project"]))
+
+    def _recalculate(self, *project_ids: UUID | None) -> None:
+        if self.statistics is not None:
+            self.statistics.recalculate_many(
+                {project_id for project_id in project_ids if project_id is not None}
+            )
 
     def create_shift_report_material(
         self, shift_report_material: ShiftReportMaterial
@@ -34,7 +48,9 @@ class SQLAlchemyShiftReportMaterialRepository(ShiftReportMaterialRepository):
         record = normalize_result(created)
         if record is None:
             raise ValueError("Shift report material creation did not return a record")
-        return shift_report_material_dict_to_entity(record)
+        entity = shift_report_material_dict_to_entity(record)
+        self._recalculate(self._project_id_for_report(entity.shift_report))
+        return entity
 
     def get_shift_report_material(
         self, shift_report_material_id: UUID
@@ -47,6 +63,9 @@ class SQLAlchemyShiftReportMaterialRepository(ShiftReportMaterialRepository):
     def update_shift_report_material(
         self, shift_report_material: ShiftReportMaterial
     ) -> ShiftReportMaterial | None:
+        current = self.get_shift_report_material(
+            shift_report_material.shift_report_material_id
+        )
         updated = self.manager.update(
             record_id=shift_report_material.shift_report_material_id,
             shift_report=shift_report_material.shift_report,
@@ -57,10 +76,18 @@ class SQLAlchemyShiftReportMaterialRepository(ShiftReportMaterialRepository):
         record = normalize_result(updated)
         if record is None:
             return None
-        return shift_report_material_dict_to_entity(record)
+        entity = shift_report_material_dict_to_entity(record)
+        self._recalculate(
+            self._project_id_for_report(current.shift_report) if current else None,
+            self._project_id_for_report(entity.shift_report),
+        )
+        return entity
 
     def delete_shift_report_material(self, shift_report_material_id: UUID) -> bool:
+        current = self.get_shift_report_material(shift_report_material_id)
         deleted = self.manager.delete(shift_report_material_id)
+        if deleted is not None and current is not None:
+            self._recalculate(self._project_id_for_report(current.shift_report))
         return deleted is not None
 
     def list_shift_report_materials(

@@ -5,7 +5,7 @@ import logging
 from typing import Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
@@ -15,6 +15,7 @@ from app.adapters.shift_report_materials import (
     SQLAlchemyShiftReportMaterialRepository,
     shift_report_material_entity_to_response,
 )
+from app.adapters.statistics import RedisProjectMaterialStatistics
 from app.database.managers.shift_reports_managers import ShiftReportsManager
 from app.decorators import api_key_or_jwt_required
 from app.domain.shift_report_materials import (
@@ -130,7 +131,9 @@ def _get_current_user() -> dict[str, Any]:
 
 
 def _repository() -> SQLAlchemyShiftReportMaterialRepository:
-    return SQLAlchemyShiftReportMaterialRepository()
+    return SQLAlchemyShiftReportMaterialRepository(
+        statistics=RedisProjectMaterialStatistics(current_app.extensions["redis"])
+    )
 
 
 def _parse_shift_report_material_id(shift_report_material_id: str) -> UUID:

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
+from app.adapters.statistics import ProjectMaterialStatistics
 from app.database.managers.materials_manager import ProjectMaterialsManager
 from app.database.managers.projects_managers import ProjectsManager
 from app.domain.project_materials import ProjectMaterial
@@ -20,6 +21,13 @@ from .mappers import (
 class SQLAlchemyProjectMaterialRepository(ProjectMaterialRepository):
     manager: ProjectMaterialsManager = field(default_factory=ProjectMaterialsManager)
     projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
+    statistics: ProjectMaterialStatistics | None = None
+
+    def _recalculate(self, *project_ids: UUID | None) -> None:
+        if self.statistics is not None:
+            self.statistics.recalculate_many(
+                {project_id for project_id in project_ids if project_id is not None}
+            )
 
     def create_project_material(
         self, project_material: ProjectMaterial
@@ -30,7 +38,9 @@ class SQLAlchemyProjectMaterialRepository(ProjectMaterialRepository):
         record = normalize_result(created)
         if record is None:
             raise ValueError("Project material creation did not return a record")
-        return project_material_dict_to_entity(record)
+        entity = project_material_dict_to_entity(record)
+        self._recalculate(entity.project)
+        return entity
 
     def get_project_material(self, project_material_id: UUID) -> ProjectMaterial | None:
         record = normalize_result(self.manager.get_by_id(project_material_id))
@@ -41,6 +51,7 @@ class SQLAlchemyProjectMaterialRepository(ProjectMaterialRepository):
     def update_project_material(
         self, project_material: ProjectMaterial
     ) -> ProjectMaterial | None:
+        current = self.get_project_material(project_material.project_material_id)
         updated = self.manager.update(
             record_id=project_material.project_material_id,
             project=project_material.project,
@@ -53,10 +64,15 @@ class SQLAlchemyProjectMaterialRepository(ProjectMaterialRepository):
         record = normalize_result(updated)
         if record is None:
             return None
-        return project_material_dict_to_entity(record)
+        entity = project_material_dict_to_entity(record)
+        self._recalculate(current.project if current else None, entity.project)
+        return entity
 
     def delete_project_material(self, project_material_id: UUID) -> bool:
+        current = self.get_project_material(project_material_id)
         deleted = self.manager.delete(project_material_id)
+        if deleted is not None:
+            self._recalculate(current.project if current else None)
         return deleted is not None
 
     def list_project_materials(

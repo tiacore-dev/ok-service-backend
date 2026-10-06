@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
-from app.adapters.statistics import ProjectWorkStatistics
+from app.adapters.statistics import ProjectMaterialStatistics, ProjectWorkStatistics
 from app.database.managers.projects_managers import ProjectsManager
 from app.database.managers.shift_reports_managers import (
     ShiftReportsDetailsManager,
@@ -33,10 +33,15 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
     )
     projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
     statistics: ProjectWorkStatistics | None = None
+    material_statistics: ProjectMaterialStatistics | None = None
 
     def _recalculate(self, *project_ids: UUID | None) -> None:
         if self.statistics is not None:
             self.statistics.recalculate_many(
+                {project_id for project_id in project_ids if project_id is not None}
+            )
+        if self.material_statistics is not None:
+            self.material_statistics.recalculate_many(
                 {project_id for project_id in project_ids if project_id is not None}
             )
 

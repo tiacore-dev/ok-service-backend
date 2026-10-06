@@ -95,25 +95,78 @@ object_all_response = Model(
     },
 )
 
+work_stats_summary_model = Model(
+    "WorkStatsSummary",
+    {
+        "project_work_quantity": fields.Float(allow_null=True),
+        "project_work_summ": fields.Float(allow_null=True),
+        "shift_report_details_quantity": fields.Float(allow_null=True),
+        "shift_report_details_summ": fields.Float(allow_null=True),
+        "shift_report_details_summ_by_estimate": fields.Float(allow_null=True),
+        "presented_quantity": fields.Float(allow_null=True),
+        "presented_summ": fields.Float(allow_null=True),
+        "accepted_quantity": fields.Float(allow_null=True),
+        "accepted_summ": fields.Float(allow_null=True),
+    },
+)
+material_stats_summary_model = Model(
+    "MaterialStatsSummary",
+    {
+        "project_material_quantity": fields.Float(required=True),
+        "project_material_summ": fields.Float(required=True),
+        "shift_report_material_quantity": fields.Float(required=True),
+        "shift_report_material_summ_by_estimate": fields.Float(required=True),
+    },
+)
+material_stats_item_model = Model(
+    "MaterialStatsItem",
+    {
+        **material_stats_summary_model,
+        "material_name": fields.String(allow_null=True),
+    },
+)
+object_project_stats_model = Model(
+    "ObjectProjectStats",
+    {
+        "project_id": fields.String(required=True),
+        "name": fields.String(required=True),
+        "stats": fields.Wildcard(fields.Nested(work_stats_summary_model), required=True),
+        "material_stats": fields.Wildcard(
+            fields.Nested(material_stats_item_model), required=True
+        ),
+    },
+)
+object_stats_payload = Model(
+    "ObjectStatsPayload",
+    {
+        "total": fields.Nested(work_stats_summary_model, required=True),
+        "material_totals": fields.Nested(material_stats_summary_model, required=True),
+        "projects": fields.List(fields.Nested(object_project_stats_model), required=True),
+    },
+)
 object_stats_response = Model(
     "ObjectStatsResponse",
     {
         "msg": fields.String(required=True),
-        "stats": fields.Raw(
-            required=True,
-            description="Object total and statistics grouped by project",
-        ),
+        "stats": fields.Nested(object_stats_payload, required=True),
     },
 )
 
+object_stats_details_payload = Model(
+    "ObjectStatsDetailsPayload",
+    {
+        "total": fields.Wildcard(fields.Nested(work_stats_summary_model), required=True),
+        "material_totals": fields.Wildcard(
+            fields.Nested(material_stats_item_model), required=True
+        ),
+        "projects": fields.List(fields.Nested(object_project_stats_model), required=True),
+    },
+)
 object_stats_details_response = Model(
     "ObjectStatsDetailsResponse",
     {
         "msg": fields.String(required=True),
-        "stats": fields.Raw(
-            required=True,
-            description="Object statistics grouped by project and work_id",
-        ),
+        "stats": fields.Nested(object_stats_details_payload, required=True),
     },
 )
 
@@ -137,12 +190,28 @@ object_stats_collection_item = Model(
     {
         "object_id": fields.String(required=True),
         "name": fields.String(required=True),
-        "stats": fields.Raw(required=True),
+        "stats": fields.Nested(work_stats_summary_model, required=True),
+        "material_totals": fields.Nested(material_stats_summary_model, required=True),
     },
 )
-project_leader_fact_stats = fields.Raw(
-    required=True,
-    description="Statistics grouped by calendar month in YYYY-MM format",
+project_leader_fact_item = Model(
+    "ProjectLeaderFactStats",
+    {
+        "shift_report_details_quantity": fields.Float(required=True),
+        "shift_report_details_summ": fields.Float(required=True),
+        "shift_report_details_summ_by_estimate": fields.Float(required=True),
+    },
+)
+project_leader_material_fact_item = Model(
+    "ProjectLeaderMaterialFactStats",
+    {
+        "shift_report_material_quantity": fields.Float(required=True),
+        "shift_report_material_summ_by_estimate": fields.Float(required=True),
+    },
+)
+project_leader_fact_stats = fields.Wildcard(fields.Nested(project_leader_fact_item), required=True)
+project_leader_material_fact_stats = fields.Wildcard(
+    fields.Nested(project_leader_material_fact_item), required=True
 )
 project_leader_fact_project = Model(
     "ProjectLeaderFactProject",
@@ -150,6 +219,7 @@ project_leader_fact_project = Model(
         "project_id": fields.String(required=True),
         "name": fields.String(required=True),
         "stats": project_leader_fact_stats,
+        "material_stats": project_leader_material_fact_stats,
     },
 )
 project_leader_stats_collection_item = Model(
@@ -159,6 +229,7 @@ project_leader_stats_collection_item = Model(
         "login": fields.String(required=True),
         "name": fields.String(required=True),
         "stats": project_leader_fact_stats,
+        "material_stats": project_leader_material_fact_stats,
         "projects": fields.List(
             fields.Nested(project_leader_fact_project), required=True
         ),
@@ -168,8 +239,20 @@ project_leader_stats_collection_payload = Model(
     "ProjectLeaderStatsCollectionPayload",
     {
         "total": project_leader_fact_stats,
+        "material_totals": project_leader_material_fact_stats,
         "project_leaders": fields.List(
             fields.Nested(project_leader_stats_collection_item), required=True
+        ),
+        "total_count": fields.Integer(required=True),
+    },
+)
+object_stats_collection_payload = Model(
+    "ObjectStatsCollectionPayload",
+    {
+        "total": fields.Nested(work_stats_summary_model, required=True),
+        "material_totals": fields.Nested(material_stats_summary_model, required=True),
+        "objects": fields.List(
+            fields.Nested(object_stats_collection_item), required=True
         ),
         "total_count": fields.Integer(required=True),
     },
@@ -178,7 +261,7 @@ object_stats_collection_response = Model(
     "ObjectStatsCollectionResponse",
     {
         "msg": fields.String(required=True),
-        "stats": fields.Raw(required=True),
+        "stats": fields.Nested(object_stats_collection_payload, required=True),
     },
 )
 project_leader_stats_collection_response = Model(

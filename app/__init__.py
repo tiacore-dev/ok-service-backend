@@ -17,7 +17,11 @@ from prometheus_client import REGISTRY, CollectorRegistry
 from prometheus_flask_exporter import PrometheusMetrics
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from app.adapters.statistics import RedisProjectWorkStatistics, create_redis_client
+from app.adapters.statistics import (
+    RedisProjectMaterialStatistics,
+    RedisProjectWorkStatistics,
+    create_redis_client,
+)
 from app.database import init_db, set_db_globals, setup_listeners
 from app.database.vacuum import start_background_task
 from app.error_handlers import setup_error_handlers
@@ -101,6 +105,14 @@ def create_app(config_name="development"):
         """Populate Redis aggregates for all existing project specifications."""
         count = RedisProjectWorkStatistics(app.extensions["redis"]).recalculate_all()
         click.echo(f"Rebuilt project-work statistics for {count} projects")
+
+    @app.cli.command("rebuild-project-material-statistics")
+    def rebuild_project_material_statistics() -> None:
+        """Populate Redis material aggregates for all existing project specifications."""
+        count = RedisProjectMaterialStatistics(
+            app.extensions["redis"]
+        ).recalculate_all()
+        click.echo(f"Rebuilt project-material statistics for {count} projects")
 
     # Добавляем ProxyFix для корректной обработки заголовков от прокси-сервера
     app.wsgi_app = ProxyFix(

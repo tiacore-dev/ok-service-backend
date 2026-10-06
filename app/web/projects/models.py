@@ -101,11 +101,31 @@ project_stats_model = Model(
     },
 )
 
+project_material_stats_model = Model(
+    "ProjectMaterialStats",
+    {
+        "project_material_quantity": fields.Float(required=True),
+        "project_material_summ": fields.Float(required=True),
+        "shift_report_material_quantity": fields.Float(required=True),
+        "shift_report_material_summ_by_estimate": fields.Float(required=True),
+        "material_name": fields.String(required=False, allow_null=True),
+    },
+)
+
 project_stats_response = Model(
     "ProjectStatsResponse",
     {
         "msg": fields.String(required=True, description="Response message"),
-        "stats": fields.Raw(required=True, description="Dict of work_id or project_work_id -> stat"),
+        "stats": fields.Wildcard(
+            fields.Nested(project_stats_model),
+            required=True,
+            description="Statistics grouped by work_id",
+        ),
+        "material_stats": fields.Wildcard(
+            fields.Nested(project_material_stats_model),
+            required=True,
+            description="Statistics grouped by material_id",
+        ),
     },
 )
 

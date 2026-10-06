@@ -157,6 +157,17 @@ jobs:
             docker image prune -f > /dev/null
           EOF
 
+      - name: Rebuild Redis statistics
+        run: |
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
+            set -e
+            cd $DEPLOY_PATH
+            docker compose $COMPOSE_FILES run --rm web \
+              flask --app app:create_app rebuild-project-work-statistics
+            docker compose $COMPOSE_FILES run --rm web \
+              flask --app app:create_app rebuild-project-material-statistics
+          EOF
+
 
 
   notify:
@@ -249,9 +260,11 @@ jobs:
           # --- 1) Telegram text
           if [ "${DEPLOY_STATUS}" != "success" ]; then
             HEAD="🛑 <b>Ошибка деплоя</b>"
+            CACHE_STATUS="⚠️ <b>Прогрев Redis-кэша:</b> не подтверждён"
             EXTRA_LINK="\n\n<a href=\"${RUN_URL}\">🔍 Открыть GitHub Actions</a>"
           else
             HEAD="✅ Деплой <b>успешен</b>"
+            CACHE_STATUS="✅ <b>Прогрев Redis-кэша:</b> работы и материалы"
             EXTRA_LINK=""
           fi
 
@@ -299,6 +312,7 @@ jobs:
           📦 <b>Ветка:</b> <code>${REF_NAME}</code>
           🔖 <b>Коммит:</b> <code>${SHORT_SHA}</code>
           👤 <b>Автор:</b> <a href="https://github.com/${AUTHOR_LOGIN}">${SAFE_AUTHOR}</a>
+          ${CACHE_STATUS}
 
           📝 <b>Сообщение:</b>
           <code>${SAFE_MSG}</code>

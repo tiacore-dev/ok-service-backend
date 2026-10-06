@@ -9,7 +9,10 @@ from flask_jwt_extended import get_jwt_identity
 from flask_restx import Namespace, Resource
 
 from app.adapters.projects import SQLAlchemyProjectRepository
-from app.adapters.statistics import RedisProjectWorkStatistics
+from app.adapters.statistics import (
+    RedisProjectMaterialStatistics,
+    RedisProjectWorkStatistics,
+)
 from app.decorators import api_key_or_jwt_required
 from app.domain.projects import ProjectForbiddenError
 from app.use_cases.projects import (
@@ -26,6 +29,8 @@ from app.web.objects.models import (
     project_leader_stats_collection_item,
     project_leader_stats_collection_payload,
     project_leader_fact_project,
+    project_leader_fact_item,
+    project_leader_material_fact_item,
     project_leader_fact_stats_filter_parser,
 )
 from app.web._typing import get_optional_uuid_list, get_required_uuid
@@ -42,6 +47,8 @@ for model in (
     project_leader_stats_collection_item,
     project_leader_stats_collection_payload,
     project_leader_fact_project,
+    project_leader_fact_item,
+    project_leader_material_fact_item,
 ):
     project_leader_ns.models[model.name] = model
 
@@ -73,7 +80,10 @@ def _actor() -> ProjectActor:
 
 def _repository() -> SQLAlchemyProjectRepository:
     return SQLAlchemyProjectRepository(
-        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"]),
+        material_statistics=RedisProjectMaterialStatistics(
+            current_app.extensions["redis"]
+        ),
     )
 
 

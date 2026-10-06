@@ -120,10 +120,6 @@ API_KEY_PERMISSIONS = (
     ("project-leaders-get-stat", "GET /project-leaders/{project_leader_id}/get-stat"),
     ("project-leaders-get-stat-all", "GET /project-leaders/get-stat"),
     ("project-leaders-get-stat-details", "GET /project-leaders/{project_leader_id}/get-stat-details"),
-    (
-        "projects-get-stat-by-project-materials",
-        "GET /projects/{project_id}/get-stat-by-project-materials",
-    ),
     ("projects-list", "GET /projects/all"),
     ("projects-view", "GET /projects/{project_id}/view"),
     ("project-works-create", "POST /project_works/add"),

@@ -16,7 +16,6 @@ from app.database.managers.projects_managers import ProjectsManager
 from app.use_cases.projects import (
     CreateProjectCommand,
     CreateProjectUseCase,
-    GetProjectStatsByMaterialsUseCase,
     GetProjectStatsUseCase,
     GetAllProjectLeadersStatsUseCase,
     GetProjectUseCase,
@@ -119,7 +118,7 @@ class FakeProjectRepository:
     def get_project_stats(self, project_id: UUID) -> dict[str, dict[str, object]]:
         return self.stats or {str(project_id): {"project_work_quantity": 0}}
 
-    def get_project_stats_by_materials(self, project_id: UUID) -> dict[str, dict[str, object]]:
+    def get_project_material_stats(self, project_id: UUID) -> dict[str, dict[str, object]]:
         return self.stats_by_materials or {
             str(project_id): {"project_work_quantity": 0}
         }
@@ -413,11 +412,10 @@ def test_project_stats_use_cases_delegate_to_repository():
     )
 
     actor = ProjectActor(role="admin", user_id=uuid4())
-    assert GetProjectStatsUseCase(repository=repository).execute(project.project_id, actor) == repository.stats
-    assert (
-        GetProjectStatsByMaterialsUseCase(repository=repository).execute(project.project_id, actor)
-        == repository.stats_by_materials
-    )
+    assert GetProjectStatsUseCase(repository=repository).execute(project.project_id, actor) == {
+        "stats": repository.stats,
+        "material_stats": repository.stats_by_materials,
+    }
 
 
 def test_project_mapper_treats_string_none_as_missing_created_by():
