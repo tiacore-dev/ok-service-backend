@@ -28,6 +28,9 @@ class Config:
     BROWSER_ID_COOKIE_NAME = "browser_id"
     BROWSER_ID_COOKIE_MAX_AGE = 90 * 24 * 60 * 60
     TEMPLATE_SERVICE_URL = os.getenv("TEMPLATE_SERVICE_URL")
+    MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY")
+    MOONSHOT_MODEL = os.getenv("MOONSHOT_MODEL")
+    MOONSHOT_URL = os.getenv("MOONSHOT_URL", "https://api.moonshot.ai")
     # Клиент создаётся лениво: соединение с Redis открывается только при команде.
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
