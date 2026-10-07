@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- Добавлен `POST /projects/parse-project-specification`: администратор, менеджер,
+  прораб или API key с отдельным permission отправляет документ, а сервис возвращает
+  JSON с распознанными работами и материалами. В Kimi передаются действующие
+  справочники работ и материалов; временные идентификаторы модели заменяются
+  UUID, созданными backend. Запись в БД и миграции не выполняются.
+  Добавлена документация `docs/project-specification-ai-parsing.md` с промптом,
+  контрактом ответа и планом будущего `PUT /projects/{project_id}/ai-import`.
+
 - Добавлен HTTP-клиент Kimi API без OpenAI/Anthropic SDK: он извлекает Markdown-
   содержимое текстового файла через `/v1/files` и `/v1/files/{file_id}/content`,
   а также выполняет обычный запрос к модели через `/v1/chat/completions`.

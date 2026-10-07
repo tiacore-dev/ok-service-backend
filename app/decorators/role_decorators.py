@@ -56,6 +56,22 @@ def admin_or_manager_required(func):
     return wrapper
 
 
+def admin_manager_or_project_leader_required(func):
+    """Allow access to administrators, managers, and project leaders."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if getattr(g, "auth_via_api_key", False):
+            return func(*args, **kwargs)
+        current_user = _get_current_user()
+        role = str(current_user.get("role") or "").strip().lower()
+        if role not in {"admin", "manager", "project-leader"}:
+            return {"msg": "Forbidden"}, 403
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def user_forbidden(func):
     """Декоратор для проверки, что текущий пользователь — администратор."""
 

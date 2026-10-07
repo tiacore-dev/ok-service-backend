@@ -1,4 +1,5 @@
 from typing import Protocol
+from typing import Any
 
 from app.domain.system_settings import SystemSetting
 
@@ -23,3 +24,9 @@ class SystemPromptRepository(Protocol):
 
 class KimiClient(KimiFileContentClient, KimiCompletionClient, Protocol):
     pass
+
+
+class ProjectSpecificationCatalog(Protocol):
+    def work_catalog(self) -> list[dict[str, Any]]: ...
+
+    def material_catalog(self) -> list[dict[str, Any]]: ...

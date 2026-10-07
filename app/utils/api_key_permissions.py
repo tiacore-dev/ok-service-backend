@@ -121,6 +121,7 @@ API_KEY_PERMISSIONS = (
     ("project-leaders-get-stat-all", "GET /project-leaders/get-stat"),
     ("project-leaders-get-stat-details", "GET /project-leaders/{project_leader_id}/get-stat-details"),
     ("projects-list", "GET /projects/all"),
+    ("projects-parse-project-specification", "POST /projects/parse-project-specification"),
     ("projects-view", "GET /projects/{project_id}/view"),
     ("project-works-create", "POST /project_works/add"),
     ("project-works-create-many", "POST /project_works/add/many"),

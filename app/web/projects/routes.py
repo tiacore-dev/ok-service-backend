@@ -7,7 +7,7 @@ from uuid import UUID
 
 from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields, reqparse
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
@@ -23,7 +23,16 @@ from app.adapters.statistics import (
     RedisProjectMaterialStatistics,
     RedisProjectWorkStatistics,
 )
-from app.decorators import api_key_or_jwt_required, user_forbidden
+from app.decorators import (
+    admin_manager_or_project_leader_required,
+    api_key_or_jwt_required,
+    user_forbidden,
+)
+from app.adapters.kimi import HTTPKimiClient, SQLAlchemyProjectSpecificationCatalog
+from app.adapters.system_settings import SQLAlchemySystemSettingRepository
+from app.domain.kimi import KimiError
+from app.use_cases.kimi import ParseProjectSpecificationUseCase
+from werkzeug.datastructures import FileStorage
 from app.domain.projects import (
     ProjectForbiddenError,
     ProjectConflictError,
@@ -93,6 +102,16 @@ project_ns.models[project_status_model.name] = project_status_model
 project_ns.models[project_status_item_model.name] = project_status_item_model
 project_ns.models[project_statuses_response.name] = project_statuses_response
 project_ns.models[attachment_view_model.name] = attachment_view_model
+
+project_specification_parse_model = project_ns.model(
+    "ProjectSpecificationParseResponse",
+    {"project_specification": fields.Raw(required=True)},
+)
+project_ns.models[project_specification_parse_model.name] = project_specification_parse_model
+project_specification_file_parser = reqparse.RequestParser()
+project_specification_file_parser.add_argument(
+    "file", type=FileStorage, location="files", required=True
+)
 
 
 class ProjectCreatePayload(TypedDict):
@@ -174,6 +193,8 @@ def _actor(current_user: dict[str, Any]) -> ProjectActor:
 
 
 def _map_error(error: Exception):
+    if isinstance(error, KimiError):
+        return {"msg": str(error)}, 502
     if isinstance(error, PlaceRelationConflictError):
         return {"msg": str(error)}, 409
     if isinstance(error, ProjectNotFoundError):
@@ -191,6 +212,40 @@ def _map_error(error: Exception):
     if isinstance(error, ValueError):
         return {"msg": str(error)}, 400
     return {"msg": f"Internal error: {error}"}, 500
+
+
+def _project_specification_parser() -> ParseProjectSpecificationUseCase:
+    return ParseProjectSpecificationUseCase(
+        client=HTTPKimiClient(
+            api_key=current_app.config.get("MOONSHOT_API_KEY"),
+            model=current_app.config.get("MOONSHOT_MODEL"),
+            base_url=current_app.config.get("MOONSHOT_URL"),
+        ),
+        system_settings=SQLAlchemySystemSettingRepository(),
+        catalog=SQLAlchemyProjectSpecificationCatalog(),
+    )
+
+
+@project_ns.route("/parse-project-specification")
+class ProjectSpecificationParse(Resource):
+    @api_key_or_jwt_required
+    @admin_manager_or_project_leader_required
+    @project_ns.expect(project_specification_file_parser)
+    @project_ns.response(200, "Project specification parsed", project_specification_parse_model)
+    def post(self):
+        try:
+            file = request.files.get("file")
+            if file is None or not file.filename:
+                raise ValueError("File is required")
+            parsed = _project_specification_parser().execute(
+                filename=file.filename,
+                content=file.read(),
+                content_type=file.mimetype,
+            )
+            return {"project_specification": parsed}, 200
+        except Exception as error:
+            logger.error("Error parsing project specification: %s", error)
+            return _map_error(error)
 
 
 @project_ns.route("/add")
