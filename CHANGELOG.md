@@ -2,13 +2,18 @@
 
 ## [Unreleased]
 
+- Добавлен атомарный `POST /projects/{project_id}/import-works-and-materials`: он создаёт
+  проверенные фронтендом работы и материалы спецификации одной транзакцией,
+  подставляет `project_id` из path и сохраняет UUID из результата парсинга.
+  Для API key добавлено permission `projects-import-works-and-materials`; миграции не требуются.
+
 - Добавлен `POST /projects/parse-project-specification`: администратор, менеджер,
   прораб или API key с отдельным permission отправляет документ, а сервис возвращает
   JSON с распознанными работами и материалами. В Kimi передаются действующие
   справочники работ и материалов; временные идентификаторы модели заменяются
   UUID, созданными backend. Запись в БД и миграции не выполняются.
   Добавлена документация `docs/project-specification-ai-parsing.md` с промптом,
-  контрактом ответа и планом будущего `PUT /projects/{project_id}/ai-import`.
+  контрактом ответа и атомарным `POST /projects/{project_id}/import-works-and-materials`.
 
 - Добавлен HTTP-клиент Kimi API без OpenAI/Anthropic SDK: он извлекает Markdown-
   содержимое текстового файла через `/v1/files` и `/v1/files/{file_id}/content`,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from decimal import Decimal, InvalidOperation
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
@@ -10,32 +11,30 @@ from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource, fields, reqparse
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
+from werkzeug.datastructures import FileStorage
 
+from app.adapters.attachments import list_attachment_view_data
+from app.adapters.kimi import HTTPKimiClient, SQLAlchemyProjectSpecificationCatalog
+from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
 from app.adapters.projects import (
     SQLAlchemyProjectRepository,
+    SQLAlchemyProjectSpecificationImportRepository,
     project_dict_to_response,
 )
-from app.adapters.attachments import list_attachment_view_data
-from app.web.attachments.contract import attachment_view_model
-from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
-from app.use_cases.place_relations import PlaceRelationConflictError
 from app.adapters.statistics import (
     RedisProjectMaterialStatistics,
     RedisProjectWorkStatistics,
 )
+from app.adapters.system_settings import SQLAlchemySystemSettingRepository
 from app.decorators import (
     admin_manager_or_project_leader_required,
     api_key_or_jwt_required,
     user_forbidden,
 )
-from app.adapters.kimi import HTTPKimiClient, SQLAlchemyProjectSpecificationCatalog
-from app.adapters.system_settings import SQLAlchemySystemSettingRepository
 from app.domain.kimi import KimiError
-from app.use_cases.kimi import ParseProjectSpecificationUseCase
-from werkzeug.datastructures import FileStorage
 from app.domain.projects import (
-    ProjectForbiddenError,
     ProjectConflictError,
+    ProjectForbiddenError,
     ProjectNotFoundError,
     ProjectStatus,
     ProjectValidationError,
@@ -44,6 +43,16 @@ from app.schemas.project_schemas import (
     ProjectCreateSchema,
     ProjectEditSchema,
     ProjectFilterSchema,
+)
+from app.use_cases.kimi import ParseProjectSpecificationUseCase
+from app.use_cases.place_relations import PlaceRelationConflictError
+from app.use_cases.project_specification_import import (
+    ImportProjectSpecificationUseCase,
+    ProjectMaterialImportItem,
+    ProjectSpecificationImportActor,
+    ProjectSpecificationImportCommand,
+    ProjectSpecificationImportError,
+    ProjectWorkImportItem,
 )
 from app.use_cases.projects import (
     CreateProjectCommand,
@@ -56,8 +65,8 @@ from app.use_cases.projects import (
     ProjectListQuery,
     SoftDeleteProjectUseCase,
     UpdateProjectCommand,
-    UpdateProjectUseCase,
     UpdateProjectStatusUseCase,
+    UpdateProjectUseCase,
 )
 from app.web._typing import (
     get_optional_bool,
@@ -66,22 +75,23 @@ from app.web._typing import (
     get_required_uuid,
     to_plain_dict,
 )
+from app.web.attachments.contract import attachment_view_model
 
 from .models import (
     project_all_response,
     project_create_model,
     project_edit_model,
     project_filter_parser,
+    project_material_stats_model,
     project_model,
     project_msg_model,
     project_response,
-    project_view_model,
     project_stats_model,
     project_stats_response,
-    project_status_model,
     project_status_item_model,
+    project_status_model,
     project_statuses_response,
-    project_material_stats_model,
+    project_view_model,
 )
 
 logger = logging.getLogger("ok_service")
@@ -107,7 +117,19 @@ project_specification_parse_model = project_ns.model(
     "ProjectSpecificationParseResponse",
     {"project_specification": fields.Raw(required=True)},
 )
-project_ns.models[project_specification_parse_model.name] = project_specification_parse_model
+project_ns.models[project_specification_parse_model.name] = (
+    project_specification_parse_model
+)
+project_specification_import_model = project_ns.model(
+    "ProjectSpecificationImportResponse",
+    {
+        "project_works_created": fields.Integer(required=True),
+        "project_materials_created": fields.Integer(required=True),
+    },
+)
+project_ns.models[project_specification_import_model.name] = (
+    project_specification_import_model
+)
 project_specification_file_parser = reqparse.RequestParser()
 project_specification_file_parser.add_argument(
     "file", type=FileStorage, location="files", required=True
@@ -193,6 +215,8 @@ def _actor(current_user: dict[str, Any]) -> ProjectActor:
 
 
 def _map_error(error: Exception):
+    if isinstance(error, ProjectSpecificationImportError):
+        return {"msg": str(error)}, 400
     if isinstance(error, KimiError):
         return {"msg": str(error)}, 502
     if isinstance(error, PlaceRelationConflictError):
@@ -231,7 +255,9 @@ class ProjectSpecificationParse(Resource):
     @api_key_or_jwt_required
     @admin_manager_or_project_leader_required
     @project_ns.expect(project_specification_file_parser)
-    @project_ns.response(200, "Project specification parsed", project_specification_parse_model)
+    @project_ns.response(
+        200, "Project specification parsed", project_specification_parse_model
+    )
     def post(self):
         try:
             file = request.files.get("file")
@@ -245,6 +271,120 @@ class ProjectSpecificationParse(Resource):
             return {"project_specification": parsed}, 200
         except Exception as error:
             logger.error("Error parsing project specification: %s", error)
+            return _map_error(error)
+
+
+def _import_uuid(value: object, name: str) -> UUID:
+    if not isinstance(value, str):
+        raise ProjectSpecificationImportError(f"{name} is required")
+    try:
+        return UUID(value)
+    except ValueError as error:
+        raise ProjectSpecificationImportError(f"{name} must be a UUID") from error
+
+
+def _import_decimal(
+    value: object, name: str, *, nullable: bool = False
+) -> Decimal | None:
+    if value is None and nullable:
+        return None
+    if isinstance(value, bool) or value is None:
+        raise ProjectSpecificationImportError(f"{name} must be a number")
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError) as error:
+        raise ProjectSpecificationImportError(f"{name} must be a number") from error
+
+
+def _required_import_decimal(value: object, name: str) -> Decimal:
+    parsed = _import_decimal(value, name)
+    if parsed is None:
+        raise ProjectSpecificationImportError(f"{name} must be a number")
+    return parsed
+
+
+def _import_work_name(value: object) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ProjectSpecificationImportError(
+            "project_work_name must be a non-empty string"
+        )
+    return value.strip()
+
+
+@project_ns.route("/<string:project_id>/import-works-and-materials")
+class ProjectSpecificationImport(Resource):
+    @api_key_or_jwt_required
+    @admin_manager_or_project_leader_required
+    @project_ns.response(
+        200, "Project specification imported", project_specification_import_model
+    )
+    def post(self, project_id: str):
+        current_user = _get_current_user()
+        try:
+            payload = to_plain_dict(
+                request.get_json(silent=True), "Request body is required"
+            )
+            raw_works = payload.get("project_works")
+            raw_materials = payload.get("project_materials")
+            if not isinstance(raw_works, list) or not isinstance(raw_materials, list):
+                raise ProjectSpecificationImportError(
+                    "project_works and project_materials must be lists"
+                )
+            works = [
+                ProjectWorkImportItem(
+                    project_work_id=_import_uuid(
+                        item.get("project_work_id"), "project_work_id"
+                    ),
+                    project_work_name=_import_work_name(item.get("project_work_name")),
+                    work=_import_uuid(item.get("work"), "work"),
+                    quantity=_required_import_decimal(item.get("quantity"), "quantity"),
+                    price=_import_decimal(item.get("price"), "price", nullable=True),
+                )
+                for item in raw_works
+                if isinstance(item, dict)
+            ]
+            if len(works) != len(raw_works):
+                raise ProjectSpecificationImportError(
+                    "Each project work must be an object"
+                )
+            materials = [
+                ProjectMaterialImportItem(
+                    project_material_id=_import_uuid(
+                        item.get("project_material_id"), "project_material_id"
+                    ),
+                    material=_import_uuid(item.get("material"), "material"),
+                    quantity=_required_import_decimal(item.get("quantity"), "quantity"),
+                    price=_import_decimal(item.get("price"), "price", nullable=True),
+                    project_work=_import_uuid(item["project_work"], "project_work")
+                    if item.get("project_work") is not None
+                    else None,
+                )
+                for item in raw_materials
+                if isinstance(item, dict)
+            ]
+            if len(materials) != len(raw_materials):
+                raise ProjectSpecificationImportError(
+                    "Each project material must be an object"
+                )
+            actor = ProjectSpecificationImportActor(
+                user_id=get_required_uuid(
+                    current_user, "user_id", "Current user id is required"
+                ),
+                role=str(current_user.get("role") or ""),
+            )
+            ImportProjectSpecificationUseCase(
+                SQLAlchemyProjectSpecificationImportRepository()
+            ).execute(
+                _parse_project_id(project_id),
+                ProjectSpecificationImportCommand(works, materials),
+                actor,
+            )
+            return {
+                "project_works_created": len(works),
+                "project_materials_created": len(materials),
+            }, 200
+        except Exception as error:
+            logger.error("Error importing project specification: %s", error)
             return _map_error(error)
 
 
@@ -311,7 +451,9 @@ class ProjectView(Resource):
                 if item.project_id == _parse_project_id(project_id)
             ]
             project_response_data = project_dict_to_response(project)
-            project_response_data["places"] = [item for item in places if item is not None]
+            project_response_data["places"] = [
+                item for item in places if item is not None
+            ]
             project_response_data["attachments"] = list_attachment_view_data(
                 "project", _parse_project_id(project_id)
             )
@@ -457,15 +599,15 @@ class ProjectAll(Resource):
                     project_leader=get_optional_uuid(data, "project_leader"),
                     created_by=get_optional_uuid(data, "created_by"),
                     created_at=data.get("created_at"),
-                    status=ProjectStatus(status_value) if status_value is not None else None,
+                    status=ProjectStatus(status_value)
+                    if status_value is not None
+                    else None,
                 ),
                 _actor(current_user),
             )
             return {
                 "msg": "Projects found successfully",
-                "projects": [
-                    project_dict_to_response(project) for project in projects
-                ],
+                "projects": [project_dict_to_response(project) for project in projects],
             }, 200
         except Exception as error:
             logger.error(
