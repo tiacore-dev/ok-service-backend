@@ -17,14 +17,28 @@ class ParseProjectSpecificationUseCase:
     def execute(
         self, *, filename: str, content: bytes, content_type: str | None
     ) -> dict[str, Any]:
-        setting = self.system_settings.get_system_setting("system_prompt")
-        if setting is None or setting.value is None or not setting.value.strip():
+        system_prompt = self.system_settings.get_system_setting("system_prompt")
+        if (
+            system_prompt is None
+            or system_prompt.value is None
+            or not system_prompt.value.strip()
+        ):
             raise SystemPromptMissingError("Отсутствует системный промпт")
+        developer_prompt = self.system_settings.get_system_setting(
+            "developer_system_prompt"
+        )
+        if (
+            developer_prompt is None
+            or developer_prompt.value is None
+            or not developer_prompt.value.strip()
+        ):
+            raise SystemPromptMissingError("Отсутствует системный промпт разработчика")
         extracted_content = self.client.extract_file_content(
             filename=filename, content=content, content_type=content_type
         )
         response = self.client.complete(
-            system_prompt=setting.value,
+            system_prompt=system_prompt.value,
+            developer_prompt=developer_prompt.value,
             user_prompt=json.dumps(
                 {
                     "WORK_CATALOG": self.catalog.work_catalog(),

@@ -106,6 +106,32 @@ def test_complete_sends_system_and_user_prompts(monkeypatch):
     }
 
 
+def test_complete_sends_developer_system_and_user_prompts(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_request(method: str, url: str, **kwargs: object) -> _Response:
+        seen.update({"method": method, "url": url, **kwargs})
+        return _Response(payload={"choices": [{"message": {"content": "Answer"}}]})
+
+    _patch_requests(monkeypatch, fake_request)
+
+    result = _client().complete(
+        developer_prompt="Developer prompt",
+        system_prompt="System prompt",
+        user_prompt="Question",
+    )
+
+    assert result == "Answer"
+    assert seen["json"] == {
+        "model": "kimi-test",
+        "messages": [
+            {"role": "developer", "content": "Developer prompt"},
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "Question"},
+        ],
+    }
+
+
 def test_client_requires_model_for_completion():
     client = HTTPKimiClient("key", None, "https://api.moonshot.test")
 

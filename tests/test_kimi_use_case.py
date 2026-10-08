@@ -20,7 +20,13 @@ class _KimiClient:
     def __init__(self) -> None:
         self.received: tuple[str, str] | None = None
 
-    def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+    def complete(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        developer_prompt: str | None = None,
+    ) -> str:
         self.received = (system_prompt, user_prompt)
         return "Answer"
 

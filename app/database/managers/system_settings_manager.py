@@ -26,6 +26,22 @@ class SystemSettingsManager(BaseDBManager):
                 )
             )
 
+    def ensure_developer_system_prompt(self) -> None:
+        session_factory = db_globals.Session
+        if session_factory is None:
+            raise RuntimeError("Database session is not initialized")
+        with self.session_scope() as session:
+            statement = insert(self.model).values(
+                system_setting_id="developer_system_prompt",
+                name="Системный промпт разработчика",
+                value=None,
+            )
+            session.execute(
+                statement.on_conflict_do_nothing(
+                    index_elements=["system_setting_id"]
+                )
+            )
+
     def update(
         self,
         setting_id: str,

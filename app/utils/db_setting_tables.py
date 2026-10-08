@@ -55,3 +55,4 @@ def set_system_settings():
 
     db = SystemSettingsManager()
     db.ensure_system_prompt()
+    db.ensure_developer_system_prompt()

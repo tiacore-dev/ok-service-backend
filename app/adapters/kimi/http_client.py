@@ -47,15 +47,27 @@ class HTTPKimiClient(KimiClient):
                 if primary_error is None:
                     raise
 
-    def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+    def complete(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        developer_prompt: str | None = None,
+    ) -> str:
+        messages = []
+        if developer_prompt is not None:
+            messages.append({"role": "developer", "content": developer_prompt})
+        messages.extend(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+        )
         response = self._post_json(
             "/v1/chat/completions",
             {
                 "model": self._require_model(),
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
+                "messages": messages,
             },
         )
         payload = self._json(response)

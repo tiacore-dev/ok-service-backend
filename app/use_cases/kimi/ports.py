@@ -15,7 +15,13 @@ class KimiFileContentClient(Protocol):
 
 
 class KimiCompletionClient(Protocol):
-    def complete(self, *, system_prompt: str, user_prompt: str) -> str: ...
+    def complete(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        developer_prompt: str | None = None,
+    ) -> str: ...
 
 
 class SystemPromptRepository(Protocol):
