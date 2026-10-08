@@ -10,10 +10,18 @@ from app.domain.kimi import KimiConfigurationError, KimiRequestError
 
 
 class _Response:
-    def __init__(self, *, payload: object | None = None, text: str = "", ok: bool = True):
+    def __init__(
+        self,
+        *,
+        payload: object | None = None,
+        text: str = "",
+        ok: bool = True,
+        status_code: int = 200,
+    ):
         self._payload = payload
         self.text = text
         self.ok = ok
+        self.status_code = status_code
 
     def json(self) -> object:
         if isinstance(self._payload, Exception):
@@ -147,6 +155,30 @@ def test_client_maps_transport_error(monkeypatch):
 
     with pytest.raises(KimiRequestError, match="Kimi API request failed"):
         _client().extract_file_content(filename="report.txt", content=b"content")
+
+
+def test_client_logs_failed_operation_status_and_response_body(monkeypatch, caplog):
+    response_body = "x" * 1001
+
+    def fake_request(method: str, url: str, **kwargs: object) -> _Response:
+        return _Response(
+            ok=False,
+            status_code=429,
+            text=response_body,
+        )
+
+    _patch_requests(monkeypatch, fake_request)
+
+    with caplog.at_level("WARNING", logger="ok_service"):
+        with pytest.raises(
+            KimiRequestError, match=r"file upload \(HTTP 429\)"
+        ) as error:
+            _client().extract_file_content(filename="report.txt", content=b"content")
+
+    assert "operation=file upload status_code=429" in caplog.text
+    assert response_body[:1000] in caplog.text
+    assert response_body not in caplog.text
+    assert response_body not in str(error.value)
 
 
 def test_extract_file_content_preserves_content_error_when_cleanup_fails(monkeypatch):

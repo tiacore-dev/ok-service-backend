@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Any
 
 import requests
 
 from app.domain.kimi import KimiConfigurationError, KimiRequestError
 from app.use_cases.kimi import KimiClient
+
+logger = logging.getLogger("ok_service")
 
 
 @dataclass(slots=True)
@@ -101,8 +104,8 @@ class HTTPKimiClient(KimiClient):
                 },
             )
         except requests.RequestException as error:
-            raise KimiRequestError("Kimi API request failed") from error
-        return self._require_success(response)
+            self._raise_transport_error("file upload", error)
+        return self._require_success(response, operation="file upload")
 
     def _post_json(
         self, path: str, payload: dict[str, object]
@@ -115,8 +118,8 @@ class HTTPKimiClient(KimiClient):
                 json=payload,
             )
         except requests.RequestException as error:
-            raise KimiRequestError("Kimi API request failed") from error
-        return self._require_success(response)
+            self._raise_transport_error("completion", error)
+        return self._require_success(response, operation="completion")
 
     def _get(self, path: str) -> requests.Response:
         try:
@@ -124,8 +127,10 @@ class HTTPKimiClient(KimiClient):
                 self._url(path), headers=self._headers(), timeout=self.timeout
             )
         except requests.RequestException as error:
-            raise KimiRequestError("Kimi API request failed") from error
-        return self._require_success(response)
+            self._raise_transport_error("file content extraction", error)
+        return self._require_success(
+            response, operation="file content extraction"
+        )
 
     def _delete(self, path: str) -> None:
         try:
@@ -133,8 +138,8 @@ class HTTPKimiClient(KimiClient):
                 self._url(path), headers=self._headers(), timeout=self.timeout
             )
         except requests.RequestException as error:
-            raise KimiRequestError("Kimi API request failed") from error
-        self._require_success(response)
+            self._raise_transport_error("file deletion", error)
+        self._require_success(response, operation="file deletion")
 
     def _headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self._require_api_key()}"}
@@ -142,10 +147,40 @@ class HTTPKimiClient(KimiClient):
     def _url(self, path: str) -> str:
         return f"{self._require_base_url()}{path}"
 
-    def _require_success(self, response: requests.Response) -> requests.Response:
+    def _require_success(
+        self, response: requests.Response, *, operation: str
+    ) -> requests.Response:
         if not response.ok:
-            raise KimiRequestError("Kimi API request failed")
+            status_code = response.status_code
+            logger.warning(
+                "Kimi API request failed: operation=%s status_code=%s response_body=%r",
+                operation,
+                status_code,
+                self._response_body_for_log(response),
+            )
+            raise KimiRequestError(
+                f"Kimi API request failed during {operation} (HTTP {status_code})"
+            )
         return response
+
+    def _raise_transport_error(
+        self, operation: str, error: requests.RequestException
+    ) -> None:
+        logger.warning(
+            "Kimi API transport error: operation=%s error_type=%s error=%s",
+            operation,
+            type(error).__name__,
+            error,
+            exc_info=True,
+        )
+        raise KimiRequestError(
+            f"Kimi API request failed during {operation}"
+        ) from error
+
+    def _response_body_for_log(self, response: requests.Response) -> str:
+        # Provider error bodies can contain useful diagnostics, but must be bounded
+        # to prevent a faulty upstream from flooding the application log.
+        return response.text[:1000]
 
     def _require_api_key(self) -> str:
         if not self.api_key:

@@ -270,7 +270,10 @@ class ProjectSpecificationParse(Resource):
             )
             return {"project_specification": parsed}, 200
         except Exception as error:
-            logger.error("Error parsing project specification: %s", error)
+            logger.exception(
+                "Error parsing project specification",
+                extra={"login": getattr(g, "user_info", "anonymous")},
+            )
             return _map_error(error)
 
 
