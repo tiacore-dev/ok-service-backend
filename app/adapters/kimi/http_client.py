@@ -57,15 +57,14 @@ class HTTPKimiClient(KimiClient):
         user_prompt: str,
         developer_prompt: str | None = None,
     ) -> str:
-        messages = []
+        combined_system_prompt = system_prompt
         if developer_prompt is not None:
-            messages.append({"role": "developer", "content": developer_prompt})
-        messages.extend(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ]
-        )
+            # Moonshot Chat Completions supports classic system/user roles only.
+            combined_system_prompt = f"{developer_prompt}\n\n{system_prompt}"
+        messages = [
+            {"role": "system", "content": combined_system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
         response = self._post_json(
             "/v1/chat/completions",
             {

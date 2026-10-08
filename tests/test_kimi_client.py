@@ -115,7 +115,7 @@ def test_complete_sends_system_and_user_prompts(monkeypatch):
     }
 
 
-def test_complete_sends_developer_system_and_user_prompts(monkeypatch):
+def test_complete_combines_developer_and_system_prompts_for_moonshot(monkeypatch):
     seen: dict[str, object] = {}
 
     def fake_request(method: str, url: str, **kwargs: object) -> _Response:
@@ -134,8 +134,10 @@ def test_complete_sends_developer_system_and_user_prompts(monkeypatch):
     assert seen["json"] == {
         "model": "kimi-test",
         "messages": [
-            {"role": "developer", "content": "Developer prompt"},
-            {"role": "system", "content": "System prompt"},
+            {
+                "role": "system",
+                "content": "Developer prompt\n\nSystem prompt",
+            },
             {"role": "user", "content": "Question"},
         ],
     }
