@@ -26,7 +26,6 @@ class UserManager(BaseDBManager):
         is_active=True,
     ):
         password = str(password)  # Принудительная конвертация
-        print(f"FINAL PASSWORD BEFORE HASHING: {password}")
         logger.debug(f"Тип пароля при добавлении в бд: {type(password)}")
 
         with self.session_scope() as session:
@@ -45,9 +44,6 @@ class UserManager(BaseDBManager):
                 deleted=False,
             )
             new_user.set_password(str(password))  # Здесь хешируется
-            # Проверяем хеш
-            logger.info(f"STORED HASH: {new_user.password_hash}")
-
             try:
                 session.add(new_user)
             except Exception as e:

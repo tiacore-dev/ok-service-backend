@@ -19,3 +19,15 @@
 - [docs/project-status-rules.md](./docs/project-status-rules.md) - статусы спецификаций, переходы и ограничения смен/объектов.
 - [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
 - [docs/project-specification-ai-parsing.md](./docs/project-specification-ai-parsing.md) - Kimi-парсинг документов спецификации, контракт JSON и план импорта.
+
+## Наблюдаемость
+
+Прикладной логгер использует уровень `INFO` по умолчанию. Для временной
+диагностики можно задать `LOG_LEVEL=DEBUG`; в production этот уровень не
+рекомендуется, поскольку он включает технические детали.
+
+Трассы передаются в Jaeger по OTLP/HTTP. При запуске сервисов в общей сети
+`ok_network` дополнительные переменные не нужны: используется
+`http://jaeger:4318/v1/traces`. При необходимости можно переопределить
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_SERVICE_NAME` и
+`OTEL_EXPORTER_OTLP_TIMEOUT`.

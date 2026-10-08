@@ -92,8 +92,10 @@ class BaseDBManager(ABC):
                 )
 
                 if record:
-                    logger.info(
-                        f"Запись найдена: {record.to_dict()}",
+                    logger.debug(
+                        "Record found: model=%s id=%s",
+                        self.model.__name__,  # type: ignore
+                        record_id,
                         extra={"login": "database"},
                     )
                     return record.to_dict()
@@ -117,8 +119,11 @@ class BaseDBManager(ABC):
             with self.session_scope() as session:
                 records = session.query(self.model).offset(offset).limit(limit).all()
                 result = [record.to_dict() for record in records]
-                logger.info(
-                    f"Найдено {len(result)} записей", extra={"login": "database"}
+                logger.debug(
+                    "Records fetched: model=%s count=%d",
+                    self.model.__name__,  # type: ignore
+                    len(result),
+                    extra={"login": "database"},
                 )
                 return result
         except Exception as e:
@@ -130,7 +135,7 @@ class BaseDBManager(ABC):
     def get_record_by_id(self, record_id):
         """Получение записи по ID в виде объекта."""
         try:
-            logger.info(
+            logger.debug(
                 "Fetching record by ID: %s", record_id, extra={"login": "database"}
             )
             with self.session_scope() as session:
@@ -147,7 +152,12 @@ class BaseDBManager(ABC):
                     .first()
                 )
                 if record:
-                    logger.info("Record found: %s", record, extra={"login": "database"})
+                    logger.debug(
+                        "Record found: model=%s id=%s",
+                        self.model.__name__,  # type: ignore
+                        record_id,
+                        extra={"login": "database"},
+                    )
                     return record
                 logger.warning(
                     "Record not found by ID: %s", record_id, extra={"login": "database"}
@@ -162,10 +172,10 @@ class BaseDBManager(ABC):
     def get_count(self):
         """Получение общего количества записей."""
         try:
-            logger.info("Counting records in table", extra={"login": "database"})
+            logger.debug("Counting records in table", extra={"login": "database"})
             with self.session_scope() as session:
                 count = session.query(self.model).count()
-                logger.info(
+                logger.debug(
                     "Total records count: %d", count, extra={"login": "database"}
                 )
                 return count
@@ -189,10 +199,11 @@ class BaseDBManager(ABC):
                 )
                 return None
 
-            logger.info(
-                "Updating record with ID: %s, fields: %s",
+            logger.debug(
+                "Updating record: model=%s id=%s fields=%s",
+                self.model.__name__,  # type: ignore
                 record_id,
-                filtered_kwargs,
+                sorted(filtered_kwargs),
                 extra={"login": "database"},
             )
             with self.session_scope() as session:
@@ -206,9 +217,10 @@ class BaseDBManager(ABC):
                     for key, value in filtered_kwargs.items():
                         setattr(record, key, value)
                         flag_modified(record, key)
-                    logger.info(
-                        "Record updated successfully: %s",
-                        record,
+                    logger.debug(
+                        "Record updated: model=%s id=%s",
+                        self.model.__name__,  # type: ignore
+                        record_id,
                         extra={"login": "database"},
                     )
                     return record.to_dict()
@@ -231,7 +243,7 @@ class BaseDBManager(ABC):
     def delete(self, record_id):
         """Удаление записи по ID с обработкой зависимости."""
         try:
-            logger.info(
+            logger.debug(
                 "Deleting record with ID: %s", record_id, extra={"login": "database"}
             )
             with self.session_scope() as session:
@@ -249,7 +261,7 @@ class BaseDBManager(ABC):
                 )
                 if record:
                     session.delete(record)
-                    logger.info(
+                    logger.debug(
                         "Record deleted successfully", extra={"login": "database"}
                     )
                     return record
@@ -281,13 +293,19 @@ class BaseDBManager(ABC):
     def filter_by(self, **kwargs):
         """Фильтрация записей по заданным критериям."""
         try:
-            logger.info(
-                "Filtering records by criteria: %s", kwargs, extra={"login": "database"}
+            logger.debug(
+                "Filtering records: model=%s fields=%s",
+                self.model.__name__,  # type: ignore
+                sorted(kwargs),
+                extra={"login": "database"},
             )
             with self.session_scope() as session:
                 records = session.query(self.model).filter_by(**kwargs).all()
-                logger.info(
-                    "Found %d records", len(records), extra={"login": "database"}
+                logger.debug(
+                    "Records filtered: model=%s count=%d",
+                    self.model.__name__,  # type: ignore
+                    len(records),
+                    extra={"login": "database"},
                 )
                 return records
         except Exception as e:
@@ -302,16 +320,20 @@ class BaseDBManager(ABC):
     def filter_by_dict(self, **kwargs):
         """Фильтрация записей с преобразованием объектов в словари."""
         try:
-            logger.info(
-                "Filtering records by criteria and converting to dict: %s",
-                kwargs,
+            logger.debug(
+                "Filtering records for dictionaries: model=%s fields=%s",
+                self.model.__name__,  # type: ignore
+                sorted(kwargs),
                 extra={"login": "database"},
             )
             with self.session_scope() as session:
                 records = session.query(self.model).filter_by(**kwargs).all()
                 result = [record.to_dict() for record in records]
-                logger.info(
-                    "Found %d records", len(result), extra={"login": "database"}
+                logger.debug(
+                    "Dictionary records filtered: model=%s count=%d",
+                    self.model.__name__,  # type: ignore
+                    len(result),
+                    extra={"login": "database"},
                 )
                 return result
         except Exception as e:
@@ -326,15 +348,20 @@ class BaseDBManager(ABC):
     def filter_one_by_dict(self, **kwargs):
         """Фильтрация записей с ожиданием одного результата, возвращаем словарь или None."""
         try:
-            logger.info(
-                "Filtering one record by criteria and converting to dict: %s",
-                kwargs,
+            logger.debug(
+                "Filtering one record for dictionary: model=%s fields=%s",
+                self.model.__name__,  # type: ignore
+                sorted(kwargs),
                 extra={"login": "database"},
             )
             with self.session_scope() as session:
                 record = session.query(self.model).filter_by(**kwargs).first()
                 if record:
-                    logger.info("Record found: %s", record, extra={"login": "database"})
+                    logger.debug(
+                        "Record found: model=%s",
+                        self.model.__name__,  # type: ignore
+                        extra={"login": "database"},
+                    )
                     return record.to_dict()
                 logger.warning(
                     "No record found for criteria: %s",
@@ -354,7 +381,7 @@ class BaseDBManager(ABC):
     def exists_by_id(self, record_id):
         """Проверяет существование записи по ID."""
         try:
-            logger.info(
+            logger.debug(
                 "Checking existence of record by ID: %s",
                 record_id,
                 extra={"login": "database"},
@@ -373,7 +400,12 @@ class BaseDBManager(ABC):
                     .count()
                     > 0
                 )
-                logger.info("Record existence: %s", exists, extra={"login": "database"})
+                logger.debug(
+                    "Record existence: model=%s exists=%s",
+                    self.model.__name__,  # type: ignore
+                    exists,
+                    extra={"login": "database"},
+                )
                 return exists
         except Exception as e:
             logger.error(

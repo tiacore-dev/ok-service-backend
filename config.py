@@ -34,6 +34,12 @@ class Config:
     MOONSHOT_COMPLETION_TIMEOUT_SECONDS = float(
         os.getenv("MOONSHOT_COMPLETION_TIMEOUT_SECONDS", "300")
     )
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    OTEL_SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "ok_service")
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = os.getenv(
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "http://jaeger:4318/v1/traces"
+    )
+    OTEL_EXPORTER_OTLP_TIMEOUT = int(os.getenv("OTEL_EXPORTER_OTLP_TIMEOUT", "10"))
     # Клиент создаётся лениво: соединение с Redis открывается только при команде.
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 

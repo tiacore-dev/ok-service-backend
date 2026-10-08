@@ -7,8 +7,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager, get_jwt_identity, verify_jwt_in_request
 from flask_marshmallow import Marshmallow
 from flask_restx import Api
-from opentelemetry import trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -69,6 +68,22 @@ def setup_metrics(
     return metrics
 
 
+def setup_tracing(app: Flask) -> None:
+    """Configure OTLP trace export for a running application."""
+    provider = TracerProvider(
+        resource=Resource.create({"service.name": app.config["OTEL_SERVICE_NAME"]})
+    )
+    provider.add_span_processor(
+        BatchSpanProcessor(
+            OTLPSpanExporter(
+                endpoint=app.config["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"],
+                timeout=app.config["OTEL_EXPORTER_OTLP_TIMEOUT"],
+            )
+        )
+    )
+    FlaskInstrumentor().instrument_app(app, tracer_provider=provider)
+
+
 def create_app(config_name="development"):
     """Функция для создания экземпляра приложения"""
     app = Flask(__name__)
@@ -76,25 +91,15 @@ def create_app(config_name="development"):
     if config_name == "development":
         setup_metrics(app)
         app.config.from_object(DevelopmentConfig)
-        # Настройка
-        trace.set_tracer_provider(
-            TracerProvider(resource=Resource.create({"service.name": "ok_service"}))
-        )
-
-        jaeger_exporter = JaegerExporter(
-            agent_host_name="jaeger",  # имя контейнера!
-            agent_port=6831,
-        )
-
-        span_processor = BatchSpanProcessor(jaeger_exporter)
-        trace.get_tracer_provider().add_span_processor(span_processor)  # type: ignore
-        FlaskInstrumentor().instrument_app(app)
     elif config_name == "testing":
         app.config.from_object(TestingConfig)
     elif config_name == "local_development":
         app.config.from_object(DevelopmentConfig)
     else:
         raise ValueError(f"Неизвестное имя конфигурации: {config_name}")
+
+    if config_name != "testing":
+        setup_tracing(app)
 
     # from_url создаёт pool, но не выполняет сетевой запрос. Это сохраняет
     # запуск приложения независимым от доступности Redis до первого обращения.

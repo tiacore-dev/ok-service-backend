@@ -54,9 +54,14 @@ class SkipMetricsFilter(logging.Filter):
         return "/metrics" not in msg
 
 
+def _configured_log_level() -> int:
+    configured_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    return getattr(logging, configured_level, logging.INFO)
+
+
 def setup_logger(name: str = "ok_service", log_file: str = "ok_service.log") -> logging.Logger:
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(_configured_log_level())
     # The application logger owns its handlers. Propagation to the root logger
     # would format and emit every record a second time (for example, via Gunicorn).
     logger.propagate = False
