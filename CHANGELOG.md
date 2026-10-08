@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- В Swagger для `POST /projects/{project_id}/import-works-and-materials` добавлена
+  модель тела запроса с массивами работ и материалов, UUID-ссылками и nullable
+  полями цен/связи с работой. Поведение импорта, миграции и настройки не изменялись.
+
 - Для AI-парсинга добавлена настройка
   `MOONSHOT_COMPLETION_TIMEOUT_SECONDS` со значением по умолчанию 300 секунд.
   Она применяется только к ожиданию результата модели Kimi; upload, extraction

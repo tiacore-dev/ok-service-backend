@@ -130,6 +130,46 @@ project_specification_import_model = project_ns.model(
 project_ns.models[project_specification_import_model.name] = (
     project_specification_import_model
 )
+project_specification_import_work_model = project_ns.model(
+    "ProjectSpecificationImportWork",
+    {
+        "project_work_id": fields.String(required=True, format="uuid"),
+        "project_work_name": fields.String(required=True),
+        "work": fields.String(required=True, format="uuid"),
+        "quantity": fields.Float(required=True),
+        "price": fields.Float(allow_null=True),
+    },
+)
+project_ns.models[project_specification_import_work_model.name] = (
+    project_specification_import_work_model
+)
+project_specification_import_material_model = project_ns.model(
+    "ProjectSpecificationImportMaterial",
+    {
+        "project_material_id": fields.String(required=True, format="uuid"),
+        "material": fields.String(required=True, format="uuid"),
+        "quantity": fields.Float(required=True),
+        "price": fields.Float(allow_null=True),
+        "project_work": fields.String(format="uuid", allow_null=True),
+    },
+)
+project_ns.models[project_specification_import_material_model.name] = (
+    project_specification_import_material_model
+)
+project_specification_import_request_model = project_ns.model(
+    "ProjectSpecificationImportRequest",
+    {
+        "project_works": fields.List(
+            fields.Nested(project_specification_import_work_model), required=True
+        ),
+        "project_materials": fields.List(
+            fields.Nested(project_specification_import_material_model), required=True
+        ),
+    },
+)
+project_ns.models[project_specification_import_request_model.name] = (
+    project_specification_import_request_model
+)
 project_specification_file_parser = reqparse.RequestParser()
 project_specification_file_parser.add_argument(
     "file", type=FileStorage, location="files", required=True
@@ -321,6 +361,7 @@ def _import_work_name(value: object) -> str:
 class ProjectSpecificationImport(Resource):
     @api_key_or_jwt_required
     @admin_manager_or_project_leader_required
+    @project_ns.expect(project_specification_import_request_model, validate=False)
     @project_ns.response(
         200, "Project specification imported", project_specification_import_model
     )
