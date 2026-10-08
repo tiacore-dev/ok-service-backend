@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import requests
@@ -169,11 +170,18 @@ def test_client_logs_failed_operation_status_and_response_body(monkeypatch, capl
 
     _patch_requests(monkeypatch, fake_request)
 
-    with caplog.at_level("WARNING", logger="ok_service"):
-        with pytest.raises(
-            KimiRequestError, match=r"file upload \(HTTP 429\)"
-        ) as error:
-            _client().extract_file_content(filename="report.txt", content=b"content")
+    app_logger = logging.getLogger("ok_service")
+    app_logger.addHandler(caplog.handler)
+    try:
+        with caplog.at_level("WARNING", logger="ok_service"):
+            with pytest.raises(
+                KimiRequestError, match=r"file upload \(HTTP 429\)"
+            ) as error:
+                _client().extract_file_content(
+                    filename="report.txt", content=b"content"
+                )
+    finally:
+        app_logger.removeHandler(caplog.handler)
 
     assert "operation=file upload status_code=429" in caplog.text
     assert response_body[:1000] in caplog.text
