@@ -26,6 +26,8 @@ class _KimiClient:
         system_prompt: str,
         user_prompt: str,
         developer_prompt: str | None = None,
+        reasoning_effort: str | None = None,
+        response_format: dict[str, str] | None = None,
     ) -> str:
         self.received = (system_prompt, user_prompt)
         return "Answer"

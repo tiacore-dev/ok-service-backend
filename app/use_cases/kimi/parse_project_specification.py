@@ -39,6 +39,8 @@ class ParseProjectSpecificationUseCase:
         response = self.client.complete(
             system_prompt=system_prompt.value,
             developer_prompt=developer_prompt.value,
+            reasoning_effort="low",
+            response_format={"type": "json_object"},
             user_prompt=json.dumps(
                 {
                     "WORK_CATALOG": self.catalog.work_catalog(),

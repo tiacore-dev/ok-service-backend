@@ -162,6 +162,33 @@ def test_complete_uses_configured_completion_timeout(monkeypatch):
     assert seen["timeout"] == 90.0
 
 
+def test_complete_sends_reasoning_effort_and_json_mode(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_request(method: str, url: str, **kwargs: object) -> _Response:
+        seen.update(kwargs)
+        return _Response(payload={"choices": [{"message": {"content": "{}"}}]})
+
+    _patch_requests(monkeypatch, fake_request)
+
+    _client().complete(
+        system_prompt="System prompt",
+        user_prompt="Question",
+        reasoning_effort="low",
+        response_format={"type": "json_object"},
+    )
+
+    assert seen["json"] == {
+        "model": "kimi-test",
+        "messages": [
+            {"role": "system", "content": "System prompt"},
+            {"role": "user", "content": "Question"},
+        ],
+        "reasoning_effort": "low",
+        "response_format": {"type": "json_object"},
+    }
+
+
 def test_client_requires_model_for_completion():
     client = HTTPKimiClient("key", None, "https://api.moonshot.test")
 

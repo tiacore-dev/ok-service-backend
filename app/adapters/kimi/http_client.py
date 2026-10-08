@@ -57,6 +57,8 @@ class HTTPKimiClient(KimiClient):
         system_prompt: str,
         user_prompt: str,
         developer_prompt: str | None = None,
+        reasoning_effort: str | None = None,
+        response_format: dict[str, str] | None = None,
     ) -> str:
         combined_system_prompt = system_prompt
         if developer_prompt is not None:
@@ -66,16 +68,30 @@ class HTTPKimiClient(KimiClient):
             {"role": "system", "content": combined_system_prompt},
             {"role": "user", "content": user_prompt},
         ]
+        payload: dict[str, object] = {
+            "model": self._require_model(),
+            "messages": messages,
+        }
+        if reasoning_effort is not None:
+            payload["reasoning_effort"] = reasoning_effort
+        if response_format is not None:
+            payload["response_format"] = response_format
+        logger.info(
+            "Kimi completion requested: model=%s reasoning_effort=%s "
+            "response_format=%s message_count=%d message_characters=%s",
+            payload["model"],
+            reasoning_effort or "default",
+            response_format.get("type") if response_format is not None else "default",
+            len(messages),
+            [len(message["content"]) for message in messages],
+        )
         response = self._post_json(
             "/v1/chat/completions",
-            {
-                "model": self._require_model(),
-                "messages": messages,
-            },
+            payload,
         )
-        payload = self._json(response)
+        response_payload = self._json(response)
         try:
-            content = payload["choices"][0]["message"]["content"]
+            content = response_payload["choices"][0]["message"]["content"]
         except (IndexError, KeyError, TypeError):
             raise KimiRequestError("Kimi API returned an invalid completion response")
         if not isinstance(content, str):
