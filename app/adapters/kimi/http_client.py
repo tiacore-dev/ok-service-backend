@@ -18,6 +18,7 @@ class HTTPKimiClient(KimiClient):
     model: str | None
     base_url: str | None
     timeout: float = 30.0
+    completion_timeout: float = 300.0
 
     def extract_file_content(
         self,
@@ -113,7 +114,7 @@ class HTTPKimiClient(KimiClient):
             response = requests.post(
                 self._url(path),
                 headers=self._headers(),
-                timeout=self.timeout,
+                timeout=self.completion_timeout,
                 json=payload,
             )
         except requests.RequestException as error:

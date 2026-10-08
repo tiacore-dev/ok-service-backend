@@ -244,6 +244,9 @@ def _project_specification_parser() -> ParseProjectSpecificationUseCase:
             api_key=current_app.config.get("MOONSHOT_API_KEY"),
             model=current_app.config.get("MOONSHOT_MODEL"),
             base_url=current_app.config.get("MOONSHOT_URL"),
+            completion_timeout=current_app.config[
+                "MOONSHOT_COMPLETION_TIMEOUT_SECONDS"
+            ],
         ),
         system_settings=SQLAlchemySystemSettingRepository(),
         catalog=SQLAlchemyProjectSpecificationCatalog(),

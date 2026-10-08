@@ -31,6 +31,9 @@ class Config:
     MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY")
     MOONSHOT_MODEL = os.getenv("MOONSHOT_MODEL")
     MOONSHOT_URL = os.getenv("MOONSHOT_URL", "https://api.moonshot.ai")
+    MOONSHOT_COMPLETION_TIMEOUT_SECONDS = float(
+        os.getenv("MOONSHOT_COMPLETION_TIMEOUT_SECONDS", "300")
+    )
     # Клиент создаётся лениво: соединение с Redis открывается только при команде.
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 

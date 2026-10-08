@@ -104,7 +104,7 @@ def test_complete_sends_system_and_user_prompts(monkeypatch):
         "method": "post",
         "url": "https://api.moonshot.test/v1/chat/completions",
         "headers": {"Authorization": "Bearer moonshot-secret"},
-        "timeout": 30.0,
+        "timeout": 300.0,
         "json": {
             "model": "kimi-test",
             "messages": [
@@ -141,6 +141,25 @@ def test_complete_combines_developer_and_system_prompts_for_moonshot(monkeypatch
             {"role": "user", "content": "Question"},
         ],
     }
+
+
+def test_complete_uses_configured_completion_timeout(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_request(method: str, url: str, **kwargs: object) -> _Response:
+        seen.update(kwargs)
+        return _Response(payload={"choices": [{"message": {"content": "Answer"}}]})
+
+    _patch_requests(monkeypatch, fake_request)
+
+    HTTPKimiClient(
+        api_key="moonshot-secret",
+        model="kimi-test",
+        base_url="https://api.moonshot.test/",
+        completion_timeout=90.0,
+    ).complete(system_prompt="System prompt", user_prompt="Question")
+
+    assert seen["timeout"] == 90.0
 
 
 def test_client_requires_model_for_completion():
