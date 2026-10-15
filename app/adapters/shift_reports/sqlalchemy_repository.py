@@ -152,14 +152,18 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         projects = self.reports_manager.get_project_ids_by_leader(user_id)
         return [UUID(str(project)) for project in projects]
 
-    def get_total_sum_by_shift_report(self, shift_report_id: UUID) -> int | float:
-        return self.reports_manager.get_total_sum_by_shift_report(shift_report_id)
+    def get_total_sum_by_shift_report(
+        self, shift_report_id: UUID, *, include_unsigned: bool = False
+    ) -> int | float:
+        return self.reports_manager.get_total_sum_by_shift_report(
+            shift_report_id, include_unsigned=include_unsigned
+        )
 
     def get_total_sum_by_estimate_for_shift_report(
-        self, shift_report_id: UUID
+        self, shift_report_id: UUID, *, include_unsigned: bool = False
     ) -> int | float:
         return self.reports_manager.get_total_sum_by_estimate_for_shift_report(
-            shift_report_id
+            shift_report_id, include_unsigned=include_unsigned
         )
 
     def get_project_stats(self, project_id: UUID) -> dict:

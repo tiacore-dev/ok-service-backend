@@ -94,10 +94,14 @@ class _FakeRepository:
     def get_project_ids_by_leader(self, user_id):
         return self.project_ids
 
-    def get_total_sum_by_shift_report(self, shift_report_id):
+    def get_total_sum_by_shift_report(
+        self, shift_report_id: UUID, *, include_unsigned: bool = False
+    ):
         return 0
 
-    def get_total_sum_by_estimate_for_shift_report(self, shift_report_id):
+    def get_total_sum_by_estimate_for_shift_report(
+        self, shift_report_id: UUID, *, include_unsigned: bool = False
+    ):
         return 0
 
     def get_project_stats(self, project_id):

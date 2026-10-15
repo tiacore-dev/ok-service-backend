@@ -681,11 +681,13 @@ class ShiftReportAll(Resource):
             for report in reports:
                 payload = shift_report_entity_to_response(report)
                 payload["shift_report_details_sum"] = (
-                    repository.get_total_sum_by_shift_report(report.shift_report_id)
+                    repository.get_total_sum_by_shift_report(
+                        report.shift_report_id, include_unsigned=True
+                    )
                 )
                 payload["shift_report_details_summ_by_estimate"] = (
                     repository.get_total_sum_by_estimate_for_shift_report(
-                        report.shift_report_id
+                        report.shift_report_id, include_unsigned=True
                     )
                 )
                 response_reports.append(payload)
