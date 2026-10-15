@@ -5,6 +5,7 @@ def test_add_project_material(client, jwt_token, seed_project, seed_material, db
         "project": seed_project["project_id"],
         "material": seed_material["material_id"],
         "quantity": 3.25,
+        "price": 10.0,
     }
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.post("/project_materials/add", json=data, headers=headers)
@@ -22,6 +23,8 @@ def test_add_project_material(client, jwt_token, seed_project, seed_material, db
     assert str(record.project) == seed_project["project_id"]
     assert str(record.material) == seed_material["material_id"]
     assert float(record.quantity) == 3.25
+    assert float(record.price) == 10.0
+    assert float(record.summ) == 32.5
 
 
 def test_view_project_material(client, jwt_token, seed_project_material):
@@ -39,6 +42,8 @@ def test_view_project_material(client, jwt_token, seed_project_material):
     assert record["project_material_id"] == str(seed_project_material["project_material_id"])
     assert record["project"] == str(seed_project_material["project"])
     assert record["material"] == str(seed_project_material["material"])
+    assert "price" in record
+    assert "summ" in record
 
 
 def test_hard_delete_project_material(client, jwt_token, seed_project_material, db_session):
@@ -67,7 +72,7 @@ def test_hard_delete_project_material(client, jwt_token, seed_project_material, 
 def test_edit_project_material(client, jwt_token, seed_project_material, db_session):
     from app.database.models import ProjectMaterials
 
-    data = {"quantity": 6.0}
+    data = {"quantity": 6.0, "price": 12.0}
     headers = {"Authorization": f"Bearer {jwt_token}"}
     response = client.patch(
         f"/project_materials/{str(seed_project_material['project_material_id'])}/edit",
@@ -85,6 +90,29 @@ def test_edit_project_material(client, jwt_token, seed_project_material, db_sess
     )
     assert record is not None
     assert float(record.quantity) == 6.0
+    assert float(record.price) == 12.0
+    assert float(record.summ) == 72.0
+
+    view_response = client.get(
+        f"/project_materials/{str(seed_project_material['project_material_id'])}/view",
+        headers=headers,
+    )
+    assert view_response.status_code == 200
+    assert view_response.json["project_material"]["price"] == 12.0
+    assert view_response.json["project_material"]["summ"] == 72.0
+
+    clear_response = client.patch(
+        f"/project_materials/{str(seed_project_material['project_material_id'])}/edit",
+        json={"price": None},
+        headers=headers,
+    )
+    assert clear_response.status_code == 200
+    cleared_view_response = client.get(
+        f"/project_materials/{str(seed_project_material['project_material_id'])}/view",
+        headers=headers,
+    )
+    assert cleared_view_response.json["project_material"]["price"] is None
+    assert cleared_view_response.json["project_material"]["summ"] is None
 
 
 def test_get_all_project_materials(client, jwt_token, seed_project_material):
@@ -101,3 +129,11 @@ def test_get_all_project_materials(client, jwt_token, seed_project_material):
         == str(seed_project_material["project_material_id"])
         for rec in records
     )
+    material_record = next(
+        rec
+        for rec in records
+        if rec["project_material_id"]
+        == str(seed_project_material["project_material_id"])
+    )
+    assert "price" in material_record
+    assert "summ" in material_record

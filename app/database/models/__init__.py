@@ -32,8 +32,10 @@ from .shift_report_details import ShiftReportDetails as ShiftReportDetails
 from .shift_report_materials import (
     ShiftReportMaterials as ShiftReportMaterials,
 )
+from .shift_standards import ShiftStandards as ShiftStandards
 from .shift_place_relations import ShiftPlaceRelations as ShiftPlaceRelations
 from .subscriptions import Subscriptions as Subscriptions
+from .system_settings import SystemSettings as SystemSettings
 from .user import Users as Users
 from .work_categories import WorkCategories as WorkCategories
 from .work_material_relations import (

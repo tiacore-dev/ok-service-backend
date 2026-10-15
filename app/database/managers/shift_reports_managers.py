@@ -145,28 +145,40 @@ class ShiftReportsManager(ShiftManager):
             )
             return [str(project_id) for (project_id,) in records]
 
-    def get_total_sum_by_shift_report(self, shift_report_id):
+    def get_total_sum_by_shift_report(
+        self, shift_report_id, *, include_unsigned: bool = False
+    ):
         """Возвращает сумму всех `summ` из shift_report_details для shift_report_id"""
         with self.session_scope() as session:
+            filters = [
+                ShiftReports.shift_report_id == shift_report_id,
+                ShiftReports.deleted.is_(False),
+            ]
+            if not include_unsigned:
+                filters.append(ShiftReports.signed.is_(True))
             result = (
                 session.query(func.sum(ShiftReportDetails.summ))
                 .join(
                     ShiftReports,
                     ShiftReports.shift_report_id == ShiftReportDetails.shift_report,
                 )
-                .filter(
-                    ShiftReports.shift_report_id == shift_report_id,
-                    ShiftReports.signed.is_(True),
-                    ShiftReports.deleted.is_(False),
-                )
+                .filter(*filters)
                 .scalar()
             )
 
             return result or 0  # Если записей нет, возвращаем 0
 
-    def get_total_sum_by_estimate_for_shift_report(self, shift_report_id):
+    def get_total_sum_by_estimate_for_shift_report(
+        self, shift_report_id, *, include_unsigned: bool = False
+    ):
         """Возвращает стоимость факта смены по сметным ценам."""
         with self.session_scope() as session:
+            filters = [
+                ShiftReports.shift_report_id == shift_report_id,
+                ShiftReports.deleted.is_(False),
+            ]
+            if not include_unsigned:
+                filters.append(ShiftReports.signed.is_(True))
             result = (
                 session.query(
                     func.sum(ShiftReportDetails.quantity * ProjectWorks.price)
@@ -179,11 +191,7 @@ class ShiftReportsManager(ShiftManager):
                     ProjectWorks,
                     ProjectWorks.project_work_id == ShiftReportDetails.project_work,
                 )
-                .filter(
-                    ShiftReports.shift_report_id == shift_report_id,
-                    ShiftReports.signed.is_(True),
-                    ShiftReports.deleted.is_(False),
-                )
+                .filter(*filters)
                 .scalar()
             )
             return result or 0
@@ -263,6 +271,7 @@ class ShiftReportsManager(ShiftManager):
             "created_by": self._convert_to_uuid(created_by),
             "extreme_conditions": data.get("extreme_conditions", False),
             "night_shift": data.get("night_shift", False),
+            "short_shift": data.get("short_shift", False),
             "comment": data.get("comment"),
         }
 

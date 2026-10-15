@@ -21,6 +21,8 @@ class ProjectMaterials(Base):
         UUID, ForeignKey("materials.material_id", ondelete="CASCADE"), nullable=False
     )
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
+    price = Column(Numeric(precision=10, scale=2), nullable=True)
+    summ = Column(Numeric(precision=20, scale=4), nullable=True)
     project_work = Column(
         UUID, ForeignKey("project_works.project_work_id"), nullable=True
     )
@@ -49,6 +51,8 @@ class ProjectMaterials(Base):
             "project": str(self.project),
             "material": str(self.material),
             "quantity": self.quantity,
+            "price": self.price if self.price is not None else None,
+            "summ": self.summ if self.summ is not None else None,  # type: ignore
             "project_work": str(self.project_work) if self.project_work else None,  # type: ignore
             "created_by": str(self.created_by),
             "created_at": self.created_at,

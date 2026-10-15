@@ -27,17 +27,12 @@ class GetProjectStatsUseCase:
     def execute(self, project_id: UUID, actor: ProjectActor):
         if actor.role == "user":
             raise ProjectForbiddenError("Forbidden")
-        return self.repository.get_project_stats(project_id)
-
-
-@dataclass(slots=True)
-class GetProjectStatsByMaterialsUseCase:
-    repository: ProjectRepository
-
-    def execute(self, project_id: UUID, actor: ProjectActor):
-        if actor.role == "user":
-            raise ProjectForbiddenError("Forbidden")
-        return self.repository.get_project_stats_by_materials(project_id)
+        return {
+            "stats": self.repository.get_project_stats(project_id),
+            "material_stats": self.repository.get_project_material_stats(
+                project_id
+            ),
+        }
 
 
 @dataclass(slots=True)

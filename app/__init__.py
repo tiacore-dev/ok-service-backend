@@ -1,3 +1,4 @@
+import re
 import time
 
 import click
@@ -6,8 +7,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager, get_jwt_identity, verify_jwt_in_request
 from flask_marshmallow import Marshmallow
 from flask_restx import Api
-from opentelemetry import trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -16,7 +16,11 @@ from prometheus_client import REGISTRY, CollectorRegistry
 from prometheus_flask_exporter import PrometheusMetrics
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from app.adapters.statistics import RedisProjectWorkStatistics, create_redis_client
+from app.adapters.statistics import (
+    RedisProjectMaterialStatistics,
+    RedisProjectWorkStatistics,
+    create_redis_client,
+)
 from app.database import init_db, set_db_globals, setup_listeners
 from app.database.vacuum import start_background_task
 from app.error_handlers import setup_error_handlers
@@ -25,6 +29,7 @@ from app.utils.db_setting_tables import (
     set_api_key_permissions,
     set_object_status,
     set_roles,
+    set_system_settings,
 )
 from config import DevelopmentConfig, TestingConfig
 from logger import setup_logger
@@ -63,6 +68,22 @@ def setup_metrics(
     return metrics
 
 
+def setup_tracing(app: Flask) -> None:
+    """Configure OTLP trace export for a running application."""
+    provider = TracerProvider(
+        resource=Resource.create({"service.name": app.config["OTEL_SERVICE_NAME"]})
+    )
+    provider.add_span_processor(
+        BatchSpanProcessor(
+            OTLPSpanExporter(
+                endpoint=app.config["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"],
+                timeout=app.config["OTEL_EXPORTER_OTLP_TIMEOUT"],
+            )
+        )
+    )
+    FlaskInstrumentor().instrument_app(app, tracer_provider=provider)
+
+
 def create_app(config_name="development"):
     """Функция для создания экземпляра приложения"""
     app = Flask(__name__)
@@ -70,25 +91,15 @@ def create_app(config_name="development"):
     if config_name == "development":
         setup_metrics(app)
         app.config.from_object(DevelopmentConfig)
-        # Настройка
-        trace.set_tracer_provider(
-            TracerProvider(resource=Resource.create({"service.name": "ok_service"}))
-        )
-
-        jaeger_exporter = JaegerExporter(
-            agent_host_name="jaeger",  # имя контейнера!
-            agent_port=6831,
-        )
-
-        span_processor = BatchSpanProcessor(jaeger_exporter)
-        trace.get_tracer_provider().add_span_processor(span_processor)  # type: ignore
-        FlaskInstrumentor().instrument_app(app)
     elif config_name == "testing":
         app.config.from_object(TestingConfig)
     elif config_name == "local_development":
         app.config.from_object(DevelopmentConfig)
     else:
         raise ValueError(f"Неизвестное имя конфигурации: {config_name}")
+
+    if config_name != "testing":
+        setup_tracing(app)
 
     # from_url создаёт pool, но не выполняет сетевой запрос. Это сохраняет
     # запуск приложения независимым от доступности Redis до первого обращения.
@@ -99,6 +110,14 @@ def create_app(config_name="development"):
         """Populate Redis aggregates for all existing project specifications."""
         count = RedisProjectWorkStatistics(app.extensions["redis"]).recalculate_all()
         click.echo(f"Rebuilt project-work statistics for {count} projects")
+
+    @app.cli.command("rebuild-project-material-statistics")
+    def rebuild_project_material_statistics() -> None:
+        """Populate Redis material aggregates for all existing project specifications."""
+        count = RedisProjectMaterialStatistics(
+            app.extensions["redis"]
+        ).recalculate_all()
+        click.echo(f"Rebuilt project-material statistics for {count} projects")
 
     # Добавляем ProxyFix для корректной обработки заголовков от прокси-сервера
     app.wsgi_app = ProxyFix(
@@ -121,6 +140,8 @@ def create_app(config_name="development"):
     set_roles()
 
     set_api_key_permissions()
+
+    set_system_settings()
 
     set_object_status()
 
@@ -198,7 +219,28 @@ def create_app(config_name="development"):
             logger.error(f"Error while logging request: {e}")
         return response
 
-    # Настройка CORS
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    # Cookies from the frontend require an explicit origin and credentials.
+    configured_origin = app.config.get("ORIGIN")
+    frontend_origin = (
+        f"https://{configured_origin}"
+        if configured_origin and "://" not in configured_origin
+        else configured_origin
+    )
+    if frontend_origin:
+        cors_origins = [frontend_origin]
+        if config_name in {"development", "local_development", "testing"}:
+            cors_origins.extend(
+                [
+                    re.compile(r"^https?://localhost(?::[0-9]+)?$"),
+                    re.compile(r"^https?://127\.0\.0\.1(?::[0-9]+)?$"),
+                ]
+            )
+        CORS(
+            app,
+            resources={r"/*": {"origins": cors_origins}},
+            supports_credentials=True,
+        )
+    else:
+        CORS(app, resources={r"/*": {"origins": "*"}})
 
     return app

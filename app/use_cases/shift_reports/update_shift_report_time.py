@@ -35,6 +35,7 @@ class UpdateShiftReportTimeUseCase:
             date_start=utc_epoch_milliseconds(),
             lng_start=command.lng,
             ltd_start=command.ltd,
+            start_browser_id=command.browser_id,
         )
 
     def finish(
@@ -54,6 +55,7 @@ class UpdateShiftReportTimeUseCase:
             date_end=timestamp,
             lng_end=command.lng,
             ltd_end=command.ltd,
+            finish_browser_id=command.browser_id,
         )
 
     def _get_allowed(self, report_id: UUID, actor: ShiftReportActor) -> ShiftReport:

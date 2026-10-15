@@ -46,11 +46,22 @@ def shift_report_dict_to_entity(payload: dict[str, Any]) -> ShiftReport:
         night_shift=bool(payload.get("night_shift", False)),
         extreme_conditions=bool(payload.get("extreme_conditions", False)),
         number=int(payload["number"]),
+        short_shift=bool(payload.get("short_shift", False)),
         comment=payload.get("comment"),
         signed_at=payload.get("signed_at"),
         signed_by=payload.get("signed_by"),
         updated_at=payload.get("updated_at"),
         updated_by=payload.get("updated_by"),
+        start_browser_id=(
+            UUID(str(payload["start_browser_id"]))
+            if payload.get("start_browser_id")
+            else None
+        ),
+        finish_browser_id=(
+            UUID(str(payload["finish_browser_id"]))
+            if payload.get("finish_browser_id")
+            else None
+        ),
     )
 
 
@@ -139,10 +150,17 @@ def shift_report_entity_to_response(entity: ShiftReport) -> dict[str, Any]:
         "created_at": entity.created_at,
         "night_shift": entity.night_shift,
         "extreme_conditions": entity.extreme_conditions,
+        "short_shift": entity.short_shift,
         "number": entity.number,
         "comment": entity.comment,
         "signed_at": entity.signed_at,
         "signed_by": entity.signed_by,
         "updated_at": entity.updated_at,
         "updated_by": entity.updated_by,
+        "start_browser_id": (
+            str(entity.start_browser_id) if entity.start_browser_id else None
+        ),
+        "finish_browser_id": (
+            str(entity.finish_browser_id) if entity.finish_browser_id else None
+        ),
     }

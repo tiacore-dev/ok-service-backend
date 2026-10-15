@@ -8,6 +8,7 @@ dispatcher.py
 
 static/
 templates/
+monitoring/loki-data/
 
 vapid_private_key.pem
 vapid_public_key.pem

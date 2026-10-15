@@ -11,7 +11,6 @@ from .get_project import (
     GetAllProjectLeadersStatsUseCase,
     GetProjectLeaderStatsDetailsUseCase,
     GetProjectLeaderStatsUseCase,
-    GetProjectStatsByMaterialsUseCase,
     GetProjectStatsUseCase,
     GetProjectUseCase,
 )
@@ -23,7 +22,6 @@ from .update_project_status import UpdateProjectStatusUseCase
 __all__ = [
     "CreateProjectCommand",
     "CreateProjectUseCase",
-    "GetProjectStatsByMaterialsUseCase",
     "GetProjectLeaderStatsUseCase",
     "GetProjectLeaderStatsDetailsUseCase",
     "GetAllProjectLeadersStatsUseCase",

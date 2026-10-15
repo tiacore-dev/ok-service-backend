@@ -4,4 +4,7 @@ from .api_key_or_jwt_required import (
 )
 from .role_decorators import admin_required as admin_required
 from .role_decorators import admin_or_manager_required as admin_or_manager_required
+from .role_decorators import (
+    admin_manager_or_project_leader_required as admin_manager_or_project_leader_required,
+)
 from .role_decorators import user_forbidden as user_forbidden

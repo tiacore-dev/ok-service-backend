@@ -181,3 +181,46 @@ def test_get_all_shift_reports(
     response = client.get("/shift_reports/all", headers=headers_admin)
     assert response.status_code == 200
     assert len(response.json["shift_reports"]) >= 1  # Админ видит всё
+
+
+def test_get_all_shift_reports_calculates_unsigned_detail_sums(
+    client,
+    jwt_token_admin,
+    db_session,
+    seed_shift_report,
+    seed_shift_report_detail,
+    seed_project_work_own,
+):
+    """The collection endpoint returns sums for non-deleted unsigned reports."""
+    from app.database.models import ProjectWorks
+
+    db_session.query(ProjectWorks).filter_by(
+        project_work_id=seed_project_work_own["project_work_id"]
+    ).update({"price": 12})
+    db_session.commit()
+
+    response = client.get(
+        "/shift_reports/all", headers={"Authorization": f"Bearer {jwt_token_admin}"}
+    )
+
+    assert response.status_code == 200
+    report = next(
+        item
+        for item in response.json["shift_reports"]
+        if item["shift_report_id"] == seed_shift_report["shift_report_id"]
+    )
+    assert report["signed"] is False
+    assert report["deleted"] is False
+    assert report["shift_report_details_sum"] == 105.0
+    assert report["shift_report_details_summ_by_estimate"] == 126.0
+
+    view_response = client.get(
+        f"/shift_reports/{seed_shift_report['shift_report_id']}/view",
+        headers={"Authorization": f"Bearer {jwt_token_admin}"},
+    )
+    assert view_response.status_code == 200
+    assert view_response.json["shift_report"]["shift_report_details_sum"] == 0
+    assert (
+        view_response.json["shift_report"]["shift_report_details_summ_by_estimate"]
+        == 0
+    )

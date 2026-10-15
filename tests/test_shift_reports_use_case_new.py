@@ -53,12 +53,15 @@ class _FakeRepository:
         changes = {}
         for field_name in (
             "deleted",
+            "short_shift",
             "date_start",
             "date_end",
             "lng_start",
             "ltd_start",
             "lng_end",
             "ltd_end",
+            "start_browser_id",
+            "finish_browser_id",
         ):
             value = getattr(command, field_name, None)
             if value is not None:
@@ -91,10 +94,14 @@ class _FakeRepository:
     def get_project_ids_by_leader(self, user_id):
         return self.project_ids
 
-    def get_total_sum_by_shift_report(self, shift_report_id):
+    def get_total_sum_by_shift_report(
+        self, shift_report_id: UUID, *, include_unsigned: bool = False
+    ):
         return 0
 
-    def get_total_sum_by_estimate_for_shift_report(self, shift_report_id):
+    def get_total_sum_by_estimate_for_shift_report(
+        self, shift_report_id: UUID, *, include_unsigned: bool = False
+    ):
         return 0
 
     def get_project_stats(self, project_id):
@@ -274,6 +281,38 @@ def test_update_shift_report_sets_audit_user_from_actor():
     assert captured["updated_by"] == actor.user_id
 
 
+@pytest.mark.parametrize("role", ["admin", "manager", "project-leader"])
+def test_allowed_roles_can_change_short_shift(role):
+    report = _report()
+    repository = _FakeRepository(current=report)
+
+    updated = UpdateShiftReportUseCase(repository=repository).execute(
+        UpdateShiftReportCommand(
+            shift_report_id=report.shift_report_id, short_shift=True
+        ),
+        ShiftReportActor(role=role, user_id=uuid4()),
+    )
+
+    assert updated.short_shift is True
+
+
+@pytest.mark.parametrize("short_shift", [False, True])
+def test_user_cannot_change_short_shift(short_shift):
+    report = _report()
+
+    with pytest.raises(ShiftReportForbiddenError, match="short_shift"):
+        UpdateShiftReportUseCase(repository=_FakeRepository(current=report)).execute(
+            UpdateShiftReportCommand(
+                shift_report_id=report.shift_report_id, short_shift=short_shift
+            ),
+            ShiftReportActor(role="user", user_id=report.user),
+        )
+
+
+def test_short_shift_defaults_to_false():
+    assert _report().short_shift is False
+
+
 @pytest.mark.parametrize("role", ["admin", "project-leader", "manager"])
 def test_sign_shift_report_allows_configured_signer_roles(role):
     report = _report()
@@ -345,7 +384,9 @@ def test_shift_report_time_use_case_rejects_finish_before_start():
 
     with pytest.raises(Exception, match="has not been started"):
         use_case.finish(
-            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            ShiftReportTimeCommand(
+                report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+            ),
             actor,
         )
 
@@ -356,7 +397,9 @@ def test_shift_report_time_use_case_rejects_leave_linked_report(operation):
     repository = _FakeRepository(current=report)
     use_case = UpdateShiftReportTimeUseCase(repository=repository)
     actor = ShiftReportActor(role="admin", user_id=uuid4())
-    command = ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0)
+    command = ShiftReportTimeCommand(
+        report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+    )
 
     with pytest.raises(
         ShiftReportConflictError,
@@ -373,7 +416,9 @@ def test_shift_report_time_use_case_rejects_second_start():
 
     with pytest.raises(Exception, match="already been started"):
         use_case.start(
-            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            ShiftReportTimeCommand(
+                report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+            ),
             actor,
         )
 
@@ -392,11 +437,69 @@ def test_shift_report_time_use_case_uses_current_epoch_for_start(monkeypatch):
     )
 
     updated = use_case.start(
-        ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+        ShiftReportTimeCommand(
+            report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+        ),
         actor,
     )
 
     assert updated.date_start == expected_timestamp
+
+
+def test_shift_report_time_use_case_stores_start_browser_id(monkeypatch):
+    report = _report()
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportTimeUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+    browser_id = uuid4()
+
+    monkeypatch.setattr(
+        shift_report_time_module,
+        "utc_epoch_milliseconds",
+        lambda: 1_800_000_000_000,
+    )
+
+    updated = use_case.start(
+        ShiftReportTimeCommand(
+            report.shift_report_id,
+            actor.user_id,
+            82.9,
+            55.0,
+            browser_id,
+        ),
+        actor,
+    )
+
+    assert updated.start_browser_id == browser_id
+    assert updated.finish_browser_id is None
+
+
+def test_shift_report_time_use_case_stores_finish_browser_id(monkeypatch):
+    report = _report().with_updates(date_start=1_700_000_000_000)
+    repository = _FakeRepository(current=report)
+    use_case = UpdateShiftReportTimeUseCase(repository=repository)
+    actor = ShiftReportActor(role="admin", user_id=uuid4())
+    browser_id = uuid4()
+
+    monkeypatch.setattr(
+        shift_report_time_module,
+        "utc_epoch_milliseconds",
+        lambda: 1_800_000_000_000,
+    )
+
+    updated = use_case.finish(
+        ShiftReportTimeCommand(
+            report.shift_report_id,
+            actor.user_id,
+            82.9,
+            55.0,
+            browser_id,
+        ),
+        actor,
+    )
+
+    assert updated.finish_browser_id == browser_id
+    assert updated.start_browser_id is None
 
 
 def test_shift_report_time_use_case_rejects_start_when_end_already_exists():
@@ -407,7 +510,9 @@ def test_shift_report_time_use_case_rejects_start_when_end_already_exists():
 
     with pytest.raises(Exception, match="end time"):
         use_case.start(
-            ShiftReportTimeCommand(report.shift_report_id, actor.user_id, 82.9, 55.0),
+            ShiftReportTimeCommand(
+                report.shift_report_id, actor.user_id, 82.9, 55.0, uuid4()
+            ),
             actor,
         )
 
@@ -462,6 +567,22 @@ def test_create_shift_report_for_admin_keeps_payload_user():
     assert repository.created_command.user == command.user
     assert repository.created_command.signed is True
     assert repository.created_command.created_by == actor.user_id
+
+
+def test_create_shift_report_rejects_short_shift_for_non_editor_role():
+    report = _report()
+    command = CreateShiftReportCommand(
+        user=report.user,
+        date=report.date,
+        project=report.project,
+        short_shift=True,
+    )
+
+    with pytest.raises(ShiftReportForbiddenError, match="short_shift"):
+        CreateShiftReportUseCase(repository=_FakeRepository(current=report)).execute(
+            command,
+            ShiftReportActor(role="accountant", user_id=uuid4()),
+        )
 
 
 def test_create_shift_report_rejects_project_not_in_progress():

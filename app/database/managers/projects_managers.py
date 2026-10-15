@@ -13,6 +13,7 @@ from sqlalchemy.orm import joinedload
 from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import (
     Acceptances,
+    Materials,
     Objects,
     ProjectMaterials,
     Projects,
@@ -21,9 +22,9 @@ from app.database.models import (
     ShiftReportDetails,
     ShiftReportMaterials,
     ShiftReports,
+    Users,
     WorkAcceptanceRelations,
     WorkMaterialRelations,
-    Users,
 )
 from app.domain.projects import ProjectStatus, ProjectValidationError
 
@@ -476,6 +477,113 @@ class ProjectsManager(BaseDBManager):
             logger.error("Error fetching batched project statistics: %s", error)
             return {project_id: {} for project_id in project_ids}
 
+    def get_project_material_stats(self, project_id):
+        """Return plan and signed factual material aggregates for one project."""
+        try:
+            with self.session_scope() as session:
+                result = {}
+                plan_rows = (
+                    session.query(
+                        ProjectMaterials.material,
+                        func.sum(ProjectMaterials.quantity),
+                        func.sum(ProjectMaterials.summ),
+                        func.max(Materials.name),
+                    )
+                    .outerjoin(
+                        Materials, Materials.material_id == ProjectMaterials.material
+                    )
+                    .filter(ProjectMaterials.project == project_id)
+                    .group_by(ProjectMaterials.material)
+                    .all()
+                )
+                for material_id, quantity, summ, name in plan_rows:
+                    result[str(material_id)] = {
+                        "project_material_quantity": float(quantity or 0),
+                        "project_material_summ": float(summ or 0),
+                        "shift_report_material_quantity": 0.0,
+                        "shift_report_material_summ_by_estimate": 0.0,
+                        "material_name": name,
+                    }
+
+                material_prices = (
+                    session.query(
+                        ProjectMaterials.project.label("project_id"),
+                        ProjectMaterials.project_work.label("project_work_id"),
+                        ProjectMaterials.material.label("material_id"),
+                        (
+                            func.sum(ProjectMaterials.summ)
+                            / func.nullif(func.sum(ProjectMaterials.quantity), 0)
+                        ).label("price"),
+                    )
+                    .filter(ProjectMaterials.project == project_id)
+                    .group_by(
+                        ProjectMaterials.project,
+                        ProjectMaterials.project_work,
+                        ProjectMaterials.material,
+                    )
+                    .subquery()
+                )
+                actual_rows = (
+                    session.query(
+                        ShiftReportMaterials.material,
+                        func.sum(ShiftReportMaterials.quantity),
+                        func.sum(
+                            ShiftReportMaterials.quantity * material_prices.c.price
+                        ),
+                        func.max(Materials.name),
+                    )
+                    .join(
+                        ShiftReports,
+                        ShiftReports.shift_report_id
+                        == ShiftReportMaterials.shift_report,
+                    )
+                    .outerjoin(
+                        ShiftReportDetails,
+                        ShiftReportDetails.shift_report_detail_id
+                        == ShiftReportMaterials.shift_report_detail,
+                    )
+                    .outerjoin(
+                        material_prices,
+                        and_(
+                            material_prices.c.project_id == ShiftReports.project,
+                            material_prices.c.project_work_id
+                            == ShiftReportDetails.project_work,
+                            material_prices.c.material_id
+                            == ShiftReportMaterials.material,
+                        ),
+                    )
+                    .outerjoin(
+                        Materials,
+                        Materials.material_id == ShiftReportMaterials.material,
+                    )
+                    .filter(
+                        ShiftReports.project == project_id,
+                        ShiftReports.signed.is_(True),
+                        ShiftReports.deleted.is_(False),
+                    )
+                    .group_by(ShiftReportMaterials.material)
+                    .all()
+                )
+                for material_id, quantity, estimate_summ, name in actual_rows:
+                    stats = result.setdefault(
+                        str(material_id),
+                        {
+                            "project_material_quantity": 0.0,
+                            "project_material_summ": 0.0,
+                            "shift_report_material_quantity": 0.0,
+                            "shift_report_material_summ_by_estimate": 0.0,
+                            "material_name": name,
+                        },
+                    )
+                    stats["shift_report_material_quantity"] = float(quantity or 0)
+                    stats["shift_report_material_summ_by_estimate"] = float(
+                        estimate_summ or 0
+                    )
+                return result
+        except Exception as error:
+            logger.error("Error fetching project material statistics: %s", error)
+            raise
+
     def get_object_stats(self, object_id):
         with self.session_scope() as session:
             projects = (
@@ -489,6 +597,15 @@ class ProjectsManager(BaseDBManager):
             )
 
         return self._build_grouped_project_stats(projects, detailed=False)
+
+    def get_active_project_ids_by_object(self, object_id: UUID) -> list[UUID]:
+        with self.session_scope() as session:
+            return [
+                project_id
+                for (project_id,) in session.query(Projects.project_id)
+                .filter(Projects.object == object_id, Projects.deleted.is_(False))
+                .all()
+            ]
 
     def get_object_stats_details(self, object_id):
         with self.session_scope() as session:
@@ -540,13 +657,17 @@ class ProjectsManager(BaseDBManager):
             objects = query.order_by(Objects.name.asc()).all()
 
             projects = (
-                session.query(Projects.project_id, Projects.object)
-                .filter(
-                    Projects.object.in_([object_id for object_id, _ in objects]),
-                    Projects.deleted.is_(False),
+                (
+                    session.query(Projects.project_id, Projects.object)
+                    .filter(
+                        Projects.object.in_([object_id for object_id, _ in objects]),
+                        Projects.deleted.is_(False),
+                    )
+                    .all()
                 )
-                .all()
-            ) if objects else []
+                if objects
+                else []
+            )
             stats_by_project = self.get_project_stats_many(
                 [project_id for project_id, _ in projects]
             )
@@ -559,12 +680,15 @@ class ProjectsManager(BaseDBManager):
             for object_id, name in objects:
                 summary = self._summarize_stats_maps(by_object[object_id])
                 self._merge_stats_summary(total, summary)
-                items.append({"object_id": str(object_id), "name": name, "stats": summary})
+                items.append(
+                    {"object_id": str(object_id), "name": name, "stats": summary}
+                )
 
             return {
                 "total": total,
                 "objects": items[offset : offset + limit],
                 "total_count": len(items),
+                "_all_object_ids": [str(object_id) for object_id, _ in objects],
             }
 
     def get_all_project_leaders_fact_stats(
@@ -583,22 +707,31 @@ class ProjectsManager(BaseDBManager):
             )
             if search:
                 pattern = f"%{search}%"
-                query = query.filter((Users.login.ilike(pattern)) | (Users.name.ilike(pattern)))
+                query = query.filter(
+                    (Users.login.ilike(pattern)) | (Users.name.ilike(pattern))
+                )
             if project_leader_ids:
                 query = query.filter(Users.user_id.in_(project_leader_ids))
             leaders = query.order_by(Users.name.asc(), Users.login.asc()).all()
             leader_ids = [user_id for user_id, _, _ in leaders]
             projects = (
-                session.query(Projects.project_id, Projects.project_leader, Projects.name)
-                .filter(
-                    Projects.project_leader.in_(leader_ids),
-                    Projects.deleted.is_(False),
+                (
+                    session.query(
+                        Projects.project_id, Projects.project_leader, Projects.name
+                    )
+                    .filter(
+                        Projects.project_leader.in_(leader_ids),
+                        Projects.deleted.is_(False),
+                    )
+                    .all()
                 )
-                .all()
-            ) if leaders else []
+                if leaders
+                else []
+            )
 
             project_ids = [project_id for project_id, _, _ in projects]
             by_project = {project_id: {} for project_id in project_ids}
+            material_by_project = {project_id: {} for project_id in project_ids}
             month_keys: set[str] = set(self._month_keys(date_from, date_to))
             if project_ids:
                 fact_query = (
@@ -627,9 +760,13 @@ class ProjectsManager(BaseDBManager):
                     fact_query = fact_query.filter(ShiftReports.date >= date_from)
                 if date_to is not None:
                     fact_query = fact_query.filter(ShiftReports.date <= date_to)
-                for project_id, report_date, quantity, summ, estimated_summ in fact_query.group_by(
-                    ShiftReports.project, ShiftReports.date
-                ).all():
+                for (
+                    project_id,
+                    report_date,
+                    quantity,
+                    summ,
+                    estimated_summ,
+                ) in fact_query.group_by(ShiftReports.project, ShiftReports.date).all():
                     month = self._month_key(report_date)
                     month_keys.add(month)
                     by_project[project_id].setdefault(month, self._empty_fact_stats())
@@ -644,42 +781,149 @@ class ProjectsManager(BaseDBManager):
                         },
                     )
 
+                material_prices = (
+                    session.query(
+                        ProjectMaterials.project.label("project_id"),
+                        ProjectMaterials.project_work.label("project_work_id"),
+                        ProjectMaterials.material.label("material_id"),
+                        (
+                            func.sum(ProjectMaterials.summ)
+                            / func.nullif(func.sum(ProjectMaterials.quantity), 0)
+                        ).label("price"),
+                    )
+                    .filter(ProjectMaterials.project.in_(project_ids))
+                    .group_by(
+                        ProjectMaterials.project,
+                        ProjectMaterials.project_work,
+                        ProjectMaterials.material,
+                    )
+                    .subquery()
+                )
+                material_query = (
+                    session.query(
+                        ShiftReports.project,
+                        ShiftReports.date,
+                        func.sum(ShiftReportMaterials.quantity),
+                        func.sum(
+                            ShiftReportMaterials.quantity * material_prices.c.price
+                        ),
+                    )
+                    .join(
+                        ShiftReportMaterials,
+                        ShiftReports.shift_report_id
+                        == ShiftReportMaterials.shift_report,
+                    )
+                    .outerjoin(
+                        ShiftReportDetails,
+                        ShiftReportDetails.shift_report_detail_id
+                        == ShiftReportMaterials.shift_report_detail,
+                    )
+                    .outerjoin(
+                        material_prices,
+                        and_(
+                            material_prices.c.project_id == ShiftReports.project,
+                            material_prices.c.project_work_id
+                            == ShiftReportDetails.project_work,
+                            material_prices.c.material_id
+                            == ShiftReportMaterials.material,
+                        ),
+                    )
+                    .filter(
+                        ShiftReports.project.in_(project_ids),
+                        ShiftReports.deleted.is_(False),
+                        ShiftReports.signed.is_(True),
+                    )
+                )
+                if date_from is not None:
+                    material_query = material_query.filter(
+                        ShiftReports.date >= date_from
+                    )
+                if date_to is not None:
+                    material_query = material_query.filter(ShiftReports.date <= date_to)
+                for (
+                    project_id,
+                    report_date,
+                    quantity,
+                    estimate_summ,
+                ) in material_query.group_by(
+                    ShiftReports.project, ShiftReports.date
+                ).all():
+                    month = self._month_key(report_date)
+                    material_by_project[project_id].setdefault(
+                        month, self._empty_material_fact_stats()
+                    )
+                    self._merge_material_fact_stats(
+                        material_by_project[project_id][month],
+                        {
+                            "shift_report_material_quantity": float(quantity or 0),
+                            "shift_report_material_summ_by_estimate": float(
+                                estimate_summ or 0
+                            ),
+                        },
+                    )
+
             ordered_months = sorted(month_keys)
             for project_id in by_project:
                 by_project[project_id] = {
                     month: by_project[project_id].get(month, self._empty_fact_stats())
                     for month in ordered_months
                 }
+                material_by_project[project_id] = {
+                    month: material_by_project[project_id].get(
+                        month, self._empty_material_fact_stats()
+                    )
+                    for month in ordered_months
+                }
 
             items = []
             total = {month: self._empty_fact_stats() for month in ordered_months}
+            material_totals = {
+                month: self._empty_material_fact_stats() for month in ordered_months
+            }
             by_leader = {user_id: [] for user_id in leader_ids}
             for project_id, leader_id, name in projects:
                 by_leader[leader_id].append(
-                    {"project_id": str(project_id), "name": name, "stats": by_project[project_id]}
+                    {
+                        "project_id": str(project_id),
+                        "name": name,
+                        "stats": by_project[project_id],
+                        "material_stats": material_by_project[project_id],
+                    }
                 )
             for user_id, login, name in leaders:
                 leader_projects = by_leader[user_id]
                 leader_total = {
                     month: self._empty_fact_stats() for month in ordered_months
                 }
+                leader_material_total = {
+                    month: self._empty_material_fact_stats() for month in ordered_months
+                }
                 for project in leader_projects:
                     for month, stats in project["stats"].items():
                         self._merge_fact_stats(leader_total[month], stats)
+                    for month, stats in project["material_stats"].items():
+                        self._merge_material_fact_stats(
+                            leader_material_total[month], stats
+                        )
                 for month in ordered_months:
                     self._merge_fact_stats(total[month], leader_total[month])
+                    self._merge_material_fact_stats(
+                        material_totals[month], leader_material_total[month]
+                    )
                 items.append(
                     {
                         "user_id": str(user_id),
                         "login": login,
                         "name": name,
                         "stats": leader_total,
+                        "material_stats": leader_material_total,
                         "projects": leader_projects,
                     }
                 )
 
             return {
                 "total": total,
+                "material_totals": material_totals,
                 "project_leaders": items[offset : offset + limit],
                 "total_count": len(items),
             }
@@ -701,20 +945,33 @@ class ProjectsManager(BaseDBManager):
         }
 
     @staticmethod
+    def _empty_material_fact_stats():
+        return {
+            "shift_report_material_quantity": 0.0,
+            "shift_report_material_summ_by_estimate": 0.0,
+        }
+
+    @staticmethod
+    def _merge_material_fact_stats(total, stats):
+        for field in (
+            "shift_report_material_quantity",
+            "shift_report_material_summ_by_estimate",
+        ):
+            total[field] += stats.get(field, 0.0) or 0.0
+
+    @staticmethod
     def _month_key(timestamp: int) -> str:
-        return datetime.fromtimestamp(timestamp / 1000, tz=STATISTICS_TIMEZONE).strftime(
-            "%Y-%m"
-        )
+        return datetime.fromtimestamp(
+            timestamp / 1000, tz=STATISTICS_TIMEZONE
+        ).strftime("%Y-%m")
 
     @classmethod
-    def _month_keys(
-        cls, date_from: int | None, date_to: int | None
-    ) -> tuple[str, ...]:
+    def _month_keys(cls, date_from: int | None, date_to: int | None) -> tuple[str, ...]:
         if date_from is None or date_to is None:
             return ()
-        start = datetime.fromtimestamp(date_from / 1000, tz=STATISTICS_TIMEZONE).replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
+        start = datetime.fromtimestamp(
+            date_from / 1000, tz=STATISTICS_TIMEZONE
+        ).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         end = datetime.fromtimestamp(date_to / 1000, tz=STATISTICS_TIMEZONE).replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
@@ -820,9 +1077,11 @@ class ProjectsManager(BaseDBManager):
 
     def get_object_status(self, object_id: UUID) -> str | None:
         with self.session_scope() as session:
-            return session.query(Objects.status).filter(
-                Objects.object_id == object_id
-            ).scalar()
+            return (
+                session.query(Objects.status)
+                .filter(Objects.object_id == object_id)
+                .scalar()
+            )
 
     def update_status_if_current(
         self,
@@ -842,9 +1101,11 @@ class ProjectsManager(BaseDBManager):
             )
             if project is None:
                 return None
-            object_status = session.query(Objects.status).filter(
-                Objects.object_id == project.object
-            ).scalar()
+            object_status = (
+                session.query(Objects.status)
+                .filter(Objects.object_id == project.object)
+                .scalar()
+            )
             if object_status == "waiting":
                 raise ProjectValidationError(
                     "Project status cannot be changed while the object is waiting"
@@ -867,7 +1128,8 @@ class ProjectsManager(BaseDBManager):
                 )
                 if any(status != "documents_signed" for (status,) in acceptances):
                     raise ProjectValidationError(
-                        "Project cannot be closed until all acceptances have signed documents"
+                        "Project cannot be closed until all acceptances have "
+                        "signed documents"
                     )
             project.status = new_status
             session.flush()

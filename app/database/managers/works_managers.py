@@ -1,7 +1,13 @@
 import logging
 from sqlalchemy.orm import joinedload
 from sqlalchemy import asc, desc
-from app.database.models import Works, WorkPrices, WorkCategories, MeasurementUnits
+from app.database.models import (
+    MeasurementUnits,
+    ShiftStandards,
+    WorkCategories,
+    WorkPrices,
+    Works,
+)
 # Предполагается, что BaseDBManager в другом файле
 from app.database.managers.abstract_manager import BaseDBManager
 
@@ -77,3 +83,25 @@ class MeasurementUnitsManager(BaseDBManager):
     @property
     def model(self):
         return MeasurementUnits
+
+
+class ShiftStandardsManager(BaseDBManager):
+
+    @property
+    def model(self):
+        return ShiftStandards
+
+    def update_shift_standard(self, record_id, *, category, standard, notification_text):
+        with self.session_scope() as session:
+            record = (
+                session.query(self.model)
+                .filter(self.model.shift_standard_id == record_id)
+                .first()
+            )
+            if record is None:
+                return None
+            record.category = category
+            record.standard = standard
+            record.notification_text = notification_text
+            session.flush()
+            return record.to_dict()

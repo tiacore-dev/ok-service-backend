@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from uuid import uuid4
 
 from app.domain.project_materials import ProjectMaterial, ProjectMaterialForbiddenError
@@ -8,6 +9,10 @@ from app.domain.project_materials import ProjectMaterial, ProjectMaterialForbidd
 from .dto import CreateProjectMaterialCommand, ProjectMaterialActor
 from .ports import ProjectMaterialRepository
 from ..time_utils import utc_epoch_milliseconds
+
+
+def _calculate_summ(price: Decimal | None, quantity: Decimal) -> Decimal | None:
+    return price * quantity if price is not None else None
 
 
 @dataclass(slots=True)
@@ -31,6 +36,8 @@ class CreateProjectMaterialUseCase:
             project=command.project,
             material=command.material,
             quantity=command.quantity,
+            price=command.price,
+            summ=_calculate_summ(command.price, command.quantity),
             created_by=command.created_by,
             created_at=utc_epoch_milliseconds(),
             project_work=command.project_work,

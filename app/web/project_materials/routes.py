@@ -5,7 +5,7 @@ import logging
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from flask import g, request
+from flask import current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
@@ -15,6 +15,7 @@ from app.adapters.project_materials import (
     SQLAlchemyProjectMaterialRepository,
     project_material_entity_to_response,
 )
+from app.adapters.statistics import RedisProjectMaterialStatistics
 from app.decorators import admin_required, api_key_or_jwt_required
 from app.domain.project_materials import (
     ProjectMaterialForbiddenError,
@@ -81,6 +82,7 @@ class ProjectMaterialCreatePayload(TypedDict):
     project: str
     material: str
     quantity: float | int
+    price: float | int | None
     project_work: str | None
 
 
@@ -88,6 +90,7 @@ class ProjectMaterialEditPayload(TypedDict, total=False):
     project: str
     material: str
     quantity: float | int
+    price: float | int | None
     project_work: str | None
 
 
@@ -121,7 +124,9 @@ def _get_current_user() -> dict[str, Any]:
 
 
 def _repository() -> SQLAlchemyProjectMaterialRepository:
-    return SQLAlchemyProjectMaterialRepository()
+    return SQLAlchemyProjectMaterialRepository(
+        statistics=RedisProjectMaterialStatistics(current_app.extensions["redis"])
+    )
 
 
 def _parse_project_material_id(project_material_id: str) -> UUID:
@@ -181,6 +186,7 @@ class ProjectMaterialAdd(Resource):
                 project=get_required_uuid(data, "project", "Project is required"),
                 material=get_required_uuid(data, "material", "Material is required"),
                 quantity=get_required_decimal(data, "quantity", "Quantity is required"),
+                price=get_optional_decimal(data, "price"),
                 project_work=get_optional_uuid(data, "project_work"),
                 created_by=get_required_uuid(
                     current_user, "user_id", "Current user id is required"
@@ -283,6 +289,8 @@ class ProjectMaterialEdit(Resource):
                     material_is_set=has_field(data, "material"),
                     quantity=get_optional_decimal(data, "quantity"),
                     quantity_is_set=has_field(data, "quantity"),
+                    price=get_optional_decimal(data, "price"),
+                    price_is_set=has_field(data, "price"),
                     project_work=get_optional_uuid(data, "project_work"),
                     project_work_is_set=has_field(data, "project_work"),
                 ),

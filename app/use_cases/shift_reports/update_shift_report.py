@@ -9,7 +9,11 @@ from app.domain.shift_reports import (
     ShiftReportNotFoundError,
 )
 
-from .dto import ShiftReportActor, UpdateShiftReportCommand
+from .dto import (
+    SHORT_SHIFT_EDITOR_ROLES,
+    ShiftReportActor,
+    UpdateShiftReportCommand,
+)
 from .ports import ShiftReportRepository
 
 
@@ -26,6 +30,13 @@ class UpdateShiftReportUseCase:
         if current.leave_id is not None:
             raise ShiftReportConflictError(
                 "Shift report linked to leave cannot be changed"
+            )
+        if (
+            command.short_shift is not None
+            and actor.role not in SHORT_SHIFT_EDITOR_ROLES
+        ):
+            raise ShiftReportForbiddenError(
+                "Only admin, manager, and project leader can change short_shift"
             )
         if actor.role == "user" and command.deleted is True:
             raise ShiftReportForbiddenError("User cannot delete shift report")

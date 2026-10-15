@@ -38,6 +38,8 @@ class ShiftReports(Base):
     ltd_end = Column(Float, nullable=True)
     distance_start = Column(Float, nullable=True)
     distance_end = Column(Float, nullable=True)
+    start_browser_id = Column(UUID(as_uuid=True), nullable=True)
+    finish_browser_id = Column(UUID(as_uuid=True), nullable=True)
     signed = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         BigInteger,
@@ -52,6 +54,7 @@ class ShiftReports(Base):
     updated_by = Column(UUID, ForeignKey("users.user_id"), nullable=True)
     night_shift = Column(Boolean, nullable=False, default=False)
     extreme_conditions = Column(Boolean, nullable=False, default=False)
+    short_shift = Column(Boolean, nullable=False, default=False)
     deleted = Column(Boolean, nullable=False, default=False)
     leave_id = Column(UUID, ForeignKey("leaves.leave_id"), nullable=True)
     number = Column(
@@ -120,6 +123,12 @@ class ShiftReports(Base):
             "ltd_end": self.ltd_end,
             "distance_start": self.distance_start,
             "distance_end": self.distance_end,
+            "start_browser_id": str(self.start_browser_id)
+            if self.start_browser_id is not None
+            else None,
+            "finish_browser_id": str(self.finish_browser_id)
+            if self.finish_browser_id is not None
+            else None,
             "signed": self.signed,
             "deleted": self.deleted,
             "leave_id": str(self.leave_id) if self.leave_id is not None else None,
@@ -127,6 +136,7 @@ class ShiftReports(Base):
             "created_at": self.created_at,
             "night_shift": self.night_shift,
             "extreme_conditions": self.extreme_conditions,
+            "short_shift": self.short_shift,
             "number": self.number,
             "comment": self.comment,
             "signed_at": self.signed_at,

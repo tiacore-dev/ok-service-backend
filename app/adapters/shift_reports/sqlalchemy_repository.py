@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
-from app.adapters.statistics import ProjectWorkStatistics
+from app.adapters.statistics import ProjectMaterialStatistics, ProjectWorkStatistics
 from app.database.managers.projects_managers import ProjectsManager
 from app.database.managers.shift_reports_managers import (
     ShiftReportsDetailsManager,
@@ -33,10 +33,15 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
     )
     projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
     statistics: ProjectWorkStatistics | None = None
+    material_statistics: ProjectMaterialStatistics | None = None
 
     def _recalculate(self, *project_ids: UUID | None) -> None:
         if self.statistics is not None:
             self.statistics.recalculate_many(
+                {project_id for project_id in project_ids if project_id is not None}
+            )
+        if self.material_statistics is not None:
+            self.material_statistics.recalculate_many(
                 {project_id for project_id in project_ids if project_id is not None}
             )
 
@@ -56,6 +61,9 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             "signed": command.signed,
             "night_shift": command.night_shift,
             "extreme_conditions": command.extreme_conditions,
+            "short_shift": (
+                command.short_shift if command.short_shift is not None else False
+            ),
             "comment": command.comment,
             "details": [
                 {
@@ -102,10 +110,13 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             signed=command.signed,
             night_shift=command.night_shift,
             extreme_conditions=command.extreme_conditions,
+            short_shift=command.short_shift,
             deleted=command.deleted,
             comment=command.comment,
             updated_by=command.updated_by,
             leave_check_date=command.leave_check_date,
+            start_browser_id=command.start_browser_id,
+            finish_browser_id=command.finish_browser_id,
         )
         record = normalize_result(updated)
         if record is None:
@@ -141,14 +152,18 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         projects = self.reports_manager.get_project_ids_by_leader(user_id)
         return [UUID(str(project)) for project in projects]
 
-    def get_total_sum_by_shift_report(self, shift_report_id: UUID) -> int | float:
-        return self.reports_manager.get_total_sum_by_shift_report(shift_report_id)
+    def get_total_sum_by_shift_report(
+        self, shift_report_id: UUID, *, include_unsigned: bool = False
+    ) -> int | float:
+        return self.reports_manager.get_total_sum_by_shift_report(
+            shift_report_id, include_unsigned=include_unsigned
+        )
 
     def get_total_sum_by_estimate_for_shift_report(
-        self, shift_report_id: UUID
+        self, shift_report_id: UUID, *, include_unsigned: bool = False
     ) -> int | float:
         return self.reports_manager.get_total_sum_by_estimate_for_shift_report(
-            shift_report_id
+            shift_report_id, include_unsigned=include_unsigned
         )
 
     def get_project_stats(self, project_id: UUID) -> dict:

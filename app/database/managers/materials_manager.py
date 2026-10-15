@@ -1,6 +1,9 @@
 import logging
 from decimal import Decimal
 
+from sqlalchemy import inspect
+from sqlalchemy.orm.attributes import flag_modified
+
 from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import (
     Acceptances,
@@ -36,6 +39,30 @@ class ProjectMaterialsManager(BaseDBManager):
     @property
     def model(self):
         return ProjectMaterials
+
+    def update(self, record_id, **kwargs):
+        """Update project materials while preserving explicit nullable values."""
+        filtered_kwargs = {
+            key: value
+            for key, value in kwargs.items()
+            if value is not None or key in {"price", "summ", "project_work"}
+        }
+        if not filtered_kwargs:
+            return None
+
+        with self.session_scope() as session:
+            primary_key = inspect(self.model).primary_key[0].name
+            record = (
+                session.query(self.model)
+                .filter(getattr(self.model, primary_key) == record_id)
+                .first()
+            )
+            if record is None:
+                return None
+            for key, value in filtered_kwargs.items():
+                setattr(record, key, value)
+                flag_modified(record, key)
+            return record.to_dict()
 
 
 class ShiftReportMaterialsManager(BaseDBManager):

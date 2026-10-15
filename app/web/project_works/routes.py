@@ -15,7 +15,10 @@ from app.adapters.project_works import (
     SQLAlchemyProjectWorkRepository,
     project_work_entity_to_response,
 )
-from app.adapters.statistics import RedisProjectWorkStatistics
+from app.adapters.statistics import (
+    RedisProjectMaterialStatistics,
+    RedisProjectWorkStatistics,
+)
 from app.decorators import api_key_or_jwt_required, user_forbidden
 from app.domain.project_works import (
     ProjectWorkForbiddenError,
@@ -132,7 +135,10 @@ def _get_current_user() -> dict[str, Any]:
 
 def _repository() -> SQLAlchemyProjectWorkRepository:
     return SQLAlchemyProjectWorkRepository(
-        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"]),
+        material_statistics=RedisProjectMaterialStatistics(
+            current_app.extensions["redis"]
+        ),
     )
 
 

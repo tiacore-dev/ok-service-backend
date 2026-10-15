@@ -78,6 +78,16 @@ shift_report_model = Model(
         "distance_end": fields.Float(
             required=False, description="Distance at the shift end"
         ),
+        "start_browser_id": fields.String(
+            required=False,
+            allow_null=True,
+            description="Browser UUID captured at shift start",
+        ),
+        "finish_browser_id": fields.String(
+            required=False,
+            allow_null=True,
+            description="Browser UUID captured at shift finish",
+        ),
         "signed": fields.Boolean(required=True, description="Is the report signed"),
         "deleted": fields.Boolean(
             required=True, description="Deletion status of the shift report"
@@ -104,6 +114,7 @@ shift_report_model = Model(
         "extreme_conditions": fields.Boolean(
             required=True, description="Extreme conditions"
         ),
+        "short_shift": fields.Boolean(required=True, description="Short shift"),
         "comment": fields.String(
             required=False, description="Comment for the shift report"
         ),
@@ -123,6 +134,7 @@ shift_report_msg_model = Model(
     {
         "msg": fields.String(required=True, description="Response message"),
         "shift_report_id": fields.String(description="ID of shift report"),
+        "browser_id": fields.String(description="Browser UUID used for the operation"),
         "detail": fields.Raw(
             required=False, description="Additional details (e.g., validation errors)"
         ),
@@ -239,6 +251,12 @@ shift_report_filter_parser.add_argument(
     type=lambda x: x.lower() in ["true", "1"],
     required=False,
     help="Флаг для фильтрации по удаленным отчетам",
+)
+shift_report_filter_parser.add_argument(
+    "short_shift",
+    type=lambda x: x.lower() in ["true", "1"],
+    required=False,
+    help="Filter by short shifts",
 )
 
 shift_report_filter_parser.add_argument(

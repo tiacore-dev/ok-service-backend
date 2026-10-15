@@ -55,6 +55,7 @@ def test_create_project_material_use_case():
         material=uuid4(),
         quantity=Decimal("3.25"),
         created_by=uuid4(),
+        price=Decimal("10.00"),
     )
 
     result = CreateProjectMaterialUseCase(repository=repository).execute(
@@ -63,6 +64,8 @@ def test_create_project_material_use_case():
 
     assert result == repository.created
     assert result.quantity == Decimal("3.25")
+    assert result.price == Decimal("10.00")
+    assert result.summ == Decimal("32.5000")
 
 
 def test_project_leader_can_create_material_in_own_project():
@@ -106,6 +109,8 @@ def test_update_project_material_use_case():
         material=uuid4(),
         quantity=Decimal("3.25"),
         created_by=uuid4(),
+        price=Decimal("10.00"),
+        summ=Decimal("32.50"),
         created_at=1,
     )
     repository = FakeProjectMaterialRepository(project_material)
@@ -115,10 +120,13 @@ def test_update_project_material_use_case():
             project_material_id=project_material.project_material_id,
             quantity=Decimal("6.0"),
             quantity_is_set=True,
+            price=Decimal("12.00"),
         ), ProjectMaterialActor(role="admin", user_id=uuid4())
     )
 
     assert result.quantity == Decimal("6.0")
+    assert result.price == Decimal("12.00")
+    assert result.summ == Decimal("72.00")
 
 
 def test_update_project_material_use_case_clears_optional_field():
@@ -142,6 +150,32 @@ def test_update_project_material_use_case_clears_optional_field():
     )
 
     assert result.project_work is None
+
+
+def test_update_project_material_use_case_clears_price_and_summ():
+    project_material = ProjectMaterial(
+        project_material_id=uuid4(),
+        project=uuid4(),
+        material=uuid4(),
+        quantity=Decimal("3.25"),
+        created_by=uuid4(),
+        created_at=1,
+        price=Decimal("10.00"),
+        summ=Decimal("32.5000"),
+    )
+    repository = FakeProjectMaterialRepository(project_material)
+
+    result = UpdateProjectMaterialUseCase(repository).execute(
+        UpdateProjectMaterialCommand(
+            project_material_id=project_material.project_material_id,
+            price=None,
+            price_is_set=True,
+        ),
+        ProjectMaterialActor(role="admin", user_id=uuid4()),
+    )
+
+    assert result.price is None
+    assert result.summ is None
 
 
 def test_project_leader_can_edit_and_delete_material_in_own_project():

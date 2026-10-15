@@ -87,7 +87,7 @@ class Subscribe(Resource):
     def post(self):
         current_user = _get_current_user()
         db = SubscriptionsManager()
-        logger.info(f"Полученные данные: {request.json}", extra={"login": current_user})
+        logger.info("Subscription request received", extra={"login": current_user})
 
         schema = SubscriptionSchema()
         try:

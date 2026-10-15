@@ -1,10 +1,11 @@
 import logging
+from unittest.mock import Mock
 from uuid import uuid4
 
 from flask import Flask
 from prometheus_client import CollectorRegistry
 
-from app import setup_metrics
+from app import setup_metrics, setup_tracing
 from logger import PrometheusHandler
 
 
@@ -81,3 +82,53 @@ def test_setup_logger_disables_root_propagation(monkeypatch, tmp_path):
         for handler in configured_logger.handlers:
             handler.close()
         configured_logger.handlers.clear()
+
+
+def test_setup_logger_uses_info_level_by_default(monkeypatch, tmp_path):
+    monkeypatch.delenv("LOG_LEVEL", raising=False)
+    monkeypatch.setattr("logger.os.getcwd", lambda: str(tmp_path))
+    logger_name = "ok_service.test_default_log_level"
+    app_logger = logging.getLogger(logger_name)
+    app_logger.handlers.clear()
+
+    configured_logger = __import__("logger").setup_logger(logger_name)
+
+    try:
+        assert configured_logger.level == logging.INFO
+    finally:
+        for handler in configured_logger.handlers:
+            handler.close()
+        configured_logger.handlers.clear()
+
+
+def test_setup_tracing_uses_configured_otlp_endpoint(monkeypatch):
+    app = Flask(__name__)
+    app.config.update(
+        OTEL_SERVICE_NAME="ok-service-test",
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="http://jaeger:4318/v1/traces",
+        OTEL_EXPORTER_OTLP_TIMEOUT=7,
+    )
+    provider = Mock()
+    tracer_provider = Mock(return_value=provider)
+    exporter = Mock()
+    otlp_exporter = Mock(return_value=exporter)
+    processor = Mock()
+    batch_processor = Mock(return_value=processor)
+    instrumentor = Mock()
+    flask_instrumentor = Mock(return_value=instrumentor)
+    resource = Mock()
+
+    monkeypatch.setattr("app.TracerProvider", tracer_provider)
+    monkeypatch.setattr("app.Resource", resource)
+    monkeypatch.setattr("app.OTLPSpanExporter", otlp_exporter)
+    monkeypatch.setattr("app.BatchSpanProcessor", batch_processor)
+    monkeypatch.setattr("app.FlaskInstrumentor", flask_instrumentor)
+    setup_tracing(app)
+
+    resource.create.assert_called_once_with({"service.name": "ok-service-test"})
+    otlp_exporter.assert_called_once_with(
+        endpoint="http://jaeger:4318/v1/traces", timeout=7
+    )
+    batch_processor.assert_called_once_with(exporter)
+    provider.add_span_processor.assert_called_once_with(processor)
+    instrumentor.instrument_app.assert_called_once_with(app, tracer_provider=provider)

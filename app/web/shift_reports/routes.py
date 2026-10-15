@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any, NotRequired, TypedDict, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from flask import current_app, g, request
+from flask import after_this_request, current_app, g, request
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
@@ -19,7 +19,10 @@ from app.adapters.shift_reports import (
 from app.adapters.attachments import list_attachment_view_data
 from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
 from app.use_cases.place_relations import PlaceRelationConflictError
-from app.adapters.statistics import RedisProjectWorkStatistics
+from app.adapters.statistics import (
+    RedisProjectMaterialStatistics,
+    RedisProjectWorkStatistics,
+)
 from app.decorators import api_key_or_jwt_required
 from app.domain.shift_reports import (
     ShiftReportConflictError,
@@ -163,6 +166,7 @@ class ShiftReportCreatePayload(TypedDict):
     signed: NotRequired[bool]
     night_shift: NotRequired[bool]
     extreme_conditions: NotRequired[bool]
+    short_shift: NotRequired[bool]
     comment: NotRequired[str | None]
 
 
@@ -181,6 +185,7 @@ class ShiftReportEditPayload(TypedDict, total=False):
     signed: bool
     night_shift: bool
     extreme_conditions: bool
+    short_shift: bool
     deleted: bool
     comment: str | None
 
@@ -206,7 +211,10 @@ def _get_current_user() -> dict[str, Any]:
 
 def _repository() -> SQLAlchemyShiftReportRepository:
     return SQLAlchemyShiftReportRepository(
-        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"])
+        statistics=RedisProjectWorkStatistics(current_app.extensions["redis"]),
+        material_statistics=RedisProjectMaterialStatistics(
+            current_app.extensions["redis"]
+        ),
     )
 
 
@@ -273,6 +281,7 @@ def _build_list_query(data: dict[str, Any]) -> ShiftReportListQuery:
         distance_end=get_optional_float(data, "distance_end"),
         night_shift=get_optional_bool(data, "night_shift"),
         extreme_conditions=get_optional_bool(data, "extreme_conditions"),
+        short_shift=get_optional_bool(data, "short_shift"),
         signed=get_optional_bool(data, "signed"),
         deleted=get_optional_bool(data, "deleted"),
         comment=get_optional_str(data, "comment"),
@@ -330,6 +339,7 @@ class ShiftReportAdd(Resource):
                 signed=bool(data.get("signed", False)),
                 night_shift=bool(data.get("night_shift", False)),
                 extreme_conditions=bool(data.get("extreme_conditions", False)),
+                short_shift=data.get("short_shift"),
                 comment=data.get("comment"),
                 details=[
                     CreateShiftReportDetailCommand(
@@ -469,11 +479,13 @@ def _update_shift_report_time(
         raw_payload.get("ltd"), bool
     ):
         raise ValueError("Field 'ltd' must be a number")
+    browser_id, should_set_cookie = _get_browser_id()
     command = ShiftReportTimeCommand(
         shift_report_id=_parse_uuid(report_id),
         actor_id=UUID(str(current_user["user_id"])),
         lng=float(raw_payload["lng"]),
         ltd=float(raw_payload["ltd"]),
+        browser_id=browser_id,
     )
     use_case = UpdateShiftReportTimeUseCase(repository=_repository())
     updated = (
@@ -481,10 +493,37 @@ def _update_shift_report_time(
         if finish
         else use_case.start(command, _actor(current_user))
     )
+    if should_set_cookie:
+        _set_browser_id_cookie(browser_id)
     return {
         "msg": "Shift report updated successfully",
         "shift_report_id": str(updated.shift_report_id),
+        "browser_id": str(browser_id),
     }, 200
+
+
+def _get_browser_id() -> tuple[UUID, bool]:
+    raw_browser_id = request.cookies.get(current_app.config["BROWSER_ID_COOKIE_NAME"])
+    if raw_browser_id:
+        try:
+            return UUID(raw_browser_id), False
+        except ValueError:
+            pass
+    return uuid4(), True
+
+
+def _set_browser_id_cookie(browser_id: UUID) -> None:
+    @after_this_request
+    def set_cookie(response):
+        response.set_cookie(
+            current_app.config["BROWSER_ID_COOKIE_NAME"],
+            str(browser_id),
+            max_age=current_app.config["BROWSER_ID_COOKIE_MAX_AGE"],
+            secure=True,
+            httponly=True,
+            samesite="Lax",
+        )
+        return response
 
 
 @shift_report_ns.route("/<string:report_id>/start")
@@ -583,6 +622,7 @@ class ShiftReportEdit(Resource):
                     signed=get_optional_bool(data, "signed"),
                     night_shift=get_optional_bool(data, "night_shift"),
                     extreme_conditions=get_optional_bool(data, "extreme_conditions"),
+                    short_shift=get_optional_bool(data, "short_shift"),
                     deleted=get_optional_bool(data, "deleted"),
                     comment=get_optional_str(data, "comment"),
                 ),
@@ -641,11 +681,13 @@ class ShiftReportAll(Resource):
             for report in reports:
                 payload = shift_report_entity_to_response(report)
                 payload["shift_report_details_sum"] = (
-                    repository.get_total_sum_by_shift_report(report.shift_report_id)
+                    repository.get_total_sum_by_shift_report(
+                        report.shift_report_id, include_unsigned=True
+                    )
                 )
                 payload["shift_report_details_summ_by_estimate"] = (
                     repository.get_total_sum_by_estimate_for_shift_report(
-                        report.shift_report_id
+                        report.shift_report_id, include_unsigned=True
                     )
                 )
                 response_reports.append(payload)

@@ -56,6 +56,7 @@ class ProjectMaterialCreateSchema(Schema):
     quantity = fields.Float(
         required=True, error_messages={"required": "Field 'quantity' is required."}
     )
+    price = fields.Float(required=False, allow_none=True)
     project_work = fields.String(
         required=False, allow_none=True, validate=[validate_project_work_exists]
     )
@@ -80,6 +81,7 @@ class ProjectMaterialEditSchema(Schema):
         required=False, allow_none=True, validate=[validate_material_exists]
     )
     quantity = fields.Float(required=False, allow_none=True)
+    price = fields.Float(required=False, allow_none=True)
     project_work = fields.String(
         required=False, allow_none=True, validate=[validate_project_work_exists]
     )

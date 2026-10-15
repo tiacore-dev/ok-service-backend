@@ -27,7 +27,9 @@ from .project_leaders.routes import project_leader_ns
 from .roles.routes import role_ns
 from .shift_report_materials.routes import shift_report_material_ns
 from .shift_reports.routes import shift_report_details_ns, shift_report_ns
+from .shift_standards import shift_standard_ns
 from .subscriptions.routes import subscription_ns
+from .system_settings import system_setting_ns
 from .template_generation.routes import template_ns
 from .users.routes import user_ns
 from .work_categories.routes import work_category_ns
@@ -62,6 +64,7 @@ def register_namespaces(api: Api):
     api.add_namespace(user_ns)
     api.add_namespace(shift_report_ns)
     api.add_namespace(shift_report_details_ns)
+    api.add_namespace(shift_standard_ns)
     api.add_namespace(project_material_ns)
     api.add_namespace(material_ns)
     api.add_namespace(measurement_unit_ns)
@@ -75,3 +78,4 @@ def register_namespaces(api: Api):
     api.add_namespace(work_price_ns)
     api.add_namespace(work_ns)
     api.add_namespace(template_ns)
+    api.add_namespace(system_setting_ns)

@@ -11,9 +11,23 @@
 - [docs/access-control-rules.md](./docs/access-control-rules.md) - правила прав доступа, ownership и тестового gate перед следующими срезами миграции.
 - [docs/shift-report-details-rules.md](./docs/shift-report-details-rules.md) - правила расчёта статистики и статуса `project_work` в ответах `shift_report_details`.
 - [docs/project-work-statistics-cache.md](./docs/project-work-statistics-cache.md) - проектирование Redis-кэша агрегированной статистики по работам проекта.
+- [docs/project-material-statistics-cache.md](./docs/project-material-statistics-cache.md) - Redis-кэш и контракт агрегированной статистики по материалам проекта.
 - [docs/object-statistics.md](./docs/object-statistics.md) - контракт статистики приемок и выполнения работ по объекту.
 - [docs/time-contract.md](./docs/time-contract.md) - единый контракт Unix timestamp в миллисекундах.
 - [docs/attachments.md](./docs/attachments.md) - хранение, API, права и валидация вложений.
 - [docs/acceptances.md](./docs/acceptances.md) - сущности приёмок, связи с работами, CRUD API и права доступа.
 - [docs/project-status-rules.md](./docs/project-status-rules.md) - статусы спецификаций, переходы и ограничения смен/объектов.
 - [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
+- [docs/project-specification-ai-parsing.md](./docs/project-specification-ai-parsing.md) - Kimi-парсинг документов спецификации, контракт JSON и план импорта.
+
+## Наблюдаемость
+
+Прикладной логгер использует уровень `INFO` по умолчанию. Для временной
+диагностики можно задать `LOG_LEVEL=DEBUG`; в production этот уровень не
+рекомендуется, поскольку он включает технические детали.
+
+Трассы передаются в Jaeger по OTLP/HTTP. При запуске сервисов в общей сети
+`ok_network` дополнительные переменные не нужны: используется
+`http://jaeger:4318/v1/traces`. При необходимости можно переопределить
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_SERVICE_NAME` и
+`OTEL_EXPORTER_OTLP_TIMEOUT`.

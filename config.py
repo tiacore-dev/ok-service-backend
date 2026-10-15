@@ -13,6 +13,7 @@ class Config:
     # The limit applies to the complete HTTP request, including multipart
     # headers and boundaries. It is slightly above the per-file 100 MiB limit
     # enforced by AsyncS3Manager.
+
     MAX_CONTENT_LENGTH = 105 * 1024 * 1024
     TESTING = False
     DEBUG = False
@@ -24,7 +25,21 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     API_KEY = os.getenv("API_KEY")
     ORIGIN = os.getenv("ORIGIN")
+    BROWSER_ID_COOKIE_NAME = "browser_id"
+    BROWSER_ID_COOKIE_MAX_AGE = 90 * 24 * 60 * 60
     TEMPLATE_SERVICE_URL = os.getenv("TEMPLATE_SERVICE_URL")
+    MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY")
+    MOONSHOT_MODEL = os.getenv("MOONSHOT_MODEL")
+    MOONSHOT_URL = os.getenv("MOONSHOT_URL", "https://api.moonshot.ai")
+    MOONSHOT_COMPLETION_TIMEOUT_SECONDS = float(
+        os.getenv("MOONSHOT_COMPLETION_TIMEOUT_SECONDS", "300")
+    )
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    OTEL_SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "ok_service")
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = os.getenv(
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "http://jaeger:4318/v1/traces"
+    )
+    OTEL_EXPORTER_OTLP_TIMEOUT = int(os.getenv("OTEL_EXPORTER_OTLP_TIMEOUT", "10"))
     # Клиент создаётся лениво: соединение с Redis открывается только при команде.
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
