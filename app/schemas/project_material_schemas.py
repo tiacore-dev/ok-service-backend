@@ -43,6 +43,7 @@ class ProjectMaterialCreateSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
 
+    project_material_name = fields.String(required=False, allow_none=True)
     project = fields.String(
         required=True,
         error_messages={"required": "Field 'project' is required."},
@@ -74,6 +75,7 @@ class ProjectMaterialEditSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля
 
+    project_material_name = fields.String(required=False, allow_none=True)
     project = fields.String(
         required=False, allow_none=True, validate=[validate_project_exists]
     )
@@ -117,5 +119,6 @@ class ProjectMaterialFilterSchema(Schema):
         ),
     )
     project = fields.String(required=False)
+    project_material_name = fields.String(required=False)
     material = fields.String(required=False)
     project_work = fields.String(required=False)

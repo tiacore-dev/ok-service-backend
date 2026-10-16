@@ -45,7 +45,8 @@ class ProjectMaterialsManager(BaseDBManager):
         filtered_kwargs = {
             key: value
             for key, value in kwargs.items()
-            if value is not None or key in {"price", "summ", "project_work"}
+            if value is not None
+            or key in {"price", "summ", "project_work", "project_material_name"}
         }
         if not filtered_kwargs:
             return None

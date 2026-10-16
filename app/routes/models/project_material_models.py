@@ -20,6 +20,9 @@ project_material_model = Model(
         "project_material_id": fields.String(
             required=True, description="ID of the project material"
         ),
+        "project_material_name": fields.String(
+            required=False, allow_null=True, description="Name of the project material"
+        ),
         "project": fields.String(required=True, description="Project ID"),
         "material": fields.String(required=True, description="Material ID"),
         "quantity": fields.Float(required=True, description="Quantity of material"),
@@ -73,6 +76,9 @@ project_material_filter_parser.add_argument(
 )
 project_material_filter_parser.add_argument(
     "project", type=str, required=False, help="Filter by project ID"
+)
+project_material_filter_parser.add_argument(
+    "project_material_name", type=str, required=False, help="Filter by project material name"
 )
 project_material_filter_parser.add_argument(
     "material", type=str, required=False, help="Filter by material ID"

@@ -55,6 +55,7 @@ def test_create_project_material_use_case():
         material=uuid4(),
         quantity=Decimal("3.25"),
         created_by=uuid4(),
+        project_material_name="Concrete",
         price=Decimal("10.00"),
     )
 
@@ -65,6 +66,7 @@ def test_create_project_material_use_case():
     assert result == repository.created
     assert result.quantity == Decimal("3.25")
     assert result.price == Decimal("10.00")
+    assert result.project_material_name == "Concrete"
     assert result.summ == Decimal("32.5000")
 
 
@@ -176,6 +178,30 @@ def test_update_project_material_use_case_clears_price_and_summ():
 
     assert result.price is None
     assert result.summ is None
+
+
+def test_update_project_material_use_case_clears_name():
+    project_material = ProjectMaterial(
+        project_material_id=uuid4(),
+        project=uuid4(),
+        material=uuid4(),
+        quantity=Decimal("1"),
+        created_by=uuid4(),
+        created_at=1,
+        project_material_name="Concrete",
+    )
+    repository = FakeProjectMaterialRepository(project_material)
+
+    result = UpdateProjectMaterialUseCase(repository).execute(
+        UpdateProjectMaterialCommand(
+            project_material_id=project_material.project_material_id,
+            project_material_name=None,
+            project_material_name_is_set=True,
+        ),
+        ProjectMaterialActor(role="admin", user_id=uuid4()),
+    )
+
+    assert result.project_material_name is None
 
 
 def test_project_leader_can_edit_and_delete_material_in_own_project():

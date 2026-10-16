@@ -15,6 +15,7 @@ def project_material_dict_to_entity(payload: dict[str, Any]) -> ProjectMaterial:
         project=require_uuid(payload["project"], "project"),
         material=require_uuid(payload["material"], "material"),
         quantity=Decimal(str(payload["quantity"])),
+        project_material_name=payload.get("project_material_name"),
         price=(
             Decimal(str(payload["price"])) if payload.get("price") is not None else None
         ),
@@ -32,6 +33,7 @@ def project_material_entity_to_create_payload(
 ) -> dict[str, Any]:
     return {
         "project_material_id": project_material.project_material_id,
+        "project_material_name": project_material.project_material_name,
         "project": project_material.project,
         "material": project_material.material,
         "quantity": project_material.quantity,
@@ -48,6 +50,7 @@ def project_material_entity_to_response(
 ) -> dict[str, Any]:
     return {
         "project_material_id": str(project_material.project_material_id),
+        "project_material_name": project_material.project_material_name,
         "project": str(project_material.project),
         "material": str(project_material.material),
         "quantity": float(project_material.quantity),

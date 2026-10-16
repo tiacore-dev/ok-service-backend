@@ -4,6 +4,7 @@ def test_add_project_material(client, jwt_token, seed_project, seed_material, db
     data = {
         "project": seed_project["project_id"],
         "material": seed_material["material_id"],
+        "project_material_name": "Concrete",
         "quantity": 3.25,
         "price": 10.0,
     }
@@ -25,6 +26,7 @@ def test_add_project_material(client, jwt_token, seed_project, seed_material, db
     assert float(record.quantity) == 3.25
     assert float(record.price) == 10.0
     assert float(record.summ) == 32.5
+    assert record.project_material_name == "Concrete"
 
 
 def test_view_project_material(client, jwt_token, seed_project_material):
@@ -44,6 +46,8 @@ def test_view_project_material(client, jwt_token, seed_project_material):
     assert record["material"] == str(seed_project_material["material"])
     assert "price" in record
     assert "summ" in record
+    assert "project_material_name" in record
+    assert record["project_material_name"] is None
 
 
 def test_hard_delete_project_material(client, jwt_token, seed_project_material, db_session):

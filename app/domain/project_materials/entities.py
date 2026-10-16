@@ -15,6 +15,7 @@ class ProjectMaterial:
     quantity: Decimal
     created_by: UUID
     created_at: int
+    project_material_name: str | None = None
     price: Decimal | None = None
     summ: Decimal | None = None
     project_work: UUID | None = None

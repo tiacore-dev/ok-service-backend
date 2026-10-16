@@ -35,6 +35,7 @@ class ProjectMaterialImportItem:
     quantity: Decimal
     price: Decimal | None
     project_work: UUID | None
+    project_material_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +99,7 @@ class ImportProjectSpecificationUseCase:
         materials = [
             ProjectMaterial(
                 project_material_id=item.project_material_id,
+                project_material_name=item.project_material_name,
                 project=project_id,
                 material=item.material,
                 quantity=item.quantity,

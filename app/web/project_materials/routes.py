@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
 from flask import current_app, g, request
@@ -79,6 +79,7 @@ project_material_ns.models[project_material_edit_model.name] = (
 
 
 class ProjectMaterialCreatePayload(TypedDict):
+    project_material_name: NotRequired[str | None]
     project: str
     material: str
     quantity: float | int
@@ -87,6 +88,7 @@ class ProjectMaterialCreatePayload(TypedDict):
 
 
 class ProjectMaterialEditPayload(TypedDict, total=False):
+    project_material_name: str | None
     project: str
     material: str
     quantity: float | int
@@ -98,6 +100,7 @@ class ProjectMaterialFilterPayload(TypedDict, total=False):
     offset: int
     limit: int
     project: str
+    project_material_name: str
     material: str
     project_work: str
     sort_by: str
@@ -183,6 +186,7 @@ class ProjectMaterialAdd(Resource):
             )
             data = cast(ProjectMaterialCreatePayload, schema.load(raw_payload))
             command = CreateProjectMaterialCommand(
+                project_material_name=data.get("project_material_name"),
                 project=get_required_uuid(data, "project", "Project is required"),
                 material=get_required_uuid(data, "material", "Material is required"),
                 quantity=get_required_decimal(data, "quantity", "Quantity is required"),
@@ -283,6 +287,10 @@ class ProjectMaterialEdit(Resource):
             record = UpdateProjectMaterialUseCase(repository=_repository()).execute(
                 UpdateProjectMaterialCommand(
                     project_material_id=_parse_project_material_id(project_material_id),
+                    project_material_name=data.get("project_material_name"),
+                    project_material_name_is_set=has_field(
+                        data, "project_material_name"
+                    ),
                     project=get_optional_uuid(data, "project"),
                     project_is_set=has_field(data, "project"),
                     material=get_optional_uuid(data, "material"),
@@ -329,6 +337,9 @@ class ProjectMaterialAll(Resource):
                 sort_by=get_optional_str(args, "sort_by") or "created_at",
                 sort_order=get_optional_str(args, "sort_order") or "desc",
                 project=get_optional_uuid(args, "project"),
+                project_material_name=get_optional_str(
+                    args, "project_material_name"
+                ),
                 material=get_optional_uuid(args, "material"),
                 project_work=get_optional_uuid(args, "project_work"),
             )

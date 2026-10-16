@@ -107,6 +107,7 @@ traceback. В логи не попадают Bearer token, содержимое 
   "project_materials": [
     {
       "project_material_id": "new-project-material-1",
+      "project_material_name": "Бетон М300",
       "material": "UUID из MATERIAL_CATALOG",
       "quantity": 300,
       "price": 120,
@@ -117,6 +118,7 @@ traceback. В логи не попадают Bearer token, содержимое 
 }
 ```
 
+`project_material_name` у материала необязателен и может быть `null`.
 Backend заменяет `project_work_id`, `project_material_id` и ссылку
 `project_work` на реальные UUID. Поля `project`, `signed`, `summ`,
 `created_by` и `created_at` на этом этапе не возвращаются и не принимаются.
@@ -132,8 +134,9 @@ project_work и project_material.
 Не придумывай UUID. Для каждой работы верни project_work_id строго в формате
 new-project-work-N, project_work_name, work, quantity и price. Для каждого
 материала верни project_material_id строго в формате new-project-material-N,
-material, quantity, price и project_work — placeholder связанной работы либо
-null. Не возвращай project, signed, summ, created_by, created_at и другие поля.
+необязательный project_material_name, material, quantity, price и project_work —
+placeholder связанной работы либо null. Не возвращай project, signed, summ,
+created_by, created_at и другие поля.
 Если позицию нельзя однозначно сопоставить со справочником, не добавляй её в
 массивы, а укажи в unresolved_items с причиной. quantity и price должны быть
 JSON-числами. Верни только валидный JSON без Markdown и пояснений.

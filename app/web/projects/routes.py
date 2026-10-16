@@ -147,6 +147,7 @@ project_specification_import_material_model = project_ns.model(
     "ProjectSpecificationImportMaterial",
     {
         "project_material_id": fields.String(required=True, format="uuid"),
+        "project_material_name": fields.String(allow_null=True),
         "material": fields.String(required=True, format="uuid"),
         "quantity": fields.Float(required=True),
         "price": fields.Float(allow_null=True),
@@ -357,6 +358,16 @@ def _import_work_name(value: object) -> str:
     return value.strip()
 
 
+def _import_material_name(value: object) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ProjectSpecificationImportError(
+            "project_material_name must be a non-empty string or null"
+        )
+    return value.strip()
+
+
 @project_ns.route("/<string:project_id>/import-works-and-materials")
 class ProjectSpecificationImport(Resource):
     @api_key_or_jwt_required
@@ -398,6 +409,9 @@ class ProjectSpecificationImport(Resource):
                 ProjectMaterialImportItem(
                     project_material_id=_import_uuid(
                         item.get("project_material_id"), "project_material_id"
+                    ),
+                    project_material_name=_import_material_name(
+                        item.get("project_material_name")
                     ),
                     material=_import_uuid(item.get("material"), "material"),
                     quantity=_required_import_decimal(item.get("quantity"), "quantity"),
