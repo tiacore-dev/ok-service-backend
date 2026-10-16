@@ -83,7 +83,16 @@ def test_parse_project_specification_passes_catalogs_and_replaces_placeholders()
                         "project_work": "new-project-work-1",
                     }
                 ],
-                "unresolved_items": [],
+                "unresolved_items": [
+                    {
+                        "kind": "material",
+                        "name": "Арматура 10 мм",
+                        "quantity": 12,
+                        "price": 150,
+                        "project_work": "new-project-work-1",
+                        "reason": "Нет однозначного соответствия в каталоге материалов",
+                    }
+                ],
             }
         )
     )
@@ -100,6 +109,16 @@ def test_parse_project_specification_passes_catalogs_and_replaces_placeholders()
     assert str(UUID(work_id)) == work_id
     assert result["project_materials"][0]["project_work"] == work_id
     assert str(UUID(result["project_materials"][0]["project_material_id"]))
+    assert result["unresolved_items"] == [
+        {
+            "kind": "material",
+            "name": "Арматура 10 мм",
+            "quantity": 12,
+            "price": 150,
+            "project_work": work_id,
+            "reason": "Нет однозначного соответствия в каталоге материалов",
+        }
+    ]
 
 
 def test_parse_project_specification_rejects_unknown_work_placeholder():
@@ -113,6 +132,7 @@ def test_parse_project_specification_rejects_unknown_work_placeholder():
                         "project_work": "new-project-work-1",
                     }
                 ],
+                "unresolved_items": [],
             }
         )
     )
@@ -120,6 +140,67 @@ def test_parse_project_specification_rejects_unknown_work_placeholder():
     use_case = ParseProjectSpecificationUseCase(client, _Settings(), _Catalog())
 
     with pytest.raises(KimiRequestError, match="unknown work placeholder"):
+        use_case.execute(
+            filename="specification.pdf", content=b"content", content_type=None
+        )
+
+
+def test_parse_project_specification_rejects_unresolved_item_without_quantity():
+    use_case = ParseProjectSpecificationUseCase(
+        _Client(
+            json.dumps(
+                {
+                    "project_works": [],
+                    "project_materials": [],
+                    "unresolved_items": [
+                        {
+                            "kind": "material",
+                            "name": "Арматура 10 мм",
+                            "price": None,
+                            "reason": "Нет соответствия в каталоге материалов",
+                        }
+                    ],
+                }
+            )
+        ),
+        _Settings(),
+        _Catalog(),
+    )
+
+    with pytest.raises(KimiRequestError, match="invalid unresolved item"):
+        use_case.execute(
+            filename="specification.pdf", content=b"content", content_type=None
+        )
+
+
+@pytest.mark.parametrize("kind", [[], {}])
+def test_parse_project_specification_rejects_unresolved_item_with_non_string_kind(
+    kind: object,
+):
+    use_case = ParseProjectSpecificationUseCase(
+        _Client(
+            json.dumps(
+                {
+                    "project_works": [],
+                    "project_materials": [],
+                    "unresolved_items": [
+                        {
+                            "kind": kind,
+                            "name": "Арматура 10 мм",
+                            "quantity": 12,
+                            "price": None,
+                            "project_work": None,
+                            "reason": "Нет соответствия в каталоге материалов",
+                        }
+                    ],
+                }
+            )
+        ),
+        _Settings(),
+        _Catalog(),
+    )
+
+    with pytest.raises(KimiRequestError, match="invalid unresolved item"):
         use_case.execute(
             filename="specification.pdf", content=b"content", content_type=None
         )

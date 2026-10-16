@@ -114,14 +114,34 @@ traceback. В логи не попадают Bearer token, содержимое 
       "project_work": "new-project-work-1"
     }
   ],
-  "unresolved_items": []
+  "unresolved_items": [
+    {
+      "kind": "material",
+      "name": "Кран шаровой латунный LD Pride 47.40.В-В.Р",
+      "quantity": 9,
+      "price": null,
+      "project_work": "new-project-work-1",
+      "reason": "Нет однозначного соответствия в каталоге материалов"
+    }
+  ]
 }
 ```
 
 `project_material_name` у материала необязателен и может быть `null`.
 Backend заменяет `project_work_id`, `project_material_id` и ссылку
-`project_work` на реальные UUID. Поля `project`, `signed`, `summ`,
-`created_by` и `created_at` на этом этапе не возвращаются и не принимаются.
+`project_work` на реальные UUID, в том числе у неопознанного материала.
+
+Каждая запись `unresolved_items` содержит `kind` (`work` или `material`),
+исходное `name`, обязательное число `quantity`, `price` как число или `null` и
+непустую `reason`, а также `project_work`. У неопознанного материала
+`project_work` — placeholder уже распознанной связанной работы или `null`; у
+неопознанной работы это поле должно быть `null`. Эти позиции не передаются в
+endpoint импорта напрямую: frontend может сопоставить их с каталогом и собрать
+из них корректные элементы `project_works` или `project_materials`.
+
+Поля `project`, `signed`, `summ`, `created_by` и `created_at` на этом этапе не
+возвращаются и не принимаются. Итоговая сумма строки вычисляется backend при
+импорте как `price × quantity`.
 
 ## Системный промпт
 
@@ -130,16 +150,66 @@ Backend заменяет `project_work_id`, `project_material_id` и ссылк�
 Твоя задача — извлечь структурированные данные для последующего создания
 project_work и project_material.
 
-Используй для полей work и material только UUID из переданных справочников.
-Не придумывай UUID. Для каждой работы верни project_work_id строго в формате
-new-project-work-N, project_work_name, work, quantity и price. Для каждого
-материала верни project_material_id строго в формате new-project-material-N,
-необязательный project_material_name, material, quantity, price и project_work —
-placeholder связанной работы либо null. Не возвращай project, signed, summ,
-created_by, created_at и другие поля.
-Если позицию нельзя однозначно сопоставить со справочником, не добавляй её в
-массивы, а укажи в unresolved_items с причиной. quantity и price должны быть
-JSON-числами. Верни только валидный JSON без Markdown и пояснений.
+Во входных данных передаются WORK_CATALOG, MATERIAL_CATALOG и DOCUMENT_CONTENT.
+
+Правила:
+1. Используй для полей work и material только UUID из переданных справочников.
+   Не придумывай UUID и не используй UUID, которых нет в справочниках.
+2. Для каждой распознанной работы верни project_work_id строго в формате
+   "new-project-work-N", полное project_work_name из документа, work, quantity
+   и price.
+3. Для каждого распознанного материала верни project_material_id строго в
+   формате "new-project-material-N", material, quantity, price и project_work:
+   placeholder связанной работы либо null. При наличии можешь вернуть
+   project_material_name из документа.
+4. Если позицию нельзя однозначно сопоставить со справочником, не добавляй её
+   в project_works или project_materials. Обязательно добавь её в
+   unresolved_items, даже если удалось извлечь только часть других данных.
+5. Для каждой позиции unresolved_items обязательно верни kind (строго "work"
+   или "material"), name без количества и цены, quantity, price (число либо
+   null) и непустую reason. Для неопознанного материала верни project_work:
+   placeholder распознанной связанной работы либо null. Для неопознанной работы
+   project_work должен быть null.
+6. quantity и price должны быть JSON-числами, а не строками. price — цена за
+   единицу; не возвращай итоговую сумму строки.
+7. Не возвращай project, signed, summ, created_by, created_at и любые другие
+   поля.
+8. Если подходящих данных нет, верни пустые массивы.
+9. Верни только валидный JSON: без Markdown, пояснений, комментариев и текста
+   до или после JSON.
+
+Строгая структура ответа:
+{
+  "project_works": [
+    {
+      "project_work_id": "new-project-work-1",
+      "project_work_name": "string",
+      "work": "UUID",
+      "quantity": 0,
+      "price": null
+    }
+  ],
+  "project_materials": [
+    {
+      "project_material_id": "new-project-material-1",
+      "project_material_name": "string or null",
+      "material": "UUID",
+      "quantity": 0,
+      "price": null,
+      "project_work": "new-project-work-1 or null"
+    }
+  ],
+  "unresolved_items": [
+    {
+      "kind": "work or material",
+      "name": "string",
+      "quantity": 0,
+      "price": null,
+      "project_work": "new-project-work-1 or null",
+      "reason": "string"
+    }
+  ]
+}
 ```
 
 ## Импорт результата

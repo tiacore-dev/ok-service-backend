@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
@@ -61,24 +61,75 @@ class ParseProjectSpecificationUseCase:
             raise KimiRequestError("Kimi API returned invalid JSON")
         works = payload.get("project_works")
         materials = payload.get("project_materials")
-        if not isinstance(works, list) or not isinstance(materials, list):
+        unresolved_items = payload.get("unresolved_items")
+        if (
+            not isinstance(works, list)
+            or not isinstance(materials, list)
+            or not isinstance(unresolved_items, list)
+        ):
             raise KimiRequestError("Kimi API returned invalid project specification")
         work_ids: dict[str, str] = {}
         for work in works:
-            if not isinstance(work, dict) or not isinstance(work.get("project_work_id"), str):
-                raise KimiRequestError("Kimi API returned invalid project specification")
+            if not isinstance(work, dict) or not isinstance(
+                work.get("project_work_id"), str
+            ):
+                raise KimiRequestError(
+                    "Kimi API returned invalid project specification"
+                )
             placeholder = work["project_work_id"]
             if placeholder in work_ids:
                 raise KimiRequestError("Kimi API returned duplicate work placeholder")
             work_ids[placeholder] = str(uuid4())
             work["project_work_id"] = work_ids[placeholder]
         for material in materials:
-            if not isinstance(material, dict) or not isinstance(material.get("project_material_id"), str):
-                raise KimiRequestError("Kimi API returned invalid project specification")
+            if not isinstance(material, dict) or not isinstance(
+                material.get("project_material_id"), str
+            ):
+                raise KimiRequestError(
+                    "Kimi API returned invalid project specification"
+                )
             material["project_material_id"] = str(uuid4())
             project_work = material.get("project_work")
             if project_work is not None:
                 if not isinstance(project_work, str) or project_work not in work_ids:
                     raise KimiRequestError("Kimi API returned unknown work placeholder")
                 material["project_work"] = work_ids[project_work]
+        for unresolved_item in unresolved_items:
+            self._assign_unresolved_item_work_id(unresolved_item, work_ids)
         return payload
+
+    @staticmethod
+    def _assign_unresolved_item_work_id(
+        unresolved_item: object, work_ids: dict[str, str]
+    ) -> None:
+        if not isinstance(unresolved_item, dict):
+            raise KimiRequestError("Kimi API returned invalid unresolved item")
+        kind = unresolved_item.get("kind")
+        name = unresolved_item.get("name")
+        quantity = unresolved_item.get("quantity")
+        price = unresolved_item.get("price")
+        reason = unresolved_item.get("reason")
+        if (
+            not isinstance(kind, str)
+            or kind not in {"work", "material"}
+            or not isinstance(name, str)
+            or not name.strip()
+            or isinstance(quantity, bool)
+            or not isinstance(quantity, (int, float))
+            or isinstance(price, bool)
+            or (price is not None and not isinstance(price, (int, float)))
+            or not isinstance(reason, str)
+            or not reason.strip()
+            or "project_work" not in unresolved_item
+        ):
+            raise KimiRequestError("Kimi API returned invalid unresolved item")
+        project_work = unresolved_item.get("project_work")
+        if kind == "work":
+            if project_work is not None:
+                raise KimiRequestError("Kimi API returned invalid unresolved item")
+            return
+        if project_work is None:
+            return
+        if not isinstance(project_work, str) or project_work not in work_ids:
+            raise KimiRequestError("Kimi API returned unknown work placeholder")
+        unresolved_item["project_work"] = work_ids[project_work]
