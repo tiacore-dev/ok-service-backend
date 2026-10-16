@@ -113,9 +113,67 @@ project_ns.models[project_status_item_model.name] = project_status_item_model
 project_ns.models[project_statuses_response.name] = project_statuses_response
 project_ns.models[attachment_view_model.name] = attachment_view_model
 
+project_specification_parse_work_model = project_ns.model(
+    "ProjectSpecificationParsedWork",
+    {
+        "project_work_id": fields.String(required=True, format="uuid"),
+        "project_work_name": fields.String(required=True),
+        "work": fields.String(required=True, format="uuid"),
+        "quantity": fields.Float(required=True),
+        "price": fields.Float(required=True, allow_null=True),
+    },
+)
+project_ns.models[project_specification_parse_work_model.name] = (
+    project_specification_parse_work_model
+)
+project_specification_parse_material_model = project_ns.model(
+    "ProjectSpecificationParsedMaterial",
+    {
+        "project_material_id": fields.String(required=True, format="uuid"),
+        "project_material_name": fields.String(allow_null=True),
+        "material": fields.String(required=True, format="uuid"),
+        "quantity": fields.Float(required=True),
+        "price": fields.Float(required=True, allow_null=True),
+        "project_work": fields.String(format="uuid", required=True, allow_null=True),
+    },
+)
+project_ns.models[project_specification_parse_material_model.name] = (
+    project_specification_parse_material_model
+)
+project_specification_parse_unresolved_item_model = project_ns.model(
+    "ProjectSpecificationUnresolvedItem",
+    {
+        "kind": fields.String(required=True, enum=["work", "material"]),
+        "name": fields.String(required=True),
+        "quantity": fields.Float(required=True),
+        "price": fields.Float(required=True, allow_null=True),
+        "project_work": fields.String(format="uuid", required=True, allow_null=True),
+        "reason": fields.String(required=True),
+    },
+)
+project_ns.models[project_specification_parse_unresolved_item_model.name] = (
+    project_specification_parse_unresolved_item_model
+)
+project_specification_parsed_model = project_ns.model(
+    "ProjectSpecificationParsed",
+    {
+        "project_works": fields.List(
+            fields.Nested(project_specification_parse_work_model), required=True
+        ),
+        "project_materials": fields.List(
+            fields.Nested(project_specification_parse_material_model), required=True
+        ),
+        "unresolved_items": fields.List(
+            fields.Nested(project_specification_parse_unresolved_item_model), required=True
+        ),
+    },
+)
+project_ns.models[project_specification_parsed_model.name] = (
+    project_specification_parsed_model
+)
 project_specification_parse_model = project_ns.model(
     "ProjectSpecificationParseResponse",
-    {"project_specification": fields.Raw(required=True)},
+    {"project_specification": fields.Nested(project_specification_parsed_model, required=True)},
 )
 project_ns.models[project_specification_parse_model.name] = (
     project_specification_parse_model

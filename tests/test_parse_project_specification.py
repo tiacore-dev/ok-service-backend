@@ -3,10 +3,20 @@ from dataclasses import dataclass
 from uuid import UUID
 
 import pytest
+from flask import Flask
+from flask_restx import Api, Namespace
 
 from app.domain.kimi import KimiRequestError, SystemPromptMissingError
 from app.domain.system_settings import SystemSetting
 from app.use_cases.kimi import ParseProjectSpecificationUseCase
+from app.web.projects.routes import (
+    ProjectSpecificationParse,
+    project_specification_parse_material_model,
+    project_specification_parse_model,
+    project_specification_parse_unresolved_item_model,
+    project_specification_parse_work_model,
+    project_specification_parsed_model,
+)
 
 
 @dataclass
@@ -204,6 +214,57 @@ def test_parse_project_specification_rejects_unresolved_item_with_non_string_kin
         use_case.execute(
             filename="specification.pdf", content=b"content", content_type=None
         )
+
+
+def test_parse_project_specification_swagger_contract_describes_response_payload():
+    app = Flask(__name__)
+    api = Api(app)
+    namespace = Namespace("project-specification-parse")
+    for model in (
+        project_specification_parse_model,
+        project_specification_parsed_model,
+        project_specification_parse_work_model,
+        project_specification_parse_material_model,
+        project_specification_parse_unresolved_item_model,
+    ):
+        namespace.models[model.name] = model
+    namespace.add_resource(ProjectSpecificationParse, "/projects/parse-project-specification")
+    api.add_namespace(namespace)
+
+    response = app.test_client().get("/swagger.json")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload is not None
+    operation = payload["paths"][
+        "/project-specification-parse/projects/parse-project-specification"
+    ]["post"]
+    assert operation["responses"]["200"]["schema"] == {
+        "$ref": "#/definitions/ProjectSpecificationParseResponse"
+    }
+    definitions = payload["definitions"]
+    parsed = definitions["ProjectSpecificationParsed"]
+    assert parsed["required"] == [
+        "project_materials",
+        "project_works",
+        "unresolved_items",
+    ]
+    assert parsed["properties"]["project_works"]["items"] == {
+        "$ref": "#/definitions/ProjectSpecificationParsedWork"
+    }
+    assert parsed["properties"]["project_materials"]["items"] == {
+        "$ref": "#/definitions/ProjectSpecificationParsedMaterial"
+    }
+    unresolved_item = definitions["ProjectSpecificationUnresolvedItem"]
+    assert unresolved_item["required"] == [
+        "kind",
+        "name",
+        "price",
+        "project_work",
+        "quantity",
+        "reason",
+    ]
+    assert unresolved_item["properties"]["kind"]["enum"] == ["work", "material"]
 
 
 @pytest.mark.parametrize("value", [None, "", "   "])
