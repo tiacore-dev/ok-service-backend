@@ -40,6 +40,7 @@ class CreateProjectMaterialUseCase:
             summ=_calculate_summ(command.price, command.quantity),
             created_by=command.created_by,
             created_at=utc_epoch_milliseconds(),
+            project_material_name=command.project_material_name,
             project_work=command.project_work,
         )
         return self.repository.create_project_material(project_material)

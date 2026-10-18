@@ -141,6 +141,7 @@ class SQLAlchemyProjectSpecificationImportRepository(
                 [
                     ProjectMaterials(
                         project_material_id=item.project_material_id,
+                        project_material_name=item.project_material_name,
                         project=item.project,
                         material=item.material,
                         quantity=item.quantity,

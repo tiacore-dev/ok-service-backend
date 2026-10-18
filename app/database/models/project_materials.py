@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sqlalchemy import UUID, BigInteger, Column, ForeignKey, Numeric
+from sqlalchemy import UUID, BigInteger, Column, ForeignKey, Numeric, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
@@ -14,6 +14,7 @@ class ProjectMaterials(Base):
     project_material_id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False
     )
+    project_material_name = Column(String, nullable=True)
     project = Column(
         UUID, ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False
     )
@@ -48,6 +49,7 @@ class ProjectMaterials(Base):
     def to_dict(self):
         return {
             "project_material_id": str(self.project_material_id),
+            "project_material_name": getattr(self, "project_material_name", None),
             "project": str(self.project),
             "material": str(self.material),
             "quantity": self.quantity,

@@ -11,6 +11,7 @@ class CreateProjectMaterialCommand:
     material: UUID
     quantity: Decimal
     created_by: UUID
+    project_material_name: str | None = None
     price: Decimal | None = None
     project_work: UUID | None = None
 
@@ -24,6 +25,8 @@ class ProjectMaterialActor:
 @dataclass(frozen=True, slots=True)
 class UpdateProjectMaterialCommand:
     project_material_id: UUID
+    project_material_name: str | None = None
+    project_material_name_is_set: bool = False
     project: UUID | None = None
     project_is_set: bool = False
     material: UUID | None = None
@@ -43,5 +46,6 @@ class ProjectMaterialListQuery:
     sort_by: str = "created_at"
     sort_order: str = "desc"
     project: UUID | None = None
+    project_material_name: str | None = None
     material: UUID | None = None
     project_work: UUID | None = None

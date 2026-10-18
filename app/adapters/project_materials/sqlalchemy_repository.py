@@ -54,6 +54,7 @@ class SQLAlchemyProjectMaterialRepository(ProjectMaterialRepository):
         current = self.get_project_material(project_material.project_material_id)
         updated = self.manager.update(
             record_id=project_material.project_material_id,
+            project_material_name=project_material.project_material_name,
             project=project_material.project,
             material=project_material.material,
             quantity=project_material.quantity,
@@ -84,6 +85,7 @@ class SQLAlchemyProjectMaterialRepository(ProjectMaterialRepository):
             sort_by=query.sort_by,
             sort_order=query.sort_order,
             project=query.project,
+            project_material_name=query.project_material_name,
             material=query.material,
             project_work=query.project_work,
         )

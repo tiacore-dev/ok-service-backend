@@ -3,10 +3,20 @@ from dataclasses import dataclass
 from uuid import UUID
 
 import pytest
+from flask import Flask
+from flask_restx import Api, Namespace
 
 from app.domain.kimi import KimiRequestError, SystemPromptMissingError
 from app.domain.system_settings import SystemSetting
 from app.use_cases.kimi import ParseProjectSpecificationUseCase
+from app.web.projects.routes import (
+    ProjectSpecificationParse,
+    project_specification_parse_material_model,
+    project_specification_parse_model,
+    project_specification_parse_unresolved_item_model,
+    project_specification_parse_work_model,
+    project_specification_parsed_model,
+)
 
 
 @dataclass
@@ -83,7 +93,16 @@ def test_parse_project_specification_passes_catalogs_and_replaces_placeholders()
                         "project_work": "new-project-work-1",
                     }
                 ],
-                "unresolved_items": [],
+                "unresolved_items": [
+                    {
+                        "kind": "material",
+                        "name": "Арматура 10 мм",
+                        "quantity": 12,
+                        "price": 150,
+                        "project_work": "new-project-work-1",
+                        "reason": "Нет однозначного соответствия в каталоге материалов",
+                    }
+                ],
             }
         )
     )
@@ -100,6 +119,16 @@ def test_parse_project_specification_passes_catalogs_and_replaces_placeholders()
     assert str(UUID(work_id)) == work_id
     assert result["project_materials"][0]["project_work"] == work_id
     assert str(UUID(result["project_materials"][0]["project_material_id"]))
+    assert result["unresolved_items"] == [
+        {
+            "kind": "material",
+            "name": "Арматура 10 мм",
+            "quantity": 12,
+            "price": 150,
+            "project_work": work_id,
+            "reason": "Нет однозначного соответствия в каталоге материалов",
+        }
+    ]
 
 
 def test_parse_project_specification_rejects_unknown_work_placeholder():
@@ -113,6 +142,7 @@ def test_parse_project_specification_rejects_unknown_work_placeholder():
                         "project_work": "new-project-work-1",
                     }
                 ],
+                "unresolved_items": [],
             }
         )
     )
@@ -123,6 +153,118 @@ def test_parse_project_specification_rejects_unknown_work_placeholder():
         use_case.execute(
             filename="specification.pdf", content=b"content", content_type=None
         )
+
+
+def test_parse_project_specification_rejects_unresolved_item_without_quantity():
+    use_case = ParseProjectSpecificationUseCase(
+        _Client(
+            json.dumps(
+                {
+                    "project_works": [],
+                    "project_materials": [],
+                    "unresolved_items": [
+                        {
+                            "kind": "material",
+                            "name": "Арматура 10 мм",
+                            "price": None,
+                            "reason": "Нет соответствия в каталоге материалов",
+                        }
+                    ],
+                }
+            )
+        ),
+        _Settings(),
+        _Catalog(),
+    )
+
+    with pytest.raises(KimiRequestError, match="invalid unresolved item"):
+        use_case.execute(
+            filename="specification.pdf", content=b"content", content_type=None
+        )
+
+
+@pytest.mark.parametrize("kind", [[], {}])
+def test_parse_project_specification_rejects_unresolved_item_with_non_string_kind(
+    kind: object,
+):
+    use_case = ParseProjectSpecificationUseCase(
+        _Client(
+            json.dumps(
+                {
+                    "project_works": [],
+                    "project_materials": [],
+                    "unresolved_items": [
+                        {
+                            "kind": kind,
+                            "name": "Арматура 10 мм",
+                            "quantity": 12,
+                            "price": None,
+                            "project_work": None,
+                            "reason": "Нет соответствия в каталоге материалов",
+                        }
+                    ],
+                }
+            )
+        ),
+        _Settings(),
+        _Catalog(),
+    )
+
+    with pytest.raises(KimiRequestError, match="invalid unresolved item"):
+        use_case.execute(
+            filename="specification.pdf", content=b"content", content_type=None
+        )
+
+
+def test_parse_project_specification_swagger_contract_describes_response_payload():
+    app = Flask(__name__)
+    api = Api(app)
+    namespace = Namespace("project-specification-parse")
+    for model in (
+        project_specification_parse_model,
+        project_specification_parsed_model,
+        project_specification_parse_work_model,
+        project_specification_parse_material_model,
+        project_specification_parse_unresolved_item_model,
+    ):
+        namespace.models[model.name] = model
+    namespace.add_resource(ProjectSpecificationParse, "/projects/parse-project-specification")
+    api.add_namespace(namespace)
+
+    response = app.test_client().get("/swagger.json")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload is not None
+    operation = payload["paths"][
+        "/project-specification-parse/projects/parse-project-specification"
+    ]["post"]
+    assert operation["responses"]["200"]["schema"] == {
+        "$ref": "#/definitions/ProjectSpecificationParseResponse"
+    }
+    definitions = payload["definitions"]
+    parsed = definitions["ProjectSpecificationParsed"]
+    assert parsed["required"] == [
+        "project_materials",
+        "project_works",
+        "unresolved_items",
+    ]
+    assert parsed["properties"]["project_works"]["items"] == {
+        "$ref": "#/definitions/ProjectSpecificationParsedWork"
+    }
+    assert parsed["properties"]["project_materials"]["items"] == {
+        "$ref": "#/definitions/ProjectSpecificationParsedMaterial"
+    }
+    unresolved_item = definitions["ProjectSpecificationUnresolvedItem"]
+    assert unresolved_item["required"] == [
+        "kind",
+        "name",
+        "price",
+        "project_work",
+        "quantity",
+        "reason",
+    ]
+    assert unresolved_item["properties"]["kind"]["enum"] == ["work", "material"]
 
 
 @pytest.mark.parametrize("value", [None, "", "   "])

@@ -37,6 +37,8 @@ class UpdateProjectMaterialUseCase:
                 )
 
         changes: dict[str, object] = {}
+        if command.project_material_name_is_set:
+            changes["project_material_name"] = command.project_material_name
         if command.project_is_set:
             changes["project"] = command.project
         if command.material_is_set:

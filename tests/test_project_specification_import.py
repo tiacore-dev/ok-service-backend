@@ -55,7 +55,16 @@ def test_import_uses_path_project_and_calculates_sums():
     repository = _Repository([])
     command = ProjectSpecificationImportCommand(
         [ProjectWorkImportItem(project_work_id, "Work", work_id, Decimal("2"), Decimal("3"))],
-        [ProjectMaterialImportItem(uuid4(), material_id, Decimal("4"), Decimal("5"), project_work_id)],
+        [
+            ProjectMaterialImportItem(
+                uuid4(),
+                material_id,
+                Decimal("4"),
+                Decimal("5"),
+                project_work_id,
+                project_material_name="Concrete",
+            )
+        ],
     )
 
     ImportProjectSpecificationUseCase(repository).execute(
@@ -67,6 +76,7 @@ def test_import_uses_path_project_and_calculates_sums():
     assert works[0].project == project_id
     assert works[0].summ == Decimal("6")
     assert materials[0].project_work == project_work_id
+    assert materials[0].project_material_name == "Concrete"
     assert materials[0].summ == Decimal("20")
 
 
@@ -137,3 +147,4 @@ def test_import_swagger_contract_describes_request_payload():
         "project_material_id",
         "quantity",
     ]
+    assert "project_material_name" in definitions["ProjectSpecificationImportMaterial"]["properties"]
