@@ -18,13 +18,11 @@ services:
       - ok_network
 
   template-service:
-    image: ${DOCKERHUB_USERNAME}/template-service:latest
+    image: ${TEMPLATE_SERVICE_CI_REGISTRY_IMAGE}/template-service:${TEMPLATE_SERVICE_TAG}  
     container_name: template-service
     tty: true
     stdin_open: true
     restart: always
-    ports:
-      - "5000:5000"
     volumes:
       - ./logs:/app/logs  
       - .env:/app/.env 
