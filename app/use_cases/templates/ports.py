@@ -1,0 +1,26 @@
+from typing import Protocol
+from uuid import UUID
+
+from app.domain.templates import Template, TemplateTypes
+
+from .dto import TemplateFileChanges
+
+
+class TemplateRepository(Protocol):
+    def create(self, template: Template) -> None: ...
+    def get(self, template_id: UUID) -> Template: ...
+    def list(
+        self, template_type: TemplateTypes | None, offset: int, limit: int
+    ) -> list[Template]: ...
+    def update(
+        self, template_id: UUID, changes: TemplateFileChanges
+    ) -> tuple[Template, str | None]: ...
+    def delete(self, template_id: UUID) -> Template: ...
+
+
+class TemplateStorage(Protocol):
+    def upload(
+        self, template_id: UUID, content: bytes, filename: str, content_type: str | None
+    ) -> tuple[str, str, str]: ...
+    def delete(self, key: str) -> None: ...
+    def download(self, key: str) -> bytes: ...

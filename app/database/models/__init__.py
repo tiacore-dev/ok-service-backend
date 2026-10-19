@@ -1,4 +1,5 @@
 from .api_keys import ApiKeys as ApiKeys
+from .templates import Templates as Templates
 from .attachments import Attachments as Attachments
 from .attachments import ObjectAttachments as ObjectAttachments
 from .attachments import PlaceAttachments as PlaceAttachments
