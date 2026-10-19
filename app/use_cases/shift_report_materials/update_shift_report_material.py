@@ -24,13 +24,13 @@ class UpdateShiftReportMaterialUseCase:
             raise ShiftReportMaterialNotFoundError("Shift report material not found")
 
         shift_report = command.shift_report
-        material = command.material
+        project_material = command.project_material
         quantity = command.quantity
         shift_report_detail = command.shift_report_detail
 
         if (
             shift_report is None
-            and material is None
+            and project_material is None
             and quantity is None
             and shift_report_detail is None
         ):
@@ -41,7 +41,7 @@ class UpdateShiftReportMaterialUseCase:
 
         updated = current.with_updates(
             shift_report=shift_report,
-            material=material,
+            project_material=project_material,
             quantity=quantity,
             shift_report_detail=shift_report_detail,
         )

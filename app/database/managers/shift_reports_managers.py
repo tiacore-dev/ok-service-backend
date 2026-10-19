@@ -8,6 +8,7 @@ from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.sql import func
 
 from app.database.managers.abstract_manager import BaseDBManager
+from app.database.managers.project_material_matching import find_project_material_id, validate_shift_material_record
 from app.database.models import (
     Leaves,
     Projects,
@@ -21,6 +22,7 @@ from app.database.models import (
     ShiftPlaceRelations,
 )
 from app.database.time_utils import utc_epoch_milliseconds
+from app.domain.shift_report_materials import ShiftReportMaterialValidationError
 from app.domain.shift_reports import (
     ShiftReportConflictError,
     calculate_distance_meters,
@@ -391,11 +393,23 @@ class ShiftReportsManager(ShiftManager):
                     data["signed_by"] = None
                 data["updated_at"] = utc_epoch_milliseconds()
 
+                previous_project = record.project
+
                 for field, value in data.items():
                     if value is not None:
                         setattr(record, field, value)
                     elif field in {"signed_at", "signed_by"}:
                         setattr(record, field, None)
+                if record.project != previous_project:
+                    session.flush()
+                    materials = session.query(ShiftReportMaterials).filter(
+                        ShiftReportMaterials.shift_report == record.shift_report_id
+                    ).all()
+                    for material in materials:
+                        try:
+                            validate_shift_material_record(session, material)
+                        except ShiftReportMaterialValidationError as error:
+                            raise ShiftReportConflictError(str(error)) from error
                 session.commit()
                 return record.to_dict()
         except ShiftReportConflictError:
@@ -712,6 +726,14 @@ class ShiftReportsDetailsManager(ShiftManager):
             return
 
         for relation in relations:
+            project_material_id = find_project_material_id(
+                session, detail.shift_report, relation.material,
+                detail.shift_report_detail_id,
+            )
+            if project_material_id is None:
+                raise ShiftReportConflictError(
+                    "Cannot create material usage: no matching project_material for the detail"
+                )
             quantity = Decimal(detail.quantity) * Decimal(relation.quantity)
             material = relation.materials
             if material and material.measurement_unit:
@@ -723,7 +745,7 @@ class ShiftReportsDetailsManager(ShiftManager):
                 ShiftReportMaterials(
                     shift_report_material_id=uuid4(),
                     shift_report=detail.shift_report,
-                    material=relation.material,
+                    project_material=project_material_id,
                     quantity=quantity,
                     shift_report_detail=detail.shift_report_detail_id,
                     created_by=created_by,

@@ -20,6 +20,7 @@ from app.adapters.statistics import (
     RedisProjectWorkStatistics,
 )
 from app.decorators import api_key_or_jwt_required, user_forbidden
+from app.domain.project_materials import ProjectMaterialInUseError
 from app.domain.project_works import (
     ProjectWorkForbiddenError,
     ProjectWorkNotFoundError,
@@ -185,6 +186,8 @@ def _actor(current_user: dict[str, Any]) -> ProjectWorkActor:
 
 
 def _map_error(error: Exception):
+    if isinstance(error, ProjectMaterialInUseError):
+        return {"msg": str(error)}, 409
     if isinstance(error, ProjectWorkNotFoundError):
         return {"msg": str(error)}, 404
     if isinstance(error, ProjectWorkForbiddenError):

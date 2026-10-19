@@ -12,14 +12,14 @@ TTL не используется: актуальность обеспечива
 3. `shift_report_material_quantity` — сумма `shift_report_materials.quantity`
    из подписанных и неудалённых смен проекта;
 4. `shift_report_material_summ_by_estimate` — фактическое количество,
-   умноженное на цену строки `project_materials`, соответствующей цепочке
-   `shift_report_material.shift_report_detail -> project_work`. Если детали
-   смены или соответствующей строки спецификации нет, количество учитывается,
-   а сметная сумма равна нулю.
+   умноженное на текущую цену конкретной строки `project_materials`, указанной
+   в `shift_report_material.project_material`. Если цены нет,
+   количество учитывается, а сметная сумма равна нулю.
 
-При нескольких строках `project_materials` для одной пары
-`(project_work, material)` цена определяется как `sum(summ) / sum(quantity)`.
-Это не допускает размножения фактического количества при SQL join.
+Цена больше не усредняется между строками спецификации. Прямой join по
+`project_material_id` не размножает фактическое количество. То же правило
+действует для помесячной статистики прорабов. Правила выбора строки описаны
+в [shift-report-materials-rules.md](./shift-report-materials-rules.md).
 
 При cache miss агрегат рассчитывается из PostgreSQL и сохраняется в Redis. При
 временной недоступности Redis API возвращает расчёт из БД.

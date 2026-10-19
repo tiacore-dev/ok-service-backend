@@ -19,8 +19,15 @@ class ShiftReportMaterials(Base):
         ForeignKey("shift_reports.shift_report_id", ondelete="CASCADE"),
         nullable=False,
     )
-    material = Column(
-        UUID, ForeignKey("materials.material_id", ondelete="CASCADE"), nullable=False
+    project_material = Column(
+        UUID,
+        ForeignKey(
+            "project_materials.project_material_id",
+            name="fk_shift_report_materials_project_material",
+            ondelete="NO ACTION",
+        ),
+        nullable=False,
+        index=True,
     )
     quantity = Column(Numeric(precision=10, scale=2), nullable=False)
     shift_report_detail = Column(
@@ -37,7 +44,9 @@ class ShiftReportMaterials(Base):
     shift_reports = relationship(
         "ShiftReports", back_populates="shift_report_materials"
     )
-    materials = relationship("Materials", back_populates="shift_report_materials")
+    project_materials = relationship(
+        "ProjectMaterials", back_populates="shift_report_materials"
+    )
     shift_report_details = relationship(
         "ShiftReportDetails", back_populates="shift_report_materials"
     )
@@ -55,7 +64,7 @@ class ShiftReportMaterials(Base):
         return {
             "shift_report_material_id": str(self.shift_report_material_id),
             "shift_report": str(self.shift_report),
-            "material": str(self.material),
+            "project_material": str(self.project_material),
             "quantity": self.quantity,
             "shift_report_detail": str(self.shift_report_detail)
             if self.shift_report_detail  # type: ignore

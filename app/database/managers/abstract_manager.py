@@ -46,13 +46,11 @@ class BaseDBManager(ABC):
             if session.is_active:
                 session.commit()
         except Exception as e:
-            if session.is_active:
-                session.rollback()
+            session.rollback()
             logger.error(f"Ошибка в сессии: {e}", extra={"login": "database"})
             raise
         finally:
-            if session.is_active:
-                session.close()
+            session.close()
 
     def add(self, **kwargs):
         try:
@@ -279,7 +277,7 @@ class BaseDBManager(ABC):
                 e,
                 extra={"login": "database"},
             )
-            raise IntegrityError("Cannot delete record: dependent data exists.") from e  # type: ignore
+            raise
 
         except Exception as e:
             logger.error(

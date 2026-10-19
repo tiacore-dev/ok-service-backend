@@ -60,7 +60,7 @@ def test_create_shift_report_material_use_case():
     repository = FakeRepository()
     command = CreateShiftReportMaterialCommand(
         shift_report=uuid4(),
-        material=uuid4(),
+        project_material=uuid4(),
         quantity=Decimal("3.25"),
         created_by=uuid4(),
     )
@@ -78,7 +78,7 @@ def test_project_leader_can_add_material_to_shift_in_own_project():
     leader_id = uuid4()
     repository.shift_report_context = (uuid4(), leader_id, False)
     command = CreateShiftReportMaterialCommand(
-        shift_report=uuid4(), material=uuid4(), quantity=Decimal("3.25"), created_by=leader_id
+        shift_report=uuid4(), project_material=uuid4(), quantity=Decimal("3.25"), created_by=leader_id
     )
 
     result = CreateShiftReportMaterialUseCase(repository=repository).execute(
@@ -96,7 +96,7 @@ def test_project_leader_cannot_add_material_to_foreign_project_shift():
     repository.shift_report_context = (uuid4(), uuid4(), False)
     leader_id = uuid4()
     command = CreateShiftReportMaterialCommand(
-        shift_report=uuid4(), material=uuid4(), quantity=Decimal("1"), created_by=leader_id
+        shift_report=uuid4(), project_material=uuid4(), quantity=Decimal("1"), created_by=leader_id
     )
 
     with pytest.raises(ShiftReportMaterialForbiddenError):
@@ -109,7 +109,7 @@ def test_update_shift_report_material_use_case():
     existing_shift_report_material = ShiftReportMaterial(
         shift_report_material_id=uuid4(),
         shift_report=uuid4(),
-        material=uuid4(),
+        project_material=uuid4(),
         quantity=Decimal("1.00"),
         created_by=uuid4(),
         created_at=1,

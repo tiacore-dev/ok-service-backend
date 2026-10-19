@@ -1,9 +1,6 @@
-from uuid import UUID
-
-from marshmallow import Schema, ValidationError, fields, validate, validates_schema
+from marshmallow import Schema, ValidationError, fields, pre_load, validate
 
 from app.schemas.validators import (
-    validate_material_exists,
     validate_shift_report_detail_exists,
     validate_shift_report_exists,
 )
@@ -17,36 +14,6 @@ def validate_positive_quantity(value: float | None) -> None:
         raise ValidationError("Field 'quantity' must be greater than 0.")
 
 
-def _validate_quantity_for_material(material_id_str, quantity):
-    if not material_id_str or quantity is None:
-        return
-
-    try:
-        material_id = UUID(material_id_str)
-    except ValueError:
-        return
-
-    from app.database.managers.materials_manager import MaterialsManager
-
-    db = MaterialsManager()
-    material = db.get_by_id(material_id)
-    if not material or not material.get("measurement_unit"):
-        return
-
-    unit_data = material.get("measurement_unit")
-    unit = str(unit_data.get("name") if isinstance(unit_data, dict) else unit_data).strip().lower()
-    if unit == "шт.":
-        rounded = int(float(quantity))
-        if rounded <= 0:
-            raise ValidationError(
-                "Field 'quantity' must be a positive integer for unit 'шт.'.",
-                "quantity",
-            )
-        return rounded
-
-    return None
-
-
 class ShiftReportMaterialCreateSchema(Schema):
     class Meta:
         unknown = "exclude"
@@ -56,11 +23,7 @@ class ShiftReportMaterialCreateSchema(Schema):
         error_messages={"required": "Field 'shift_report' is required."},
         validate=[validate_shift_report_exists],
     )
-    material = fields.String(
-        required=True,
-        error_messages={"required": "Field 'material' is required."},
-        validate=[validate_material_exists],
-    )
+    project_material = fields.UUID(required=True, allow_none=False)
     quantity = fields.Float(
         required=True,
         validate=[validate_positive_quantity],
@@ -72,15 +35,6 @@ class ShiftReportMaterialCreateSchema(Schema):
         validate=[validate_shift_report_detail_exists],
     )
 
-    @validates_schema
-    def validate_quantity(self, data, **kwargs):
-        adjusted = _validate_quantity_for_material(
-            data.get("material"),
-            data.get("quantity"),
-        )
-        if adjusted is not None:
-            data["quantity"] = adjusted
-
 
 class ShiftReportMaterialEditSchema(Schema):
     class Meta:
@@ -91,11 +45,7 @@ class ShiftReportMaterialEditSchema(Schema):
         allow_none=True,
         validate=[validate_shift_report_exists],
     )
-    material = fields.String(
-        required=False,
-        allow_none=True,
-        validate=[validate_material_exists],
-    )
+    project_material = fields.UUID(required=False, allow_none=False)
     quantity = fields.Float(
         required=False,
         allow_none=True,
@@ -106,15 +56,6 @@ class ShiftReportMaterialEditSchema(Schema):
         allow_none=True,
         validate=[validate_shift_report_detail_exists],
     )
-
-    @validates_schema
-    def validate_quantity(self, data, **kwargs):
-        adjusted = _validate_quantity_for_material(
-            data.get("material"),
-            data.get("quantity"),
-        )
-        if adjusted is not None:
-            data["quantity"] = adjusted
 
 
 class ShiftReportMaterialFilterSchema(Schema):
@@ -139,5 +80,14 @@ class ShiftReportMaterialFilterSchema(Schema):
         ),
     )
     shift_report = fields.String(required=False)
-    material = fields.String(required=False)
+    project_material = fields.UUID(required=False)
     shift_report_detail = fields.String(required=False)
+
+    @pre_load
+    def _reject_legacy_material(self, data, **kwargs):
+        if "material" in data:
+            raise ValidationError(
+                "Filter 'material' was removed; use 'project_material'.",
+                field_name="material",
+            )
+        return data

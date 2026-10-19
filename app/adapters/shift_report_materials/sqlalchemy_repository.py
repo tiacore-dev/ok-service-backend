@@ -69,7 +69,7 @@ class SQLAlchemyShiftReportMaterialRepository(ShiftReportMaterialRepository):
         updated = self.manager.update(
             record_id=shift_report_material.shift_report_material_id,
             shift_report=shift_report_material.shift_report,
-            material=shift_report_material.material,
+            project_material=shift_report_material.project_material,
             quantity=shift_report_material.quantity,
             shift_report_detail=shift_report_material.shift_report_detail,
         )
@@ -99,7 +99,7 @@ class SQLAlchemyShiftReportMaterialRepository(ShiftReportMaterialRepository):
             sort_by=query.sort_by,
             sort_order=query.sort_order,
             shift_report=query.shift_report,
-            material=query.material,
+            project_material=query.project_material,
             shift_report_detail=query.shift_report_detail,
             created_by=query.created_by,
             created_at=query.created_at,

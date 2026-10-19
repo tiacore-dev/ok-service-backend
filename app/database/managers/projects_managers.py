@@ -26,6 +26,9 @@ from app.database.models import (
     WorkAcceptanceRelations,
     WorkMaterialRelations,
 )
+from app.domain.project_materials.policies import (
+    ensure_project_material_identity_unchanged,
+)
 from app.domain.projects import ProjectStatus, ProjectValidationError
 
 logger = logging.getLogger("ok_service")
@@ -505,30 +508,12 @@ class ProjectsManager(BaseDBManager):
                         "material_name": name,
                     }
 
-                material_prices = (
-                    session.query(
-                        ProjectMaterials.project.label("project_id"),
-                        ProjectMaterials.project_work.label("project_work_id"),
-                        ProjectMaterials.material.label("material_id"),
-                        (
-                            func.sum(ProjectMaterials.summ)
-                            / func.nullif(func.sum(ProjectMaterials.quantity), 0)
-                        ).label("price"),
-                    )
-                    .filter(ProjectMaterials.project == project_id)
-                    .group_by(
-                        ProjectMaterials.project,
-                        ProjectMaterials.project_work,
-                        ProjectMaterials.material,
-                    )
-                    .subquery()
-                )
                 actual_rows = (
                     session.query(
-                        ShiftReportMaterials.material,
+                        ProjectMaterials.material,
                         func.sum(ShiftReportMaterials.quantity),
                         func.sum(
-                            ShiftReportMaterials.quantity * material_prices.c.price
+                            ShiftReportMaterials.quantity * ProjectMaterials.price
                         ),
                         func.max(Materials.name),
                     )
@@ -538,30 +523,20 @@ class ProjectsManager(BaseDBManager):
                         == ShiftReportMaterials.shift_report,
                     )
                     .outerjoin(
-                        ShiftReportDetails,
-                        ShiftReportDetails.shift_report_detail_id
-                        == ShiftReportMaterials.shift_report_detail,
-                    )
-                    .outerjoin(
-                        material_prices,
-                        and_(
-                            material_prices.c.project_id == ShiftReports.project,
-                            material_prices.c.project_work_id
-                            == ShiftReportDetails.project_work,
-                            material_prices.c.material_id
-                            == ShiftReportMaterials.material,
-                        ),
+                        ProjectMaterials,
+                        ProjectMaterials.project_material_id
+                        == ShiftReportMaterials.project_material,
                     )
                     .outerjoin(
                         Materials,
-                        Materials.material_id == ShiftReportMaterials.material,
+                        Materials.material_id == ProjectMaterials.material,
                     )
                     .filter(
                         ShiftReports.project == project_id,
                         ShiftReports.signed.is_(True),
                         ShiftReports.deleted.is_(False),
                     )
-                    .group_by(ShiftReportMaterials.material)
+                    .group_by(ProjectMaterials.material)
                     .all()
                 )
                 for material_id, quantity, estimate_summ, name in actual_rows:
@@ -781,31 +756,13 @@ class ProjectsManager(BaseDBManager):
                         },
                     )
 
-                material_prices = (
-                    session.query(
-                        ProjectMaterials.project.label("project_id"),
-                        ProjectMaterials.project_work.label("project_work_id"),
-                        ProjectMaterials.material.label("material_id"),
-                        (
-                            func.sum(ProjectMaterials.summ)
-                            / func.nullif(func.sum(ProjectMaterials.quantity), 0)
-                        ).label("price"),
-                    )
-                    .filter(ProjectMaterials.project.in_(project_ids))
-                    .group_by(
-                        ProjectMaterials.project,
-                        ProjectMaterials.project_work,
-                        ProjectMaterials.material,
-                    )
-                    .subquery()
-                )
                 material_query = (
                     session.query(
                         ShiftReports.project,
                         ShiftReports.date,
                         func.sum(ShiftReportMaterials.quantity),
                         func.sum(
-                            ShiftReportMaterials.quantity * material_prices.c.price
+                            ShiftReportMaterials.quantity * ProjectMaterials.price
                         ),
                     )
                     .join(
@@ -814,19 +771,9 @@ class ProjectsManager(BaseDBManager):
                         == ShiftReportMaterials.shift_report,
                     )
                     .outerjoin(
-                        ShiftReportDetails,
-                        ShiftReportDetails.shift_report_detail_id
-                        == ShiftReportMaterials.shift_report_detail,
-                    )
-                    .outerjoin(
-                        material_prices,
-                        and_(
-                            material_prices.c.project_id == ShiftReports.project,
-                            material_prices.c.project_work_id
-                            == ShiftReportDetails.project_work,
-                            material_prices.c.material_id
-                            == ShiftReportMaterials.material,
-                        ),
+                        ProjectMaterials,
+                        ProjectMaterials.project_material_id
+                        == ShiftReportMaterials.project_material,
                     )
                     .filter(
                         ShiftReports.project.in_(project_ids),
@@ -1274,7 +1221,7 @@ class ProjectsManager(BaseDBManager):
                     shift_materials = []
 
                 for sm in shift_materials:
-                    material_id = str(sm.material)
+                    material_id = str(sm.project_materials.material)
                     quantity = sm.quantity
                     if isinstance(quantity, Decimal):
                         quantity = float(quantity)
@@ -1331,9 +1278,16 @@ class ProjectWorksManager(BaseDBManager):
         return ProjectWorks
 
     def _sync_project_materials(self, session, project_work, created_by):
-        session.query(ProjectMaterials).filter(
-            ProjectMaterials.project_work == project_work.project_work_id
-        ).delete(synchronize_session=False)
+        existing = (
+            session.query(ProjectMaterials)
+            .filter(ProjectMaterials.project_work == project_work.project_work_id)
+            .order_by(ProjectMaterials.created_at, ProjectMaterials.project_material_id)
+            .with_for_update()
+            .all()
+        )
+        by_material = {}
+        for row in existing:
+            by_material.setdefault(row.material, []).append(row)
 
         relations = (
             session.query(WorkMaterialRelations)
@@ -1341,8 +1295,30 @@ class ProjectWorksManager(BaseDBManager):
             .filter(WorkMaterialRelations.work == project_work.work)
             .all()
         )
-        if not relations:
-            return
+        desired_materials = {relation.material for relation in relations}
+        for row in existing:
+            if row.material not in desired_materials:
+                # The FK rejects removal of specification rows used by actuals.
+                session.delete(row)
+            elif row.project != project_work.project:
+                used = (
+                    session.query(ShiftReportMaterials.shift_report_material_id)
+                    .filter(
+                        ShiftReportMaterials.project_material == row.project_material_id
+                    )
+                    .first()
+                    is not None
+                )
+                ensure_project_material_identity_unchanged(
+                    used=used,
+                    current_identity=(row.project, row.material, row.project_work),
+                    target_identity=(
+                        project_work.project,
+                        row.material,
+                        row.project_work,
+                    ),
+                )
+                row.project = project_work.project
 
         for relation in relations:
             quantity = Decimal(project_work.quantity) * Decimal(relation.quantity)
@@ -1352,16 +1328,23 @@ class ProjectWorksManager(BaseDBManager):
                 if unit == "шт.":
                     quantity = Decimal(int(quantity))
 
-            session.add(
-                ProjectMaterials(
-                    project_material_id=uuid.uuid4(),
-                    project=project_work.project,
-                    material=relation.material,
-                    quantity=quantity,
-                    project_work=project_work.project_work_id,
-                    created_by=created_by,
+            candidates = by_material.get(relation.material, [])
+            if candidates:
+                row = candidates.pop(0)
+                row.quantity = quantity
+                row.summ = quantity * row.price if row.price is not None else None
+            else:
+                session.add(
+                    ProjectMaterials(
+                        project_material_id=uuid.uuid4(),
+                        project=project_work.project,
+                        material=relation.material,
+                        quantity=quantity,
+                        project_work=project_work.project_work_id,
+                        created_by=created_by,
+                    )
                 )
-            )
+        session.flush()
 
     def add(self, **kwargs):
         created_by = kwargs.get("created_by")

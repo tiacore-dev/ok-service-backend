@@ -5,6 +5,7 @@ from sqlalchemy import inspect
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.database.managers.abstract_manager import BaseDBManager
+from app.database.managers.project_material_matching import validate_shift_material_record
 from app.database.models import (
     Acceptances,
     AcceptanceStatusHistory,
@@ -17,6 +18,9 @@ from app.database.models import (
     WorkAcceptanceRelations,
     WorkMaterialRelations,
     Works,
+)
+from app.domain.project_materials.policies import (
+    ensure_project_material_identity_unchanged,
 )
 from app.domain.work_acceptance_relations import WorkAcceptanceQuantityExceededError
 
@@ -40,6 +44,17 @@ class ProjectMaterialsManager(BaseDBManager):
     def model(self):
         return ProjectMaterials
 
+    def delete(self, record_id):
+        # Preserve the original IntegrityError for the web layer's 409 mapping.
+        with self.session_scope() as session:
+            record = session.get(ProjectMaterials, record_id)
+            if record is None:
+                return None
+            result = record.to_dict()
+            session.delete(record)
+            session.flush()
+            return result
+
     def update(self, record_id, **kwargs):
         """Update project materials while preserving explicit nullable values."""
         filtered_kwargs = {
@@ -56,10 +71,23 @@ class ProjectMaterialsManager(BaseDBManager):
             record = (
                 session.query(self.model)
                 .filter(getattr(self.model, primary_key) == record_id)
+                .with_for_update()
                 .first()
             )
             if record is None:
                 return None
+            current_identity = (record.project, record.material, record.project_work)
+            target_identity = (
+                filtered_kwargs.get("project", record.project),
+                filtered_kwargs.get("material", record.material),
+                filtered_kwargs.get("project_work", record.project_work),
+            )
+            used = session.query(ShiftReportMaterials.shift_report_material_id).filter(
+                ShiftReportMaterials.project_material == record.project_material_id
+            ).first() is not None
+            ensure_project_material_identity_unchanged(
+                used=used, current_identity=current_identity, target_identity=target_identity
+            )
             for key, value in filtered_kwargs.items():
                 setattr(record, key, value)
                 flag_modified(record, key)
@@ -70,6 +98,26 @@ class ShiftReportMaterialsManager(BaseDBManager):
     @property
     def model(self):
         return ShiftReportMaterials
+
+    def add(self, **kwargs):
+        with self.session_scope() as session:
+            record = ShiftReportMaterials(**kwargs)
+            validate_shift_material_record(session, record)
+            session.add(record)
+            session.flush()
+            return record.to_dict()
+
+    def update(self, record_id, **kwargs):
+        with self.session_scope() as session:
+            record = session.get(ShiftReportMaterials, record_id)
+            if record is None:
+                return None
+            for key, value in kwargs.items():
+                if value is not None:
+                    setattr(record, key, value)
+            validate_shift_material_record(session, record)
+            session.flush()
+            return record.to_dict()
 
 
 class AcceptancesManager(BaseDBManager):

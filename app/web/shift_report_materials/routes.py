@@ -87,14 +87,14 @@ shift_report_material_ns.models[shift_report_material_model.name] = (
 
 class ShiftReportMaterialCreatePayload(TypedDict):
     shift_report: str
-    material: str
+    project_material: UUID
     quantity: float | int
     shift_report_detail: NotRequired[str | None]
 
 
 class ShiftReportMaterialEditPayload(TypedDict, total=False):
     shift_report: str
-    material: str
+    project_material: UUID
     quantity: float | int
     shift_report_detail: NotRequired[str | None]
 
@@ -105,7 +105,7 @@ class ShiftReportMaterialFilterPayload(TypedDict, total=False):
     sort_by: str
     sort_order: str
     shift_report: str
-    material: str
+    project_material: UUID
     shift_report_detail: str
     created_by: str
     created_at: int
@@ -215,8 +215,8 @@ class ShiftReportMaterialAdd(Resource):
             record = CreateShiftReportMaterialUseCase(repository=_repository()).execute(
                 CreateShiftReportMaterialCommand(
                     shift_report=shift_report_id,
-                    material=get_required_uuid(
-                        data, "material", "Material is required"
+                    project_material=get_required_uuid(
+                        data, "project_material", "Project material is required"
                     ),
                     quantity=get_required_decimal(
                         data, "quantity", "Quantity is required"
@@ -346,7 +346,7 @@ class ShiftReportMaterialEdit(Resource):
                         shift_report_material_id
                     ),
                     shift_report=target_shift_report,
-                    material=get_optional_uuid(data, "material"),
+                    project_material=get_optional_uuid(data, "project_material"),
                     quantity=get_optional_decimal(data, "quantity"),
                     shift_report_detail=get_optional_uuid(data, "shift_report_detail"),
                 )
@@ -384,7 +384,7 @@ class ShiftReportMaterialAll(Resource):
                 sort_by=get_optional_str(args, "sort_by") or "created_at",
                 sort_order=get_optional_str(args, "sort_order") or "desc",
                 shift_report=get_optional_uuid(args, "shift_report"),
-                material=get_optional_uuid(args, "material"),
+                project_material=get_optional_uuid(args, "project_material"),
                 shift_report_detail=get_optional_uuid(args, "shift_report_detail"),
                 created_by=get_optional_uuid(args, "created_by"),
                 created_at=get_optional_int(args, "created_at"),
@@ -403,4 +403,7 @@ class ShiftReportMaterialAll(Resource):
                 f"Error fetching shift report materials: {error}",
                 extra={"login": current_user},
             )
+            if isinstance(error, ValidationError):
+                # Keep validation details out of the successful-list marshaller.
+                shift_report_material_ns.abort(400, error=error.messages)
             return _map_error(error)
