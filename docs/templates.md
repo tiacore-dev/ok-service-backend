@@ -5,6 +5,12 @@
 Существующий `POST /templates/generate` и интеграция с template-service
 не изменены и не используют новый справочник автоматически.
 
+Основа следующего этапа — сборка `document_data` на backend и справочник
+параметров для конструктора — зафиксирована в
+[template-generation-design.md](./template-generation-design.md).
+Там отдельно описаны целевой механизм, референс другого проекта и вопросы
+до реализации; этот документ продолжает описывать текущий CRUD.
+
 ## Модель и правила
 
 `template_type` — PostgreSQL enum `template_types` и Python enum `TemplateTypes`:

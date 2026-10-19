@@ -16,6 +16,7 @@
 - [docs/time-contract.md](./docs/time-contract.md) - единый контракт Unix timestamp в миллисекундах.
 - [docs/attachments.md](./docs/attachments.md) - хранение, API, права и валидация вложений.
 - [docs/templates.md](./docs/templates.md) - загрузка, CRUD и скачивание шаблонов из S3, типы и правила шаблона по умолчанию.
+- [docs/template-generation-design.md](./docs/template-generation-design.md) - проект механизма генерации и справочника параметров по референсу другого сервиса; отличия от текущего API и вопросы до реализации.
 - [docs/acceptances.md](./docs/acceptances.md) - сущности приёмок, связи с работами, CRUD API и права доступа.
 - [docs/project-status-rules.md](./docs/project-status-rules.md) - статусы спецификаций, переходы и ограничения смен/объектов.
 - [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
