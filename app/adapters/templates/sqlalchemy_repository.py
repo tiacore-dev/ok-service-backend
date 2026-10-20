@@ -62,6 +62,17 @@ class SQLAlchemyTemplateRepository:
         finally:
             session.close()
 
+    def get_default(self, template_type: TemplateTypes) -> Template | None:
+        session = self._session()
+        try:
+            model = session.query(Templates).filter(
+                Templates.template_type == template_type,
+                Templates.is_default.is_(True),
+            ).one_or_none()
+            return self._template(model) if model is not None else None
+        finally:
+            session.close()
+
     def list(
         self, template_type: TemplateTypes | None, offset: int, limit: int
     ) -> list[Template]:

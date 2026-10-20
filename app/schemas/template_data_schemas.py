@@ -4,6 +4,7 @@ from typing import Any
 
 from marshmallow import Schema, ValidationError, fields, validate, validates_schema
 
+from app.domain.template_generation.period import validate_report_period_end
 from app.domain.templates import TemplateTypes
 
 
@@ -358,6 +359,10 @@ class PeriodSchema(PrintSchema):
 
     @validates_schema
     def validate_period(self, data, **kwargs):
+        try:
+            validate_report_period_end(data["date_to"])
+        except ValueError as error:
+            raise ValidationError(str(error), field_name="date_to") from error
         if data["date_from"] > data["date_to"]:
             raise ValidationError(
                 "Конец периода не может быть раньше начала", field_name="date_to"

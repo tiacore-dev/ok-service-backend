@@ -48,3 +48,12 @@ class S3TemplateStorage:
             return run(self._manager.download_bytes(key))
         except (BotoCoreError, ClientError, OSError, RuntimeError) as error:
             raise TemplateStorageError("Unable to download template") from error
+
+    def presigned_url(self, key: str) -> str:
+        try:
+            url = run(self._manager.generate_presigned_url(key, expiration=3600))
+            if not url:
+                raise TemplateStorageError("Unable to sign template URL")
+            return url
+        except (BotoCoreError, ClientError, OSError, RuntimeError) as error:
+            raise TemplateStorageError("Unable to sign template URL") from error

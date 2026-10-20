@@ -6,7 +6,7 @@ from typing import NotRequired, TypedDict, cast
 from uuid import UUID
 
 from flask import request, send_file
-from flask_restx import Model, Namespace, Resource, fields, reqparse
+from flask_restx import Model, Resource, fields, reqparse
 from marshmallow import ValidationError
 from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
@@ -30,6 +30,7 @@ from app.utils.helpers import generate_swagger_model
 from app.web._typing import to_plain_dict
 
 from .auth import template_auth_required
+from .namespace import template_ns as template_files_ns
 from .schemas import (
     TemplateCreateSchema,
     TemplateEditSchema,
@@ -46,11 +47,6 @@ REQUEST_ERRORS = (
     ValueError,
     BadRequest,
     RequestEntityTooLarge,
-)
-template_files_ns = Namespace(
-    "template_files",
-    path="/templates",
-    description="Хранение шаблонов: admin и manager",
 )
 
 create_model = generate_swagger_model(TemplateCreateSchema(), "StoredTemplateCreate")

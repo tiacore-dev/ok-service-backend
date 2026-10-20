@@ -226,6 +226,7 @@ def test_period_required_iso_dates_inclusive_and_ordered(schema_type):
         ("date_to", "2026-10-04"),
         ("date_from", "2026-02-30"),
         ("date_to", 1791133200000),
+        ("date_to", "9999-12-31"),
     ]:
         with pytest.raises(ValidationError):
             schema.load({**payload, field: value})
@@ -234,6 +235,15 @@ def test_period_required_iso_dates_inclusive_and_ordered(schema_type):
         del incomplete[field]
         with pytest.raises(ValidationError):
             schema.load(incomplete)
+
+
+@pytest.mark.parametrize("schema_type", [PayrollRequestSchema, ObjectReportRequestSchema])
+def test_period_accepts_last_supported_end_date(schema_type):
+    payload = {"date_from": "9999-12-30", "date_to": "9999-12-30"}
+    if schema_type is PayrollRequestSchema:
+        payload["user"] = "00000000-0000-0000-0000-000000000001"
+    result = object_result(schema_type().load(payload))
+    assert result["date_to"] == date(9999, 12, 30)
 
 
 @pytest.mark.parametrize(

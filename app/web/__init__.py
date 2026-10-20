@@ -31,7 +31,7 @@ from .shift_standards import shift_standard_ns
 from .subscriptions.routes import subscription_ns
 from .system_settings import system_setting_ns
 from .template_generation.routes import template_ns
-from .templates.routes import template_files_ns
+from .templates import routes as _template_routes  # register CRUD on the shared namespace
 from .users.routes import user_ns
 from .work_categories.routes import work_category_ns
 from .work_material_relations.routes import work_material_relation_ns
@@ -79,5 +79,4 @@ def register_namespaces(api: Api):
     api.add_namespace(work_price_ns)
     api.add_namespace(work_ns)
     api.add_namespace(template_ns)
-    api.add_namespace(template_files_ns)
     api.add_namespace(system_setting_ns)

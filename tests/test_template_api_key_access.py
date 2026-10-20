@@ -40,11 +40,30 @@ def template_key_context(db_session, monkeypatch):
     item = create(use_case)
     monkeypatch.setattr(routes, "_use_case", lambda: use_case)
 
-    class Generator:
-        def generate(self, command):
-            return b"generated"
+    from app.use_cases.template_generation import GenerateTemplateUseCase
+    from app.use_cases.template_generation.dto import GeneratedDocument
 
-    monkeypatch.setattr(generation_routes, "_generator", Generator)
+    class Dependencies:
+        def get(self, template_id):
+            return use_case.get(template_id)
+
+        def get_default(self, template_type):
+            return item
+
+        def execute(self, kind, parameters):
+            return {"works": []}
+
+        def presigned_url(self, key):
+            return "https://example.test/template.docx"
+
+        def generate(self, command):
+            return GeneratedDocument(
+                [b"generated"], command.content_type, command.filename, lambda: None
+            )
+
+    dependency = Dependencies()
+    generation = GenerateTemplateUseCase(dependency, dependency, dependency, dependency)
+    monkeypatch.setattr(generation_routes, "_use_case", lambda: generation)
     key = ApiKeys(
         api_key_id=uuid4(), name=f"template-key-{uuid4()}", token=str(uuid4())
     )
@@ -65,11 +84,7 @@ def call(client, method, route, identifier, token):
     elif route == "/templates/params":
         kwargs["query_string"] = {"template_type": "payroll"}
     elif route == "/templates/generate":
-        kwargs["json"] = {
-            "name": "Test",
-            "url": "https://example.test/template.docx",
-            "document_data": {},
-        }
+        kwargs["json"] = {"template_type": "work_types", "template_id": str(identifier)}
     return client.open(route.format(template_id=identifier), method=method, **kwargs)
 
 
