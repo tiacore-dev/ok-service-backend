@@ -1,15 +1,16 @@
 # Шаблоны документов
 
-Шаблоны — общий справочник сервиса. Все операции доступны по JWT только ролям
-`admin` и `manager`. API key для новых операций не поддерживается.
-Существующий `POST /templates/generate` и интеграция с template-service
-не изменены и не используют новый справочник автоматически.
+Шаблоны — общий справочник сервиса. CRUD, справочники типов и параметров доступны
+по JWT ролям `admin` и `manager` либо по API-ключу с разрешением на конкретный
+HTTP-маршрут. Существующий `POST /templates/generate` также получил доступ по
+API-ключу; его прежний доступ по JWT для аутентифицированных пользователей
+сохранён. Payload генерации и интеграция с template-service не изменены;
+новый справочник не используется для генерации автоматически.
 
-Основа следующего этапа — сборка `document_data` на backend и справочник
-параметров для конструктора — зафиксирована в
+Основа следующего этапа — сборка `document_data` на backend — зафиксирована в
 [template-generation-design.md](./template-generation-design.md).
 Там отдельно описаны целевой механизм, референс другого проекта и вопросы
-до реализации; этот документ продолжает описывать текущий CRUD.
+до реализации; этот документ описывает текущий CRUD и готовый справочник параметров.
 
 ## Модель и правила
 
@@ -51,6 +52,7 @@ MIME-тип. Значения этих полей и `s3_key` клиент из�
 | POST | `/templates/add` | Загрузка одного шаблона, HTTP 201, объект метаданных |
 | GET | `/templates/all` | `{"templates": [...]}` |
 | GET | `/templates/types/all` | Справочник типов: `{"template_types": [{"value": "work_types", "label": "Виды работ"}, ...]}` |
+| GET | `/templates/params?template_type=payroll` | `{template_type, parameters, schema}` для конструктора |
 | GET | `/templates/{id}/view` | Объект метаданных |
 | PATCH | `/templates/{id}/edit` | Обновлённый объект метаданных |
 | DELETE | `/templates/{id}/delete/hard` | Физическое удаление, HTTP 200 |
@@ -84,6 +86,51 @@ nullable-полей очищают их, `false` снимает boolean-флаг
 пустое имя и пустой PATCH возвращают HTTP 400. Отсутствующая авторизация —
 401, запрещённая роль — 403, неизвестный шаблон — 404, конфликт дефолта — 409,
 превышение лимита файла — 413, недоступность S3 при upload/download — 503.
+
+## Параметры конструктора
+
+`GET /templates/params` принимает ровно один обязательный `template_type`
+с английским значением enum. Поддержаны все пять типов. Пустое, неизвестное,
+русское или повторное значение и неизвестные query-поля возвращают HTTP 400.
+Этот маршрут заменяет предварительно описанный проектный путь `/templates/parameters`;
+alias для старого проектного пути не добавляется.
+
+Ответ содержит `template_type`, плоский список `parameters` и объект `schema`.
+Примеры путей: `parameters.date_from`, `data[i].date`,
+`data[i].shift_report[i].shift_report_details[i].work.name`.
+Список содержит контейнеры и листья, без дублей и без дополнительных alias-путей.
+Схема содержит inline `properties`/`items`, `required`, типы и форматы,
+nullable-типы, числовые ограничения и enum, русские `title` и рекурсивные `example`.
+Внутри `properties` добавлены свойства `data[i]` и подобные для навигации
+конструктора. В реальном `document_data` остаются обычные массивы; alias-свойства
+не добавляются ни в примеры данных, ни в печатные схемы.
+
+Описание строится из `template_data_schemas.py` без чтения бизнес-данных,
+файлов шаблонов, S3 и вызовов template-service. Проверка API-ключа использует
+БД стандартным механизмом авторизации.
+
+## API-ключи
+
+Используется заголовок `API-Key`. Каждый маршрут требует своего permission:
+
+| Код | Метод и маршрут |
+| --- | --- |
+| `templates-create` | `POST /templates/add` |
+| `templates-list` | `GET /templates/all` |
+| `templates-types-list` | `GET /templates/types/all` |
+| `templates-params` | `GET /templates/params` |
+| `templates-view` | `GET /templates/{template_id}/view` |
+| `templates-edit` | `PATCH /templates/{template_id}/edit` |
+| `templates-delete-hard` | `DELETE /templates/{template_id}/delete/hard` |
+| `templates-download` | `GET /templates/{template_id}/download` |
+| `templates-generate` | `POST /templates/generate` |
+
+Bootstrap при старте добавляет отсутствующие типы разрешений идемпотентно.
+Существующие ключи автоматически не получают новые права: нужные permissions
+назначаются через действующее управление API-ключами. Неверный или просроченный
+ключ, отсутствие права либо право только на другой маршрут дают 403.
+Для добавления этих permissions миграция и новые настройки не требуются;
+после обновления требуется перезапуск backend для bootstrap.
 
 ## S3 и согласованность
 

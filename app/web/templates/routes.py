@@ -1,20 +1,17 @@
 import json
 import logging
 from dataclasses import asdict
-from functools import wraps
 from io import BytesIO
 from typing import NotRequired, TypedDict, cast
 from uuid import UUID
 
 from flask import request, send_file
-from flask_jwt_extended import verify_jwt_in_request
-from flask_jwt_extended.exceptions import JWTExtendedException
 from flask_restx import Model, Namespace, Resource, fields, reqparse
-from jwt.exceptions import PyJWTError
 from marshmallow import ValidationError
 from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 
+from app.adapters.templates.parameters import MarshmallowTemplateParametersProvider
 from app.adapters.templates.s3_storage import S3TemplateStorage
 from app.adapters.templates.sqlalchemy_repository import SQLAlchemyTemplateRepository
 from app.decorators import admin_or_manager_required
@@ -28,10 +25,17 @@ from app.domain.templates import (
 from app.s3.s3_manager import MAX_FILE_SIZE_BYTES
 from app.use_cases.templates.dto import TemplateChanges
 from app.use_cases.templates.manage_templates import TemplateUseCase
+from app.use_cases.templates.parameters import GetTemplateParametersUseCase
 from app.utils.helpers import generate_swagger_model
 from app.web._typing import to_plain_dict
 
-from .schemas import TemplateCreateSchema, TemplateEditSchema, TemplateFilterSchema
+from .auth import template_auth_required
+from .schemas import (
+    TemplateCreateSchema,
+    TemplateEditSchema,
+    TemplateFilterSchema,
+    TemplateParamsQuerySchema,
+)
 
 logger = logging.getLogger("ok_service")
 REQUEST_ERRORS = (
@@ -89,12 +93,30 @@ template_types_model = Model(
         ),
     },
 )
+template_params_model = Model(
+    "StoredTemplateParams",
+    {
+        "template_type": fields.String(
+            required=True, enum=[value.value for value in TemplateTypes]
+        ),
+        "parameters": fields.List(
+            fields.String(),
+            required=True,
+            description="Пути полей; элементы массивов обозначаются [i]",
+        ),
+        "schema": fields.Raw(
+            required=True,
+            description="Схема данных с русскими title, example и alias-свойствами массивов",
+        ),
+    },
+)
 for model in (
     create_model,
     edit_model,
     template_model,
     template_type_model,
     template_types_model,
+    template_params_model,
 ):
     template_files_ns.models[model.name] = model
 
@@ -123,6 +145,13 @@ filter_parser = reqparse.RequestParser()
 filter_parser.add_argument("template_type", choices=[v.value for v in TemplateTypes])
 filter_parser.add_argument("offset", type=int, default=0)
 filter_parser.add_argument("limit", type=int, default=100)
+params_parser = reqparse.RequestParser()
+params_parser.add_argument(
+    "template_type",
+    required=True,
+    choices=[value.value for value in TemplateTypes],
+    location="args",
+)
 
 
 class TemplateFilterPayload(TypedDict):
@@ -131,16 +160,8 @@ class TemplateFilterPayload(TypedDict):
     template_type: NotRequired[TemplateTypes]
 
 
-def _jwt_required(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            verify_jwt_in_request()
-        except (JWTExtendedException, PyJWTError):
-            return {"msg": "Unauthorized"}, 401
-        return func(*args, **kwargs)
-
-    return wrapper
+class TemplateParamsPayload(TypedDict):
+    template_type: TemplateTypes
 
 
 def _use_case() -> TemplateUseCase:
@@ -207,7 +228,7 @@ def _error(error: Exception):
 
 @template_files_ns.route("/add")
 class TemplateAdd(Resource):
-    @_jwt_required
+    @template_auth_required
     @admin_or_manager_required
     @template_files_ns.expect(create_parser)
     @template_files_ns.response(201, "Шаблон создан", template_model)
@@ -227,7 +248,7 @@ class TemplateAdd(Resource):
 
 @template_files_ns.route("/all")
 class TemplateAll(Resource):
-    @_jwt_required
+    @template_auth_required
     @admin_or_manager_required
     @template_files_ns.expect(filter_parser)
     def get(self):
@@ -250,7 +271,7 @@ class TemplateAll(Resource):
 
 @template_files_ns.route("/types/all")
 class TemplateTypesAll(Resource):
-    @_jwt_required
+    @template_auth_required
     @admin_or_manager_required
     @template_files_ns.marshal_with(template_types_model)
     def get(self):
@@ -261,9 +282,36 @@ class TemplateTypesAll(Resource):
         }, 200
 
 
+@template_files_ns.route("/params")
+class TemplateParams(Resource):
+    @template_auth_required
+    @admin_or_manager_required
+    @template_files_ns.expect(params_parser)
+    @template_files_ns.response(200, "Параметры печатных данных", template_params_model)
+    @template_files_ns.response(400, "Некорректный или отсутствующий тип шаблона")
+    def get(self):
+        try:
+            if len(request.args.getlist("template_type")) != 1:
+                raise ValueError("Exactly one template_type is required")
+            query = cast(
+                TemplateParamsPayload,
+                TemplateParamsQuerySchema().load(request.args.to_dict()),
+            )
+            result = GetTemplateParametersUseCase(
+                MarshmallowTemplateParametersProvider()
+            ).execute(query["template_type"])
+            return {
+                "template_type": result.template_type.value,
+                "parameters": result.parameters,
+                "schema": result.schema,
+            }, 200
+        except REQUEST_ERRORS as error:
+            return _error(error)
+
+
 @template_files_ns.route("/<string:template_id>/view")
 class TemplateView(Resource):
-    @_jwt_required
+    @template_auth_required
     @admin_or_manager_required
     @template_files_ns.response(200, "Метаданные шаблона", template_model)
     def get(self, template_id):
@@ -275,7 +323,7 @@ class TemplateView(Resource):
 
 @template_files_ns.route("/<string:template_id>/edit")
 class TemplateEdit(Resource):
-    @_jwt_required
+    @template_auth_required
     @admin_or_manager_required
     @template_files_ns.expect(edit_parser)
     @template_files_ns.doc(
@@ -295,7 +343,7 @@ class TemplateEdit(Resource):
 
 @template_files_ns.route("/<string:template_id>/delete/hard")
 class TemplateDelete(Resource):
-    @_jwt_required
+    @template_auth_required
     @admin_or_manager_required
     def delete(self, template_id):
         try:
@@ -307,7 +355,7 @@ class TemplateDelete(Resource):
 
 @template_files_ns.route("/<string:template_id>/download")
 class TemplateDownload(Resource):
-    @_jwt_required
+    @template_auth_required
     @admin_or_manager_required
     def get(self, template_id):
         try:

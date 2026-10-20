@@ -21,3 +21,7 @@ class TemplateFilterSchema(Schema):
     template_type = fields.Enum(TemplateTypes, by_value=True)
     offset = fields.Integer(load_default=0, validate=validate.Range(min=0))
     limit = fields.Integer(load_default=100, validate=validate.Range(min=1, max=1000))
+
+
+class TemplateParamsQuerySchema(Schema):
+    template_type = fields.Enum(TemplateTypes, by_value=True, required=True)

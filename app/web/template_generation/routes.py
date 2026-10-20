@@ -5,9 +5,8 @@ import logging
 from io import BytesIO
 from typing import Any, NotRequired, TypedDict, cast
 
-from flask import current_app, request, send_file
+from flask import current_app, g, request, send_file
 from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
-from flask_jwt_extended import jwt_required
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 
@@ -20,6 +19,7 @@ from app.use_cases.template_generation import (
 )
 from app.utils.helpers import generate_swagger_model
 from app.web._typing import get_optional_bool, get_optional_str, to_plain_dict
+from app.web.templates.auth import template_auth_required
 
 logger = logging.getLogger("ok_service")
 
@@ -39,7 +39,11 @@ class TemplateGeneratePayload(TypedDict):
 
 
 def _get_current_user() -> dict[str, Any]:
-    identity = _get_jwt_identity()
+    identity = (
+        getattr(g, "api_key_identity_json", None)
+        if getattr(g, "auth_via_api_key", False)
+        else _get_jwt_identity()
+    )
     if isinstance(identity, dict):
         return identity
     if isinstance(identity, (str, bytes, bytearray)):
@@ -67,7 +71,7 @@ def _command_from_payload(payload: TemplateGeneratePayload) -> TemplateGenerateC
 
 @template_ns.route("/generate")
 class TemplateGenerate(Resource):
-    @jwt_required()
+    @template_auth_required
     @template_ns.expect(template_generate_model)
     @template_ns.response(400, "Bad request, invalid data.")
     @template_ns.response(500, "Internal Server Error")

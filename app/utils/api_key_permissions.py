@@ -7,6 +7,15 @@ from app.database.models import PermissionTypes
 # ``api_key_or_jwt_required``.  The description is part of the authorization
 # contract: the decorator resolves the permission by HTTP method and route.
 API_KEY_PERMISSIONS = (
+    ("templates-create", "POST /templates/add"),
+    ("templates-list", "GET /templates/all"),
+    ("templates-types-list", "GET /templates/types/all"),
+    ("templates-params", "GET /templates/params"),
+    ("templates-view", "GET /templates/{template_id}/view"),
+    ("templates-edit", "PATCH /templates/{template_id}/edit"),
+    ("templates-delete-hard", "DELETE /templates/{template_id}/delete/hard"),
+    ("templates-download", "GET /templates/{template_id}/download"),
+    ("templates-generate", "POST /templates/generate"),
     ("places-add", "POST /places/add"),
     ("places-delete-hard", "DELETE /places/{place_id}/delete/hard"),
     ("places-delete-soft", "PATCH /places/{place_id}/delete/soft"),
