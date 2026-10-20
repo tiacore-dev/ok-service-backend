@@ -1,4 +1,3 @@
-import json
 from io import BytesIO
 from typing import Any
 from uuid import uuid4
@@ -76,7 +75,8 @@ def call(client, method, route, identifier, token):
     kwargs: dict[str, Any] = {"headers": {"API-Key": token}}
     if route == "/templates/add":
         kwargs["data"] = {
-            "data": json.dumps({"name": "Test", "template_type": "work_types"}),
+            "name": "Test",
+            "template_type": "work_types",
             "file": (BytesIO(office_file()), "test.docx"),
         }
     elif method == "PATCH":

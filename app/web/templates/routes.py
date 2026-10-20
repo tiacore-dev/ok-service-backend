@@ -6,7 +6,7 @@ from typing import NotRequired, TypedDict, cast
 from uuid import UUID
 
 from flask import request, send_file
-from flask_restx import Model, Resource, fields, reqparse
+from flask_restx import Model, Resource, fields, inputs, reqparse
 from marshmallow import ValidationError
 from werkzeug.datastructures import FileStorage
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
@@ -120,6 +120,28 @@ for model in (
 def _upload_parser(required: bool):
     parser = reqparse.RequestParser()
     parser.add_argument("file", type=FileStorage, location="files", required=required)
+    if required:
+        parser.add_argument(
+            "name", location="form", required=True, help="Название шаблона"
+        )
+        parser.add_argument(
+            "template_type",
+            location="form",
+            required=True,
+            choices=[value.value for value in TemplateTypes],
+            help="Тип шаблона",
+        )
+        parser.add_argument("description", location="form", help="Описание")
+        parser.add_argument("output_file_name", location="form", help="Имя результата")
+        for name, label in (
+            ("is_horizontal", "Альбомная ориентация"),
+            ("is_pdf", "Формировать PDF"),
+            ("is_default", "Шаблон по умолчанию"),
+        ):
+            parser.add_argument(
+                name, type=inputs.boolean, location="form", default=False, help=label
+            )
+        return parser
     parser.add_argument(
         "data",
         type=str,
@@ -174,23 +196,35 @@ def _response(template: Template) -> dict:
 
 def _payload(create: bool) -> tuple[dict, tuple[bytes, str, str | None] | None]:
     if request.mimetype == "multipart/form-data":
-        if set(request.form) - {"data"} or set(request.files) - {"file"}:
-            raise ValueError("Only data and file fields are allowed")
+        allowed_fields = (
+            set(TemplateCreateSchema().fields) | {"data"} if create else {"data"}
+        )
+        if set(request.form) - allowed_fields or set(request.files) - {"file"}:
+            raise ValueError("Unknown form fields")
         if (
-            len(request.form.getlist("data")) > 1
+            any(len(request.form.getlist(key)) > 1 for key in request.form)
             or len(request.files.getlist("file")) > 1
         ):
-            raise ValueError("Only one data field and one file are allowed")
-        try:
-            raw = json.loads(request.form.get("data", "{}"))
-        except ValueError as error:
-            raise ValueError("data must contain a JSON object") from error
+            raise ValueError("Form fields and file must not be repeated")
+        if "data" in request.form:
+            if len(request.form) > 1:
+                raise ValueError("Do not mix data with separate metadata fields")
+            try:
+                raw = json.loads(request.form["data"])
+            except ValueError as error:
+                raise ValueError("data must contain a JSON object") from error
+        else:
+            raw = {
+                key: value
+                for key, value in request.form.to_dict().items()
+                if key not in {"description", "output_file_name"} or value.strip()
+            }
         uploaded = request.files.get("file")
     elif not create and request.is_json:
         raw = request.get_json(silent=True)
         uploaded = None
     else:
-        raise ValueError("Use multipart/form-data with data (JSON) and file")
+        raise ValueError("Use multipart/form-data with metadata fields and file")
     schema = TemplateCreateSchema() if create else TemplateEditSchema()
     data = schema.load(to_plain_dict(raw, "Metadata must be a JSON object"))
     file = None

@@ -3,6 +3,7 @@ from dataclasses import replace
 from importlib.util import module_from_spec, spec_from_file_location
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 from zipfile import ZipFile, ZipInfo
 
@@ -13,6 +14,7 @@ from flask_restx import Api
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.schema import CreateIndex
+from werkzeug.datastructures import MultiDict
 
 from app.adapters.templates.s3_storage import S3TemplateStorage
 from app.adapters.templates.sqlalchemy_repository import SQLAlchemyTemplateRepository
@@ -280,13 +282,9 @@ def upload(client, auth, **metadata):
         "/templates/add",
         headers=auth,
         data={
-            "data": json.dumps(
-                {
-                    "name": "Шаблон",
-                    "template_type": TemplateTypes.WORK_TYPES.value,
-                    **metadata,
-                }
-            ),
+            "name": "Шаблон",
+            "template_type": TemplateTypes.WORK_TYPES.value,
+            **metadata,
             "file": (BytesIO(office_file()), "Шаблон.docx"),
         },
     )
@@ -434,6 +432,20 @@ def test_swagger_and_model_contract(web):
     assert schema["paths"]["/templates/add"]["post"]["consumes"] == [
         "multipart/form-data"
     ]
+    parameters = {
+        row["name"]: row
+        for row in schema["paths"]["/templates/add"]["post"]["parameters"]
+        if row["in"] == "formData"
+    }
+    assert set(parameters) == {
+        "file", "name", "template_type", "description", "output_file_name",
+        "is_horizontal", "is_pdf", "is_default",
+    }
+    assert all(parameters[name]["required"] for name in ("file", "name", "template_type"))
+    assert parameters["template_type"]["enum"] == [value.value for value in TemplateTypes]
+    for name in ("is_horizontal", "is_pdf", "is_default"):
+        assert parameters[name]["type"] == "boolean"
+        assert parameters[name]["default"] is False
     indexes = {index.name: index for index in Templates.__table__.indexes}
     ddl = str(
         CreateIndex(indexes[DEFAULT_TEMPLATE_INDEX]).compile(
@@ -445,6 +457,96 @@ def test_swagger_and_model_contract(web):
     assert Templates.__table__.c.template_type.type.enums == [
         v.value for v in TemplateTypes
     ]
+
+
+def test_upload_separate_fields_and_boolean_values(web):
+    app, client = web
+    response = upload(
+        client, headers(app), description="Описание", output_file_name="Результат",
+        is_horizontal="true", is_pdf="false", is_default="true",
+    )
+    assert response.status_code == 201, response.json
+    item = response.get_json()
+    assert item["description"] == "Описание"
+    assert item["output_file_name"] == "Результат"
+    assert item["is_horizontal"] is True
+    assert item["is_pdf"] is False
+    assert item["is_default"] is True
+
+
+@pytest.mark.parametrize("value", ["", "   ", "\t\r\n"])
+def test_upload_blank_optional_text_is_stored_as_null(web, setup, value):
+    app, client = web
+    response = upload(
+        client, headers(app), description=value, output_file_name=value,
+        is_horizontal="true", is_pdf="false",
+    )
+    assert response.status_code == 201, response.json
+    item = response.get_json()
+    assert item["description"] is None
+    assert item["output_file_name"] is None
+    stored = setup[2].list(None, 0, 100)[0]
+    assert stored.description is None
+    assert stored.output_file_name is None
+    assert stored.is_horizontal is True
+    assert stored.is_pdf is False
+
+
+def test_upload_nonblank_optional_text_keeps_surrounding_whitespace(web):
+    app, client = web
+    response = upload(
+        client, headers(app), description="  Описание  ", output_file_name=" Отчёт ",
+    )
+    assert response.status_code == 201, response.json
+    item = response.get_json()
+    assert item["description"] == "  Описание  "
+    assert item["output_file_name"] == " Отчёт "
+
+
+@pytest.mark.parametrize("field", ["name", "template_type", "is_horizontal", "is_pdf", "is_default"])
+def test_upload_empty_required_and_boolean_fields_are_invalid(web, field):
+    app, client = web
+    response = upload(client, headers(app), **{field: ""})
+    assert response.status_code == 400, response.json
+    assert field in response.get_json()["errors"]
+
+
+@pytest.mark.parametrize(
+    "invalid", ["missing_name", "missing_type", "boolean", "unknown", "duplicate", "mixed"]
+)
+def test_upload_form_validation_preserves_storage(web, setup, invalid):
+    app, client = web
+    data: MultiDict[str, Any] = MultiDict({"name": "Шаблон", "template_type": "work_types"})
+    if invalid == "missing_name":
+        data.pop("name")
+    elif invalid == "missing_type":
+        data.pop("template_type")
+    elif invalid == "boolean":
+        data["is_pdf"] = "invalid"
+    elif invalid == "unknown":
+        data["s3_key"] = "injected"
+    elif invalid == "duplicate":
+        data.add("name", "Другое название")
+    else:
+        data["data"] = '{}'
+    data["file"] = (BytesIO(office_file()), "Шаблон.docx")
+    before = dict(setup[1].objects)
+    response = client.post("/templates/add", headers=headers(app), data=data)
+    assert response.status_code == 400, response.json
+    assert setup[1].objects == before
+
+
+def test_legacy_upload_metadata_remains_supported(web):
+    app, client = web
+    response = client.post(
+        "/templates/add", headers=headers(app),
+        data={
+            "data": json.dumps({"name": "Legacy", "template_type": "work_types"}),
+            "file": (BytesIO(office_file()), "legacy.docx"),
+        },
+    )
+    assert response.status_code == 201, response.json
+    assert response.get_json()["name"] == "Legacy"
 
 
 def test_only_default_index_integrity_error_maps_to_conflict():
