@@ -4,6 +4,8 @@ Revision ID: 20261019150000
 Revises: 20261019140000
 """
 
+import logging
+
 import sqlalchemy as sa
 
 from alembic import op
@@ -12,6 +14,8 @@ revision = "20261019150000"
 down_revision = "20261019140000"
 branch_labels = None
 depends_on = None
+
+logger = logging.getLogger("alembic.runtime.migration")
 
 
 def upgrade() -> None:
@@ -33,36 +37,48 @@ def upgrade() -> None:
         )
         WHERE sm.project_material IS NULL
     """)
+    # Keep independent snapshots, including across downgrade/upgrade cycles.
     op.execute("""
-        DO $$
-        DECLARE
-            unmatched_count bigint;
-            sample_ids text;
-        BEGIN
-            SELECT count(*) INTO unmatched_count
-            FROM shift_report_materials
-            WHERE project_material IS NULL;
-
-            IF unmatched_count > 0 THEN
-                SELECT string_agg(shift_report_material_id::text, ', '
-                                 ORDER BY shift_report_material_id)
-                INTO sample_ids
-                FROM (
-                    SELECT shift_report_material_id
-                    FROM shift_report_materials
-                    WHERE project_material IS NULL
-                    ORDER BY shift_report_material_id
-                    LIMIT 20
-                ) AS unmatched;
-
-                RAISE EXCEPTION
-                    'Migration 20261019150000 blocked: % unmatched shift_report_materials. First 20 IDs: %',
-                    unmatched_count, sample_ids
-                    USING HINT = 'Reconcile these records before retrying alembic upgrade head. No usage records are deleted. See docs/shift-report-materials-rules.md for the full diagnostic query.';
-            END IF;
-        END
-        $$;
+        CREATE TABLE IF NOT EXISTS shift_report_materials_unmatched_archive (
+            archive_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            shift_report_material_id uuid NOT NULL,
+            shift_report uuid NOT NULL,
+            material uuid NOT NULL,
+            project_material uuid,
+            quantity numeric(10, 2) NOT NULL,
+            shift_report_detail uuid,
+            created_at bigint NOT NULL,
+            created_by uuid NOT NULL,
+            archived_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            migration_revision text NOT NULL DEFAULT '20261019150000',
+            restored_at timestamptz
+        )
     """)
+    archive_sql = sa.text("""
+        WITH removed AS (
+            DELETE FROM shift_report_materials WHERE project_material IS NULL
+            RETURNING shift_report_material_id, shift_report, material,
+                      project_material, quantity, shift_report_detail,
+                      created_at, created_by
+        ), archived AS (
+            INSERT INTO shift_report_materials_unmatched_archive (
+                shift_report_material_id, shift_report, material,
+                project_material, quantity, shift_report_detail,
+                created_at, created_by
+            )
+            SELECT shift_report_material_id, shift_report, material,
+                   project_material, quantity, shift_report_detail,
+                   created_at, created_by
+            FROM removed
+            RETURNING archive_id
+        )
+        SELECT count(*) FROM archived
+    """)
+    if op.get_context().as_sql:
+        op.execute(archive_sql)
+    else:
+        count = op.get_bind().execute(archive_sql).scalar_one()
+        logger.info("Archived and removed %s unmatched shift_report_materials", count)
     op.alter_column(
         "shift_report_materials",
         "project_material",
@@ -99,3 +115,33 @@ def downgrade() -> None:
         existing_type=sa.UUID(),
         nullable=True,
     )
+    # The table may be absent on databases upgraded by the earlier cleanup version.
+    op.execute("""
+        DO $$
+        BEGIN
+            IF to_regclass('shift_report_materials_unmatched_archive') IS NOT NULL THEN
+                WITH restored AS (
+                    INSERT INTO shift_report_materials (
+                        shift_report_material_id, shift_report, material,
+                        project_material, quantity, shift_report_detail,
+                        created_at, created_by
+                    )
+                    SELECT shift_report_material_id, shift_report, material,
+                           project_material, quantity, shift_report_detail,
+                           created_at, created_by
+                    FROM shift_report_materials_unmatched_archive
+                    WHERE migration_revision = '20261019150000'
+                      AND restored_at IS NULL
+                    RETURNING shift_report_material_id
+                )
+                UPDATE shift_report_materials_unmatched_archive
+                SET restored_at = CURRENT_TIMESTAMP
+                WHERE migration_revision = '20261019150000'
+                  AND restored_at IS NULL
+                  AND shift_report_material_id IN (
+                      SELECT shift_report_material_id FROM restored
+                  );
+            END IF;
+        END
+        $$;
+    """)

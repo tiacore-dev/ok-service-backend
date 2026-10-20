@@ -15,7 +15,7 @@ import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.adapters.project_materials.mappers import project_material_dict_to_entity
@@ -492,8 +492,8 @@ def load_migration(filename):
     "unmatched_reason",
     ["no_detail", "no_project_work", "missing_material", "other_project"],
 )
-def test_migration_rejects_unmatched_without_losing_data(
-    link_session, scenario, unmatched_reason
+def test_migration_matches_usage_and_deletes_only_unmatched(
+    link_session, scenario, unmatched_reason, caplog
 ):
     specification(link_session, scenario, created_at=20, price="100")
     earliest = specification(link_session, scenario, created_at=10)
@@ -615,38 +615,55 @@ def test_migration_rejects_unmatched_without_losing_data(
         )
         assert mapped[UUID(linked["shift_report_material_id"])] == selected
         assert mapped[UUID(unlinked["shift_report_material_id"])] is None
-        nullable_before = connection.execute(
-            text("SELECT * FROM shift_report_materials ORDER BY shift_report_material_id")
-        ).all()
-        with pytest.raises(DBAPIError) as error, connection.begin_nested():
+        with caplog.at_level("INFO", logger="alembic.runtime.migration"):
             final.upgrade()
-        assert "Migration 20261019150000 blocked: 1 unmatched" in str(error.value)
-        assert unlinked["shift_report_material_id"] in str(error.value)
-        assert "Reconcile these records before retrying" in str(error.value)
+        assert "Archived and removed 1 unmatched shift_report_materials" in caplog.text
+        archived = connection.execute(text(
+            "SELECT * FROM shift_report_materials_unmatched_archive"
+        )).mappings().one()
+        original_unlinked = next(
+            row for row in before
+            if str(row._mapping["shift_report_material_id"])
+            == unlinked["shift_report_material_id"]
+        )
+        for field, value in original_unlinked._mapping.items():
+            assert archived[field] == value
+        assert archived["project_material"] is None
+        assert archived["migration_revision"] == "20261019150000"
+        assert archived["archived_at"] is not None
+        assert archived["restored_at"] is None
+        assert inspect(connection).get_foreign_keys(
+            "shift_report_materials_unmatched_archive"
+        ) == []
         columns = {
             column["name"]: column
             for column in inspect(connection).get_columns("shift_report_materials")
         }
-        assert "material" in columns
-        assert columns["project_material"]["nullable"] is True
-        assert connection.execute(
-            text("SELECT * FROM shift_report_materials ORDER BY shift_report_material_id")
-        ).all() == nullable_before
+        assert "material" not in columns
+        assert columns["project_material"]["nullable"] is False
+        remaining = connection.execute(
+            text("SELECT * FROM shift_report_materials")
+        ).mappings().one()
+        original = next(
+            row
+            for row in before
+            if str(row._mapping["shift_report_material_id"])
+            == linked["shift_report_material_id"]
+        )
+        assert remaining["project_material"] == selected
+        for field, value in original._mapping.items():
+            if field != "material":
+                assert remaining[field] == value
+        # Downgrade restores the legacy schema and all archived usage.
+        final.downgrade()
         initial.downgrade()
-        assert connection.execute(
+        restored = connection.execute(
             text("SELECT * FROM shift_report_materials ORDER BY shift_report_material_id")
-        ).all() == before
-        # A direct upgrade through both revisions also rolls back schema changes.
-        with pytest.raises(DBAPIError), connection.begin_nested():
-            initial.upgrade()
-            final.upgrade()
-        assert "project_material" not in {
-            column["name"]
-            for column in inspect(connection).get_columns("shift_report_materials")
-        }
-        assert connection.execute(
-            text("SELECT * FROM shift_report_materials ORDER BY shift_report_material_id")
-        ).all() == before
+        ).all()
+        assert restored == before
+        assert connection.execute(text(
+            "SELECT restored_at FROM shift_report_materials_unmatched_archive"
+        )).scalar_one() is not None
 
 
 @pytest.mark.parametrize("with_usage", [False, True])
@@ -710,23 +727,14 @@ def test_migration_with_resolved_usage_preserves_data_and_round_trips(
         }
 
 
-def test_migration_can_retry_after_manual_reconciliation(link_session, scenario):
+def test_migration_preserves_manual_link_without_detail(link_session, scenario):
     row = specification(link_session, scenario)
     actual = add_actual(link_session, scenario, shift_report_detail=None)
     connection = link_session.connection()
     final = load_migration("20261019150000_require_shift_project_material.py")
     with Operations.context(MigrationContext.configure(connection)):
         final.downgrade()
-        connection.execute(
-            text("UPDATE shift_report_materials SET project_material = NULL")
-        )
         before = connection.execute(text("SELECT * FROM shift_report_materials")).one()
-        with pytest.raises(DBAPIError), connection.begin_nested():
-            final.upgrade()
-        connection.execute(
-            text("UPDATE shift_report_materials SET project_material = :material"),
-            {"material": row.project_material_id},
-        )
         final.upgrade()
         after = connection.execute(
             text("SELECT * FROM shift_report_materials")
@@ -734,17 +742,20 @@ def test_migration_can_retry_after_manual_reconciliation(link_session, scenario)
         assert str(after["shift_report_material_id"]) == actual["shift_report_material_id"]
         assert after["project_material"] == row.project_material_id
         for field, value in before._mapping.items():
-            if field not in {"material", "project_material"}:
+            if field != "material":
                 assert after[field] == value
 
 
-def test_migration_diagnostics_count_all_rows_and_limit_examples(link_session, scenario):
+@pytest.mark.parametrize("signed,deleted", [(True, False), (False, False), (True, True)])
+def test_migration_removes_all_unmatched_regardless_of_report_status(
+    link_session, scenario, signed, deleted
+):
     specification(link_session, scenario)
-    records = [
+    for _ in range(21):
         add_actual(link_session, scenario, shift_report_detail=None)
-        for _ in range(21)
-    ]
-    ids = sorted(record["shift_report_material_id"] for record in records)
+    scenario.report.signed = signed
+    scenario.report.deleted = deleted
+    link_session.flush()
     connection = link_session.connection()
     final = load_migration("20261019150000_require_shift_project_material.py")
     with Operations.context(MigrationContext.configure(connection)):
@@ -752,12 +763,139 @@ def test_migration_diagnostics_count_all_rows_and_limit_examples(link_session, s
         connection.execute(
             text("UPDATE shift_report_materials SET project_material = NULL")
         )
-        with pytest.raises(DBAPIError) as error, connection.begin_nested():
-            final.upgrade()
-        message = str(error.value.orig)
-        assert "21 unmatched shift_report_materials" in message
-        assert ", ".join(ids[:20]) in message
-        assert ids[20] not in message
+        final.upgrade()
+        assert connection.execute(
+            text("SELECT count(*) FROM shift_report_materials")
+        ).scalar_one() == 0
+        # Removing usage does not remove reports, their details or specifications.
+        for table in ("shift_reports", "shift_report_details", "project_materials"):
+            assert connection.execute(
+                text(f"SELECT count(*) FROM {table}")
+            ).scalar_one() == 1
+        final.downgrade()
         assert connection.execute(
             text("SELECT count(*) FROM shift_report_materials")
         ).scalar_one() == 21
+        assert connection.execute(text("""
+            SELECT count(*) FROM shift_report_materials_unmatched_archive
+            WHERE restored_at IS NOT NULL
+        """)).scalar_one() == 21
+
+
+def test_migration_cleanup_rolls_back_with_transaction(link_session, scenario):
+    specification(link_session, scenario)
+    add_actual(link_session, scenario)
+    unlinked = add_actual(link_session, scenario, shift_report_detail=None)
+    connection = link_session.connection()
+    final = load_migration("20261019150000_require_shift_project_material.py")
+    with Operations.context(MigrationContext.configure(connection)):
+        final.downgrade()
+        connection.execute(
+            text("""
+                UPDATE shift_report_materials SET project_material = NULL
+                WHERE shift_report_material_id = :id
+            """),
+            {"id": UUID(unlinked["shift_report_material_id"])},
+        )
+        before = connection.execute(
+            text("SELECT * FROM shift_report_materials ORDER BY shift_report_material_id")
+        ).all()
+        with pytest.raises(RuntimeError, match="abort migration"), connection.begin_nested():
+            final.upgrade()
+            assert connection.execute(
+                text("SELECT count(*) FROM shift_report_materials")
+            ).scalar_one() == 1
+            raise RuntimeError("abort migration")
+        assert connection.execute(
+            text("SELECT * FROM shift_report_materials ORDER BY shift_report_material_id")
+        ).all() == before
+        columns = {
+            column["name"]: column
+            for column in inspect(connection).get_columns("shift_report_materials")
+        }
+        assert "material" in columns
+        assert columns["project_material"]["nullable"] is True
+
+
+def test_archive_keeps_history_across_upgrade_downgrade_cycles(link_session, scenario):
+    specification(link_session, scenario)
+    add_actual(link_session, scenario, shift_report_detail=None)
+    connection = link_session.connection()
+    final = load_migration("20261019150000_require_shift_project_material.py")
+    with Operations.context(MigrationContext.configure(connection)):
+        final.downgrade()
+        connection.execute(text("UPDATE shift_report_materials SET project_material = NULL"))
+        before = connection.execute(text("SELECT * FROM shift_report_materials")).one()
+        for cycle in range(1, 3):
+            final.upgrade()
+            assert connection.execute(text("""
+                SELECT count(*) FROM shift_report_materials_unmatched_archive
+                WHERE restored_at IS NULL
+            """)).scalar_one() == 1
+            final.downgrade()
+            assert connection.execute(text("SELECT * FROM shift_report_materials")).one() == before
+            assert connection.execute(text("""
+                SELECT count(*) FROM shift_report_materials_unmatched_archive
+                WHERE restored_at IS NOT NULL
+            """)).scalar_one() == cycle
+
+
+@pytest.mark.parametrize("conflict", ["uuid", "shift_report", "material", "created_by", "shift_report_detail"])
+def test_archive_restore_conflicts_preserve_archive_and_schema(
+    link_session, scenario, conflict
+):
+    specification(link_session, scenario)
+    actual = add_actual(link_session, scenario, shift_report_detail=None)
+    connection = link_session.connection()
+    final = load_migration("20261019150000_require_shift_project_material.py")
+    with Operations.context(MigrationContext.configure(connection)):
+        final.downgrade()
+        connection.execute(text("UPDATE shift_report_materials SET project_material = NULL"))
+        final.upgrade()
+        if conflict == "uuid":
+            add_actual(
+                link_session, scenario,
+                shift_report_material_id=UUID(actual["shift_report_material_id"]),
+                shift_report_detail=None,
+            )
+        else:
+            # An archive has no FKs; a referenced entity may no longer exist.
+            connection.execute(
+                text(f"UPDATE shift_report_materials_unmatched_archive SET {conflict} = :id"),
+                {"id": uuid4()},
+            )
+        archived = connection.execute(text(
+            "SELECT * FROM shift_report_materials_unmatched_archive"
+        )).one()
+        with pytest.raises(IntegrityError), connection.begin_nested():
+            final.downgrade()
+        assert connection.execute(text(
+            "SELECT * FROM shift_report_materials_unmatched_archive"
+        )).one() == archived
+        assert "material" not in {
+            column["name"] for column in inspect(connection).get_columns("shift_report_materials")
+        }
+
+
+def test_failed_archive_write_rolls_back_usage_deletion(link_session, scenario):
+    specification(link_session, scenario)
+    connection = link_session.connection()
+    final = load_migration("20261019150000_require_shift_project_material.py")
+    with Operations.context(MigrationContext.configure(connection)):
+        final.downgrade()
+        final.upgrade()  # Create an empty archive.
+        actual = add_actual(link_session, scenario, shift_report_detail=None)
+        final.downgrade()
+        connection.execute(text("UPDATE shift_report_materials SET project_material = NULL"))
+        connection.execute(text("""
+            ALTER TABLE shift_report_materials_unmatched_archive
+            ADD CONSTRAINT reject_archive_write CHECK (quantity < 0)
+        """))
+        with pytest.raises(IntegrityError), connection.begin_nested():
+            final.upgrade()
+        assert str(connection.execute(text(
+            "SELECT shift_report_material_id FROM shift_report_materials"
+        )).scalar_one()) == actual["shift_report_material_id"]
+        assert connection.execute(text(
+            "SELECT count(*) FROM shift_report_materials_unmatched_archive"
+        )).scalar_one() == 0
