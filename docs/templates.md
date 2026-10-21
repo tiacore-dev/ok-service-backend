@@ -2,11 +2,11 @@
 
 Шаблоны — общий справочник сервиса. CRUD, справочники типов и параметров доступны
 по JWT ролям `admin` и `manager` либо по API-ключу с разрешением на конкретный
-HTTP-маршрут. `POST /templates/generate` теперь также ограничен JWT-ролями `admin`/`manager`
-либо API-ключом с `templates-generate`. Все операции объединены в Swagger-группу
-`templates`; пути и API-key permissions сохранены.
+HTTP-маршрут. `POST /templates/generate-new` теперь также ограничен JWT-ролями `admin`/`manager`
+либо API-ключом с `templates-generate-new`. Все операции объединены в Swagger-группу
+`templates`. Старый `/templates/generate` сохранён отдельно для обратной совместимости.
 
-Backend выбирает сохранённый шаблон и собирает печатные данные сам.
+Для `/templates/generate-new` backend выбирает сохранённый шаблон и собирает печатные данные сам.
 Контракт генерации описан ниже и в [template-generation-design.md](./template-generation-design.md).
 
 ## Модель и правила
@@ -49,7 +49,8 @@ MIME-тип. Значения этих полей и `s3_key` клиент из�
 | POST | `/templates/add` | Загрузка одного шаблона, HTTP 201, объект метаданных |
 | GET | `/templates/all` | `{"templates": [...]}` |
 | GET | `/templates/types/all` | Справочник типов: `{"template_types": [{"value": "work_types", "label": "Виды работ"}, ...]}` |
-| POST | `/templates/generate` | Поток DOCX/XLSX/PDF, HTTP 200 |
+| POST | `/templates/generate` | Прежняя генерация по готовому document_data, HTTP 200, output.docx |
+| POST | `/templates/generate-new` | Поток DOCX/XLSX/PDF, HTTP 200 |
 | GET | `/templates/params?template_type=payroll` | `{template_type, parameters, schema}` для конструктора |
 | GET | `/templates/{id}/view` | Объект метаданных |
 | PATCH | `/templates/{id}/edit` | Обновлённый объект метаданных |
@@ -102,9 +103,82 @@ nullable-полей очищают их, `false` снимает boolean-флаг
 401, запрещённая роль — 403, неизвестный шаблон — 404, конфликт дефолта — 409,
 превышение лимита файла — 413, недоступность S3 при upload/download — 503.
 
-## Генерация
+## Прежняя генерация и обратная совместимость
 
-`POST /templates/generate` принимает JSON:
+По согласованию 21.10.2026 `POST /templates/generate` восстановлен по реализации
+до коммита `0d68046`. Новый контракт перенесён в `POST /templates/generate-new`.
+
+Старый маршрут принимает JSON:
+
+```json
+{
+  "file_name": "template.docx",
+  "name": "Отчёт",
+  "is_pdf": false,
+  "document_data": {"title": "Готовые данные клиента"}
+}
+```
+
+Обязательны `name` (строка) и `document_data` (объект). Хотя бы одно из полей
+`url` или `file_name` должно быть непустым. Оба поля разрешены одновременно,
+допускают `null` и передаются старому генератору, если не равны `null`.
+`is_pdf` по умолчанию `false`; `null` недопустим. Неизвестные поля игнорируются,
+как в исторической схеме. Проверки типов и boolean сохраняют Marshmallow-семантику.
+Шаблон из БД не выбирается, S3 и сборщики данных не вызываются.
+
+Доступ: любая авторизованная JWT-роль либо API-ключ с прежним правом
+`templates-generate`. Успех — HTTP 200, имя `output.docx` и MIME
+`application/vnd.openxmlformats-officedocument.wordprocessingml.document`,
+включая запрос с `is_pdf=true`. Байты возвращаются без преобразования.
+Валидация возвращает 400, отсутствие JWT — 401, отсутствие права ключа — 403,
+ошибка старого сервиса или отсутствие его URL — прежний JSON с HTTP 500.
+Старый HTTP-клиент сохраняет payload и критерий `response.ok`, без нового
+`x-api-key` и `stream`. Для подключения и чтения установлен timeout 120 секунд
+(не общий лимит времени генерации). Ошибки сериализации и генератора возвращают
+общий HTTP 500 без внутренних подробностей; HTTP 400 относится к разбору запроса. Новый маршрут сохраняет текущие правила
+admin/manager, отдельное право ключа, сбор данных и потоковый ответ.
+
+## Настройки двух генераторов и развёртывание
+
+- `TEMPLATE_SERVICE_OLD_URL`: полный URL старого генератора. Перенесите прежний
+  адрес из серверной конфигурации, заменив Docker hostname на
+  `template-service-old`; порт старого образа — 5000. Путь и query сохраняются.
+  Прежнее значение `.env` не хранится в Git, поэтому путь не назначается автоматически.
+- `TEMPLATE_SERVICE_NEW_URL=http://template-service-new:8000/api/docs/generate`:
+  полный URL нового генератора.
+- `TEMPLATE_SERVICE_API_KEY`: необязательный `x-api-key` только нового клиента.
+  Оба URL обязательны для соответствующей генерации; автоматической подмены
+  одним сервисом другого нет. Прежний `TEMPLATE_SERVICE_URL` больше не читается.
+
+В `docker-compose.app.yaml` два отдельных сервиса в сети `ok_network`:
+`template-service-old` с историческим образом
+`${DOCKERHUB_USERNAME}/template-service:latest` (до `7773a28`), внутренним портом `5000` и без публикации порта на хосте;
+`template-service-new` с текущим образом
+`${TEMPLATE_SERVICE_CI_REGISTRY_IMAGE}/template-service:${TEMPLATE_SERVICE_TAG}`.
+Образы не закрепляются на новые версии в рамках этого изменения.
+Оба сервиса используют прежние mounts `.env` и `logs`. Backend обращается к
+старому генератору по `template-service-old:5000` через `ok_network`.
+`expose: ["5000"]` документирует внутренний порт; порт на хосте не открывается.
+
+До развёртывания заполните обе URL-настройки на сервере и настройки образа
+нового сервиса из `example.env`; доступ к Registry должен быть настроен.
+Проверка Compose и запуск (в production добавьте `-f docker-compose.prod.yaml`):
+
+```bash
+docker compose -f docker-compose.app.yaml config --quiet
+docker compose -f docker-compose.app.yaml pull web template-service-old template-service-new
+docker compose -f docker-compose.app.yaml up -d web template-service-old template-service-new
+```
+
+Workflow деплоя также обновляет оба генератора вместе с backend. Прежний контейнер
+`template-service` после перехода можно остановить отдельно, убедившись, что
+его больше не используют другие клиенты. Автоматически он не удаляется.
+Новых миграций нет. Bootstrap добавит `templates-generate-new`, но существующим
+API-ключам новое право нужно назначить явно; `templates-generate` остаётся прежним.
+
+## Новая генерация
+
+`POST /templates/generate-new` принимает JSON:
 
 ```json
 {
@@ -184,8 +258,8 @@ HTTP 200 возвращает поток файла без записи в attac
 Ошибка после начала передачи файла прерывает поток;
 изменить уже отправленный HTTP-статус невозможно.
 
-`TEMPLATE_SERVICE_URL` по-прежнему содержит **полный URL endpoint**, например
-`http://template-service:8000/api/docs/generate`; путь автоматически не добавляется.
+`TEMPLATE_SERVICE_NEW_URL` содержит **полный URL endpoint**, например
+`http://template-service-new:8000/api/docs/generate`; путь автоматически не добавляется.
 Новая необязательная настройка `TEMPLATE_SERVICE_API_KEY` передаётся как
 `x-api-key`, если задана. Timeout подключения/чтения HTTP-клиента — 30 секунд;
 это не общий лимит времени загрузки. Новых миграций нет.
@@ -227,6 +301,7 @@ nullable-типы, числовые ограничения и enum, русски
 | `templates-delete-hard` | `DELETE /templates/{template_id}/delete/hard` |
 | `templates-download` | `GET /templates/{template_id}/download` |
 | `templates-generate` | `POST /templates/generate` |
+| `templates-generate-new` | `POST /templates/generate-new` |
 
 Bootstrap при старте добавляет отсутствующие типы разрешений идемпотентно.
 Существующие ключи автоматически не получают новые права: нужные permissions

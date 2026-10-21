@@ -9,6 +9,7 @@ from app.database.models import ApiKeys, KeyPermissionTypeRelations, PermissionT
 from app.database.time_utils import utc_epoch_milliseconds
 from app.use_cases.templates.manage_templates import TemplateUseCase
 from app.utils.api_key_permissions import set_api_key_permissions
+from app.web.template_generation import legacy_routes
 from app.web.template_generation import routes as generation_routes
 from app.web.templates import routes
 from tests.test_stored_templates import (
@@ -27,6 +28,7 @@ OPERATIONS = [
     ("PATCH", "/templates/{template_id}/edit", 200),
     ("DELETE", "/templates/{template_id}/delete/hard", 200),
     ("GET", "/templates/{template_id}/download", 200),
+    ("POST", "/templates/generate-new", 200),
     ("POST", "/templates/generate", 200),
 ]
 
@@ -63,6 +65,12 @@ def template_key_context(db_session, monkeypatch):
     dependency = Dependencies()
     generation = GenerateTemplateUseCase(dependency, dependency, dependency, dependency)
     monkeypatch.setattr(generation_routes, "_use_case", lambda: generation)
+
+    class LegacyGenerator:
+        def generate(self, command):
+            return b"legacy-generated"
+
+    monkeypatch.setattr(legacy_routes, "_generator", LegacyGenerator)
     key = ApiKeys(
         api_key_id=uuid4(), name=f"template-key-{uuid4()}", token=str(uuid4())
     )
@@ -84,6 +92,12 @@ def call(client, method, route, identifier, token):
     elif route == "/templates/params":
         kwargs["query_string"] = {"template_type": "payroll"}
     elif route == "/templates/generate":
+        kwargs["json"] = {
+            "name": "Legacy",
+            "file_name": "legacy.docx",
+            "document_data": {},
+        }
+    elif route == "/templates/generate-new":
         kwargs["json"] = {"template_type": "work_types", "template_id": str(identifier)}
     return client.open(route.format(template_id=identifier), method=method, **kwargs)
 
@@ -143,3 +157,27 @@ def test_params_rejects_unusable_or_unrelated_keys(
         "invalid" if key_state == "invalid" else key.token,
     )
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "granted,requested",
+    [
+        ("/templates/generate", "/templates/generate-new"),
+        ("/templates/generate-new", "/templates/generate"),
+    ],
+)
+def test_generation_permissions_are_independent(
+    client, db_session, template_key_context, granted, requested
+):
+    identifier, key = template_key_context
+    permission = (
+        db_session.query(PermissionTypes).filter_by(description=f"POST {granted}").one()
+    )
+    db_session.add(
+        KeyPermissionTypeRelations(
+            api_key_id=key.api_key_id, permission_type_id=permission.permission_type_id
+        )
+    )
+    db_session.commit()
+    assert call(client, "POST", granted, identifier, key.token).status_code == 200
+    assert call(client, "POST", requested, identifier, key.token).status_code == 403

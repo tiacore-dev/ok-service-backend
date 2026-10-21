@@ -421,6 +421,7 @@ def test_swagger_and_model_contract(web):
     _, client = web
     schema = client.get("/swagger.json").json
     assert "/templates/generate" in schema["paths"]
+    assert "/templates/generate-new" in schema["paths"]
     assert "/templates/{template_id}/download" in schema["paths"]
     assert schema["definitions"]["StoredTemplateCreate"]["required"] == [
         "name",

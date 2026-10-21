@@ -16,6 +16,7 @@ API_KEY_PERMISSIONS = (
     ("templates-delete-hard", "DELETE /templates/{template_id}/delete/hard"),
     ("templates-download", "GET /templates/{template_id}/download"),
     ("templates-generate", "POST /templates/generate"),
+    ("templates-generate-new", "POST /templates/generate-new"),
     ("places-add", "POST /places/add"),
     ("places-delete-hard", "DELETE /places/{place_id}/delete/hard"),
     ("places-delete-soft", "PATCH /places/{place_id}/delete/soft"),

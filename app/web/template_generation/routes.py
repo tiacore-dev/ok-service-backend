@@ -85,7 +85,7 @@ for model in (parameters_model, template_generate_model):
 
 def _generator():
     return HTTPTemplateGenerator(
-        current_app.config.get("TEMPLATE_SERVICE_URL"),
+        current_app.config.get("TEMPLATE_SERVICE_NEW_URL"),
         current_app.config.get("TEMPLATE_SERVICE_API_KEY"),
     )
 
@@ -101,8 +101,8 @@ def _use_case():
     )
 
 
-@template_ns.route("/generate")
-class TemplateGenerate(Resource):
+@template_ns.route("/generate-new")
+class TemplateGenerateNew(Resource):
     @template_auth_required
     @admin_or_manager_required
     @template_ns.expect(template_generate_model)

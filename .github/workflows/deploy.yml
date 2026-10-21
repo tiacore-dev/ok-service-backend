@@ -143,7 +143,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
             cd $DEPLOY_PATH
-            docker compose $COMPOSE_FILES pull web
+            docker compose $COMPOSE_FILES pull web template-service-old template-service-new
             docker compose $COMPOSE_FILES run --rm web alembic upgrade head
           EOF
 
@@ -153,7 +153,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
             cd $DEPLOY_PATH
-            docker compose $COMPOSE_FILES up -d --force-recreate web
+            docker compose $COMPOSE_FILES up -d --force-recreate web template-service-old template-service-new
             docker image prune -f > /dev/null
           EOF
 

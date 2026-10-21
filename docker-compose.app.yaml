@@ -16,15 +16,29 @@ services:
     networks:
       - ok_network
 
-  template-service:
+  template-service-new:
     image: ${TEMPLATE_SERVICE_CI_REGISTRY_IMAGE}/template-service:${TEMPLATE_SERVICE_TAG}  
-    container_name: template-service
+    container_name: template-service-new
     tty: true
     stdin_open: true
     restart: always
     volumes:
       - ./logs:/app/logs  
       - .env:/app/.env 
+    networks:
+      - ok_network
+
+  template-service-old:
+    image: ${DOCKERHUB_USERNAME}/template-service:latest
+    container_name: template-service-old
+    tty: true
+    stdin_open: true
+    restart: always
+    expose:
+      - "5000"
+    volumes:
+      - ./logs:/app/logs
+      - .env:/app/.env
     networks:
       - ok_network
 

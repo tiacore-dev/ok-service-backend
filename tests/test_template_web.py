@@ -58,7 +58,7 @@ def headers(app, role):
 def test_generation_role_gate(generation_web, role, status):
     app, client, dependencies = generation_web
     result = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, role),
         json={"template_type": "work_types"},
     )
@@ -74,7 +74,7 @@ def test_generation_requires_authentication(generation_web):
     _, client, dependencies = generation_web
     assert (
         client.post(
-            "/templates/generate", json={"template_type": "work_types"}
+            "/templates/generate-new", json={"template_type": "work_types"}
         ).status_code
         == 401
     )
@@ -132,7 +132,7 @@ def test_generation_requires_authentication(generation_web):
 def test_invalid_requests_return_400_without_generation(generation_web, payload):
     app, client, dependencies = generation_web
     result = client.post(
-        "/templates/generate", headers=headers(app, "admin"), json=payload
+        "/templates/generate-new", headers=headers(app, "admin"), json=payload
     )
     assert result.status_code == 400, result.json
     assert dependencies.command is None
@@ -145,7 +145,7 @@ def test_maximum_period_end_returns_400_before_template_lookup(generation_web, k
     if kind == "payroll":
         parameters["user"] = str(uuid4())
     response = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, "admin"),
         json={"template_type": kind, "parameters": parameters},
     )
@@ -191,7 +191,7 @@ def test_generation_missing_default_and_mismatched_type(generation_web):
         dependencies.template, template_type=TemplateTypes.PAYROLL
     )
     result = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, "manager"),
         json={"template_type": "work_types"},
     )
@@ -199,7 +199,7 @@ def test_generation_missing_default_and_mismatched_type(generation_web):
     assert "не совпадает" in result.json["msg"]
     dependencies.template = None
     result = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, "manager"),
         json={"template_type": "work_types"},
     )
@@ -224,7 +224,7 @@ def test_generation_errors(generation_web, monkeypatch, generation_logs, error, 
 
     monkeypatch.setattr(routes, "_use_case", Failure)
     result = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, "admin"),
         json={"template_type": "work_types"},
     )
@@ -248,7 +248,7 @@ def test_generation_errors(generation_web, monkeypatch, generation_logs, error, 
 
 def test_generation_requires_body(generation_web):
     app, client, _ = generation_web
-    result = client.post("/templates/generate", headers=headers(app, "admin"))
+    result = client.post("/templates/generate-new", headers=headers(app, "admin"))
     assert result.status_code == 400
     assert result.json == {"msg": "Request body is required"}
 
@@ -274,7 +274,7 @@ def test_response_streams_and_closes_upstream(generation_web, monkeypatch):
 
     monkeypatch.setattr(routes, "_use_case", Stream)
     result = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, "admin"),
         json={"template_type": "work_types"},
         buffered=False,
@@ -295,7 +295,7 @@ def test_all_template_routes_share_swagger_group(generation_web):
         for path, methods in schema["paths"].items()
         if path.startswith("/templates/")
     }
-    assert len(paths) == 9
+    assert len(paths) == 10
     for methods in paths.values():
         for method, operation in methods.items():
             if method in {"get", "post", "patch", "delete"}:
@@ -324,7 +324,7 @@ def test_registry_invalid_parameters_return_400_before_reading_templates(
 ):
     app, client, dependencies = generation_web
     response = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, "admin"),
         json={
             "template_type": "shift_report_list",
@@ -377,7 +377,7 @@ def test_registry_generates_file_with_normalized_period_and_filters(
     )
     monkeypatch.setattr(routes, "_use_case", lambda: use_case)
     response = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, "manager"),
         json={
             "template_type": "shift_report_list",
@@ -427,7 +427,7 @@ def test_invalid_backend_print_data_returns_generic_500_and_logs_cause(
     )
     monkeypatch.setattr(routes, "_use_case", lambda: use_case)
     response = client.post(
-        "/templates/generate",
+        "/templates/generate-new",
         headers=headers(app, "admin"),
         json={"template_type": "work_types"},
     )
