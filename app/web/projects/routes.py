@@ -492,7 +492,12 @@ class ProjectSpecificationImport(Resource):
                 role=str(current_user.get("role") or ""),
             )
             ImportProjectSpecificationUseCase(
-                SQLAlchemyProjectSpecificationImportRepository()
+                SQLAlchemyProjectSpecificationImportRepository(
+                    statistics=RedisProjectWorkStatistics(current_app.extensions["redis"]),
+                    material_statistics=RedisProjectMaterialStatistics(
+                        current_app.extensions["redis"]
+                    ),
+                )
             ).execute(
                 _parse_project_id(project_id),
                 ProjectSpecificationImportCommand(works, materials),
