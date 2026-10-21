@@ -5,6 +5,7 @@ from app.domain.projects import ProjectStatus
 from app.utils.helpers import generate_swagger_model
 from app.routes.models.place_models import place_model
 from app.web.attachments.contract import attachment_view_model
+from app.web.fields import NestedMap
 
 project_create_model = generate_swagger_model(ProjectCreateSchema(), "ProjectCreate")
 project_edit_model = generate_swagger_model(ProjectEditSchema(), "ProjectEdit")
@@ -116,13 +117,13 @@ project_stats_response = Model(
     "ProjectStatsResponse",
     {
         "msg": fields.String(required=True, description="Response message"),
-        "stats": fields.Wildcard(
-            fields.Nested(project_stats_model),
+        "stats": NestedMap(
+            project_stats_model,
             required=True,
             description="Statistics grouped by work_id",
         ),
-        "material_stats": fields.Wildcard(
-            fields.Nested(project_material_stats_model),
+        "material_stats": NestedMap(
+            project_material_stats_model,
             required=True,
             description="Statistics grouped by material_id",
         ),

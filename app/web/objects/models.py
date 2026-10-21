@@ -1,9 +1,10 @@
-from flask_restx import Model, fields, marshal, reqparse
+from flask_restx import Model, fields, reqparse
 
 from app.routes.models.place_models import place_model
 from app.schemas.object_schemas import ObjectCreateSchema, ObjectEditSchema
 from app.utils.helpers import generate_swagger_model
 from app.web.attachments.contract import attachment_view_model
+from app.web.fields import EmptyPreservingNested, NestedMap
 
 object_create_model = generate_swagger_model(ObjectCreateSchema(), "ObjectCreate")
 object_edit_model = generate_swagger_model(ObjectEditSchema(), "ObjectEdit")
@@ -122,23 +123,39 @@ material_stats_item_model = Model(
         "material_name": fields.String(allow_null=True),
     },
 )
+work_stats_item_model = Model(
+    "WorkStatsItem",
+    {
+        **work_stats_summary_model,
+        "project_work_name": fields.String(allow_null=True),
+    },
+)
 object_project_stats_model = Model(
     "ObjectProjectStats",
     {
         "project_id": fields.String(required=True),
         "name": fields.String(required=True),
-        "stats": fields.Wildcard(
-            fields.Nested(work_stats_summary_model), required=True
+        "stats": EmptyPreservingNested(work_stats_summary_model, required=True),
+        "material_stats": NestedMap(material_stats_item_model, required=True),
+    },
+)
+object_project_stats_details_model = Model(
+    "ObjectProjectStatsDetails",
+    {
+        "project_id": fields.String(required=True),
+        "name": fields.String(required=True),
+        "stats": NestedMap(
+            work_stats_item_model, required=True
         ),
-        "material_stats": fields.Wildcard(
-            fields.Nested(material_stats_item_model), required=True
+        "material_stats": NestedMap(
+            material_stats_item_model, required=True
         ),
     },
 )
 object_stats_payload = Model(
     "ObjectStatsPayload",
     {
-        "total": fields.Nested(work_stats_summary_model, required=True),
+        "total": EmptyPreservingNested(work_stats_summary_model, required=True),
         "material_totals": fields.Nested(material_stats_summary_model, required=True),
         "projects": fields.List(
             fields.Nested(object_project_stats_model), required=True
@@ -156,14 +173,14 @@ object_stats_response = Model(
 object_stats_details_payload = Model(
     "ObjectStatsDetailsPayload",
     {
-        "total": fields.Wildcard(
-            fields.Nested(work_stats_summary_model), required=True
+        "total": NestedMap(
+            work_stats_item_model, required=True
         ),
-        "material_totals": fields.Wildcard(
-            fields.Nested(material_stats_item_model), required=True
+        "material_totals": NestedMap(
+            material_stats_item_model, required=True
         ),
         "projects": fields.List(
-            fields.Nested(object_project_stats_model), required=True
+            fields.Nested(object_project_stats_details_model), required=True
         ),
     },
 )
@@ -220,31 +237,10 @@ project_leader_material_fact_item = Model(
 )
 
 
-class _MonthlyStatistics(fields.Nested):
-    """Marshal month maps without shared iteration state;
-    register item models as Nested."""
+class _MonthlyStatistics(NestedMap):
+    """Dictionary of monthly statistics with registered item models."""
 
-    def output(self, key, obj, ordered=False, **kwargs):
-        value = fields.get_value(
-            self.attribute if self.attribute is not None else key, obj
-        )
-        if value is None:
-            return {}
-        if not isinstance(value, dict):
-            raise fields.MarshallingError("Monthly statistics must be a dictionary")
-        return {
-            month: marshal(item, self.nested, ordered=ordered)
-            for month, item in value.items()
-        }
-
-    def schema(self):
-        model = self.nested
-        if not isinstance(model, Model):
-            raise fields.MarshallingError("Monthly statistics require a named Model")
-        schema = fields.Raw.schema(self)
-        schema["type"] = "object"
-        schema["additionalProperties"] = {"$ref": f"#/definitions/{model.name}"}
-        return schema
+    label = "Monthly statistics"
 
 
 project_leader_fact_stats = _MonthlyStatistics(project_leader_fact_item, required=True)

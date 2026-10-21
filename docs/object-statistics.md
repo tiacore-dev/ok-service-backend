@@ -11,6 +11,24 @@
 `total` представлены словарём с ключами `work_id` и детальными показателями,
 как в `GET /projects/{project_id}/get-stat`.
 
+Сводные и детальные ответы используют разные модели проектов:
+
+| Маршрут | `total` | `projects[].stats` | Материалы |
+| --- | --- | --- | --- |
+| `/objects/{object_id}/get-stat` | Сводные показатели | Сводные показатели | `material_totals` — сводка; `projects[].material_stats` — словарь `material_id` |
+| `/objects/{object_id}/get-stat-details` | Словарь `work_id` | Словарь `work_id` | `material_totals` и `projects[].material_stats` — словари `material_id` |
+| `/project-leaders/{project_leader_id}/get-stat` | Сводные показатели | Сводные показатели | Как у сводки объекта |
+| `/project-leaders/{project_leader_id}/get-stat-details` | Словарь `work_id` | Словарь `work_id` | Как у детализации объекта |
+
+Детальные показатели работ содержат `project_work_name`, материалов —
+`material_name`. Сериализация сохраняет ключи ID, нули и `null`, пустые
+словари детализации возвращает как `{}`. В сводке без проектов пустой
+`total` остаётся `{}`; `material_totals` содержит нулевые суммы.
+Общее поле `NestedMap` сериализует словари локально для каждого вызова;
+Swagger описывает их через `additionalProperties` со ссылкой на модель
+элемента. Коллекционный `/objects/get-stat` сохраняет плоскую сводку
+в `total`, `objects[].stats` и полях `material_totals`.
+
 Метод доступен аутентифицированным пользователям, кроме роли `user`. В ответе
 возвращаются общий итог по объекту и статистика каждого неудалённого проекта
 объекта:
