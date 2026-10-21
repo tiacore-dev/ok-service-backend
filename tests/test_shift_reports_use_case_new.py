@@ -282,30 +282,90 @@ def test_update_shift_report_sets_audit_user_from_actor():
 
 
 @pytest.mark.parametrize("role", ["admin", "manager", "project-leader"])
-def test_allowed_roles_can_change_short_shift(role):
-    report = _report()
+@pytest.mark.parametrize("current_value", [False, True])
+@pytest.mark.parametrize("short_shift", [False, True, None])
+def test_allowed_roles_can_change_short_shift(role, current_value, short_shift):
+    report = _report().with_updates(short_shift=current_value)
     repository = _FakeRepository(current=report)
 
     updated = UpdateShiftReportUseCase(repository=repository).execute(
         UpdateShiftReportCommand(
-            shift_report_id=report.shift_report_id, short_shift=True
+            shift_report_id=report.shift_report_id, short_shift=short_shift
         ),
         ShiftReportActor(role=role, user_id=uuid4()),
     )
 
-    assert updated.short_shift is True
+    assert updated.short_shift is (
+        current_value if short_shift is None else short_shift
+    )
 
 
-@pytest.mark.parametrize("short_shift", [False, True])
-def test_user_cannot_change_short_shift(short_shift):
+def test_user_cannot_enable_short_shift():
     report = _report()
+    repository = _FakeRepository(current=report)
+
+    def unexpected_update(command):
+        pytest.fail("Forbidden transition must not reach the repository update")
+
+    repository.update_shift_report = unexpected_update
 
     with pytest.raises(ShiftReportForbiddenError, match="short_shift"):
-        UpdateShiftReportUseCase(repository=_FakeRepository(current=report)).execute(
+        UpdateShiftReportUseCase(repository=repository).execute(
             UpdateShiftReportCommand(
-                shift_report_id=report.shift_report_id, short_shift=short_shift
+                shift_report_id=report.shift_report_id, short_shift=True
             ),
             ShiftReportActor(role="user", user_id=report.user),
+        )
+
+
+@pytest.mark.parametrize(
+    ("current_value", "short_shift"),
+    [(False, False), (True, True), (True, False), (False, None), (True, None)],
+)
+def test_user_can_edit_shift_without_enabling_short_shift(current_value, short_shift):
+    report = _report().with_updates(short_shift=current_value)
+
+    updated = UpdateShiftReportUseCase(repository=_FakeRepository(current=report)).execute(
+        UpdateShiftReportCommand(
+            shift_report_id=report.shift_report_id,
+            short_shift=short_shift,
+            date_start=123,
+        ),
+        ShiftReportActor(role="user", user_id=report.user),
+    )
+
+    assert updated.short_shift is (
+        current_value if short_shift is None else short_shift
+    )
+    assert updated.date_start == 123
+
+
+@pytest.mark.parametrize("short_shift", [True, False])
+@pytest.mark.parametrize("restriction", ["foreign", "signed", "leave", "deleted"])
+def test_short_shift_edit_preserves_user_restrictions(short_shift, restriction):
+    report = _report().with_updates(
+        short_shift=True,
+        signed=restriction == "signed",
+        leave_id=uuid4() if restriction == "leave" else None,
+    )
+    actor = ShiftReportActor(
+        role="user", user_id=uuid4() if restriction == "foreign" else report.user
+    )
+    expected_error, message = {
+        "foreign": (ShiftReportForbiddenError, "not his shift report"),
+        "signed": (ShiftReportForbiddenError, "signed shift report"),
+        "leave": (ShiftReportConflictError, "linked to leave"),
+        "deleted": (ShiftReportForbiddenError, "cannot delete"),
+    }[restriction]
+
+    with pytest.raises(expected_error, match=message):
+        UpdateShiftReportUseCase(repository=_FakeRepository(current=report)).execute(
+            UpdateShiftReportCommand(
+                shift_report_id=report.shift_report_id,
+                short_shift=short_shift,
+                deleted=restriction == "deleted",
+            ),
+            actor,
         )
 
 
