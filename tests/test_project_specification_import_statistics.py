@@ -9,6 +9,7 @@ from flask import Flask
 
 from app.adapters.projects.specification_import_repository import (
     SQLAlchemyProjectSpecificationImportRepository,
+    logger as import_logger,
 )
 from app.adapters.statistics import (
     RedisProjectMaterialStatistics,
@@ -146,9 +147,15 @@ def test_import_endpoint_wires_both_redis_statistics(monkeypatch):
 
 @pytest.mark.parametrize("failed_cache", ["works", "materials", "both"])
 @pytest.mark.parametrize("invalidation_fails", [False, True])
+@pytest.mark.parametrize("logger_propagates", [False, True])
 def test_failed_refresh_is_independent_and_repeat_repairs_caches(
-    import_context, failed_cache, invalidation_fails, caplog,
+    import_context, failed_cache, invalidation_fails, caplog, monkeypatch,
+    logger_propagates,
 ):
+    # The configured application logger does not propagate to pytest's root handler.
+    # monkeypatch restores both settings after each parameterized case.
+    monkeypatch.setattr(import_logger, "propagate", logger_propagates)
+    monkeypatch.setattr(import_logger, "handlers", [*import_logger.handlers, caplog.handler])
     project_id, actor, work, material, session, transaction = import_context
     work_statistics, material_statistics = MagicMock(), MagicMock()
     caches = {"works": work_statistics, "materials": material_statistics}
