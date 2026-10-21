@@ -61,3 +61,49 @@ def test_shift_standard_rejects_non_positive_standard():
 def test_shift_standard_rejects_non_finite_standard():
     with pytest.raises(ShiftStandardValidationError):
         ShiftStandard(uuid4(), 1, float("inf"), None, 1, uuid4())
+
+
+@pytest.mark.parametrize("name", ["production_rate_rub", "penalty_rate_percent"])
+@pytest.mark.parametrize("value", [-0.01, float("inf"), float("-inf"), float("nan"), True, "1"])
+def test_shift_standard_rejects_invalid_optional_rates(name, value):
+    with pytest.raises(ShiftStandardValidationError):
+        ShiftStandard(uuid4(), 1, 8, None, 1, uuid4(), **{name: value})
+
+
+def test_shift_standard_rejects_penalty_above_100():
+    with pytest.raises(ShiftStandardValidationError):
+        ShiftStandard(uuid4(), 1, 8, None, 1, uuid4(), penalty_rate_percent=100.01)
+
+
+@pytest.mark.parametrize("production,penalty", [(None, None), (0, 0), (1500.25, 100)])
+def test_shift_standard_optional_rates_create_preserve_update_and_clear(production, penalty):
+    repository = Repository()
+    item = CreateShiftStandardUseCase(repository).execute(
+        CreateShiftStandardCommand(
+            2, 8.5, None, uuid4(),
+            production_rate_rub=production, penalty_rate_percent=penalty,
+        )
+    )
+    assert item.production_rate_rub == production
+    assert item.penalty_rate_percent == penalty
+    updated = UpdateShiftStandardUseCase(repository).execute(
+        UpdateShiftStandardCommand(item.shift_standard_id, standard=9)
+    )
+    assert updated.production_rate_rub == production
+    assert updated.penalty_rate_percent == penalty
+    updated = UpdateShiftStandardUseCase(repository).execute(
+        UpdateShiftStandardCommand(
+            item.shift_standard_id,
+            production_rate_rub=0, production_rate_rub_provided=True,
+        )
+    )
+    assert updated.production_rate_rub == 0.0
+    assert updated.penalty_rate_percent == penalty
+    cleared = UpdateShiftStandardUseCase(repository).execute(
+        UpdateShiftStandardCommand(
+            item.shift_standard_id,
+            production_rate_rub_provided=True, penalty_rate_percent_provided=True,
+        )
+    )
+    assert cleared.production_rate_rub is None
+    assert cleared.penalty_rate_percent is None

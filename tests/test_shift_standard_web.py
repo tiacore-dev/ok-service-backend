@@ -8,6 +8,8 @@ def test_shift_standard_crud(client, jwt_token_admin, db_session):
     payload = {
         "category": 123456,
         "standard": 8.5,
+        "production_rate_rub": 1500.25,
+        "penalty_rate_percent": 100,
         "notification_text": "Shift exceeds the standard",
     }
 
@@ -19,9 +21,12 @@ def test_shift_standard_crud(client, jwt_token_admin, db_session):
     assert view.status_code == 200
     assert view.json["shift_standard"]["standard"] == payload["standard"]
 
+    assert view.json["shift_standard"]["production_rate_rub"] == 1500.25
+    assert view.json["shift_standard"]["penalty_rate_percent"] == 100
+
     edit = client.patch(
         f"/shift_standards/{item_id}/edit",
-        json={"notification_text": None, "standard": 7.5},
+        json={"notification_text": None, "standard": 7.5, "production_rate_rub": 0},
         headers=headers,
     )
     assert edit.status_code == 200
@@ -33,9 +38,26 @@ def test_shift_standard_crud(client, jwt_token_admin, db_session):
         is None
     )
 
+    db_session.expire_all()
+    stored = db_session.query(ShiftStandards).filter_by(shift_standard_id=UUID(item_id)).one()
+    assert stored.production_rate_rub == 0
+    assert stored.penalty_rate_percent == 100
+    cleared = client.patch(
+        f"/shift_standards/{item_id}/edit",
+        json={"production_rate_rub": None, "penalty_rate_percent": None},
+        headers=headers,
+    )
+    assert cleared.status_code == 200
+    db_session.expire_all()
+    stored = db_session.query(ShiftStandards).filter_by(shift_standard_id=UUID(item_id)).one()
+    assert stored.production_rate_rub is None
+    assert stored.penalty_rate_percent is None
+
     listed = client.get("/shift_standards/all", headers=headers)
     assert listed.status_code == 200
-    assert any(item["shift_standard_id"] == item_id for item in listed.json["shift_standards"])
+    listed_item = next(item for item in listed.json["shift_standards"] if item["shift_standard_id"] == item_id)
+    assert listed_item["production_rate_rub"] is None
+    assert listed_item["penalty_rate_percent"] is None
 
     deleted = client.delete(f"/shift_standards/{item_id}/delete/hard", headers=headers)
     assert deleted.status_code == 200

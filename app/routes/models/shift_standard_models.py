@@ -18,6 +18,8 @@ shift_standard_model = Model(
         "shift_standard_id": fields.String(required=True),
         "category": fields.Integer(required=True),
         "standard": fields.Float(required=True),
+        "production_rate_rub": fields.Float(required=False, allow_none=True),
+        "penalty_rate_percent": fields.Float(required=False, allow_none=True),
         "notification_text": fields.String(required=False, allow_none=True),
         "created_at": fields.Integer(required=True),
         "created_by": fields.String(required=True),

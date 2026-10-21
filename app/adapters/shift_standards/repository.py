@@ -15,6 +15,8 @@ def _entity(payload: dict[str, Any] | None) -> ShiftStandard:
         shift_standard_id=require_uuid(payload["shift_standard_id"], "shift_standard_id"),
         category=int(payload["category"]),
         standard=float(payload["standard"]),
+        production_rate_rub=payload.get("production_rate_rub"),
+        penalty_rate_percent=payload.get("penalty_rate_percent"),
         notification_text=payload.get("notification_text"),
         created_at=int(payload["created_at"]),
         created_by=require_uuid(payload["created_by"], "created_by"),
@@ -32,6 +34,8 @@ class SQLAlchemyShiftStandardRepository:
                     shift_standard_id=item.shift_standard_id,
                     category=item.category,
                     standard=item.standard,
+                    production_rate_rub=item.production_rate_rub,
+                    penalty_rate_percent=item.penalty_rate_percent,
                     notification_text=item.notification_text,
                     created_at=item.created_at,
                     created_by=item.created_by,
@@ -49,6 +53,8 @@ class SQLAlchemyShiftStandardRepository:
                 item.shift_standard_id,
                 category=item.category,
                 standard=item.standard,
+                production_rate_rub=item.production_rate_rub,
+                penalty_rate_percent=item.penalty_rate_percent,
                 notification_text=item.notification_text,
             )
         )

@@ -21,6 +21,10 @@ class UpdateShiftStandardUseCase:
             changes["standard"] = command.standard
         if command.notification_text_provided:
             changes["notification_text"] = command.notification_text
+        if command.production_rate_rub_provided:
+            changes["production_rate_rub"] = command.production_rate_rub
+        if command.penalty_rate_percent_provided:
+            changes["penalty_rate_percent"] = command.penalty_rate_percent
         if not changes:
             return existing
         result = self.repository.update_shift_standard(existing.with_updates(**changes))

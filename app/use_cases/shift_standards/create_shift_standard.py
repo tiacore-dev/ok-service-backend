@@ -18,6 +18,8 @@ class CreateShiftStandardUseCase:
                 shift_standard_id=uuid4(),
                 category=command.category,
                 standard=command.standard,
+                production_rate_rub=command.production_rate_rub,
+                penalty_rate_percent=command.penalty_rate_percent,
                 notification_text=command.notification_text,
                 created_at=utc_epoch_milliseconds(),
                 created_by=command.created_by,
