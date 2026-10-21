@@ -1,10 +1,9 @@
-from flask_restx import Model, fields, reqparse
+from flask_restx import Model, fields, marshal, reqparse
 
 from app.routes.models.place_models import place_model
-from app.web.attachments.contract import attachment_view_model
 from app.schemas.object_schemas import ObjectCreateSchema, ObjectEditSchema
-from app.domain.objects import ObjectStatus
 from app.utils.helpers import generate_swagger_model
+from app.web.attachments.contract import attachment_view_model
 
 object_create_model = generate_swagger_model(ObjectCreateSchema(), "ObjectCreate")
 object_edit_model = generate_swagger_model(ObjectEditSchema(), "ObjectEdit")
@@ -19,9 +18,7 @@ object_statuses_response = Model(
     "ObjectStatusesResponse",
     {
         "msg": fields.String(required=True),
-        "statuses": fields.List(
-            fields.Nested(object_status_item_model), required=True
-        ),
+        "statuses": fields.List(fields.Nested(object_status_item_model), required=True),
     },
 )
 
@@ -130,7 +127,9 @@ object_project_stats_model = Model(
     {
         "project_id": fields.String(required=True),
         "name": fields.String(required=True),
-        "stats": fields.Wildcard(fields.Nested(work_stats_summary_model), required=True),
+        "stats": fields.Wildcard(
+            fields.Nested(work_stats_summary_model), required=True
+        ),
         "material_stats": fields.Wildcard(
             fields.Nested(material_stats_item_model), required=True
         ),
@@ -141,7 +140,9 @@ object_stats_payload = Model(
     {
         "total": fields.Nested(work_stats_summary_model, required=True),
         "material_totals": fields.Nested(material_stats_summary_model, required=True),
-        "projects": fields.List(fields.Nested(object_project_stats_model), required=True),
+        "projects": fields.List(
+            fields.Nested(object_project_stats_model), required=True
+        ),
     },
 )
 object_stats_response = Model(
@@ -155,11 +156,15 @@ object_stats_response = Model(
 object_stats_details_payload = Model(
     "ObjectStatsDetailsPayload",
     {
-        "total": fields.Wildcard(fields.Nested(work_stats_summary_model), required=True),
+        "total": fields.Wildcard(
+            fields.Nested(work_stats_summary_model), required=True
+        ),
         "material_totals": fields.Wildcard(
             fields.Nested(material_stats_item_model), required=True
         ),
-        "projects": fields.List(fields.Nested(object_project_stats_model), required=True),
+        "projects": fields.List(
+            fields.Nested(object_project_stats_model), required=True
+        ),
     },
 )
 object_stats_details_response = Model(
@@ -179,8 +184,12 @@ project_leader_fact_stats_filter_parser = reqparse.RequestParser()
 project_leader_fact_stats_filter_parser.add_argument("offset", type=int, default=0)
 project_leader_fact_stats_filter_parser.add_argument("limit", type=int, default=10)
 project_leader_fact_stats_filter_parser.add_argument("search", type=str, required=False)
-project_leader_fact_stats_filter_parser.add_argument("date_from", type=int, required=False)
-project_leader_fact_stats_filter_parser.add_argument("date_to", type=int, required=False)
+project_leader_fact_stats_filter_parser.add_argument(
+    "date_from", type=int, required=False
+)
+project_leader_fact_stats_filter_parser.add_argument(
+    "date_to", type=int, required=False
+)
 project_leader_fact_stats_filter_parser.add_argument(
     "project_leader_ids", type=str, action="append", required=False
 )
@@ -209,9 +218,38 @@ project_leader_material_fact_item = Model(
         "shift_report_material_summ_by_estimate": fields.Float(required=True),
     },
 )
-project_leader_fact_stats = fields.Wildcard(fields.Nested(project_leader_fact_item), required=True)
-project_leader_material_fact_stats = fields.Wildcard(
-    fields.Nested(project_leader_material_fact_item), required=True
+
+
+class _MonthlyStatistics(fields.Nested):
+    """Marshal month maps without shared iteration state;
+    register item models as Nested."""
+
+    def output(self, key, obj, ordered=False, **kwargs):
+        value = fields.get_value(
+            self.attribute if self.attribute is not None else key, obj
+        )
+        if value is None:
+            return {}
+        if not isinstance(value, dict):
+            raise fields.MarshallingError("Monthly statistics must be a dictionary")
+        return {
+            month: marshal(item, self.nested, ordered=ordered)
+            for month, item in value.items()
+        }
+
+    def schema(self):
+        model = self.nested
+        if not isinstance(model, Model):
+            raise fields.MarshallingError("Monthly statistics require a named Model")
+        schema = fields.Raw.schema(self)
+        schema["type"] = "object"
+        schema["additionalProperties"] = {"$ref": f"#/definitions/{model.name}"}
+        return schema
+
+
+project_leader_fact_stats = _MonthlyStatistics(project_leader_fact_item, required=True)
+project_leader_material_fact_stats = _MonthlyStatistics(
+    project_leader_material_fact_item, required=True
 )
 project_leader_fact_project = Model(
     "ProjectLeaderFactProject",
