@@ -259,6 +259,11 @@ class ShiftReportRegistryPrintSchema(PrintSchema):
         allow_none=True,
         metadata=meta("ID браузера окончания смены", None),
     )
+    modified_browser_id = fields.UUID(
+        required=True,
+        allow_none=True,
+        metadata=meta("ID браузера последнего редактирования смены", None),
+    )
     created_by = fields.UUID(
         required=True,
         metadata=meta("ID автора смены", "00000000-0000-0000-0000-000000000001"),

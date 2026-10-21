@@ -128,6 +128,7 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             leave_check_date=command.leave_check_date,
             start_browser_id=command.start_browser_id,
             finish_browser_id=command.finish_browser_id,
+            modified_browser_id=command.modified_browser_id,
         )
         record = normalize_result(updated)
         if record is None:

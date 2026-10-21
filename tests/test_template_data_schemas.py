@@ -3,7 +3,7 @@ from copy import deepcopy
 from datetime import date
 from decimal import Decimal
 from typing import Any, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from marshmallow import Schema, ValidationError, fields
@@ -87,6 +87,22 @@ def test_registry_covers_existing_list_fields_without_details():
     assert set(row.fields) == expected | {"object"}
     assert "shift_report_details" not in row.fields
     assert "shift_report_materials" not in row.fields
+
+
+@pytest.mark.parametrize("browser_id", [None, str(uuid4())])
+def test_registry_modified_browser_id_roundtrip(browser_id):
+    schema = template_data_schema(TemplateTypes.SHIFT_REPORT_LIST)
+    payload = example(schema)
+    payload["shift_reports"][0]["modified_browser_id"] = browser_id
+    assert object_result(schema.dump(schema.load(payload))) == payload
+
+
+def test_registry_modified_browser_id_rejects_invalid_uuid():
+    schema = template_data_schema(TemplateTypes.SHIFT_REPORT_LIST)
+    payload = example(schema)
+    payload["shift_reports"][0]["modified_browser_id"] = "invalid"
+    with pytest.raises(ValidationError):
+        schema.load(payload)
 
 
 def test_single_shift_has_details_and_current_project_material_relationship():

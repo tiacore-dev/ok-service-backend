@@ -98,6 +98,11 @@ shift_report_model = Model(
             allow_null=True,
             description="Browser UUID captured at shift start",
         ),
+        "modified_browser_id": fields.String(
+            required=False,
+            allow_null=True,
+            description="Browser UUID captured at the last successful edit",
+        ),
         "finish_browser_id": fields.String(
             required=False,
             allow_null=True,

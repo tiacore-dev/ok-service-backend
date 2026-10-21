@@ -1,12 +1,14 @@
 from copy import deepcopy
 from datetime import UTC, date
 from decimal import Decimal as D
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 
 from app.adapters.template_generation.data_repository import (
     MarshmallowDocumentDataSerializer,
+    shift_data,
 )
 from app.domain.templates import TemplateTypes
 from app.schemas.template_data_schemas import ShiftReportFullPrintSchema
@@ -122,6 +124,42 @@ def test_payroll_calendar_absences_no_materials_and_estimated_total():
     assert result["total_summ"] == 8.325
     assert repo.query is not None
     assert repo.query[1:] == (start, end)
+
+
+@pytest.mark.parametrize("kind", [
+    TemplateTypes.SHIFT_REPORT, TemplateTypes.SHIFT_REPORT_LIST, TemplateTypes.PAYROLL,
+])
+@pytest.mark.parametrize("browser_id", [None, uuid4()])
+def test_modified_browser_id_from_model_reaches_printable_data(kind, browser_id):
+    repo = Repository()
+    registry = repo.reports[0].registry
+    scalar_fields = {
+        name: value for name, value in registry.items()
+        if name not in {"user", "project", "object", "signed_by", "updated_by"}
+    }
+    scalar_fields["modified_browser_id"] = browser_id
+    scalar_fields["date"] = period_bounds(date(2026, 10, 5), date(2026, 10, 7))[0]
+    model = SimpleNamespace(
+        **scalar_fields,
+        users=SimpleNamespace(**registry["user"]),
+        projects=SimpleNamespace(
+            **registry["project"], objects=SimpleNamespace(**registry["object"]),
+        ),
+        signed_by_user=None, updated_by_user=None,
+        shift_report_details=[], shift_report_materials=[],
+    )
+    repo.reports = [shift_data(model)]
+    assert repo.reports[0].registry["modified_browser_id"] == browser_id
+    result = builder(repo).execute(kind, period(
+        user=registry["user"]["user_id"], shift_report_id=registry["shift_report_id"],
+    ))
+    if kind == TemplateTypes.SHIFT_REPORT:
+        row = result["shift_report"]
+    elif kind == TemplateTypes.SHIFT_REPORT_LIST:
+        row = result["shift_reports"][0]
+    else:
+        row = result["data"][0]["shift_report"][0]
+    assert row["modified_browser_id"] == (str(browser_id) if browser_id else None)
 
 
 def test_objects_group_by_ids_and_each_material_price_and_omit_empty_projects():

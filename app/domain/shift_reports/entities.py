@@ -37,6 +37,7 @@ class ShiftReport:
     updated_by: dict[str, str] | None = None
     start_browser_id: UUID | None = None
     finish_browser_id: UUID | None = None
+    modified_browser_id: UUID | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "date", int(self.date))

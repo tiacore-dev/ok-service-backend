@@ -100,6 +100,22 @@ def test_deep_paths_nullable_fields_and_validation_constraints():
     assert "objects[i].projects[i].materials[i].material.material_id" in obj.parameters
 
 
+@pytest.mark.parametrize("kind,path", [
+    (TemplateTypes.SHIFT_REPORT_LIST, "shift_reports[i].modified_browser_id"),
+    (TemplateTypes.SHIFT_REPORT, "shift_report.modified_browser_id"),
+    (TemplateTypes.PAYROLL, "data[i].shift_report[i].modified_browser_id"),
+])
+def test_catalog_includes_modified_browser_id(kind, path):
+    result = MarshmallowTemplateParametersProvider().describe(kind)
+    assert path in result.parameters
+    node = result.schema
+    for segment in path.split("."):
+        node = node["properties"][segment]
+    assert node["type"] == ["string", "null"]
+    assert node["format"] == "uuid"
+    assert node["example"] is None
+
+
 def test_catalog_calls_do_not_share_mutable_descriptions():
     provider = MarshmallowTemplateParametersProvider()
     result = provider.describe(TemplateTypes.WORK_TYPES)

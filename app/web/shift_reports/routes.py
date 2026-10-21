@@ -647,9 +647,11 @@ class ShiftReportEdit(Resource):
                 SQLAlchemyPlaceRelationRepository().ensure_shift_project(
                     _parse_uuid(report_id), new_project
                 )
+            browser_id, should_set_cookie = _get_browser_id()
             updated = UpdateShiftReportUseCase(repository=_repository()).execute(
                 UpdateShiftReportCommand(
                     shift_report_id=_parse_uuid(report_id),
+                    modified_browser_id=browser_id,
                     user=get_optional_uuid(data, "user"),
                     date=get_optional_int(data, "date"),
                     date_start=get_optional_int(data, "date_start"),
@@ -670,6 +672,8 @@ class ShiftReportEdit(Resource):
                 ),
                 _actor(current_user),
             )
+            if should_set_cookie:
+                _set_browser_id_cookie(browser_id)
             return {
                 "msg": "Shift report updated successfully",
                 "shift_report_id": str(updated.shift_report_id),

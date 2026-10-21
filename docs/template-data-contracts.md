@@ -115,6 +115,11 @@ shift_reports[]: ShiftReportRegistryPrintSchema
 `leave_id`, комментарий, аудит создания/согласования/изменения и обе суммы:
 `shift_report_details_sum`, `shift_report_details_summ_by_estimate`.
 
+UUID браузеров включают nullable-поля `start_browser_id`, `finish_browser_id`
+и `modified_browser_id` (браузер последнего успешного edit). Они также доступны
+в одиночном сменном отчёте, сменах зарплатной ведомости и каталоге параметров
+шаблонов. Старые смены без данных редактирования передают `null`.
+
 Для печати `user` и `project` раскрыты в объекты; вместо строковых
 `project_name`/`object_name` используются `project.name`/`object.name`.
 `signed_by` и `updated_by` также раскрываются через `UserPrintSchema`.
