@@ -162,15 +162,17 @@ admin/manager, отдельное право ключа, сбор данных �
 
 До развёртывания заполните обе URL-настройки на сервере и настройки образа
 нового сервиса из `example.env`; доступ к Registry должен быть настроен.
-Проверка Compose и запуск (в production добавьте `-f docker-compose.prod.yaml`):
+Ручная проверка Compose, обновление и запуск генераторов
+(в production добавьте `-f docker-compose.prod.yaml`):
 
 ```bash
 docker compose -f docker-compose.app.yaml config --quiet
-docker compose -f docker-compose.app.yaml pull web template-service-old template-service-new
-docker compose -f docker-compose.app.yaml up -d web template-service-old template-service-new
+docker compose -f docker-compose.app.yaml pull template-service-old template-service-new
+docker compose -f docker-compose.app.yaml up -d template-service-old template-service-new
 ```
 
-Workflow деплоя также обновляет оба генератора вместе с backend. Прежний контейнер
+Workflow деплоя выполняет pull и перезапуск только backend (`web`). Обновление
+и запуск обоих генераторов выполняются вручную командами выше. Прежний контейнер
 `template-service` после перехода можно остановить отдельно, убедившись, что
 его больше не используют другие клиенты. Автоматически он не удаляется.
 Новых миграций нет. Bootstrap добавит `templates-generate-new`, но существующим

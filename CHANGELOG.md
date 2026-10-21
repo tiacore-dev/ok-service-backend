@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Из автоматического деплоя исключены pull и перезапуск `template-service-old`
+  и `template-service-new`: workflow обновляет только backend (`web`).
+  Генераторы обновляются и запускаются вручную; команды описаны в документации.
+  Изменений API, миграций и новых настроек нет.
+
 - В старой генерации `/templates/generate` добавлен timeout HTTP-запроса
   120 секунд. Ошибки сериализации и генератора возвращают общий HTTP 500;
   обработка HTTP 400 ограничена разбором клиентского запроса. Убрана публикация
@@ -14,7 +19,7 @@
   ответ `output.docx` с прежним MIME. Текущая генерация по сохранённым шаблонам
   перенесена на `POST /templates/generate-new` с прежними ограничениями
   admin/manager и отдельным правом API-ключа `templates-generate-new`.
-  В Compose и деплое разделены `template-service-old` (исторический DockerHub
+  В Compose разделены `template-service-old` (исторический DockerHub
   образ) и `template-service-new` (текущий Registry образ). Добавлены настройки
   `TEMPLATE_SERVICE_OLD_URL` и `TEMPLATE_SERVICE_NEW_URL` вместо
   `TEMPLATE_SERVICE_URL`; API-ключ исходящего запроса применяется только к new.
