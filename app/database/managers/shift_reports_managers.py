@@ -342,7 +342,7 @@ class ShiftReportsManager(ShiftManager):
                             session, detail, created_by
                         )
 
-                session.commit()  # Сохраняем все одной транзакцией
+                # Commit belongs to session_scope; external sessions may batch reports.
 
                 return new_report.to_dict()  # Возвращаем ID созданного отчета
 

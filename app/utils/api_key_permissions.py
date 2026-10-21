@@ -203,6 +203,7 @@ API_KEY_PERMISSIONS = (
         "POST /shift_reports/{shift_report_id}/attachments",
     ),
     ("shift-reports-create", "POST /shift_reports/add"),
+    ("shift-reports-create-bulk", "POST /shift_reports/add-bulk"),
     ("shift-reports-delete-hard", "DELETE /shift_reports/{report_id}/delete/hard"),
     ("shift-reports-delete-soft", "PATCH /shift_reports/{report_id}/delete/soft"),
     ("shift-reports-edit", "PATCH /shift_reports/{report_id}/edit"),

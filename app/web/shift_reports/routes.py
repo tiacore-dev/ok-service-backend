@@ -44,6 +44,8 @@ from app.routes.models.shift_report_detail_models import (
 )
 from app.routes.models.shift_report_models import (
     shift_report_all_response,
+    shift_report_bulk_create_model,
+    shift_report_bulk_msg_model,
     shift_report_create_model,
     shift_report_detail_model,
     shift_report_edit_model,
@@ -62,6 +64,7 @@ from app.schemas.shift_report_detail_schemas import (
     ShiftReportDetailsFilterSchema,
 )
 from app.schemas.shift_report_schemas import (
+    ShiftReportBulkCreateSchema,
     ShiftReportCreateSchema,
     ShiftReportEditSchema,
     ShiftReportFilterSchema,
@@ -90,6 +93,7 @@ from app.use_cases.shift_reports import (
     UpdateShiftReportTimeUseCase,
     UpdateShiftReportUseCase,
 )
+from app.use_cases.shift_reports.create_shift_reports import CreateShiftReportsUseCase
 from app.web._typing import (
     get_optional_bool,
     get_optional_float,
@@ -116,6 +120,8 @@ shift_report_ns.models[shift_report_user_model.name] = shift_report_user_model
 shift_report_ns.models[shift_report_updater_model.name] = shift_report_updater_model
 shift_report_ns.models[shift_report_detail_model.name] = shift_report_detail_model
 shift_report_ns.models[shift_report_create_model.name] = shift_report_create_model
+shift_report_ns.models[shift_report_bulk_create_model.name] = shift_report_bulk_create_model
+shift_report_ns.models[shift_report_bulk_msg_model.name] = shift_report_bulk_msg_model
 shift_report_ns.models[shift_report_edit_model.name] = shift_report_edit_model
 shift_report_ns.models[shift_report_msg_model.name] = shift_report_msg_model
 shift_report_ns.models[shift_report_response.name] = shift_report_response
@@ -308,6 +314,38 @@ def _map_error(error: Exception):
     return {"msg": f"Internal error: {error}"}, 500
 
 
+def _create_command(data: dict[str, Any]) -> CreateShiftReportCommand:
+    details = data.get("details") or []
+    return CreateShiftReportCommand(
+        user=get_required_uuid(data, "user", "User is required"),
+        date=int(data["date"]),
+        date_start=data.get("date_start"),
+        date_end=data.get("date_end"),
+        project=get_required_uuid(data, "project", "Project is required"),
+        lng_start=data.get("lng_start"),
+        ltd_start=data.get("ltd_start"),
+        lng_end=data.get("lng_end"),
+        ltd_end=data.get("ltd_end"),
+        distance_start=data.get("distance_start"),
+        distance_end=data.get("distance_end"),
+        signed=bool(data.get("signed", False)),
+        night_shift=bool(data.get("night_shift", False)),
+        extreme_conditions=bool(data.get("extreme_conditions", False)),
+        short_shift=data.get("short_shift"),
+        comment=data.get("comment"),
+        details=[
+            CreateShiftReportDetailCommand(
+                project_work=get_optional_uuid(item, "project_work"),
+                work=get_required_uuid(item, "work", "Work is required"),
+                quantity=item["quantity"],
+            )
+            for item in details
+        ]
+        if details
+        else None,
+    )
+
+
 @shift_report_ns.route("/add")
 class ShiftReportAdd(Resource):
     @api_key_or_jwt_required
@@ -323,35 +361,7 @@ class ShiftReportAdd(Resource):
                 request.get_json(silent=True), "Request body is required"
             )
             data = cast(ShiftReportCreatePayload, schema.load(raw_payload))
-            details = data.get("details") or []
-            command = CreateShiftReportCommand(
-                user=get_required_uuid(data, "user", "User is required"),
-                date=int(data["date"]),
-                date_start=data.get("date_start"),
-                date_end=data.get("date_end"),
-                project=get_required_uuid(data, "project", "Project is required"),
-                lng_start=data.get("lng_start"),
-                ltd_start=data.get("ltd_start"),
-                lng_end=data.get("lng_end"),
-                ltd_end=data.get("ltd_end"),
-                distance_start=data.get("distance_start"),
-                distance_end=data.get("distance_end"),
-                signed=bool(data.get("signed", False)),
-                night_shift=bool(data.get("night_shift", False)),
-                extreme_conditions=bool(data.get("extreme_conditions", False)),
-                short_shift=data.get("short_shift"),
-                comment=data.get("comment"),
-                details=[
-                    CreateShiftReportDetailCommand(
-                        project_work=get_optional_uuid(item, "project_work"),
-                        work=get_required_uuid(item, "work", "Work is required"),
-                        quantity=item["quantity"],
-                    )
-                    for item in details
-                ]
-                if details
-                else None,
-            )
+            command = _create_command(dict(data))
             report = CreateShiftReportUseCase(repository=_repository()).execute(
                 command, _actor(current_user)
             )
@@ -362,6 +372,38 @@ class ShiftReportAdd(Resource):
         except Exception as error:
             logger.error(
                 f"Error adding shift report: {error}", extra={"login": current_user}
+            )
+            return _map_error(error)
+
+
+@shift_report_ns.route("/add-bulk")
+class ShiftReportBulkAdd(Resource):
+    @api_key_or_jwt_required
+    @shift_report_ns.expect(shift_report_bulk_create_model, validate=False)
+    @shift_report_ns.response(200, "Success", shift_report_bulk_msg_model)
+    def post(self):
+        current_user = _get_current_user()
+        try:
+            raw_payload = to_plain_dict(
+                request.get_json(silent=True), "Request body is required"
+            )
+            data = cast(
+                dict[str, Any], ShiftReportBulkCreateSchema().load(raw_payload)
+            )
+            commands = [
+                _create_command({**data, "user": user_id})
+                for user_id in data["user_ids"]
+            ]
+            reports = CreateShiftReportsUseCase(repository=_repository()).execute(
+                commands, _actor(current_user)
+            )
+            return {
+                "msg": "New shift reports added successfully",
+                "shift_report_ids": [str(report.shift_report_id) for report in reports],
+            }, 200
+        except Exception as error:
+            logger.error(
+                f"Error adding shift reports: {error}", extra={"login": current_user}
             )
             return _map_error(error)
 
