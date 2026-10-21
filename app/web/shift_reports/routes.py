@@ -11,14 +11,13 @@ from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from app.adapters.attachments import list_attachment_view_data
+from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
 from app.adapters.shift_reports import (
     SQLAlchemyShiftReportRepository,
     shift_report_detail_entity_to_response,
     shift_report_entity_to_response,
 )
-from app.adapters.attachments import list_attachment_view_data
-from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
-from app.use_cases.place_relations import PlaceRelationConflictError
 from app.adapters.statistics import (
     RedisProjectMaterialStatistics,
     RedisProjectWorkStatistics,
@@ -52,9 +51,9 @@ from app.routes.models.shift_report_models import (
     shift_report_model,
     shift_report_msg_model,
     shift_report_response,
-    shift_report_view_model,
     shift_report_updater_model,
     shift_report_user_model,
+    shift_report_view_model,
 )
 from app.schemas.shift_report_detail_schemas import (
     ShiftReportDetailsByReportsSchema,
@@ -67,6 +66,7 @@ from app.schemas.shift_report_schemas import (
     ShiftReportEditSchema,
     ShiftReportFilterSchema,
 )
+from app.use_cases.place_relations import PlaceRelationConflictError
 from app.use_cases.shift_reports import (
     CreateShiftReportCommand,
     CreateShiftReportDetailCommand,
@@ -662,7 +662,9 @@ class ShiftReportAll(Resource):
             if project_args is not None:
                 raw_args["project"] = [str(item) for item in project_args]
         if "place_id" in request.args:
-            place_args = get_optional_uuid_list({"place_id": request.args.getlist("place_id")}, "place_id")
+            place_args = get_optional_uuid_list(
+                {"place_id": request.args.getlist("place_id")}, "place_id"
+            )
             if place_args is not None:
                 raw_args["place_id"] = [str(item) for item in place_args]
         try:

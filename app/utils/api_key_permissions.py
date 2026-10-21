@@ -56,6 +56,7 @@ API_KEY_PERMISSIONS = (
     ("objects-delete-soft", "PATCH /objects/{object_id}/delete/soft"),
     ("objects-edit", "PATCH /objects/{object_id}/edit"),
     ("objects-list", "GET /objects/all"),
+    ("objects-statuses", "GET /objects/statuses"),
     ("object-statuses-list", "GET /object_statuses/all"),
     ("system-settings-list", "GET /system_settings/all"),
     ("system-settings-view", "GET /system_settings/{system_setting_id}/view"),
@@ -130,6 +131,7 @@ API_KEY_PERMISSIONS = (
     ("project-leaders-get-stat-all", "GET /project-leaders/get-stat"),
     ("project-leaders-get-stat-details", "GET /project-leaders/{project_leader_id}/get-stat-details"),
     ("projects-list", "GET /projects/all"),
+    ("projects-statuses", "GET /projects/statuses"),
     ("projects-parse-project-specification", "POST /projects/parse-project-specification"),
     (
         "projects-import-works-and-materials",

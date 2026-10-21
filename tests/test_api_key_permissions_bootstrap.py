@@ -13,6 +13,8 @@ def test_api_key_permission_seed_has_unique_codes_and_descriptions():
         "POST /acceptances/{acceptance_id}/attachments",
     ) in API_KEY_PERMISSIONS
     assert ("work-plans-list", "GET /work_plans/all") in API_KEY_PERMISSIONS
+    assert ("projects-statuses", "GET /projects/statuses") in API_KEY_PERMISSIONS
+    assert ("objects-statuses", "GET /objects/statuses") in API_KEY_PERMISSIONS
 
 
 def test_bootstrap_adds_only_missing_permissions_and_is_idempotent(monkeypatch):
