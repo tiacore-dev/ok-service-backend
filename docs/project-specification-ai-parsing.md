@@ -231,3 +231,7 @@ Endpoint принимает результат парсинга и являет�
 Endpoint реализован как атомарный импорт: API key требует permission
 `projects-import-works-and-materials`; JWT доступен `admin` и `manager`, а `project-leader` —
 только для своей спецификации.
+
+Ошибки валидации импорта, включая `ProjectMaterialValidationError` и
+`ProjectWorkValidationError`, возвращаются с HTTP `400` и телом
+`{"msg": "<текст ошибки>"}`.

@@ -32,6 +32,8 @@ from app.decorators import (
     user_forbidden,
 )
 from app.domain.kimi import KimiError
+from app.domain.project_materials import ProjectMaterialValidationError
+from app.domain.project_works import ProjectWorkValidationError
 from app.domain.projects import (
     ProjectConflictError,
     ProjectForbiddenError,
@@ -314,7 +316,14 @@ def _actor(current_user: dict[str, Any]) -> ProjectActor:
 
 
 def _map_error(error: Exception):
-    if isinstance(error, ProjectSpecificationImportError):
+    if isinstance(
+        error,
+        (
+            ProjectSpecificationImportError,
+            ProjectMaterialValidationError,
+            ProjectWorkValidationError,
+        ),
+    ):
         return {"msg": str(error)}, 400
     if isinstance(error, KimiError):
         return {"msg": str(error)}, 502
