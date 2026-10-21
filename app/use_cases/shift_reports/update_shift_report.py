@@ -32,11 +32,12 @@ class UpdateShiftReportUseCase:
                 "Shift report linked to leave cannot be changed"
             )
         if (
-            command.short_shift is not None
+            command.short_shift is True
+            and current.short_shift is False
             and actor.role not in SHORT_SHIFT_EDITOR_ROLES
         ):
             raise ShiftReportForbiddenError(
-                "Only admin, manager, and project leader can change short_shift"
+                "Only admin, manager, and project leader can enable short_shift"
             )
         if actor.role == "user" and command.deleted is True:
             raise ShiftReportForbiddenError("User cannot delete shift report")
