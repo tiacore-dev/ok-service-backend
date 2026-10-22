@@ -38,9 +38,6 @@ class Materials(Base):
     project_materials = relationship(
         "ProjectMaterials", back_populates="materials"
     )
-    shift_report_materials = relationship(
-        "ShiftReportMaterials", back_populates="materials"
-    )
 
     def __repr__(self):
         return f"<Materials(material_id={self.material_id}, name={self.name}, "

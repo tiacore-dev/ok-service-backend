@@ -57,6 +57,11 @@ def shift_report_dict_to_entity(payload: dict[str, Any]) -> ShiftReport:
             if payload.get("start_browser_id")
             else None
         ),
+        modified_browser_id=(
+            UUID(str(payload["modified_browser_id"]))
+            if payload.get("modified_browser_id")
+            else None
+        ),
         finish_browser_id=(
             UUID(str(payload["finish_browser_id"]))
             if payload.get("finish_browser_id")
@@ -159,6 +164,9 @@ def shift_report_entity_to_response(entity: ShiftReport) -> dict[str, Any]:
         "updated_by": entity.updated_by,
         "start_browser_id": (
             str(entity.start_browser_id) if entity.start_browser_id else None
+        ),
+        "modified_browser_id": (
+            str(entity.modified_browser_id) if entity.modified_browser_id else None
         ),
         "finish_browser_id": (
             str(entity.finish_browser_id) if entity.finish_browser_id else None

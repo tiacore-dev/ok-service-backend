@@ -8,6 +8,8 @@ class CreateShiftStandardCommand:
     standard: float
     notification_text: str | None
     created_by: UUID
+    production_rate_rub: float | None = None
+    penalty_rate_percent: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,6 +19,10 @@ class UpdateShiftStandardCommand:
     standard: float | None = None
     notification_text: str | None = None
     notification_text_provided: bool = False
+    production_rate_rub: float | None = None
+    production_rate_rub_provided: bool = False
+    penalty_rate_percent: float | None = None
+    penalty_rate_percent_provided: bool = False
 
 
 @dataclass(frozen=True, slots=True)

@@ -18,7 +18,9 @@ class ShiftReportRepository(Protocol):
 
     def get_shift_report(self, shift_report_id: UUID) -> ShiftReport | None: ...
 
-    def update_shift_report(self, command: UpdateShiftReportCommand) -> ShiftReport | None: ...
+    def update_shift_report(
+        self, command: UpdateShiftReportCommand
+    ) -> ShiftReport | None: ...
 
     def sign_shift_report(
         self, shift_report_id: UUID, signed_by: UUID
@@ -55,3 +57,11 @@ class ShiftReportRepository(Protocol):
     def delete_shift_report_detail(self, shift_report_detail_id: UUID) -> bool: ...
 
     def list_shift_report_details(self, **filters) -> list[ShiftReportDetail]: ...
+
+
+class ShiftReportBulkRepository(Protocol):
+    def create_shift_reports(
+        self, commands: list[CreateShiftReportCommand]
+    ) -> list[ShiftReport]:
+        """Create every report and its details atomically, or roll back all writes."""
+        ...

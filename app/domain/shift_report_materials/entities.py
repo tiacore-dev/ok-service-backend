@@ -18,7 +18,7 @@ def validate_shift_report_material_quantity(quantity: Decimal) -> None:
 class ShiftReportMaterial:
     shift_report_material_id: UUID
     shift_report: UUID
-    material: UUID
+    project_material: UUID
     quantity: Decimal
     created_by: UUID
     created_at: int
@@ -28,14 +28,16 @@ class ShiftReportMaterial:
         self,
         *,
         shift_report: UUID | None = None,
-        material: UUID | None = None,
+        project_material: UUID | None = None,
         quantity: Decimal | None = None,
         shift_report_detail: UUID | None = None,
     ) -> ShiftReportMaterial:
         return ShiftReportMaterial(
             shift_report_material_id=self.shift_report_material_id,
             shift_report=self.shift_report if shift_report is None else shift_report,
-            material=self.material if material is None else material,
+            project_material=self.project_material
+            if project_material is None
+            else project_material,
             quantity=self.quantity if quantity is None else quantity,
             created_by=self.created_by,
             created_at=self.created_at,

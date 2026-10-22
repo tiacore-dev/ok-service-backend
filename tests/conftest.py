@@ -552,13 +552,13 @@ def seed_project_material(db_session, seed_project, seed_material, seed_user):
 
 
 @pytest.fixture
-def seed_shift_report_material(db_session, seed_shift_report, seed_material, seed_user):
+def seed_shift_report_material(db_session, seed_shift_report, seed_project_material, seed_user):
     from app.database.models import ShiftReportMaterials
 
     record = ShiftReportMaterials(
         shift_report_material_id=uuid4(),
         shift_report=UUID(seed_shift_report["shift_report_id"]),
-        material=UUID(seed_material["material_id"]),
+        project_material=UUID(seed_project_material["project_material_id"]),
         quantity=1.5,
         created_by=seed_user["user_id"],
     )

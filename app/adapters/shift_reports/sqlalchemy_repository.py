@@ -84,6 +84,17 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
         self._recalculate(entity.project)
         return entity
 
+    def create_shift_reports(
+        self, commands: list[CreateShiftReportCommand]
+    ) -> list[ShiftReport]:
+        with self.reports_manager.session_scope() as session:
+            repository = SQLAlchemyShiftReportRepository(
+                reports_manager=ShiftReportsManager(session=session)
+            )
+            reports = [repository.create_shift_report(command) for command in commands]
+        self._recalculate(*(report.project for report in reports))
+        return reports
+
     def get_shift_report(self, shift_report_id: UUID) -> ShiftReport | None:
         record = normalize_result(self.reports_manager.get_by_id(shift_report_id))
         if record is None:
@@ -117,6 +128,7 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             leave_check_date=command.leave_check_date,
             start_browser_id=command.start_browser_id,
             finish_browser_id=command.finish_browser_id,
+            modified_browser_id=command.modified_browser_id,
         )
         record = normalize_result(updated)
         if record is None:

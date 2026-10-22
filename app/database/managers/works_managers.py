@@ -91,7 +91,10 @@ class ShiftStandardsManager(BaseDBManager):
     def model(self):
         return ShiftStandards
 
-    def update_shift_standard(self, record_id, *, category, standard, notification_text):
+    def update_shift_standard(
+        self, record_id, *, category, standard, notification_text,
+        production_rate_rub, penalty_rate_percent,
+    ):
         with self.session_scope() as session:
             record = (
                 session.query(self.model)
@@ -102,6 +105,8 @@ class ShiftStandardsManager(BaseDBManager):
                 return None
             record.category = category
             record.standard = standard
+            record.production_rate_rub = production_rate_rub
+            record.penalty_rate_percent = penalty_rate_percent
             record.notification_text = notification_text
             session.flush()
             return record.to_dict()

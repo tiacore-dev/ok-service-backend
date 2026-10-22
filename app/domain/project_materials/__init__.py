@@ -1,6 +1,7 @@
 from .entities import ProjectMaterial
 from .errors import (
     ProjectMaterialForbiddenError,
+    ProjectMaterialInUseError,
     ProjectMaterialNotFoundError,
     ProjectMaterialValidationError,
 )
@@ -8,6 +9,7 @@ from .errors import (
 __all__ = [
     "ProjectMaterial",
     "ProjectMaterialForbiddenError",
+    "ProjectMaterialInUseError",
     "ProjectMaterialNotFoundError",
     "ProjectMaterialValidationError",
 ]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
 from flask import g, request
@@ -62,12 +62,16 @@ class _CreatePayload(TypedDict):
     category: int
     standard: float
     notification_text: str | None
+    production_rate_rub: NotRequired[float | None]
+    penalty_rate_percent: NotRequired[float | None]
 
 
 class _EditPayload(TypedDict, total=False):
     category: int
     standard: float
     notification_text: str | None
+    production_rate_rub: float | None
+    penalty_rate_percent: float | None
 
 
 def _id(value: str) -> UUID:
@@ -99,6 +103,8 @@ def _response(item) -> dict[str, Any]:
         "shift_standard_id": str(item.shift_standard_id),
         "category": item.category,
         "standard": item.standard,
+        "production_rate_rub": item.production_rate_rub,
+        "penalty_rate_percent": item.penalty_rate_percent,
         "notification_text": item.notification_text,
         "created_at": item.created_at,
         "created_by": str(item.created_by),
@@ -137,6 +143,8 @@ class ShiftStandardAdd(Resource):
                 CreateShiftStandardCommand(
                     category=data["category"],
                     standard=data["standard"],
+                    production_rate_rub=data.get("production_rate_rub"),
+                    penalty_rate_percent=data.get("penalty_rate_percent"),
                     notification_text=data.get("notification_text"),
                     created_by=required_uuid(
                         _current_user().get("user_id"), "Current user id is required"
@@ -154,6 +162,7 @@ class ShiftStandardAdd(Resource):
 @shift_standard_ns.route("/<string:shift_standard_id>/view")
 class ShiftStandardView(Resource):
     @api_key_or_jwt_required
+    @shift_standard_ns.response(200, "Success", shift_standard_response)
     def get(self, shift_standard_id):
         try:
             item = GetShiftStandardUseCase(SQLAlchemyShiftStandardRepository()).execute(
@@ -187,6 +196,10 @@ class ShiftStandardEdit(Resource):
                     shift_standard_id=_id(shift_standard_id),
                     category=data.get("category"),
                     standard=data.get("standard"),
+                    production_rate_rub=data.get("production_rate_rub"),
+                    production_rate_rub_provided="production_rate_rub" in data,
+                    penalty_rate_percent=data.get("penalty_rate_percent"),
+                    penalty_rate_percent_provided="penalty_rate_percent" in data,
                     notification_text=data.get("notification_text"),
                     notification_text_provided="notification_text" in raw,
                 )
@@ -219,6 +232,7 @@ class ShiftStandardDelete(Resource):
 @shift_standard_ns.route("/all")
 class ShiftStandardAll(Resource):
     @api_key_or_jwt_required
+    @shift_standard_ns.response(200, "Success", shift_standard_all_response)
     @shift_standard_ns.expect(shift_standard_filter_parser)
     def get(self):
         try:

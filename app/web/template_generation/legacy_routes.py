@@ -1,0 +1,139 @@
+from __future__ import annotations
+
+import json
+import logging
+from io import BytesIO
+from typing import Any, NotRequired, TypedDict, cast
+
+from flask import current_app, g, request, send_file
+from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
+from flask_restx import Model, Resource, fields
+from marshmallow import ValidationError
+
+from app.adapters.template_generation.legacy_http_client import (
+    LegacyHTTPTemplateGenerator,
+)
+from app.domain.template_generation import TemplateGenerationError
+from app.schemas.legacy_template_schemas import LegacyTemplateGenerateSchema
+from app.use_cases.template_generation.legacy import (
+    LegacyGenerateTemplateUseCase,
+    LegacyTemplateGenerateCommand,
+)
+from app.web._typing import get_optional_bool, get_optional_str, to_plain_dict
+from app.web.templates.auth import template_auth_required
+from app.web.templates.namespace import template_ns
+
+logger = logging.getLogger("ok_service")
+
+template_generate_model = Model(
+    "LegacyTemplateGenerationRequest",
+    {
+        "url": fields.String(description="URL шаблона; обязателен url или file_name"),
+        "file_name": fields.String(description="Имя шаблона в старом генераторе"),
+        "name": fields.String(required=True),
+        "is_pdf": fields.Boolean(default=False),
+        "document_data": fields.Raw(
+            required=True, description="Готовые данные клиента"
+        ),
+    },
+)
+template_ns.models[template_generate_model.name] = template_generate_model
+
+
+class TemplateGeneratePayload(TypedDict):
+    name: str
+    document_data: dict[str, Any]
+    is_pdf: bool
+    url: NotRequired[str | None]
+    file_name: NotRequired[str | None]
+
+
+def _get_current_user() -> dict[str, Any]:
+    identity = (
+        getattr(g, "api_key_identity_json", None)
+        if getattr(g, "auth_via_api_key", False)
+        else _get_jwt_identity()
+    )
+    if isinstance(identity, dict):
+        return identity
+    if isinstance(identity, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(identity)
+        except (TypeError, ValueError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _generator() -> LegacyHTTPTemplateGenerator:
+    return LegacyHTTPTemplateGenerator(
+        current_app.config.get("TEMPLATE_SERVICE_OLD_URL")
+    )
+
+
+def _command_from_payload(
+    payload: TemplateGeneratePayload,
+) -> LegacyTemplateGenerateCommand:
+    return LegacyTemplateGenerateCommand(
+        url=get_optional_str(payload, "url"),
+        file_name=get_optional_str(payload, "file_name"),
+        name=payload["name"],
+        is_pdf=bool(get_optional_bool(payload, "is_pdf")),
+        document_data=payload["document_data"],
+    )
+
+
+@template_ns.route("/generate")
+class TemplateGenerate(Resource):
+    @template_auth_required
+    @template_ns.expect(template_generate_model)
+    @template_ns.response(400, "Bad request, invalid data.")
+    @template_ns.response(500, "Internal Server Error")
+    @template_ns.doc(description="Генерация файла по шаблону")
+    @template_ns.response(
+        200,
+        "Файл успешно сгенерирован",
+        headers={
+            "Content-Disposition": 'attachment; filename="output.docx"',
+            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+    )
+    def post(self):
+        current_user = _get_current_user()
+        schema = LegacyTemplateGenerateSchema()
+        try:
+            raw_payload = to_plain_dict(
+                request.get_json(silent=True), "Request body is required"
+            )
+            data = cast(TemplateGeneratePayload, schema.load(raw_payload))
+            command = _command_from_payload(data)
+        except ValidationError as err:
+            logger.error(
+                f"Ошибка валидации при генерации шаблона: {err.messages}",
+                extra={"login": current_user.get("login")},
+            )
+            return {"msg": "Некорректные данные", "errors": err.messages}, 400
+        except ValueError as err:
+            logger.error(
+                f"Ошибка при разборе запроса на генерацию шаблона: {err}",
+                extra={"login": current_user.get("login")},
+            )
+            return {"msg": str(err)}, 400
+
+        try:
+            document_bytes = LegacyGenerateTemplateUseCase(
+                generator=_generator()
+            ).execute(command)
+        except (TemplateGenerationError, TypeError, ValueError):
+            logger.exception(
+                "Ошибка при генерации шаблона",
+                extra={"login": current_user.get("login")},
+            )
+            return {"msg": "Ошибка при генерации файла"}, 500
+
+        return send_file(
+            BytesIO(document_bytes),
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            as_attachment=True,
+            download_name="output.docx",
+        )

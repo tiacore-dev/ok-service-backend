@@ -157,7 +157,9 @@ class MaterialAdd(Resource):
                 "material_id": str(material.material_id),
             }, 200
         except Exception as error:
-            logger.error(f"Error adding material: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error adding material: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -167,7 +169,9 @@ class MaterialView(Resource):
     @material_ns.marshal_with(material_response)
     def get(self, material_id):
         current_user = _get_current_user()
-        logger.info(f"Request to view material: {material_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to view material: {material_id}", extra={"login": current_user}
+        )
         try:
             material = GetMaterialUseCase(repository=_repository()).execute(
                 _parse_material_id(material_id)
@@ -177,7 +181,9 @@ class MaterialView(Resource):
                 "material": material_entity_to_response(material),
             }, 200
         except Exception as error:
-            logger.error(f"Error viewing material: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error viewing material: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 
@@ -189,7 +195,8 @@ class MaterialSoftDelete(Resource):
     def patch(self, material_id):
         current_user = _get_current_user()
         logger.info(
-            f"Request to soft delete material: {material_id}", extra={"login": current_user}
+            f"Request to soft delete material: {material_id}",
+            extra={"login": current_user},
         )
         try:
             material = UpdateMaterialUseCase(repository=_repository()).execute(
@@ -217,7 +224,8 @@ class MaterialHardDelete(Resource):
     def delete(self, material_id):
         current_user = _get_current_user()
         logger.info(
-            f"Request to hard delete material: {material_id}", extra={"login": current_user}
+            f"Request to hard delete material: {material_id}",
+            extra={"login": current_user},
         )
         try:
             deleted = DeleteMaterialUseCase(repository=_repository()).execute(
@@ -244,7 +252,9 @@ class MaterialEdit(Resource):
     @material_ns.marshal_with(material_msg_model)
     def patch(self, material_id):
         current_user = _get_current_user()
-        logger.info(f"Request to edit material: {material_id}", extra={"login": current_user})
+        logger.info(
+            f"Request to edit material: {material_id}", extra={"login": current_user}
+        )
 
         schema = MaterialEditSchema()
         try:
@@ -265,7 +275,9 @@ class MaterialEdit(Resource):
                 "material_id": str(material.material_id),
             }, 200
         except Exception as error:
-            logger.error(f"Error editing material: {error}", extra={"login": current_user})
+            logger.error(
+                f"Error editing material: {error}", extra={"login": current_user}
+            )
             return _map_error(error)
 
 

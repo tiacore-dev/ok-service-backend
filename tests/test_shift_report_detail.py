@@ -5,12 +5,27 @@ import pytest
 
 
 @pytest.fixture
+def seed_shift_project_work(
+    db_session, seed_shift_report, seed_work, seed_user,
+    seed_work_material_relation, seed_work_material_relation_pcs,
+):
+    from app.database.managers.projects_managers import ProjectWorksManager
+
+    result = ProjectWorksManager(session=db_session).add(
+        project=UUID(seed_shift_report["project"]), work=UUID(seed_work["work_id"]),
+        quantity=10, created_by=UUID(seed_user["user_id"]),
+    )
+    db_session.commit()
+    return result
+
+
+@pytest.fixture
 def seed_shift_report_detail(
     db_session,
     seed_shift_report,
     seed_work,
     seed_user,
-    seed_project_work_own,
+    seed_shift_project_work,
     seed_work_material_relation,
     seed_work_material_relation_pcs,
 ):
@@ -19,7 +34,7 @@ def seed_shift_report_detail(
 
     detail = ShiftReportDetails(
         shift_report_detail_id=uuid4(),
-        project_work=UUID(seed_project_work_own["project_work_id"]),
+        project_work=UUID(seed_shift_project_work["project_work_id"]),
         shift_report=UUID(seed_shift_report["shift_report_id"]),
         work=UUID(seed_work["work_id"]),
         created_by=seed_user["user_id"],
@@ -37,20 +52,66 @@ def seed_shift_report_detail(
     return detail.to_dict()
 
 
+def test_add_detail_without_specification_material_is_rolled_back(
+    client, jwt_token, db_session, seed_shift_report, seed_work,
+    seed_work_price, seed_shift_project_work,
+):
+    from app.database.models import ProjectMaterials, ShiftReportDetails, ShiftReportMaterials
+
+    db_session.query(ProjectMaterials).filter_by(
+        project_work=UUID(seed_shift_project_work["project_work_id"])
+    ).delete(synchronize_session=False)
+    db_session.commit()
+    response = client.post("/shift_report_details/add", json={
+        "shift_report": seed_shift_report["shift_report_id"],
+        "project_work": seed_shift_project_work["project_work_id"],
+        "work": seed_work["work_id"], "quantity": 3,
+    }, headers={"Authorization": f"Bearer {jwt_token}"})
+    assert response.status_code == 409
+    assert db_session.query(ShiftReportDetails).count() == 0
+    assert db_session.query(ShiftReportMaterials).count() == 0
+
+
+def test_edit_detail_without_specification_material_preserves_previous_usage(
+    client, jwt_token, db_session, seed_shift_report_detail, seed_user,
+):
+    from app.database.models import Materials, ShiftReportDetails, ShiftReportMaterials, WorkMaterialRelations
+
+    detail_id = UUID(seed_shift_report_detail["shift_report_detail_id"])
+    detail = db_session.get(ShiftReportDetails, detail_id)
+    previous_quantity = detail.quantity
+    previous = sorted((str(row.shift_report_material_id), str(row.project_material), row.quantity)
+                      for row in db_session.query(ShiftReportMaterials).filter_by(shift_report_detail=detail_id))
+    missing = Materials(name="Material missing from specification", created_by=UUID(seed_user["user_id"]))
+    db_session.add(missing)
+    db_session.flush()
+    db_session.add(WorkMaterialRelations(work=detail.work, material=missing.material_id,
+                                        quantity=1, created_by=UUID(seed_user["user_id"])))
+    db_session.commit()
+    response = client.patch(f"/shift_report_details/{detail_id}/edit", json={"quantity": 3},
+                            headers={"Authorization": f"Bearer {jwt_token}"})
+    assert response.status_code == 409
+    db_session.expire_all()
+    assert db_session.get(ShiftReportDetails, detail_id).quantity == previous_quantity
+    actual = sorted((str(row.shift_report_material_id), str(row.project_material), row.quantity)
+                    for row in db_session.query(ShiftReportMaterials).filter_by(shift_report_detail=detail_id))
+    assert actual == previous
+
+
 def test_add_shift_report_detail(
     client,
     jwt_token,
     seed_shift_report,
     seed_work,
     seed_work_price,
-    seed_project_work_own,
+    seed_shift_project_work,
     seed_work_material_relation,
     seed_work_material_relation_pcs,
     db_session,
 ):
     data = {
         "shift_report": seed_shift_report['shift_report_id'],
-        "project_work": seed_project_work_own['project_work_id'],
+        "project_work": seed_shift_project_work['project_work_id'],
         "work": seed_work['work_id'],
         "quantity": 20.0
     }
@@ -68,7 +129,7 @@ def test_add_shift_report_detail(
         shift_report_detail=detail_id
     ).all()
     assert len(records) == 2
-    quantities = {str(r.material): float(r.quantity) for r in records}
+    quantities = {str(r.project_materials.material): float(r.quantity) for r in records}
     assert quantities[seed_work_material_relation["material"]] == 20.0 * float(
         seed_work_material_relation["quantity"]
     )
@@ -139,7 +200,7 @@ def test_edit_shift_report_detail(
         shift_report_detail=seed_shift_report_detail["shift_report_detail_id"]
     ).all()
     assert len(records) == 2
-    quantities = {str(r.material): float(r.quantity) for r in records}
+    quantities = {str(r.project_materials.material): float(r.quantity) for r in records}
     assert quantities[seed_work_material_relation["material"]] == 3.0 * float(
         seed_work_material_relation["quantity"]
     )
@@ -181,14 +242,14 @@ def test_get_all_shift_report_details_with_filters(
     seed_shift_report_detail,
     seed_shift_report,
     seed_work,
-    seed_project_work_own,
+    seed_shift_project_work,
     seed_project_work_other,
 ):
     headers = {"Authorization": f"Bearer {jwt_token}"}
     params = [
         ("shift_report", seed_shift_report["shift_report_id"]),
         ("work", seed_work["work_id"]),
-        ("project_work", seed_project_work_own["project_work_id"]),
+        ("project_work", seed_shift_project_work["project_work_id"]),
         ("project_work", seed_project_work_other["project_work_id"]),
     ]
     response = client.get("/shift_report_details/all",

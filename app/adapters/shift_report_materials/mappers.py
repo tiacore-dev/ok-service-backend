@@ -15,7 +15,7 @@ def shift_report_material_dict_to_entity(
             payload["shift_report_material_id"], "shift_report_material_id"
         ),
         shift_report=require_uuid(payload["shift_report"], "shift_report"),
-        material=require_uuid(payload["material"], "material"),
+        project_material=require_uuid(payload["project_material"], "project_material"),
         quantity=Decimal(str(payload["quantity"])),
         created_by=require_uuid(payload["created_by"], "created_by"),
         created_at=int(payload["created_at"]),
@@ -29,7 +29,7 @@ def shift_report_material_entity_to_create_payload(
     return {
         "shift_report_material_id": shift_report_material.shift_report_material_id,
         "shift_report": shift_report_material.shift_report,
-        "material": shift_report_material.material,
+        "project_material": shift_report_material.project_material,
         "quantity": shift_report_material.quantity,
         "created_by": shift_report_material.created_by,
         "created_at": shift_report_material.created_at,
@@ -43,7 +43,7 @@ def shift_report_material_entity_to_response(
     return {
         "shift_report_material_id": str(shift_report_material.shift_report_material_id),
         "shift_report": str(shift_report_material.shift_report),
-        "material": str(shift_report_material.material),
+        "project_material": str(shift_report_material.project_material),
         "quantity": float(shift_report_material.quantity),
         "shift_report_detail": (
             str(shift_report_material.shift_report_detail)

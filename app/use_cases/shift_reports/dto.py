@@ -99,6 +99,7 @@ class UpdateShiftReportCommand:
     leave_check_date: int | None = None
     start_browser_id: UUID | None = None
     finish_browser_id: UUID | None = None
+    modified_browser_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)

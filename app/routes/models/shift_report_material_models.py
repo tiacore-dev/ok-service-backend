@@ -12,6 +12,12 @@ shift_report_material_create_model = generate_swagger_model(
 shift_report_material_edit_model = generate_swagger_model(
     ShiftReportMaterialEditSchema(), "ShiftReportMaterialEdit"
 )
+shift_report_material_create_model["project_material"] = fields.String(
+    required=True, description="Project material ID", format="uuid"
+)
+shift_report_material_edit_model["project_material"] = fields.String(
+    required=False, description="Project material ID", format="uuid"
+)
 
 shift_report_material_model = Model(
     "ShiftReportMaterial",
@@ -20,7 +26,7 @@ shift_report_material_model = Model(
             required=True, description="ID of the shift report material"
         ),
         "shift_report": fields.String(required=True, description="Shift report ID"),
-        "material": fields.String(required=True, description="Material ID"),
+        "project_material": fields.String(required=True, description="Project material ID"),
         "quantity": fields.Float(required=True, description="Quantity of material"),
         "shift_report_detail": fields.String(
             required=False, description="Shift report detail ID (optional)"
@@ -72,7 +78,7 @@ shift_report_material_filter_parser.add_argument(
     "shift_report", type=str, required=False, help="Filter by shift report ID"
 )
 shift_report_material_filter_parser.add_argument(
-    "material", type=str, required=False, help="Filter by material ID"
+    "project_material", type=str, required=False, help="Filter by project material ID"
 )
 shift_report_material_filter_parser.add_argument(
     "shift_report_detail",

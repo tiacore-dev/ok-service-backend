@@ -325,7 +325,9 @@ def test_user_cannot_enable_short_shift():
 def test_user_can_edit_shift_without_enabling_short_shift(current_value, short_shift):
     report = _report().with_updates(short_shift=current_value)
 
-    updated = UpdateShiftReportUseCase(repository=_FakeRepository(current=report)).execute(
+    updated = UpdateShiftReportUseCase(
+        repository=_FakeRepository(current=report)
+    ).execute(
         UpdateShiftReportCommand(
             shift_report_id=report.shift_report_id,
             short_shift=short_shift,
@@ -693,3 +695,63 @@ def test_list_shift_reports_for_project_leader_forbids_foreign_project():
 
     with pytest.raises(ShiftReportForbiddenError):
         use_case.execute(query, actor)
+
+
+@pytest.mark.parametrize("role", ["admin", "manager", "project-leader"])
+def test_bulk_create_deduplicates_users_and_sets_actor(role):
+    from unittest.mock import Mock
+
+    from app.use_cases.shift_reports.create_shift_reports import (
+        CreateShiftReportsUseCase,
+    )
+
+    repository = Mock()
+    user_ids = [uuid4(), uuid4()]
+    commands = [CreateShiftReportCommand(user=user, date=1) for user in user_ids * 2]
+    actor = ShiftReportActor(role=role, user_id=uuid4())
+    result = CreateShiftReportsUseCase(repository).execute(commands, actor)
+    actual = repository.create_shift_reports.call_args.args[0]
+    assert [item.user for item in actual] == user_ids
+    assert all(item.created_by == actor.user_id for item in actual)
+    assert result is repository.create_shift_reports.return_value
+
+
+@pytest.mark.parametrize("scenario", ["empty", "user", "short_shift", "dates"])
+def test_bulk_validation_runs_before_repository(scenario):
+    from unittest.mock import Mock
+
+    from app.use_cases.shift_reports.create_shift_reports import (
+        CreateShiftReportsUseCase,
+    )
+
+    repository = Mock()
+    role = (
+        "user"
+        if scenario == "user"
+        else "accountant"
+        if scenario == "short_shift"
+        else "admin"
+    )
+    commands = (
+        []
+        if scenario == "empty"
+        else [
+            CreateShiftReportCommand(
+                user=uuid4(),
+                date=1,
+                short_shift=True if scenario == "short_shift" else None,
+                date_start=10 if scenario == "dates" else None,
+                date_end=9 if scenario == "dates" else None,
+            )
+        ]
+    )
+    expected = (
+        ShiftReportForbiddenError
+        if scenario in {"user", "short_shift"}
+        else ShiftReportValidationError
+    )
+    with pytest.raises(expected):
+        CreateShiftReportsUseCase(repository).execute(
+            commands, ShiftReportActor(role=role, user_id=uuid4())
+        )
+    repository.create_shift_reports.assert_not_called()

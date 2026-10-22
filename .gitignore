@@ -7,7 +7,6 @@ dispatcher.py
 *.so
 
 static/
-templates/
 monitoring/loki-data/
 
 vapid_private_key.pem

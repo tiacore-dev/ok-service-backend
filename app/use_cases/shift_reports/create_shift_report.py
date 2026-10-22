@@ -23,6 +23,13 @@ class CreateShiftReportUseCase:
     def execute(
         self, command: CreateShiftReportCommand, actor: ShiftReportActor
     ) -> ShiftReport:
+        command = self.prepare(command, actor)
+        return self.repository.create_shift_report(command)
+
+    @staticmethod
+    def prepare(
+        command: CreateShiftReportCommand, actor: ShiftReportActor
+    ) -> CreateShiftReportCommand:
         if actor.role == "user":
             raise ShiftReportForbiddenError("User cannot create shift report")
         if (
@@ -40,5 +47,4 @@ class CreateShiftReportUseCase:
             raise ShiftReportValidationError(
                 "Shift report date_end must be greater than or equal to date_start."
             )
-        command = replace(command, created_by=actor.user_id)
-        return self.repository.create_shift_report(command)
+        return replace(command, created_by=actor.user_id)

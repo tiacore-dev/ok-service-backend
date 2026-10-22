@@ -15,6 +15,14 @@ class ShiftStandardCreateSchema(Schema):
         allow_nan=False,
         validate=[validate.Range(min=0, min_inclusive=False), _finite],
     )
+    production_rate_rub = fields.Float(
+        required=False, allow_none=True, allow_nan=False,
+        validate=[validate.Range(min=0), _finite],
+    )
+    penalty_rate_percent = fields.Float(
+        required=False, allow_none=True, allow_nan=False,
+        validate=[validate.Range(min=0, max=100), _finite],
+    )
     notification_text = fields.String(required=False, allow_none=True)
 
 
@@ -24,6 +32,14 @@ class ShiftStandardEditSchema(Schema):
         required=False,
         allow_nan=False,
         validate=[validate.Range(min=0, min_inclusive=False), _finite],
+    )
+    production_rate_rub = fields.Float(
+        required=False, allow_none=True, allow_nan=False,
+        validate=[validate.Range(min=0), _finite],
+    )
+    penalty_rate_percent = fields.Float(
+        required=False, allow_none=True, allow_nan=False,
+        validate=[validate.Range(min=0, max=100), _finite],
     )
     notification_text = fields.String(required=False, allow_none=True)
 

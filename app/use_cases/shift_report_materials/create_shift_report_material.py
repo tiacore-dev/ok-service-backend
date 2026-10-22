@@ -36,7 +36,7 @@ class CreateShiftReportMaterialUseCase:
         shift_report_material = ShiftReportMaterial(
             shift_report_material_id=uuid4(),
             shift_report=command.shift_report,
-            material=command.material,
+            project_material=command.project_material,
             quantity=command.quantity,
             created_by=command.created_by,
             created_at=utc_epoch_milliseconds(),

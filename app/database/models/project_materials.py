@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sqlalchemy import UUID, BigInteger, Column, ForeignKey, Numeric, String
+from sqlalchemy import UUID, BigInteger, Column, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
@@ -10,6 +10,12 @@ from app.database.time_utils import utc_epoch_milliseconds
 
 class ProjectMaterials(Base):
     __tablename__ = "project_materials"
+    __table_args__ = (
+        Index(
+            "ix_project_materials_shift_matching", "project", "project_work",
+            "material", "created_at", "project_material_id",
+        ),
+    )
 
     project_material_id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False
@@ -38,6 +44,9 @@ class ProjectMaterials(Base):
     projects = relationship("Projects", back_populates="project_materials")
     materials = relationship("Materials", back_populates="project_materials")
     project_works = relationship("ProjectWorks", back_populates="project_materials")
+    shift_report_materials = relationship(
+        "ShiftReportMaterials", back_populates="project_materials", passive_deletes="all"
+    )
 
     project_material_creator = relationship(
         "Users", back_populates="created_project_materials"

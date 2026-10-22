@@ -14,7 +14,7 @@ def test_shift_report_material_can_represent_legacy_non_positive_quantity():
     material = ShiftReportMaterial(
         shift_report_material_id=uuid4(),
         shift_report=uuid4(),
-        material=uuid4(),
+        project_material=uuid4(),
         quantity=Decimal("0"),
         created_by=uuid4(),
         created_at=1,

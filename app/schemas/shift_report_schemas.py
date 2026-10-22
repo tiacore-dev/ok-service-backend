@@ -110,6 +110,17 @@ class ShiftReportCreateSchema(Schema):
             )
 
 
+class ShiftReportBulkCreateSchema(ShiftReportCreateSchema):
+    class Meta(ShiftReportCreateSchema.Meta):
+        exclude = ("user",)
+
+    user_ids = fields.List(
+        fields.UUID(validate=lambda value: validate_user_exists(str(value))),
+        required=True,
+        validate=validate.Length(min=1),
+    )
+
+
 class ShiftReportEditSchema(Schema):
     class Meta:
         unknown = "exclude"  # Исключать лишние поля

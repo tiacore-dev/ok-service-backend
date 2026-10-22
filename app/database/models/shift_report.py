@@ -40,6 +40,7 @@ class ShiftReports(Base):
     distance_end = Column(Float, nullable=True)
     start_browser_id = Column(UUID(as_uuid=True), nullable=True)
     finish_browser_id = Column(UUID(as_uuid=True), nullable=True)
+    modified_browser_id = Column(UUID(as_uuid=True), nullable=True)
     signed = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         BigInteger,
@@ -128,6 +129,9 @@ class ShiftReports(Base):
             else None,
             "finish_browser_id": str(self.finish_browser_id)
             if self.finish_browser_id is not None
+            else None,
+            "modified_browser_id": str(self.modified_browser_id)
+            if self.modified_browser_id is not None
             else None,
             "signed": self.signed,
             "deleted": self.deleted,

@@ -16,3 +16,7 @@ class ProjectMaterialNotFoundError(ProjectMaterialError):
 
 class ProjectMaterialForbiddenError(ProjectMaterialError):
     """Raised when an actor cannot add material to a project."""
+
+
+class ProjectMaterialInUseError(ProjectMaterialError):
+    """Raised when a used specification row would change its identity."""

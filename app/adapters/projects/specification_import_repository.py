@@ -1,6 +1,8 @@
+import logging
 from dataclasses import dataclass
 from uuid import UUID
 
+from app.adapters.statistics import ProjectMaterialStatistics, ProjectWorkStatistics
 from app.database import db_globals
 from app.database.models import (
     Materials,
@@ -18,11 +20,16 @@ from app.use_cases.project_specification_import import (
     ProjectSpecificationImportRepository,
 )
 
+logger = logging.getLogger("ok_service")
+
 
 @dataclass(slots=True)
 class SQLAlchemyProjectSpecificationImportRepository(
     ProjectSpecificationImportRepository
 ):
+    statistics: ProjectWorkStatistics | None = None
+    material_statistics: ProjectMaterialStatistics | None = None
+
     def get_project_ids_by_leader(self, user_id: UUID) -> list[UUID]:
         session_factory = db_globals.Session
         if session_factory is None:
@@ -81,76 +88,101 @@ class SQLAlchemyProjectSpecificationImportRepository(
                 item.project_material_id for item in materials
             }
             existing_ids = existing_work_ids | existing_material_ids
-            if existing_ids:
-                if existing_ids == requested_ids:
-                    return
+            if existing_ids and existing_ids != requested_ids:
                 raise ProjectSpecificationImportError(
                     "Import identifiers already exist"
                 )
-            work_catalog_ids = (
-                {
-                    row[0]
-                    for row in session.query(Works.work_id)
-                    .filter(
-                        Works.work_id.in_([item.work for item in works]),
-                        Works.deleted.is_(False),
+            if not existing_ids:
+                work_catalog_ids = (
+                    {
+                        row[0]
+                        for row in session.query(Works.work_id)
+                        .filter(
+                            Works.work_id.in_([item.work for item in works]),
+                            Works.deleted.is_(False),
+                        )
+                        .all()
+                    }
+                    if works
+                    else set()
+                )
+                material_catalog_ids = (
+                    {
+                        row[0]
+                        for row in session.query(Materials.material_id)
+                        .filter(
+                            Materials.material_id.in_(
+                                [item.material for item in materials]
+                            ),
+                            Materials.deleted.is_(False),
+                        )
+                        .all()
+                    }
+                    if materials
+                    else set()
+                )
+                if len(work_catalog_ids) != len({item.work for item in works}) or len(
+                    material_catalog_ids
+                ) != len({item.material for item in materials}):
+                    raise ProjectSpecificationImportError("Work or material not found")
+                session.add_all(
+                    [
+                        ProjectWorks(
+                            project_work_id=item.project_work_id,
+                            project_work_name=item.project_work_name,
+                            project=item.project,
+                            work=item.work,
+                            quantity=item.quantity,
+                            price=item.price,
+                            summ=item.summ,
+                            signed=item.signed,
+                            created_by=item.created_by,
+                            created_at=item.created_at,
+                        )
+                        for item in works
+                    ]
+                )
+                session.flush()
+                session.add_all(
+                    [
+                        ProjectMaterials(
+                            project_material_id=item.project_material_id,
+                            project_material_name=item.project_material_name,
+                            project=item.project,
+                            material=item.material,
+                            quantity=item.quantity,
+                            price=item.price,
+                            summ=item.summ,
+                            project_work=item.project_work,
+                            created_by=item.created_by,
+                            created_at=item.created_at,
+                        )
+                        for item in materials
+                    ]
+                )
+        self._refresh_statistics(project_id)
+
+    def _refresh_statistics(self, project_id: UUID) -> None:
+        for name, statistics in (
+            ("works", self.statistics),
+            ("materials", self.material_statistics),
+        ):
+            if statistics is None:
+                continue
+            try:
+                statistics.recalculate_many({project_id})
+            except Exception:
+                logger.exception(
+                    "Post-import %s statistics refresh failed for project %s",
+                    name,
+                    project_id,
+                )
+                try:
+                    statistics.delete_project_stats(project_id)
+                except Exception:
+                    logger.exception(
+                        "Post-import %s statistics invalidation failed for project %s; "
+                        "retry the import to refresh statistics",
+                        name,
+                        project_id,
                     )
-                    .all()
-                }
-                if works
-                else set()
-            )
-            material_catalog_ids = (
-                {
-                    row[0]
-                    for row in session.query(Materials.material_id)
-                    .filter(
-                        Materials.material_id.in_(
-                            [item.material for item in materials]
-                        ),
-                        Materials.deleted.is_(False),
-                    )
-                    .all()
-                }
-                if materials
-                else set()
-            )
-            if len(work_catalog_ids) != len({item.work for item in works}) or len(
-                material_catalog_ids
-            ) != len({item.material for item in materials}):
-                raise ProjectSpecificationImportError("Work or material not found")
-            session.add_all(
-                [
-                    ProjectWorks(
-                        project_work_id=item.project_work_id,
-                        project_work_name=item.project_work_name,
-                        project=item.project,
-                        work=item.work,
-                        quantity=item.quantity,
-                        price=item.price,
-                        summ=item.summ,
-                        signed=item.signed,
-                        created_by=item.created_by,
-                        created_at=item.created_at,
-                    )
-                    for item in works
-                ]
-            )
-            session.flush()
-            session.add_all(
-                [
-                    ProjectMaterials(
-                        project_material_id=item.project_material_id,
-                        project_material_name=item.project_material_name,
-                        project=item.project,
-                        material=item.material,
-                        quantity=item.quantity,
-                        price=item.price,
-                        summ=item.summ,
-                        project_work=item.project_work,
-                        created_by=item.created_by,
-                        created_at=item.created_at,
-                    )
-                    for item in materials
-                ]
-            )

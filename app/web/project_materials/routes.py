@@ -19,6 +19,7 @@ from app.adapters.statistics import RedisProjectMaterialStatistics
 from app.decorators import admin_required, api_key_or_jwt_required
 from app.domain.project_materials import (
     ProjectMaterialForbiddenError,
+    ProjectMaterialInUseError,
     ProjectMaterialNotFoundError,
     ProjectMaterialValidationError,
 )
@@ -153,6 +154,8 @@ def _actor(current_user: dict[str, Any]) -> ProjectMaterialActor:
 
 
 def _map_error(error: Exception):
+    if isinstance(error, ProjectMaterialInUseError):
+        return {"msg": str(error)}, 409
     if isinstance(error, ProjectMaterialNotFoundError):
         return {"msg": str(error)}, 404
     if isinstance(error, ProjectMaterialForbiddenError):

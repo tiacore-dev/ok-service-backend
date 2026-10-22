@@ -1,10 +1,10 @@
 from flask_restx import Model, fields, reqparse
 
 from app.routes.models.place_models import place_model
-from app.web.attachments.contract import attachment_view_model
 from app.schemas.object_schemas import ObjectCreateSchema, ObjectEditSchema
-from app.domain.objects import ObjectStatus
 from app.utils.helpers import generate_swagger_model
+from app.web.attachments.contract import attachment_view_model
+from app.web.fields import EmptyPreservingNested, NestedMap
 
 object_create_model = generate_swagger_model(ObjectCreateSchema(), "ObjectCreate")
 object_edit_model = generate_swagger_model(ObjectEditSchema(), "ObjectEdit")
@@ -19,9 +19,7 @@ object_statuses_response = Model(
     "ObjectStatusesResponse",
     {
         "msg": fields.String(required=True),
-        "statuses": fields.List(
-            fields.Nested(object_status_item_model), required=True
-        ),
+        "statuses": fields.List(fields.Nested(object_status_item_model), required=True),
     },
 )
 
@@ -125,23 +123,43 @@ material_stats_item_model = Model(
         "material_name": fields.String(allow_null=True),
     },
 )
+work_stats_item_model = Model(
+    "WorkStatsItem",
+    {
+        **work_stats_summary_model,
+        "project_work_name": fields.String(allow_null=True),
+    },
+)
 object_project_stats_model = Model(
     "ObjectProjectStats",
     {
         "project_id": fields.String(required=True),
         "name": fields.String(required=True),
-        "stats": fields.Wildcard(fields.Nested(work_stats_summary_model), required=True),
-        "material_stats": fields.Wildcard(
-            fields.Nested(material_stats_item_model), required=True
+        "stats": EmptyPreservingNested(work_stats_summary_model, required=True),
+        "material_stats": NestedMap(material_stats_item_model, required=True),
+    },
+)
+object_project_stats_details_model = Model(
+    "ObjectProjectStatsDetails",
+    {
+        "project_id": fields.String(required=True),
+        "name": fields.String(required=True),
+        "stats": NestedMap(
+            work_stats_item_model, required=True
+        ),
+        "material_stats": NestedMap(
+            material_stats_item_model, required=True
         ),
     },
 )
 object_stats_payload = Model(
     "ObjectStatsPayload",
     {
-        "total": fields.Nested(work_stats_summary_model, required=True),
+        "total": EmptyPreservingNested(work_stats_summary_model, required=True),
         "material_totals": fields.Nested(material_stats_summary_model, required=True),
-        "projects": fields.List(fields.Nested(object_project_stats_model), required=True),
+        "projects": fields.List(
+            fields.Nested(object_project_stats_model), required=True
+        ),
     },
 )
 object_stats_response = Model(
@@ -155,11 +173,15 @@ object_stats_response = Model(
 object_stats_details_payload = Model(
     "ObjectStatsDetailsPayload",
     {
-        "total": fields.Wildcard(fields.Nested(work_stats_summary_model), required=True),
-        "material_totals": fields.Wildcard(
-            fields.Nested(material_stats_item_model), required=True
+        "total": NestedMap(
+            work_stats_item_model, required=True
         ),
-        "projects": fields.List(fields.Nested(object_project_stats_model), required=True),
+        "material_totals": NestedMap(
+            material_stats_item_model, required=True
+        ),
+        "projects": fields.List(
+            fields.Nested(object_project_stats_details_model), required=True
+        ),
     },
 )
 object_stats_details_response = Model(
@@ -179,8 +201,12 @@ project_leader_fact_stats_filter_parser = reqparse.RequestParser()
 project_leader_fact_stats_filter_parser.add_argument("offset", type=int, default=0)
 project_leader_fact_stats_filter_parser.add_argument("limit", type=int, default=10)
 project_leader_fact_stats_filter_parser.add_argument("search", type=str, required=False)
-project_leader_fact_stats_filter_parser.add_argument("date_from", type=int, required=False)
-project_leader_fact_stats_filter_parser.add_argument("date_to", type=int, required=False)
+project_leader_fact_stats_filter_parser.add_argument(
+    "date_from", type=int, required=False
+)
+project_leader_fact_stats_filter_parser.add_argument(
+    "date_to", type=int, required=False
+)
 project_leader_fact_stats_filter_parser.add_argument(
     "project_leader_ids", type=str, action="append", required=False
 )
@@ -209,9 +235,17 @@ project_leader_material_fact_item = Model(
         "shift_report_material_summ_by_estimate": fields.Float(required=True),
     },
 )
-project_leader_fact_stats = fields.Wildcard(fields.Nested(project_leader_fact_item), required=True)
-project_leader_material_fact_stats = fields.Wildcard(
-    fields.Nested(project_leader_material_fact_item), required=True
+
+
+class _MonthlyStatistics(NestedMap):
+    """Dictionary of monthly statistics with registered item models."""
+
+    label = "Monthly statistics"
+
+
+project_leader_fact_stats = _MonthlyStatistics(project_leader_fact_item, required=True)
+project_leader_material_fact_stats = _MonthlyStatistics(
+    project_leader_material_fact_item, required=True
 )
 project_leader_fact_project = Model(
     "ProjectLeaderFactProject",

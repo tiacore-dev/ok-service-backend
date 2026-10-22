@@ -7,6 +7,16 @@ from app.database.models import PermissionTypes
 # ``api_key_or_jwt_required``.  The description is part of the authorization
 # contract: the decorator resolves the permission by HTTP method and route.
 API_KEY_PERMISSIONS = (
+    ("templates-create", "POST /templates/add"),
+    ("templates-list", "GET /templates/all"),
+    ("templates-types-list", "GET /templates/types/all"),
+    ("templates-params", "GET /templates/params"),
+    ("templates-view", "GET /templates/{template_id}/view"),
+    ("templates-edit", "PATCH /templates/{template_id}/edit"),
+    ("templates-delete-hard", "DELETE /templates/{template_id}/delete/hard"),
+    ("templates-download", "GET /templates/{template_id}/download"),
+    ("templates-generate", "POST /templates/generate"),
+    ("templates-generate-new", "POST /templates/generate-new"),
     ("places-add", "POST /places/add"),
     ("places-delete-hard", "DELETE /places/{place_id}/delete/hard"),
     ("places-delete-soft", "PATCH /places/{place_id}/delete/soft"),
@@ -47,6 +57,7 @@ API_KEY_PERMISSIONS = (
     ("objects-delete-soft", "PATCH /objects/{object_id}/delete/soft"),
     ("objects-edit", "PATCH /objects/{object_id}/edit"),
     ("objects-list", "GET /objects/all"),
+    ("objects-statuses", "GET /objects/statuses"),
     ("object-statuses-list", "GET /object_statuses/all"),
     ("system-settings-list", "GET /system_settings/all"),
     ("system-settings-view", "GET /system_settings/{system_setting_id}/view"),
@@ -121,6 +132,7 @@ API_KEY_PERMISSIONS = (
     ("project-leaders-get-stat-all", "GET /project-leaders/get-stat"),
     ("project-leaders-get-stat-details", "GET /project-leaders/{project_leader_id}/get-stat-details"),
     ("projects-list", "GET /projects/all"),
+    ("projects-statuses", "GET /projects/statuses"),
     ("projects-parse-project-specification", "POST /projects/parse-project-specification"),
     (
         "projects-import-works-and-materials",
@@ -192,6 +204,7 @@ API_KEY_PERMISSIONS = (
         "POST /shift_reports/{shift_report_id}/attachments",
     ),
     ("shift-reports-create", "POST /shift_reports/add"),
+    ("shift-reports-create-bulk", "POST /shift_reports/add-bulk"),
     ("shift-reports-delete-hard", "DELETE /shift_reports/{report_id}/delete/hard"),
     ("shift-reports-delete-soft", "PATCH /shift_reports/{report_id}/delete/soft"),
     ("shift-reports-edit", "PATCH /shift_reports/{report_id}/edit"),

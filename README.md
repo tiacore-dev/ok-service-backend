@@ -9,16 +9,24 @@
 - [docs/type-system-guidelines.md](./docs/type-system-guidelines.md) - правила типизации, чтобы не размазывать `cast` и `None`-проверки по коду.
 - [docs/model-and-swagger-rules.md](./docs/model-and-swagger-rules.md) - правила построения request/response/filter моделей и swagger-контрактов.
 - [docs/access-control-rules.md](./docs/access-control-rules.md) - правила прав доступа, ownership и тестового gate перед следующими срезами миграции.
+- [docs/shift-report-bulk-create.md](./docs/shift-report-bulk-create.md) - транзакционное массовое создание смен для списка пользователей.
+- [docs/shift-report-browser-audit.md](./docs/shift-report-browser-audit.md) - идентификаторы браузера начала, завершения и редактирования смены.
 - [docs/shift-report-details-rules.md](./docs/shift-report-details-rules.md) - правила расчёта статистики и статуса `project_work` в ответах `shift_report_details`.
+- [docs/shift-report-materials-rules.md](./docs/shift-report-materials-rules.md) - связь расхода с материалами спецификации, миграция и синхронизация.
 - [docs/project-work-statistics-cache.md](./docs/project-work-statistics-cache.md) - проектирование Redis-кэша агрегированной статистики по работам проекта.
 - [docs/project-material-statistics-cache.md](./docs/project-material-statistics-cache.md) - Redis-кэш и контракт агрегированной статистики по материалам проекта.
 - [docs/object-statistics.md](./docs/object-statistics.md) - контракт статистики приемок и выполнения работ по объекту.
 - [docs/time-contract.md](./docs/time-contract.md) - единый контракт Unix timestamp в миллисекундах.
 - [docs/attachments.md](./docs/attachments.md) - хранение, API, права и валидация вложений.
+- [docs/templates.md](./docs/templates.md) - загрузка, CRUD и скачивание шаблонов из S3, типы и правила шаблона по умолчанию.
+- [docs/template-data-contracts.md](./docs/template-data-contracts.md) - схемы печатных данных пяти типов, параметры периода и правила зарплатной ведомости и отчёта по объектам.
+- [docs/template-generation-design.md](./docs/template-generation-design.md) - проект механизма генерации и справочника параметров по референсу другого сервиса; отличия от текущего API и вопросы до реализации.
 - [docs/acceptances.md](./docs/acceptances.md) - сущности приёмок, связи с работами, CRUD API и права доступа.
 - [docs/project-status-rules.md](./docs/project-status-rules.md) - статусы спецификаций, переходы и ограничения смен/объектов.
 - [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
 - [docs/project-specification-ai-parsing.md](./docs/project-specification-ai-parsing.md) - Kimi-парсинг документов спецификации, контракт JSON и план импорта.
+
+- [docs/shift-standards.md](./docs/shift-standards.md) - поля стандарта смены, валидация, PATCH и миграция.
 
 ## Наблюдаемость
 

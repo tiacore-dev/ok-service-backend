@@ -2,12 +2,13 @@
 from flask_restx import Model, fields, reqparse
 
 from app.schemas.shift_report_schemas import (
+    ShiftReportBulkCreateSchema,
     ShiftReportCreateSchema,
     ShiftReportDetailSchema,
     ShiftReportEditSchema,
 )
-from app.web.attachments.contract import attachment_view_model
 from app.utils.helpers import generate_swagger_model
+from app.web.attachments.contract import attachment_view_model
 
 # 1. Создаем модель `ShiftReportDetail`
 shift_report_detail_model = generate_swagger_model(
@@ -19,6 +20,20 @@ shift_report_detail_model = generate_swagger_model(
 # 3. Теперь создаем `ShiftReportCreate`, где `ShiftReportDetail` вложен
 shift_report_create_model = generate_swagger_model(
     ShiftReportCreateSchema(), "ShiftReportCreate"
+)
+shift_report_bulk_create_model = generate_swagger_model(
+    ShiftReportBulkCreateSchema(), "ShiftReportBulkCreate"
+)
+# The shared generator omits required/minItems metadata for list fields.
+shift_report_bulk_create_model["user_ids"] = fields.List(
+    fields.String(), required=True, min_items=1
+)
+shift_report_bulk_msg_model = Model(
+    "ShiftReportBulkMessage",
+    {
+        "msg": fields.String(required=True),
+        "shift_report_ids": fields.List(fields.String(), required=True),
+    },
 )
 shift_report_edit_model = generate_swagger_model(
     ShiftReportEditSchema(), "ShiftReportEdit"
@@ -82,6 +97,11 @@ shift_report_model = Model(
             required=False,
             allow_null=True,
             description="Browser UUID captured at shift start",
+        ),
+        "modified_browser_id": fields.String(
+            required=False,
+            allow_null=True,
+            description="Browser UUID captured at the last successful edit",
         ),
         "finish_browser_id": fields.String(
             required=False,
