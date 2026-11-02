@@ -4,7 +4,12 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
+from app.adapters.report_comments.cleanup import (
+    cleanup_after_parent_delete,
+    comment_attachment_cleanup,
+)
 from app.adapters.statistics import ProjectMaterialStatistics, ProjectWorkStatistics
+from app.database import db_globals
 from app.database.managers.projects_managers import ProjectsManager
 from app.database.managers.shift_reports_managers import (
     ShiftReportsDetailsManager,
@@ -151,8 +156,19 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
 
     def delete_shift_report(self, shift_report_id: UUID) -> bool:
         current = self.get_shift_report(shift_report_id)
+        cleanup = None
+        if current is not None and db_globals.Session is not None:
+            session = db_globals.Session()
+            try:
+                cleanup = comment_attachment_cleanup(
+                    session, "shift", parent_id=shift_report_id
+                )
+            finally:
+                session.close()
         deleted = self.reports_manager.delete(shift_report_id)
         if deleted is not None:
+            if cleanup is not None:
+                cleanup_after_parent_delete(cleanup)
             self._recalculate(current.project if current else None)
         return deleted is not None
 

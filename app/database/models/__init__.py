@@ -7,6 +7,10 @@ from .attachments import ProjectAttachments as ProjectAttachments
 from .attachments import ShiftReportAttachments as ShiftReportAttachments
 from .attachments import WorkAcceptanceAttachments as WorkAcceptanceAttachments
 from .acceptances import Acceptances as Acceptances
+from .report_comments import AcceptanceComments as AcceptanceComments
+from .report_comments import AcceptanceCommentAttachments as AcceptanceCommentAttachments
+from .report_comments import ShiftReportComments as ShiftReportComments
+from .report_comments import ShiftReportCommentAttachments as ShiftReportCommentAttachments
 from .acceptance_status_history import AcceptanceStatusHistory as AcceptanceStatusHistory
 from .cities import Cities as Cities
 from .key_permission_type_relations import (

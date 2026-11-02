@@ -46,6 +46,9 @@ class Acceptances(Base):
     work_acceptance_attachments = relationship(
         "WorkAcceptanceAttachments", back_populates="acceptance", passive_deletes=True
     )
+    comments = relationship(
+        "AcceptanceComments", back_populates="acceptance", cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         return {

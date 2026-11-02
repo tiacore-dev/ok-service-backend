@@ -13,6 +13,25 @@
 `acceptance_status_history`. Расчёт прогресса работ описан в
 `docs/object-statistics.md` и используется проектной и объектной статистикой.
 
+## Лента комментариев
+
+Комментарии приёмки хранятся отдельно в `acceptance_comments`, а фотографии
+связаны с существующими `attachments` через `acceptance_comment_attachments`.
+API: `GET/POST /acceptances/{acceptance_id}/comments`,
+`PATCH/DELETE /acceptances/comments/{comment_id}`. Список принимает `offset`
+(default `0`) и `limit` (default `50`, максимум `100`) и упорядочен от старых
+комментариев к новым с дополнительной сортировкой по UUID.
+
+Автор, `created_at` (Unix milliseconds UTC) и `browser_id` берутся сервером.
+Статус приёмки не блокирует ленту. Прораб работает с приёмками своей
+спецификации; менеджер и администратор — с доступными приёмками компании;
+исполнитель — с приёмками спецификаций, в работах которых он участвовал.
+Редактировать может только автор в течение пяти минут по серверному времени;
+удалять может только администратор. Для файлов комментария используются
+`POST /acceptances/comments/{comment_id}/attachments` и
+`GET /acceptances/comments/{comment_id}/attachments/{attachment_id}/download`;
+чтение файла повторно проверяет доступ к исходной приёмке.
+
 ## Модель данных
 
 ### `acceptances`

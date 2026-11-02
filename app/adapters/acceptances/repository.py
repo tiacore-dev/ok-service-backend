@@ -2,7 +2,12 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.adapters._typing import normalize_result
+from app.adapters.report_comments.cleanup import (
+    cleanup_after_parent_delete,
+    comment_attachment_cleanup,
+)
 from app.adapters.statistics import ProjectWorkStatistics
+from app.database import db_globals
 from app.database.managers.materials_manager import AcceptancesManager
 from app.domain.acceptances import Acceptance, AcceptanceStatus, AcceptanceStatusHistory
 from app.use_cases.acceptances.ports import AcceptanceRepository
@@ -90,8 +95,19 @@ class SQLAlchemyAcceptanceRepository(AcceptanceRepository):
 
     def delete_acceptance(self, acceptance_id: UUID) -> bool:
         project_id = self.manager.get_project_id(acceptance_id)
+        cleanup = None
+        if db_globals.Session is not None:
+            session = db_globals.Session()
+            try:
+                cleanup = comment_attachment_cleanup(
+                    session, "acceptance", parent_id=acceptance_id
+                )
+            finally:
+                session.close()
         deleted = self.manager.delete(acceptance_id) is not None
         if deleted:
+            if cleanup is not None:
+                cleanup_after_parent_delete(cleanup)
             self._recalculate(project_id)
         return deleted
 

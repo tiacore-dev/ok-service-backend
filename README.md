@@ -22,6 +22,7 @@
 - [docs/template-data-contracts.md](./docs/template-data-contracts.md) - схемы печатных данных пяти типов, параметры периода и правила зарплатной ведомости и отчёта по объектам.
 - [docs/template-generation-design.md](./docs/template-generation-design.md) - проект механизма генерации и справочника параметров по референсу другого сервиса; отличия от текущего API и вопросы до реализации.
 - [docs/acceptances.md](./docs/acceptances.md) - сущности приёмок, связи с работами, CRUD API и права доступа.
+- [docs/report-comments.md](./docs/report-comments.md) - ленты комментариев смен и приёмок, разрешения и вложения.
 - [docs/project-status-rules.md](./docs/project-status-rules.md) - статусы спецификаций, переходы и ограничения смен/объектов.
 - [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
 - [docs/project-specification-ai-parsing.md](./docs/project-specification-ai-parsing.md) - Kimi-парсинг документов спецификации, контракт JSON и план импорта.
