@@ -239,7 +239,7 @@ def test_bulk_api_key_requires_exact_permission(
     )
 
 
-@pytest.mark.parametrize("role", ["manager", "project-leader", "accountant"])
+@pytest.mark.parametrize("role", ["manager", "project-leader", "user"])
 def test_bulk_short_shift_role_gate(
     client, test_app, db_session, seed_admin, bulk_payload, role
 ):
@@ -248,6 +248,8 @@ def test_bulk_short_shift_role_gate(
 
     user = db_session.get(Users, UUID(seed_admin["user_id"]))
     assert user is not None
+    # Use an existing, but non-privileged, role.  ``accountant`` is not part
+    # of the seeded roles and would test the foreign key rather than the gate.
     user.role = role
     db_session.commit()
     with test_app.app_context():
@@ -255,7 +257,7 @@ def test_bulk_short_shift_role_gate(
             {**seed_admin, "role": role}
         )
     response = post(client, token, bulk_payload)
-    assert response.status_code == (403 if role == "accountant" else 200), response.json
+    assert response.status_code == (403 if role == "user" else 200), response.json
 
 
 def test_bulk_normalizes_uuid_duplicates(client, jwt_token_admin, bulk_payload):
