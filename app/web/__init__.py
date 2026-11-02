@@ -1,45 +1,50 @@
 from flask_restx import Api
 
+from .acceptance_comments import acceptance_comment_ns
+from .acceptances.routes import acceptance_ns
 from .api_keys.routes import api_key_ns
-from .auth.routes import login_ns
 from .attachments import (
+    acceptance_attachment_ns,
     object_attachment_ns,
     place_attachment_ns,
     project_attachment_ns,
     shift_report_attachment_ns,
-    acceptance_attachment_ns,
 )
+from .auth.routes import login_ns
 from .cities.routes import city_ns
 from .leaves.routes import leave_ns
 from .materials.routes import material_ns
 from .measurement_units.routes import measurement_unit_ns
 from .object_statuses.routes import object_status_ns
 from .objects.routes import object_ns
-from .places.routes import place_ns
 from .place_relations.routes import project_place_relation_ns, shift_place_relation_ns
+from .places.routes import place_ns
 from .positions.routes import position_ns
+from .project_leaders.routes import project_leader_ns
 from .project_materials.routes import project_material_ns
 from .project_schedules.routes import project_schedule_ns
 from .project_works.routes import project_work_ns
-from .work_plans import work_plan_ns
 from .projects.routes import project_ns
-from .project_leaders.routes import project_leader_ns
 from .roles.routes import role_ns
+from .shift_report_comments import shift_comment_ns
 from .shift_report_materials.routes import shift_report_material_ns
 from .shift_reports.routes import shift_report_details_ns, shift_report_ns
 from .shift_standards import shift_standard_ns
-from .subscriptions.routes import subscription_ns
+
+# Legacy Web Push endpoints are disabled during migration to Firebase.
+# The model and table remain temporarily; no migration is performed in this slice.
+# from .subscriptions.routes import subscription_ns
 from .system_settings import system_setting_ns
-from .template_generation.routes import template_ns
 from .template_generation import legacy_routes as _legacy_template_routes
-from .templates import routes as _template_routes  # register CRUD on the shared namespace
+from .template_generation.routes import template_ns
+from .templates import (
+    routes as _template_routes,  # register CRUD on the shared namespace
+)
 from .users.routes import user_ns
+from .work_acceptance_relations.routes import work_acceptance_relation_ns
 from .work_categories.routes import work_category_ns
 from .work_material_relations.routes import work_material_relation_ns
-from .acceptances.routes import acceptance_ns
-from .shift_report_comments import shift_comment_ns
-from .acceptance_comments import acceptance_comment_ns
-from .work_acceptance_relations.routes import work_acceptance_relation_ns
+from .work_plans import work_plan_ns
 from .work_prices.routes import work_price_ns
 from .works.routes import work_ns
 
@@ -52,7 +57,8 @@ def register_namespaces(api: Api):
     api.add_namespace(place_attachment_ns)
     api.add_namespace(acceptance_attachment_ns)
     api.add_namespace(role_ns)
-    api.add_namespace(subscription_ns)
+    # Legacy Web Push endpoints are disabled during migration to Firebase.
+    # api.add_namespace(subscription_ns)
     api.add_namespace(api_key_ns)
     api.add_namespace(leave_ns)
     api.add_namespace(city_ns)

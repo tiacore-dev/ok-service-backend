@@ -139,9 +139,7 @@ class AuthRefresh(Resource):
             return {"msg": str(err)}, 400
 
         refresh_token = data["refresh_token"]
-        logger.debug(
-            "Refresh token request received", extra={"refresh_token": refresh_token}
-        )
+        logger.debug("Refresh token request received")
 
         if not refresh_token:
             logger.error("Missing refresh token in request")
@@ -150,12 +148,12 @@ class AuthRefresh(Resource):
         try:
             verify_jwt_in_request(refresh=True, locations=["json"])
             logger.debug("Refresh token verified successfully")
-        except Exception as e:
+        except Exception as error:
             logger.error(
-                f"Refresh token verification failed: {str(e)}",
-                extra={"refresh_token": refresh_token},
+                "Refresh token verification failed",
+                extra={"error_type": type(error).__name__},
             )
-            return {"msg": str(e)}, 401
+            return {"msg": str(error)}, 401
 
         current_user = get_jwt_identity()
         logger.debug(

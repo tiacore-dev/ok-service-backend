@@ -21,7 +21,10 @@ class Config:
     DATABASE_NAME = os.getenv("DATABASE_NAME")
     SECRET_KEY = os.getenv("SECRET_KEY")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=365)
+    JWT_ACCESS_TOKEN_EXPIRES_MINUTES = int(
+        os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "30")
+    )
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=JWT_ACCESS_TOKEN_EXPIRES_MINUTES)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     API_KEY = os.getenv("API_KEY")
     ORIGIN = os.getenv("ORIGIN")
