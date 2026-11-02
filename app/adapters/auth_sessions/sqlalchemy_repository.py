@@ -11,6 +11,11 @@ from app.database.models.auth_sessions import AuthSessions, RefreshTokens
 from app.domain.auth_sessions import AuthSession, RefreshToken
 
 
+ROTATED = "rotated"
+REUSED = "reused"
+INACTIVE = "inactive"
+
+
 class SQLAlchemyAuthSessionRepository:
     """PostgreSQL-backed server session storage.
 
@@ -25,6 +30,13 @@ class SQLAlchemyAuthSessionRepository:
         factory = self._session_factory or db_globals.Session
         if factory is None:
             raise RuntimeError("Database session is not initialized")
+        # Test configuration uses scoped_session.  Session lifecycle for auth
+        # rotation must be independent from an ambient web/test transaction,
+        # otherwise ``begin()`` can accidentally nest into the caller's unit
+        # of work.  Production sessionmaker has no ``session_factory``.
+        scoped_factory = getattr(factory, "session_factory", None)
+        if scoped_factory is not None:
+            return scoped_factory()
         return factory()
 
     @staticmethod
@@ -195,6 +207,77 @@ class SQLAlchemyAuthSessionRepository:
                 session.current_token_jti = replacement.jti
                 db_session.flush()
                 return True
+        finally:
+            db_session.close()
+
+    def rotate_refresh_token(
+        self,
+        session_id: UUID,
+        expected_jti: UUID,
+        replacement: RefreshToken,
+        now: int,
+    ) -> str:
+        """Rotate under one transaction, revoking on a known stale token."""
+        if replacement.session_id != session_id:
+            raise ValueError("Replacement refresh token belongs to another session")
+
+        db_session = self._new_session()
+        try:
+            with db_session.begin():
+                session = db_session.scalar(
+                    select(AuthSessions)
+                    .where(AuthSessions.session_id == session_id)
+                    .with_for_update()
+                )
+                if (
+                    session is None
+                    or session.revoked_at is not None
+                    or session.expires_at <= now
+                ):
+                    return INACTIVE
+
+                token = db_session.scalar(
+                    select(RefreshTokens)
+                    .where(
+                        RefreshTokens.jti == expected_jti,
+                        RefreshTokens.session_id == session_id,
+                    )
+                    .with_for_update()
+                )
+                if (
+                    token is None
+                    or session.current_token_jti != expected_jti
+                    or token.used_at is not None
+                    or token.revoked_at is not None
+                    or token.expires_at <= now
+                ):
+                    # The token belongs to this locked session but is stale:
+                    # commit full-session revocation before returning an error.
+                    session.revoked_at = now
+                    db_session.execute(
+                        update(RefreshTokens)
+                        .where(
+                            RefreshTokens.session_id == session_id,
+                            RefreshTokens.revoked_at.is_(None),
+                        )
+                        .values(revoked_at=now)
+                    )
+                    return REUSED
+
+                db_session.add(
+                    RefreshTokens(
+                        jti=replacement.jti,
+                        session_id=replacement.session_id,
+                        created_at=replacement.created_at,
+                        expires_at=replacement.expires_at,
+                    )
+                )
+                token.used_at = now
+                token.replaced_by_jti = replacement.jti
+                session.current_token_jti = replacement.jti
+                session.expires_at = max(session.expires_at, replacement.expires_at)
+                db_session.flush()
+                return ROTATED
         finally:
             db_session.close()
 

@@ -18,7 +18,11 @@ from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
-from app.adapters.auth_sessions import SQLAlchemyAuthSessionRepository
+from app.adapters.auth_sessions.sqlalchemy_repository import (
+    REUSED,
+    ROTATED,
+    SQLAlchemyAuthSessionRepository,
+)
 from app.database import db_globals
 from app.domain.auth_sessions import AuthSession, RefreshToken
 
@@ -177,3 +181,57 @@ def test_competing_refresh_replacements_lock_session_and_only_one_succeeds(datab
     assert consumed is not None
     assert consumed.used_at == old_token.created_at + 1
     assert consumed.replaced_by_jti == refreshed.current_token_jti
+
+
+def test_reused_refresh_revokes_the_whole_session_before_return(database):
+    engine, _ = database
+    user_id = uuid4()
+    with engine.begin() as connection:
+        connection.execute(text("INSERT INTO users (user_id) VALUES (:user_id)"), {"user_id": user_id})
+    repository = SQLAlchemyAuthSessionRepository()
+    session, old_token = _session_and_token(user_id)
+    repository.create_session_with_refresh_token(session, old_token)
+    replacement = RefreshToken(
+        uuid4(), session.session_id, old_token.created_at + 1, old_token.expires_at
+    )
+
+    assert repository.rotate_refresh_token(
+        session.session_id, old_token.jti, replacement, old_token.created_at + 1
+    ) == ROTATED
+    assert repository.rotate_refresh_token(
+        session.session_id, old_token.jti, RefreshToken(
+            uuid4(), session.session_id, old_token.created_at + 2, old_token.expires_at
+        ), old_token.created_at + 2
+    ) == REUSED
+
+    revoked = repository.get_session(session.session_id)
+    old_record = repository.get_refresh_token(old_token.jti)
+    new_record = repository.get_refresh_token(replacement.jti)
+    assert revoked is not None and revoked.revoked_at == old_token.created_at + 2
+    assert old_record is not None and old_record.revoked_at == old_token.created_at + 2
+    assert new_record is not None and new_record.revoked_at == old_token.created_at + 2
+
+
+def test_refresh_rotation_extends_session_expiration(database):
+    engine, _ = database
+    user_id = uuid4()
+    with engine.begin() as connection:
+        connection.execute(text("INSERT INTO users (user_id) VALUES (:user_id)"), {"user_id": user_id})
+
+    repository = SQLAlchemyAuthSessionRepository()
+    session, old_token = _session_and_token(user_id)
+    repository.create_session_with_refresh_token(session, old_token)
+    replacement = RefreshToken(
+        uuid4(),
+        session.session_id,
+        old_token.created_at + 1,
+        old_token.expires_at + 86_400_000,
+    )
+
+    assert repository.rotate_refresh_token(
+        session.session_id, old_token.jti, replacement, old_token.created_at + 1
+    ) == ROTATED
+
+    refreshed = repository.get_session(session.session_id)
+    assert refreshed is not None
+    assert refreshed.expires_at == replacement.expires_at

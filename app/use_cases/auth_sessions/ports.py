@@ -29,6 +29,16 @@ class AuthSessionRepository(Protocol):
         """Atomically consume ``expected_jti`` and install ``replacement``."""
         ...
 
+    def rotate_refresh_token(
+        self,
+        session_id: UUID,
+        expected_jti: UUID,
+        replacement: RefreshToken,
+        now: int,
+    ) -> str:
+        """Rotate one refresh token or revoke the session after confirmed reuse."""
+        ...
+
     def revoke_session(self, session_id: UUID, revoked_at: int) -> bool: ...
 
     def is_session_active(self, session_id: UUID, user_id: UUID, now: int) -> bool: ...

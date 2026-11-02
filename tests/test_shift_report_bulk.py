@@ -240,14 +240,19 @@ def test_bulk_api_key_requires_exact_permission(
 
 
 @pytest.mark.parametrize("role", ["manager", "project-leader", "accountant"])
-def test_bulk_short_shift_role_gate(client, test_app, seed_admin, bulk_payload, role):
-    import json
+def test_bulk_short_shift_role_gate(
+    client, test_app, db_session, seed_admin, bulk_payload, role
+):
+    from app.database.models import Users
+    from tests.conftest import create_session_bound_access_token
 
-    from flask_jwt_extended import create_access_token
-
+    user = db_session.get(Users, UUID(seed_admin["user_id"]))
+    assert user is not None
+    user.role = role
+    db_session.commit()
     with test_app.app_context():
-        token = create_access_token(
-            identity=json.dumps({"user_id": seed_admin["user_id"], "role": role})
+        token = create_session_bound_access_token(
+            {**seed_admin, "role": role}
         )
     response = post(client, token, bulk_payload)
     assert response.status_code == (403 if role == "accountant" else 200), response.json
