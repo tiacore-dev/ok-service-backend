@@ -55,3 +55,5 @@ from .work_prices import WorkPrices as WorkPrices
 from .work_plans import WorkPlans as WorkPlans
 from .works import Works as Works
 from .push_subscriptions import PushSubscriptions as PushSubscriptions
+from .auth_sessions import AuthSessions as AuthSessions
+from .auth_sessions import RefreshTokens as RefreshTokens
