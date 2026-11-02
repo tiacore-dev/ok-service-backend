@@ -39,11 +39,13 @@ def comment_attachment_cleanup(
         comment_fk = "acceptance_comment_id"
         parent_fk = "acceptance_id"
 
-    query = session.query(Attachments.attachment_id, Attachments.s3_key).join(
-        relation_model, relation_model.attachment_id == Attachments.attachment_id
-    ).join(
-        comment_model,
-        getattr(comment_model, comment_fk) == getattr(relation_model, comment_fk),
+    query = (
+        session.query(Attachments.attachment_id, Attachments.s3_key)
+        .join(relation_model, relation_model.attachment_id == Attachments.attachment_id)
+        .join(
+            comment_model,
+            getattr(comment_model, comment_fk) == getattr(relation_model, comment_fk),
+        )
     )
     if comment_id is not None:
         query = query.filter(getattr(comment_model, comment_fk) == comment_id)
@@ -60,7 +62,9 @@ def delete_attachment_metadata(attachment_ids: tuple[UUID, ...]) -> bool:
     if not attachment_ids:
         return True
     if db_globals.Session is None:
-        logger.error("Cannot clean comment attachments: database session is not initialized")
+        logger.error(
+            "Cannot clean comment attachments: database session is not initialized"
+        )
         return False
     session = db_globals.Session()
     try:

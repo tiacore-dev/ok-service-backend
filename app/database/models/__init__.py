@@ -38,6 +38,8 @@ from .shift_report_materials import (
     ShiftReportMaterials as ShiftReportMaterials,
 )
 from .shift_standards import ShiftStandards as ShiftStandards
+from .notifications import Notifications as Notifications
+from .notifications import NotificationRecipients as NotificationRecipients
 from .shift_place_relations import ShiftPlaceRelations as ShiftPlaceRelations
 from .subscriptions import Subscriptions as Subscriptions
 from .system_settings import SystemSettings as SystemSettings
