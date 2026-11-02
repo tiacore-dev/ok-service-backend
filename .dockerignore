@@ -20,5 +20,4 @@ backups/
 
 # Секреты Firebase и другие закрытые ключи
 secrets/
-*.pem
 *.key
