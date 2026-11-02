@@ -15,13 +15,25 @@ class PushSubscriptionRepository(Protocol):
 class RegisterPushSubscription:
     repository: PushSubscriptionRepository
 
-    def execute(self, user_id: UUID, browser_id: UUID, platform: str, token: str) -> PushSubscription:
+    def execute(
+        self,
+        user_id: UUID,
+        browser_id: UUID,
+        auth_session_id: UUID,
+        platform: str,
+        token: str,
+    ) -> PushSubscription:
         if platform != "web":
             raise PushSubscriptionValidationError("Only web platform is supported")
         if not token or token != token.strip() or len(token.encode("utf-8")) > 1024:
             raise PushSubscriptionValidationError("Invalid FCM token")
         now = utc_epoch_milliseconds()
-        return self.repository.register(PushSubscription(uuid4(), user_id, browser_id, platform, token, True, now, now, None))
+        return self.repository.register(
+            PushSubscription(
+                uuid4(), user_id, browser_id, auth_session_id, platform, token,
+                True, now, now, None,
+            )
+        )
 
 
 @dataclass(slots=True)

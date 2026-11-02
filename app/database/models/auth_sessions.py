@@ -39,6 +39,7 @@ class AuthSessions(Base):
     current_token_jti: Mapped[UUIDValue] = mapped_column(
         UUID(as_uuid=True), nullable=False, unique=True
     )
+    browser_id: Mapped[UUIDValue | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
     user: Mapped[Users] = relationship("Users")
     refresh_tokens: Mapped[list[RefreshTokens]] = relationship(

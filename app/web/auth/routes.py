@@ -6,13 +6,14 @@ from asyncio import run
 from typing import TypedDict, cast
 from uuid import UUID, uuid4
 
-from flask import request
+from flask import after_this_request, current_app, request
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
     decode_token,
     get_jwt,
     get_jwt_identity,
+    jwt_required,
     verify_jwt_in_request,
 )
 from flask_restx import Namespace, Resource
@@ -31,6 +32,7 @@ from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
 from app.s3.s3_manager import AsyncS3Manager
 from app.web._typing import to_plain_dict
 from app.web.auth.jwt_callbacks import JWTSessionUnavailable
+from app.use_cases.auth_sessions import LogoutAuthSession
 
 from .models import hello_model, login_model, refresh_model, response_auth
 
@@ -51,6 +53,39 @@ class LoginPayload(TypedDict):
 
 class RefreshPayload(TypedDict):
     refresh_token: str
+
+
+def _browser_id_for_login() -> tuple[UUID, bool]:
+    raw_value = request.cookies.get(current_app.config["BROWSER_ID_COOKIE_NAME"])
+    try:
+        return UUID(str(raw_value)), False
+    except (TypeError, ValueError):
+        return uuid4(), True
+
+
+def _set_browser_id_cookie(value: UUID) -> None:
+    @after_this_request
+    def set_cookie(response):
+        response.set_cookie(
+            current_app.config["BROWSER_ID_COOKIE_NAME"],
+            str(value),
+            max_age=current_app.config["BROWSER_ID_COOKIE_MAX_AGE"],
+            secure=True,
+            httponly=True,
+            samesite="Lax",
+        )
+        return response
+
+
+def _current_jwt_subject() -> tuple[UUID, UUID] | None:
+    try:
+        claims = get_jwt()
+        session_id = UUID(str(claims["session_id"]))
+        identity = get_jwt_identity()
+        data = json.loads(identity) if isinstance(identity, str) else identity
+        return session_id, UUID(str(data["user_id"]))
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
 
 
 @login_ns.route("/health")
@@ -115,6 +150,7 @@ class AuthLogin(Resource):
             {"user_id": user["user_id"], "role": user["role"], "login": login}
         )
         session_id = uuid4()
+        browser_id, should_set_browser_cookie = _browser_id_for_login()
         # Flask-JWT-Extended owns standard jti/iat/exp claims.  Decode the token
         # it just signed to store those claims, never the raw JWT, atomically.
         refresh_token = create_refresh_token(
@@ -132,6 +168,7 @@ class AuthLogin(Resource):
                     created_at=now,
                     expires_at=expires_at,
                     current_token_jti=refresh_jti,
+                    browser_id=browser_id,
                 ),
                 RefreshToken(
                     jti=refresh_jti,
@@ -143,6 +180,9 @@ class AuthLogin(Resource):
         except Exception:
             logger.exception("Unable to create authorization session")
             return {"msg": "Authentication unavailable"}, 503
+
+        if should_set_browser_cookie:
+            _set_browser_id_cookie(browser_id)
 
         access_token = create_access_token(
             identity=identity, additional_claims={"session_id": str(session_id)}
@@ -157,10 +197,36 @@ class AuthLogin(Resource):
         }, 200
 
 
+@login_ns.route("/logout")
+class AuthLogout(Resource):
+    @login_ns.doc(
+        responses={
+            204: "Current server session and its bound push subscription revoked",
+            401: "JWT session is invalid or already revoked",
+            503: "Authentication storage is unavailable",
+        }
+    )
+    @jwt_required()
+    def post(self):
+        subject = _current_jwt_subject()
+        if subject is None:
+            return {"msg": "JWT session is invalid"}, 401
+        session_id, user_id = subject
+        try:
+            if not LogoutAuthSession(SQLAlchemyAuthSessionRepository()).execute(
+                session_id, user_id
+            ):
+                return {"msg": "JWT session is invalid"}, 401
+        except Exception:
+            logger.exception("Authorization logout failed")
+            return {"msg": "Authentication unavailable"}, 503
+        return "", 204
+
+
 @login_ns.route("/refresh")
 class AuthRefresh(Resource):
     @login_ns.expect(refresh_model)
-    @login_ns.marshal_with(response_auth)
+    @login_ns.marshal_with(response_auth, skip_none=True)
     def post(self):
         schema = RefreshTokenSchema()
         try:

@@ -10,6 +10,9 @@ class AuthSession:
     expires_at: int
     current_token_jti: UUID
     revoked_at: int | None = None
+    # Browser identity is an audit/device correlation value, not JWT authority.
+    # It is persisted so a push subscription can be bound to this session.
+    browser_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)

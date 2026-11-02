@@ -114,7 +114,7 @@ def test_access_with_revoked_session_and_without_session_id_is_rejected(
     claims = _claims(test_app, payload["access_token"])
     session_id = UUID(claims["session_id"])
     assert SQLAlchemyAuthSessionRepository().revoke_session(
-        session_id, utc_epoch_milliseconds()
+        session_id, UUID(seed_admin["user_id"]), utc_epoch_milliseconds()
     )
 
     revoked = client.get(
@@ -220,8 +220,205 @@ def test_auth_logs_never_include_tokens(client, caplog, seed_admin):
     assert response.get_json()["refresh_token"] not in text
 
 
+def test_logout_and_push_registration_logs_do_not_include_jwt_or_fcm_token(
+    client, caplog, seed_admin
+):
+    payload = _login(client)
+    fcm_token = "fcm-token-must-not-be-logged"
+    assert (
+        client.put(
+            "/notifications/push/subscription",
+            json={"platform": "web", "token": fcm_token},
+            headers=_access_headers(payload["access_token"]),
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/auth/logout", headers=_access_headers(payload["access_token"])
+        ).status_code
+        == 204
+    )
+    assert payload["access_token"] not in caplog.text
+    assert payload["refresh_token"] not in caplog.text
+    assert fcm_token not in caplog.text
+
+
 def test_auth_refresh_endpoint_rejects_missing_token(client):
     response = client.post("/auth/refresh", json={"refresh_token": ""})
 
     assert response.status_code == 400
     assert response.get_json()["msg"] == "Missing refresh token"
+
+
+def _access_headers(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_logout_revokes_only_current_session_and_browser_subscription(
+    client, test_app, seed_admin, db_session
+):
+    first = _login(client)
+    first_claims = _claims(test_app, first["access_token"])
+    subscribed = client.put(
+        "/notifications/push/subscription",
+        json={"platform": "web", "token": "current-browser-token"},
+        headers=_access_headers(first["access_token"]),
+    )
+    assert subscribed.status_code == 200
+
+    with test_app.test_client() as another_client:
+        second = _login(another_client)
+        assert (
+            another_client.put(
+                "/notifications/push/subscription",
+                json={"platform": "web", "token": "other-browser-token"},
+                headers=_access_headers(second["access_token"]),
+            ).status_code
+            == 200
+        )
+
+        logout = client.post(
+            "/auth/logout", headers=_access_headers(first["access_token"])
+        )
+        assert logout.status_code == 204 and logout.data == b""
+        assert (
+            client.get(
+                "/users/all", headers=_access_headers(first["access_token"])
+            ).status_code
+            == 401
+        )
+        assert (
+            client.post(
+                "/auth/refresh", json={"refresh_token": first["refresh_token"]}
+            ).status_code
+            == 401
+        )
+        assert (
+            client.post(
+                "/auth/logout", headers=_access_headers(first["access_token"])
+            ).status_code
+            == 401
+        )
+        assert (
+            another_client.get(
+                "/users/all", headers=_access_headers(second["access_token"])
+            ).status_code
+            == 200
+        )
+
+    from app.database.models import PushSubscriptions
+
+    rows = db_session.query(PushSubscriptions).all()
+    by_token = {row.token: row for row in rows}
+    assert by_token["current-browser-token"].active is False
+    assert by_token["other-browser-token"].active is True
+    assert by_token["current-browser-token"].auth_session_id == UUID(
+        first_claims["session_id"]
+    )
+
+
+def test_logout_with_invalid_browser_cookie_revokes_bound_subscription(
+    client, seed_admin, db_session
+):
+    payload = _login(client)
+    assert (
+        client.put(
+            "/notifications/push/subscription",
+            json={"platform": "web", "token": "cookie-retained-token"},
+            headers=_access_headers(payload["access_token"]),
+        ).status_code
+        == 200
+    )
+    client.set_cookie("browser_id", "not-a-uuid")
+    assert (
+        client.post(
+            "/auth/logout", headers=_access_headers(payload["access_token"])
+        ).status_code
+        == 204
+    )
+
+    from app.database.models import PushSubscriptions
+
+    row = (
+        db_session.query(PushSubscriptions)
+        .filter_by(token="cookie-retained-token")
+        .one()
+    )
+    assert row.active is False
+
+
+def test_login_other_user_revokes_prior_browser_push_subscription(
+    client, seed_admin, seed_user, db_session
+):
+    first = _login(client)
+    assert (
+        client.put(
+            "/notifications/push/subscription",
+            json={"platform": "web", "token": "first-user-token"},
+            headers=_access_headers(first["access_token"]),
+        ).status_code
+        == 200
+    )
+    second = client.post(
+        "/auth/login", json={"login": "test_user", "password": "qweasdzcx"}
+    )
+    assert second.status_code == 200
+    assert (
+        client.get(
+            "/users/all", headers=_access_headers(first["access_token"])
+        ).status_code
+        == 401
+    )
+
+    from app.database.models import PushSubscriptions
+
+    row = db_session.query(PushSubscriptions).filter_by(token="first-user-token").one()
+    assert row.active is False
+
+
+def test_revoked_access_cannot_register_push_subscription(client, seed_admin):
+    payload = _login(client)
+    assert (
+        client.post(
+            "/auth/logout", headers=_access_headers(payload["access_token"])
+        ).status_code
+        == 204
+    )
+    response = client.put(
+        "/notifications/push/subscription",
+        json={"platform": "web", "token": "must-not-register"},
+        headers=_access_headers(payload["access_token"]),
+    )
+    assert response.status_code == 401
+
+
+def test_logout_rolls_back_if_bound_push_revocation_fails(
+    client, seed_admin, monkeypatch
+):
+    payload = _login(client)
+    assert (
+        client.put(
+            "/notifications/push/subscription",
+            json={"platform": "web", "token": "rollback-token"},
+            headers=_access_headers(payload["access_token"]),
+        ).status_code
+        == 200
+    )
+    monkeypatch.setattr(
+        SQLAlchemyAuthSessionRepository,
+        "_lock_push_browser",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("database failure")),
+    )
+    assert (
+        client.post(
+            "/auth/logout", headers=_access_headers(payload["access_token"])
+        ).status_code
+        == 503
+    )
+    assert (
+        client.get(
+            "/users/all", headers=_access_headers(payload["access_token"])
+        ).status_code
+        == 200
+    )

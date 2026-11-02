@@ -7,6 +7,7 @@ class PushSubscription:
     subscription_id: UUID
     user_id: UUID
     browser_id: UUID
+    auth_session_id: UUID | None
     platform: str
     token: str
     active: bool

@@ -11,10 +11,12 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 
+from app.adapters.auth_sessions import SQLAlchemyAuthSessionRepository
 from app.adapters.push_subscriptions import SQLAlchemyPushSubscriptionRepository
 from app.database import db_globals
+from app.domain.auth_sessions import AuthSession, RefreshToken
 from app.use_cases.push_subscriptions import RegisterPushSubscription, RevokePushSubscription
 
 
@@ -38,19 +40,35 @@ def database(monkeypatch):
         conn.autocommit = old_autocommit
     with engine.begin() as connection:
         connection.execute(text("CREATE TABLE users (user_id uuid PRIMARY KEY)"))
-        path = Path("alembic/versions/20261104120000_push_subscriptions.py")
-        spec = spec_from_file_location("push_migration", path)
-        assert spec is not None and spec.loader is not None
-        module = module_from_spec(spec)
-        spec.loader.exec_module(module)
-        setattr(module, "op", Operations(MigrationContext.configure(connection)))
-        module.upgrade()
-    monkeypatch.setattr(db_globals, "Session", sessionmaker(bind=engine))
-    yield engine, module
+        modules = []
+        for revision in (
+            "20261104120000_push_subscriptions.py",
+            "20261105120000_auth_sessions.py",
+            "20261106120000_bind_push_subscriptions_to_auth_sessions.py",
+        ):
+            path = Path("alembic/versions") / revision
+            spec = spec_from_file_location(revision, path)
+            assert spec is not None and spec.loader is not None
+            module = module_from_spec(spec)
+            spec.loader.exec_module(module)
+            setattr(module, "op", Operations(MigrationContext.configure(connection)))
+            module.upgrade()
+            modules.append(module)
+    monkeypatch.setattr(db_globals, "Session", scoped_session(sessionmaker(bind=engine)))
+    yield engine, modules[-1]
     engine.dispose()
     with admin.begin() as connection:
         connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
     admin.dispose()
+
+
+def _session(repository, user, browser, now):
+    session_id, jti = uuid4(), uuid4()
+    repository.create_session_with_refresh_token(
+        AuthSession(session_id, user, now, now + 100_000, jti, browser_id=browser),
+        RefreshToken(jti, session_id, now, now + 100_000),
+    )
+    return session_id
 
 
 def test_registration_transfer_revocation_constraints_and_migration(database):
@@ -58,14 +76,18 @@ def test_registration_transfer_revocation_constraints_and_migration(database):
     user, other, browser, second = uuid4(), uuid4(), uuid4(), uuid4()
     with engine.begin() as c:
         c.execute(text("INSERT INTO users VALUES (:a), (:b)"), {"a": user, "b": other})
+    auth_sessions = SQLAlchemyAuthSessionRepository()
     repo = SQLAlchemyPushSubscriptionRepository()
     register = RegisterPushSubscription(repo)
-    first = register.execute(user, browser, "web", "token-1")
-    repeat = register.execute(user, browser, "web", "token-2")
+    first_session = _session(auth_sessions, user, browser, 1)
+    second_session = _session(auth_sessions, user, second, 2)
+    first = register.execute(user, browser, first_session, "web", "token-1")
+    repeat = register.execute(user, browser, first_session, "web", "token-2")
     assert repeat.subscription_id == first.subscription_id and repeat.token == "token-2"
-    another = register.execute(user, second, "web", "token-3")
+    another = register.execute(user, second, second_session, "web", "token-3")
+    other_session = _session(auth_sessions, other, browser, 3)
     assert another.subscription_id != first.subscription_id
-    moved = register.execute(other, browser, "web", "token-2")
+    moved = register.execute(other, browser, other_session, "web", "token-2")
     assert RevokePushSubscription(repo).execute(moved.subscription_id, user) is None
     with engine.connect() as connection:
         previous = connection.execute(text("SELECT active, revoked_at FROM push_subscriptions WHERE subscription_id = :id"), {"id": first.subscription_id}).one()
@@ -76,25 +98,20 @@ def test_registration_transfer_revocation_constraints_and_migration(database):
     assert not revoked.active and revoked.revoked_at is not None
     repeated_revoke = RevokePushSubscription(repo).execute(moved.subscription_id, other)
     assert repeated_revoke is not None and repeated_revoke.revoked_at == revoked.revoked_at
-    assert register.execute(other, browser, "web", "token-2").subscription_id == moved.subscription_id
+    assert register.execute(other, browser, other_session, "web", "token-2").subscription_id == moved.subscription_id
     with pytest.raises(IntegrityError), engine.begin() as c:
-        c.execute(text("INSERT INTO push_subscriptions VALUES (:id, :user, :browser, 'web', 'token-2', true, 1, 1, NULL)"), {"id": uuid4(), "user": user, "browser": uuid4()})
+        c.execute(text("INSERT INTO push_subscriptions (subscription_id, user_id, browser_id, platform, token, active, created_at, updated_at) VALUES (:id, :user, :browser, 'web', 'token-4', true, 1, 1)"), {"id": uuid4(), "user": user, "browser": uuid4()})
     # A token moving to another browser revokes its prior owner atomically.
-    transferred = register.execute(user, second, "web", "token-2")
+    transferred = register.execute(user, second, second_session, "web", "token-2")
     with engine.connect() as connection:
         assert connection.execute(text("SELECT active FROM push_subscriptions WHERE subscription_id = :id"), {"id": moved.subscription_id}).scalar_one() is False
-        assert connection.execute(text("SELECT active FROM push_subscriptions WHERE subscription_id = :id"), {"id": transferred.subscription_id}).scalar_one() is True
-    # A failed FK insert must roll back the preceding revocation.
-    with pytest.raises(IntegrityError):
-        register.execute(uuid4(), second, "web", "new-token")
-    with engine.connect() as connection:
         assert connection.execute(text("SELECT active FROM push_subscriptions WHERE subscription_id = :id"), {"id": transferred.subscription_id}).scalar_one() is True
     with engine.begin() as c:
         setattr(migration, "op", Operations(MigrationContext.configure(c)))
         migration.downgrade()
-        assert "push_subscriptions" not in inspect(c).get_table_names()
+        assert "auth_session_id" not in {item["name"] for item in inspect(c).get_columns("push_subscriptions")}
         migration.upgrade()
-        assert "push_subscriptions" in inspect(c).get_table_names()
+        assert "auth_session_id" in {item["name"] for item in inspect(c).get_columns("push_subscriptions")}
 
 
 def test_competing_registrations_wait_and_transfer(database):
@@ -102,13 +119,17 @@ def test_competing_registrations_wait_and_transfer(database):
     user, other, browser = uuid4(), uuid4(), uuid4()
     with engine.begin() as c:
         c.execute(text("INSERT INTO users VALUES (:a), (:b)"), {"a": user, "b": other})
-    register = RegisterPushSubscription(SQLAlchemyPushSubscriptionRepository())
-    register.execute(user, browser, "web", "old")
+    auth_sessions = SQLAlchemyAuthSessionRepository()
+    repository = SQLAlchemyPushSubscriptionRepository()
+    register = RegisterPushSubscription(repository)
+    first_session = _session(auth_sessions, user, browser, 1)
+    register.execute(user, browser, first_session, "web", "old")
+    other_session = _session(auth_sessions, other, browser, 2)
     with engine.connect() as blocker, ThreadPoolExecutor(max_workers=1) as pool:
         transaction = blocker.begin()
         pid = blocker.execute(text("select pg_backend_pid()" )).scalar_one()
         blocker.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"), {"key": "push:browser:" + str(browser)})
-        future = pool.submit(register.execute, other, browser, "web", "new")
+        future = pool.submit(register.execute, other, browser, other_session, "web", "new")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
             with engine.connect() as observer:

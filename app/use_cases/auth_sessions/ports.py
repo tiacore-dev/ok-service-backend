@@ -39,6 +39,13 @@ class AuthSessionRepository(Protocol):
         """Rotate one refresh token or revoke the session after confirmed reuse."""
         ...
 
-    def revoke_session(self, session_id: UUID, revoked_at: int) -> bool: ...
+    def revoke_session(
+        self,
+        session_id: UUID,
+        user_id: UUID,
+        revoked_at: int,
+    ) -> bool:
+        """Atomically revoke one session and its bound push subscription."""
+        ...
 
     def is_session_active(self, session_id: UUID, user_id: UUID, now: int) -> bool: ...

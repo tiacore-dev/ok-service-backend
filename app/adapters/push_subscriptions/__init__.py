@@ -2,6 +2,7 @@ from sqlalchemy import or_, select, text, update
 
 from app.database import db_globals
 from app.database.models.push_subscriptions import PushSubscriptions
+from app.database.models.auth_sessions import AuthSessions
 from app.domain.push_subscriptions import PushSubscription
 
 
@@ -18,6 +19,19 @@ class SQLAlchemyPushSubscriptionRepository:
 
     def register(self, subscription):
         with self._factory()() as session, session.begin():
+            # Keep the common order with logout/refresh: auth-session row,
+            # then push advisory locks.  This closes the JWT-validation/write
+            # race without treating browser_id as an authentication factor.
+            auth_session = session.execute(select(AuthSessions).where(
+                AuthSessions.session_id == subscription.auth_session_id,
+                AuthSessions.user_id == subscription.user_id,
+            ).with_for_update()).scalar_one_or_none()
+            if (
+                auth_session is None
+                or auth_session.revoked_at is not None
+                or auth_session.browser_id != subscription.browser_id
+            ):
+                raise PermissionError("Authorization session is invalid")
             # Serialize registration transfers, including cross-device token swaps.
             session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"), {"key": "push:registration"})
             # Lock identities even when their rows do not yet exist.
