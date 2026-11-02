@@ -17,3 +17,8 @@ logs/
 backups/
 *.dump
 *.sql
+
+# Секреты Firebase и другие закрытые ключи
+secrets/
+*.pem
+*.key

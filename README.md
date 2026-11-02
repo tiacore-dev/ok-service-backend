@@ -27,6 +27,7 @@
 - [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
 - [docs/project-specification-ai-parsing.md](./docs/project-specification-ai-parsing.md) - Kimi-парсинг документов спецификации, контракт JSON и план импорта.
 - [docs/notifications-data-model.md](./docs/notifications-data-model.md) - сохраняемые уведомления и персональное состояние просмотра.
+- [docs/push-notifications.md](./docs/push-notifications.md) - целевая схема push-уведомлений через Firebase Cloud Messaging, фоновой доставки и хранения секретов.
 
 - [docs/shift-standards.md](./docs/shift-standards.md) - поля стандарта смены, валидация, PATCH и миграция.
 

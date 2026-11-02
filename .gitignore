@@ -12,6 +12,7 @@ monitoring/alertmanager.yml
 
 vapid_private_key.pem
 vapid_public_key.pem
+secrets/
 
 works.xlsx
 users.docx
