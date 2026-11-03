@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from uuid import UUID
 
@@ -18,7 +18,7 @@ class PushTarget:
     """A registry row and its FCM token; the token must never be logged."""
 
     subscription_id: UUID
-    token: str
+    token: str = field(repr=False)
 
 
 @dataclass(frozen=True, slots=True)

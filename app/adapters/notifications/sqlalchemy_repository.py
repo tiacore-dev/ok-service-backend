@@ -3,11 +3,14 @@ from __future__ import annotations
 from typing import TypedDict, cast
 from uuid import UUID
 
-from sqlalchemy import func, select, text, update
+from sqlalchemy import func, literal, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 
 from app.database import db_globals
+from app.database.models.auth_sessions import AuthSessions
 from app.database.models.notifications import NotificationRecipients, Notifications
+from app.database.models.push_deliveries import PushDeliveries
+from app.database.models.push_subscriptions import PushSubscriptions
 from app.domain.notifications import (
     Notification,
     NotificationIdempotencyConflictError,
@@ -158,6 +161,53 @@ class SQLAlchemyNotificationRepository:
                         for user_id in recipient_user_ids
                     ]
                     session.execute(insert(NotificationRecipients), recipient_rows)
+                    # The durable work is produced with the notification and its
+                    # personal recipient rows.  There is deliberately no provider
+                    # call in this transaction; a worker can only claim it after
+                    # this commit.
+                    delivery_rows = (
+                        select(
+                            NotificationRecipients.notification_recipient_id,
+                            PushSubscriptions.subscription_id,
+                            literal(notification.created_at).label("next_attempt_at"),
+                            literal(notification.created_at).label("created_at"),
+                            literal(notification.created_at).label("updated_at"),
+                        )
+                        .select_from(NotificationRecipients)
+                        .join(
+                            PushSubscriptions,
+                            PushSubscriptions.user_id == NotificationRecipients.user_id,
+                        )
+                        .join(
+                            AuthSessions,
+                            AuthSessions.session_id
+                            == PushSubscriptions.auth_session_id,
+                        )
+                        .where(
+                            NotificationRecipients.notification_id
+                            == notification.notification_id,
+                            PushSubscriptions.active.is_(True),
+                            AuthSessions.revoked_at.is_(None),
+                            AuthSessions.expires_at > notification.created_at,
+                            AuthSessions.user_id == PushSubscriptions.user_id,
+                        )
+                    )
+                    session.execute(
+                        insert(PushDeliveries)
+                        .from_select(
+                            [
+                                "notification_recipient_id",
+                                "subscription_id",
+                                "next_attempt_at",
+                                "created_at",
+                                "updated_at",
+                            ],
+                            delivery_rows,
+                        )
+                        .on_conflict_do_nothing(
+                            constraint="uq_push_deliveries_recipient_subscription"
+                        )
+                    )
                     return self._notification(record)
 
                 existing = session.execute(

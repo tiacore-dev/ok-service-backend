@@ -1,5 +1,6 @@
 from app.database.db_setup import Base
 from app.database.models.notifications import NotificationRecipients, Notifications
+from app.database.models.push_deliveries import PushDeliveries
 
 
 def test_notifications_tables_are_registered_with_expected_columns_and_constraints():
@@ -33,6 +34,19 @@ def test_notifications_tables_are_registered_with_expected_columns_and_constrain
     )
     assert "notifications" in Base.metadata.tables
     assert "notification_recipients" in Base.metadata.tables
+
+
+def test_push_delivery_queue_has_per_recipient_subscription_deduplication():
+    assert PushDeliveries.__tablename__ == "push_deliveries"
+    assert {
+        "notification_recipient_id", "subscription_id", "status", "attempts",
+        "next_attempt_at", "locked_until", "locked_by", "lease_token", "sent_at",
+        "provider_message_id", "last_error",
+    }.issubset(PushDeliveries.__table__.c.keys())
+    assert any(
+        constraint.name == "uq_push_deliveries_recipient_subscription"
+        for constraint in PushDeliveries.__table__.constraints
+    )
 
 
 def test_view_metadata_constraints_require_timestamp_and_keep_unviewed_empty():

@@ -57,3 +57,4 @@ from .works import Works as Works
 from .push_subscriptions import PushSubscriptions as PushSubscriptions
 from .auth_sessions import AuthSessions as AuthSessions
 from .auth_sessions import RefreshTokens as RefreshTokens
+from .push_deliveries import PushDeliveries as PushDeliveries

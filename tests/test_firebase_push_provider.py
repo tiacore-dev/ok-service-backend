@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from flask import Flask
 
 from app.adapters.push_notifications import (
     FirebasePushProvider,
@@ -233,6 +234,20 @@ def test_noop_provider_and_factory_do_not_send():
                 GOOGLE_APPLICATION_CREDENTIALS="",
             )
         )
+
+
+def test_factory_accepts_flask_config_and_requires_explicit_provider():
+    app = Flask(__name__)
+    app.config.update(PUSH_PROVIDER="fcm", FCM_PROJECT_ID="project", GOOGLE_APPLICATION_CREDENTIALS="/test/account.json")
+    assert isinstance(build_push_provider(app.config), FirebasePushProvider)
+    for value in (None, "", "unsupported"):
+        app.config["PUSH_PROVIDER"] = value
+        with pytest.raises(PushProviderConfigurationError):
+            build_push_provider(app.config)
+    app.config.update(PUSH_PROVIDER="fcm", FCM_PROJECT_ID="")
+    with pytest.raises(PushProviderConfigurationError):
+        build_push_provider(app.config)
+    assert 'token-one' not in repr(_targets()[0])
 
 
 @pytest.mark.parametrize(

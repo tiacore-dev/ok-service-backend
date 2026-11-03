@@ -18,6 +18,21 @@ services:
     networks:
       - ok_network
 
+  push-worker:
+    image: ${DOCKERHUB_USERNAME}/ok-service-backend:${TAG}
+    user: "1000:1000"
+    restart: always
+    environment:
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+    volumes:
+      - ./logs:/app/logs
+      - .env:/app/.env
+      - ./secrets:/app/secrets:ro
+    command: python -m app.push_worker
+    networks:
+      - ok_network
+
   template-service-new:
     image: ${TEMPLATE_SERVICE_CI_REGISTRY_IMAGE}/template-service:${TEMPLATE_SERVICE_TAG}  
     container_name: template-service-new

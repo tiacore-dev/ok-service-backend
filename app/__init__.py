@@ -85,7 +85,7 @@ def setup_tracing(app: Flask) -> None:
     FlaskInstrumentor().instrument_app(app, tracer_provider=provider)
 
 
-def create_app(config_name="development"):
+def create_app(config_name="development", *, start_background_tasks=True):
     """Функция для создания экземпляра приложения"""
     app = Flask(__name__)
     # Выбираем конфигурацию
@@ -146,7 +146,7 @@ def create_app(config_name="development"):
 
     set_object_status()
 
-    if config_name != "testing":
+    if config_name != "testing" and start_background_tasks:
         setup_listeners()
         with app.app_context():
             start_background_task()

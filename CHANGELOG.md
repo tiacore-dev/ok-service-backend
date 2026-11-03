@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- OK-41: исправлен выбор Firebase provider из Flask Config; подтверждение
+  доставки теперь отклоняется после истечения lease по времени PostgreSQL,
+  а устаревший токен не отключает обновлённую подписку. Верхняя граница
+  задержки повтора учитывает jitter.
+
+- OK-41: добавлена PostgreSQL-очередь `push_deliveries` и отдельный процесс
+  `python -m app.push_worker` без Celery и Redis. Задачи по активным
+  session-bound устройствам создаются в транзакции вместе с персональными
+  уведомлениями; worker использует `FOR UPDATE SKIP LOCKED`, lease token,
+  ограниченный retry с jitter и раздельные результаты по устройствам. Logout
+  повторно проверяется непосредственно перед отправкой; подтверждённо
+  недействительный FCM-токен отзывает только своё устройство. Добавлены Compose
+  сервис, migration `20261107120000` и настройки `PUSH_WORKER_*`.
+
 - OK-41: добавлены порт доставки push, Firebase Admin SDK adapter и no-op
   provider. Конфигурация `PUSH_PROVIDER`, `FCM_PROJECT_ID` и
   `GOOGLE_APPLICATION_CREDENTIALS` не содержит JSON credentials; Firebase App

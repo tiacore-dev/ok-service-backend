@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import logging
 import threading
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Sequence
 
@@ -190,16 +191,21 @@ class FirebasePushProvider(PushProvider):
 
 
 def build_push_provider(settings: Any) -> PushProvider:
-    provider_name = str(getattr(settings, "PUSH_PROVIDER", "noop") or "noop").lower()
+    def setting(name: str) -> Any:
+        return (
+            settings.get(name)
+            if isinstance(settings, Mapping)
+            else getattr(settings, name, None)
+        )
+
+    provider_name = str(setting("PUSH_PROVIDER") or "").strip().lower()
     if provider_name == "noop":
         return NoopPushProvider()
     if provider_name != "fcm":
         raise PushProviderConfigurationError("Unsupported PUSH_PROVIDER")
     return FirebasePushProvider(
         FirebasePushProviderConfig(
-            project_id=str(getattr(settings, "FCM_PROJECT_ID", "") or ""),
-            credentials_path=str(
-                getattr(settings, "GOOGLE_APPLICATION_CREDENTIALS", "") or ""
-            ),
+            project_id=str(setting("FCM_PROJECT_ID") or ""),
+            credentials_path=str(setting("GOOGLE_APPLICATION_CREDENTIALS") or ""),
         )
     )

@@ -49,9 +49,21 @@ class Config:
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     # Push delivery is not invoked from HTTP handlers.  These settings prepare
     # the provider for the forthcoming dedicated delivery worker.
-    PUSH_PROVIDER = os.getenv("PUSH_PROVIDER", "noop")
+    PUSH_PROVIDER = os.getenv("PUSH_PROVIDER")
     FCM_PROJECT_ID = os.getenv("FCM_PROJECT_ID")
     GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    PUSH_WORKER_BATCH_SIZE = int(os.getenv("PUSH_WORKER_BATCH_SIZE", "50"))
+    PUSH_WORKER_POLL_INTERVAL_SECONDS = float(
+        os.getenv("PUSH_WORKER_POLL_INTERVAL_SECONDS", "2")
+    )
+    PUSH_WORKER_LEASE_SECONDS = int(os.getenv("PUSH_WORKER_LEASE_SECONDS", "60"))
+    PUSH_WORKER_MAX_ATTEMPTS = int(os.getenv("PUSH_WORKER_MAX_ATTEMPTS", "8"))
+    PUSH_WORKER_RETRY_BASE_SECONDS = int(
+        os.getenv("PUSH_WORKER_RETRY_BASE_SECONDS", "10")
+    )
+    PUSH_WORKER_RETRY_MAX_SECONDS = int(
+        os.getenv("PUSH_WORKER_RETRY_MAX_SECONDS", "3600")
+    )
 
     ENDPOINT_URL = os.getenv("ENDPOINT_URL")
     REGION_NAME = os.getenv("REGION_NAME")
