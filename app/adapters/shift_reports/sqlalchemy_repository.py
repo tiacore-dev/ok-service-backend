@@ -131,6 +131,8 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
             comment=command.comment,
             updated_by=command.updated_by,
             leave_check_date=command.leave_check_date,
+            lifecycle_operation=command.lifecycle_operation,
+            lifecycle_actor_role=command.lifecycle_actor_role,
             start_browser_id=command.start_browser_id,
             finish_browser_id=command.finish_browser_id,
             modified_browser_id=command.modified_browser_id,

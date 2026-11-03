@@ -42,6 +42,9 @@ class _NotificationRecipientRecord(TypedDict):
 
 
 class SQLAlchemyNotificationRepository:
+    def __init__(self, session=None):
+        self._external_session = session
+
     def _validate_creation(self, session, recipient_user_ids):
         """Hook for scenario-specific checks within the creation transaction."""
 
@@ -130,115 +133,118 @@ class SQLAlchemyNotificationRepository:
         notification: Notification,
         recipient_user_ids: tuple[UUID, ...],
     ) -> Notification:
+        if self._external_session is not None:
+            return self._create_in_session(self._external_session, notification, recipient_user_ids)
         session_factory = self._session_factory()
-        # A request may already have a scoped session in an active transaction.
-        # Creation owns its transaction and must use an independent session.
         session = getattr(session_factory, "session_factory", session_factory)()
         try:
             with session.begin():
-                self._validate_creation(session, recipient_user_ids)
-                values = {
-                    "notification_id": notification.notification_id,
-                    "notification_type": notification.notification_type,
-                    "title": notification.title,
-                    "text": notification.text,
-                    "created_at": notification.created_at,
-                    "created_by": notification.created_by,
-                    "link": notification.link,
-                    "related_entity_type": notification.related_entity_type,
-                    "related_entity_id": notification.related_entity_id,
-                    "idempotency_key": notification.idempotency_key,
-                }
-                statement = (
-                    insert(Notifications)
-                    .values(**values)
-                    .on_conflict_do_nothing(
-                        index_elements=[Notifications.idempotency_key]
-                    )
-                    .returning(Notifications)
-                )
-                record = session.execute(statement).scalar_one_or_none()
-                self.was_replay = record is None
-                if record is not None:
-                    recipient_rows = [
-                        {
-                            "notification_id": notification.notification_id,
-                            "user_id": user_id,
-                        }
-                        for user_id in recipient_user_ids
-                    ]
-                    session.execute(insert(NotificationRecipients), recipient_rows)
-                    # The durable work is produced with the notification and its
-                    # personal recipient rows.  There is deliberately no provider
-                    # call in this transaction; a worker can only claim it after
-                    # this commit.
-                    delivery_rows = (
-                        select(
-                            NotificationRecipients.notification_recipient_id,
-                            PushSubscriptions.subscription_id,
-                        )
-                        .select_from(NotificationRecipients)
-                        .join(
-                            PushSubscriptions,
-                            PushSubscriptions.user_id == NotificationRecipients.user_id,
-                        )
-                        .join(
-                            AuthSessions,
-                            AuthSessions.session_id
-                            == PushSubscriptions.auth_session_id,
-                        )
-                        .where(
-                            NotificationRecipients.notification_id
-                            == notification.notification_id,
-                            PushSubscriptions.active.is_(True),
-                            AuthSessions.revoked_at.is_(None),
-                            AuthSessions.expires_at > notification.created_at,
-                            AuthSessions.user_id == PushSubscriptions.user_id,
-                        )
-                    )
-                    deliveries = [
-                        {
-                            "delivery_id": uuid4(),
-                            "notification_recipient_id": recipient_id,
-                            "subscription_id": subscription_id,
-                            "next_attempt_at": notification.created_at,
-                            "created_at": notification.created_at,
-                            "updated_at": notification.created_at,
-                        }
-                        for recipient_id, subscription_id in session.execute(delivery_rows)
-                    ]
-                    if deliveries:
-                        session.execute(
-                            insert(PushDeliveries).on_conflict_do_nothing(
-                                constraint="uq_push_deliveries_recipient_subscription"
-                            ), deliveries,
-                        )
-                    return self._notification(record)
-
-                existing = session.execute(
-                    select(Notifications).where(
-                        Notifications.idempotency_key == notification.idempotency_key
-                    )
-                ).scalar_one_or_none()
-                if existing is None:
-                    raise RuntimeError("Idempotency key conflict row was not found")
-                existing_recipients = set(
-                    session.scalars(
-                        select(NotificationRecipients.user_id).where(
-                            NotificationRecipients.notification_id
-                            == existing.notification_id
-                        )
-                    )
-                )
-                if not self._same_request(
-                    existing, notification, existing_recipients, recipient_user_ids
-                ):
-                    raise NotificationIdempotencyConflictError(
-                        "Idempotency key was already used with different notification data"
-                    )
-                return self._notification(existing)
+                return self._create_in_session(session, notification, recipient_user_ids)
         finally:
             session.close()
+
+    def _create_in_session(self, session, notification, recipient_user_ids):
+        self._validate_creation(session, recipient_user_ids)
+        values = {
+            "notification_id": notification.notification_id,
+            "notification_type": notification.notification_type,
+            "title": notification.title,
+            "text": notification.text,
+            "created_at": notification.created_at,
+            "created_by": notification.created_by,
+            "link": notification.link,
+            "related_entity_type": notification.related_entity_type,
+            "related_entity_id": notification.related_entity_id,
+            "idempotency_key": notification.idempotency_key,
+        }
+        statement = (
+            insert(Notifications)
+            .values(**values)
+            .on_conflict_do_nothing(
+                index_elements=[Notifications.idempotency_key]
+            )
+            .returning(Notifications)
+        )
+        record = session.execute(statement).scalar_one_or_none()
+        self.was_replay = record is None
+        if record is not None:
+            recipient_rows = [
+                {
+                    "notification_id": notification.notification_id,
+                    "user_id": user_id,
+                }
+                for user_id in recipient_user_ids
+            ]
+            session.execute(insert(NotificationRecipients), recipient_rows)
+            # The durable work is produced with the notification and its
+            # personal recipient rows.  There is deliberately no provider
+            # call in this transaction; a worker can only claim it after
+            # this commit.
+            delivery_rows = (
+                select(
+                    NotificationRecipients.notification_recipient_id,
+                    PushSubscriptions.subscription_id,
+                )
+                .select_from(NotificationRecipients)
+                .join(
+                    PushSubscriptions,
+                    PushSubscriptions.user_id == NotificationRecipients.user_id,
+                )
+                .join(
+                    AuthSessions,
+                    AuthSessions.session_id
+                    == PushSubscriptions.auth_session_id,
+                )
+                .where(
+                    NotificationRecipients.notification_id
+                    == notification.notification_id,
+                    PushSubscriptions.active.is_(True),
+                    AuthSessions.revoked_at.is_(None),
+                    AuthSessions.expires_at > notification.created_at,
+                    AuthSessions.user_id == PushSubscriptions.user_id,
+                )
+            )
+            deliveries = [
+                {
+                    "delivery_id": uuid4(),
+                    "notification_recipient_id": recipient_id,
+                    "subscription_id": subscription_id,
+                    "next_attempt_at": notification.created_at,
+                    "created_at": notification.created_at,
+                    "updated_at": notification.created_at,
+                }
+                for recipient_id, subscription_id in session.execute(delivery_rows)
+            ]
+            if deliveries:
+                session.execute(
+                    insert(PushDeliveries).on_conflict_do_nothing(
+                        constraint="uq_push_deliveries_recipient_subscription"
+                    ), deliveries,
+                )
+            return self._notification(record)
+
+        existing = session.execute(
+            select(Notifications).where(
+                Notifications.idempotency_key == notification.idempotency_key
+            )
+        ).scalar_one_or_none()
+        if existing is None:
+            raise RuntimeError("Idempotency key conflict row was not found")
+        existing_recipients = set(
+            session.scalars(
+                select(NotificationRecipients.user_id).where(
+                    NotificationRecipients.notification_id
+                    == existing.notification_id
+                )
+            )
+        )
+        if not self._same_request(
+            existing, notification, existing_recipients, recipient_user_ids
+        ):
+            raise NotificationIdempotencyConflictError(
+                "Idempotency key was already used with different notification data"
+            )
+        return self._notification(existing)
 
     def _list_for_user(
         self, user_id: UUID, offset: int, limit: int, *, unviewed_only: bool

@@ -25,6 +25,7 @@ from app.database.time_utils import utc_epoch_milliseconds
 from app.domain.shift_report_materials import ShiftReportMaterialValidationError
 from app.domain.shift_reports import (
     ShiftReportConflictError,
+    ShiftReportForbiddenError,
     calculate_distance_meters,
 )
 
@@ -342,6 +343,9 @@ class ShiftReportsManager(ShiftManager):
                             session, detail, created_by
                         )
 
+                from app.adapters.shift_reports.lifecycle_notifications import notify_shift_event
+                notify_shift_event(session, new_report, "created", shift_report_data["created_by"], new_report.shift_report_id)
+
                 # Commit belongs to session_scope; external sessions may batch reports.
 
                 return new_report.to_dict()  # Возвращаем ID созданного отчета
@@ -360,13 +364,40 @@ class ShiftReportsManager(ShiftManager):
         try:
             with self.session_scope() as session:
                 leave_check_date = data.pop("leave_check_date", None)
+                operation = data.pop("lifecycle_operation", None)
+                actor_role = data.pop("lifecycle_actor_role", None)
                 record = (
                     session.query(ShiftReports)
                     .filter(ShiftReports.shift_report_id == record_id)
+                    .with_for_update()
                     .first()
                 )
                 if not record:
                     return None
+                if operation:
+                    if record.leave_id is not None:
+                        raise ShiftReportConflictError("Shift report linked to leave cannot be changed")
+                    if record.deleted:
+                        raise ShiftReportConflictError("Deleted shift report cannot be changed")
+                    if actor_role == "user" and record.user != data.get("updated_by"):
+                        raise ShiftReportForbiddenError("User cannot edit not his shift report")
+                    if actor_role == "user" and record.signed:
+                        raise ShiftReportForbiddenError("User cannot edit signed shift report")
+                    if operation == "start":
+                        if record.date_start is not None:
+                            raise ShiftReportConflictError("Shift report has already been started")
+                        if record.date_end is not None:
+                            raise ShiftReportConflictError("Shift report has an end time but has not been started")
+                    elif operation == "finish":
+                        if record.date_start is None:
+                            raise ShiftReportConflictError("Shift report has not been started")
+                        if record.date_end is not None:
+                            raise ShiftReportConflictError("Shift report has already been finished")
+                        if data["date_end"] < record.date_start:
+                            raise ShiftReportConflictError("Shift report start time is in the future")
+                    else:
+                        raise ValueError("Unknown shift lifecycle operation")
+                    leave_check_date = record.date
 
                 self._fill_missing_distances(session, data, record)
 
@@ -410,7 +441,10 @@ class ShiftReportsManager(ShiftManager):
                             validate_shift_material_record(session, material)
                         except ShiftReportMaterialValidationError as error:
                             raise ShiftReportConflictError(str(error)) from error
-                session.commit()
+                if operation:
+                    from app.adapters.shift_reports.lifecycle_notifications import notify_shift_event
+                    notify_shift_event(session, record, "opened" if operation == "start" else "closed", data.get("updated_by"), uuid4())
+                session.flush()
                 return record.to_dict()
         except ShiftReportConflictError:
             raise
@@ -420,17 +454,24 @@ class ShiftReportsManager(ShiftManager):
             record = (
                 session.query(ShiftReports)
                 .filter(ShiftReports.shift_report_id == record_id)
+                .with_for_update()
                 .first()
             )
             if not record:
                 return None
+            if record.leave_id is not None:
+                raise ShiftReportConflictError("Shift report linked to leave cannot be changed")
 
+            is_new_approval = not record.signed or record.signed_at is None
             record.signed = True
             record.signed_at = utc_epoch_milliseconds()
             record.signed_by = signed_by
             record.updated_at = utc_epoch_milliseconds()
             record.updated_by = signed_by
-            session.commit()
+            if is_new_approval:
+                from app.adapters.shift_reports.lifecycle_notifications import notify_shift_event
+                notify_shift_event(session, record, "approved", signed_by, uuid4())
+            session.flush()
             return record.to_dict()
 
     def get_project_leader(self, project):

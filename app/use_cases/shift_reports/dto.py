@@ -97,6 +97,8 @@ class UpdateShiftReportCommand:
     comment: str | None = None
     updated_by: UUID | None = None
     leave_check_date: int | None = None
+    lifecycle_operation: str | None = None
+    lifecycle_actor_role: str | None = None
     start_browser_id: UUID | None = None
     finish_browser_id: UUID | None = None
     modified_browser_id: UUID | None = None

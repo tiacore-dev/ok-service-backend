@@ -7,6 +7,7 @@ from app.use_cases.notifications.bulk import BulkForbiddenError, BulkRecipientsE
 
 class BulkNotificationRepository(SQLAlchemyNotificationRepository):
     def __init__(self, actor_id):
+        super().__init__()
         self.actor_id = actor_id
 
     def _validate_creation(self, session, recipient_user_ids):
