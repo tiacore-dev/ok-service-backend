@@ -14,6 +14,7 @@ API_KEY_PERMISSIONS = (
     ("notifications-push-register", "PUT /notifications/push/subscription"),
     ("notifications-push-revoke", "DELETE /notifications/push/subscriptions/{subscription_id}"),
     ("notifications-admin-list", "GET /notifications/admin/users/{user_id}"),
+    ("notifications-admin-bulk", "POST /notifications/admin/bulk"),
     ("notifications-admin-push-list", "GET /notifications/admin/users/{user_id}/push/subscriptions"),
     ("templates-create", "POST /templates/add"),
     ("templates-list", "GET /templates/all"),

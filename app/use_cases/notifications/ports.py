@@ -6,12 +6,15 @@ from uuid import UUID
 from app.domain.notifications import Notification, NotificationRecipient, NotificationView
 
 
-class NotificationRepository(Protocol):
+class NotificationCreationRepository(Protocol):
     def create_notification(
         self,
         notification: Notification,
         recipient_user_ids: tuple[UUID, ...],
     ) -> Notification: ...
+
+
+class NotificationRepository(NotificationCreationRepository, Protocol):
 
     def list_history(
         self, user_id: UUID, offset: int, limit: int

@@ -1,6 +1,14 @@
 from marshmallow import Schema, fields, validate
 
 
+class BulkNotificationSchema(Schema):
+    recipient_user_ids = fields.List(fields.UUID(), required=True, validate=validate.Length(min=1, max=100))
+    title = fields.String(required=True, validate=validate.Length(min=1, max=255))
+    text = fields.String(required=True, validate=validate.Length(min=1, max=4000))
+    link = fields.String(load_default=None, allow_none=True, validate=validate.Length(max=2048))
+    idempotency_key = fields.String(required=True, validate=validate.Length(min=1, max=128))
+
+
 class NotificationItemSchema(Schema):
     notification_id = fields.UUID(required=True)
     notification_type = fields.String(required=True)

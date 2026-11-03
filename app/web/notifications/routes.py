@@ -9,6 +9,7 @@ from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 
 from app.adapters.notifications import SQLAlchemyNotificationRepository
+from app.adapters.notifications.bulk_repository import BulkNotificationRepository
 from app.adapters.push_subscriptions import SQLAlchemyPushSubscriptionRepository
 from app.database import db_globals
 from app.database.models import Users
@@ -18,7 +19,9 @@ from app.use_cases.notifications import (
     MarkNotificationViewedUseCase,
 )
 from app.use_cases.push_subscriptions import ListPushSubscriptions, RevokePushSubscription
-from app.web.notifications.schemas import NotificationItemSchema, NotificationListQuerySchema
+from app.web.notifications.schemas import BulkNotificationSchema, NotificationItemSchema, NotificationListQuerySchema
+from app.domain.notifications import NotificationIdempotencyConflictError, NotificationValidationError
+from app.use_cases.notifications.bulk import BulkForbiddenError, BulkRecipientsError, BulkNotificationUseCase
 
 notification_ns = Namespace("notifications", description="Personal and administrative notifications")
 
@@ -45,6 +48,31 @@ def current_user():
 class PageParams(TypedDict):
     offset: int
     limit: int
+
+
+class BulkParams(TypedDict):
+    recipient_user_ids: list[UUID]
+    title: str
+    text: str
+    link: str | None
+    idempotency_key: str
+
+
+def bulk_params() -> BulkParams:
+    loaded = BulkNotificationSchema().load(request.get_json(silent=True) or {})
+    if not isinstance(loaded, dict):
+        raise RuntimeError("Invalid bulk notification schema result")
+    recipients = loaded.get("recipient_user_ids")
+    title, text = loaded.get("title"), loaded.get("text")
+    link, key = loaded.get("link"), loaded.get("idempotency_key")
+    if (not isinstance(recipients, list)
+            or not all(isinstance(item, UUID) for item in recipients)
+            or not isinstance(title, str) or not isinstance(text, str)
+            or (link is not None and not isinstance(link, str))
+            or not isinstance(key, str)):
+        raise RuntimeError("Invalid bulk notification schema result")
+    return {"recipient_user_ids": recipients, "title": title, "text": text,
+            "link": link, "idempotency_key": key}
 
 
 def page() -> PageParams:
@@ -140,6 +168,38 @@ class AdminHistory(Resource):
     def get(self, user_id):
         error = admin_target(user_id)
         return error if error else list_history(user_id)
+
+
+@notification_ns.route("/admin/bulk")
+class AdminBulk(Resource):
+    @secured
+    def post(self):
+        if g.jwt_current_user.get("role") != "admin":
+            return {"msg": "Forbidden"}, 403
+        try:
+            data = bulk_params()
+            actor_id = current_user()
+            repository = BulkNotificationRepository(actor_id)
+            result = BulkNotificationUseCase(repository).execute(
+                actor_id, tuple(data["recipient_user_ids"]), data["title"], data["text"],
+                data["link"], data["idempotency_key"]
+            )
+            return {"notification_id": str(result.notification_id),
+                    "recipient_count": len(data["recipient_user_ids"]),
+                    "created_at": result.created_at, "replayed": repository.was_replay}, (200 if repository.was_replay else 201)
+        except ValidationError as error:
+            return {"error": error.messages}, 400
+        except NotificationValidationError as error:
+            return {"msg": str(error)}, 400
+        except BulkForbiddenError:
+            return {"msg": "Forbidden"}, 403
+        except BulkRecipientsError:
+            return {"msg": "One or more recipients are unavailable"}, 400
+        except NotificationIdempotencyConflictError:
+            return {"msg": "Idempotency key conflict"}, 409
+        except Exception:
+            current_app.logger.exception("Bulk notification creation failed")
+            return {"msg": "Internal server error"}, 500
 
 
 @notification_ns.route("/admin/users/<uuid:user_id>/push/subscriptions")

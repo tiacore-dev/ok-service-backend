@@ -10,7 +10,7 @@ from app.domain.notifications import (
 )
 from app.use_cases.time_utils import utc_epoch_milliseconds
 
-from .ports import NotificationRepository
+from .ports import NotificationCreationRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,7 +28,7 @@ class CreateNotificationCommand:
 
 @dataclass(slots=True)
 class CreateNotificationUseCase:
-    repository: NotificationRepository
+    repository: NotificationCreationRepository
 
     def execute(self, command: CreateNotificationCommand) -> Notification:
         idempotency_key = command.idempotency_key.strip()

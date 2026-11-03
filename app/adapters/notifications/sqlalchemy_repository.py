@@ -42,6 +42,9 @@ class _NotificationRecipientRecord(TypedDict):
 
 
 class SQLAlchemyNotificationRepository:
+    def _validate_creation(self, session, recipient_user_ids):
+        """Hook for scenario-specific checks within the creation transaction."""
+
     @staticmethod
     def _session_factory():
         session_factory = db_globals.Session
@@ -128,9 +131,12 @@ class SQLAlchemyNotificationRepository:
         recipient_user_ids: tuple[UUID, ...],
     ) -> Notification:
         session_factory = self._session_factory()
-        session = session_factory()
+        # A request may already have a scoped session in an active transaction.
+        # Creation owns its transaction and must use an independent session.
+        session = getattr(session_factory, "session_factory", session_factory)()
         try:
             with session.begin():
+                self._validate_creation(session, recipient_user_ids)
                 values = {
                     "notification_id": notification.notification_id,
                     "notification_type": notification.notification_type,
@@ -152,6 +158,7 @@ class SQLAlchemyNotificationRepository:
                     .returning(Notifications)
                 )
                 record = session.execute(statement).scalar_one_or_none()
+                self.was_replay = record is None
                 if record is not None:
                     recipient_rows = [
                         {

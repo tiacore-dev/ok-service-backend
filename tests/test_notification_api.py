@@ -19,6 +19,43 @@ def create_notification(user_id):
     )
 
 
+def test_admin_bulk_contract_and_atomic_validation(client, db_session, seed_user, seed_admin, jwt_token_user, jwt_token_admin):
+    payload = {"recipient_user_ids": [seed_user["user_id"], seed_admin["user_id"]],
+               "title": "Title", "text": "Text", "link": "/work", "idempotency_key": "test-bulk"}
+    admin = headers(jwt_token_admin)
+    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_user)).status_code == 403
+    invalid = dict(payload, recipient_user_ids=[seed_user["user_id"], str(uuid4())], idempotency_key="invalid")
+    assert client.post('/notifications/admin/bulk', json=invalid, headers=admin).status_code == 400
+    first = client.post('/notifications/admin/bulk', json=payload, headers=admin)
+    assert first.status_code == 201 and first.json['recipient_count'] == 2 and first.json['replayed'] is False
+    again = client.post('/notifications/admin/bulk', json=payload, headers=admin)
+    assert again.status_code == 200 and again.json['notification_id'] == first.json['notification_id'] and again.json['replayed'] is True
+    assert client.post('/notifications/admin/bulk', json=dict(payload, text="changed"), headers=admin).status_code == 409
+    history = client.get('/notifications', headers=headers(jwt_token_user))
+    assert [item['notification_id'] for item in history.json['items']] == [first.json['notification_id']]
+    assert client.get('/notifications/unread-count', headers=headers(jwt_token_user)).json == {'count': 1}
+    client.set_cookie('browser_id', str(uuid4()))
+    viewed = client.post(f"/notifications/{first.json['notification_id']}/view", headers=headers(jwt_token_user))
+    assert viewed.status_code == 200
+    assert client.get('/notifications/unread-count', headers=headers(jwt_token_user)).json == {'count': 0}
+    assert client.get('/notifications/unread-count', headers=admin).json == {'count': 1}
+
+
+def test_admin_bulk_api_key_never_replaces_admin_jwt(client, db_session, seed_user, jwt_token_user, jwt_token_admin):
+    set_api_key_permissions()
+    key = ApiKeys(name='bulk test', token='bulk-key-test', expires_at=None)
+    db_session.add(key)
+    db_session.commit()
+    payload = {'recipient_user_ids': [seed_user['user_id']], 'title': 't', 'text': 'b', 'idempotency_key': 'key'}
+    assert client.post('/notifications/admin/bulk', json=payload, headers={'API-Key': key.token}).status_code == 401
+    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_admin, key.token)).status_code == 403
+    permission = db_session.query(PermissionTypes).filter_by(code='notifications-admin-bulk').one()
+    db_session.add(KeyPermissionTypeRelations(api_key_id=key.api_key_id, permission_type_id=permission.permission_type_id))
+    db_session.commit()
+    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_user, key.token)).status_code == 403
+    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_admin, key.token)).status_code == 201
+
+
 def test_history_count_view_and_ownership(client, db_session, seed_user, seed_admin, jwt_token_user, jwt_token_admin):
     db_session.rollback()
     own = create_notification(seed_user["user_id"])
@@ -73,6 +110,7 @@ def test_notification_routes_reject_revoked_session(client, seed_admin):
     assert login.status_code == 200
     auth = headers(login.json['access_token'])
     assert client.post('/auth/logout', headers=auth).status_code == 204
+    assert client.post('/notifications/admin/bulk', headers=auth, json={'recipient_user_ids': [seed_admin['user_id']], 'title': 't', 'text': 'b', 'idempotency_key': 'k'}).status_code == 401
     assert client.get('/notifications', headers=auth).status_code == 401
     assert client.get('/notifications/push/subscriptions', headers=auth).status_code == 401
     assert client.get(f'/notifications/admin/users/{seed_admin["user_id"]}', headers=auth).status_code == 401
