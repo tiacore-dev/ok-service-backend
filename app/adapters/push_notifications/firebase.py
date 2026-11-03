@@ -26,6 +26,7 @@ class FirebasePushProviderConfig:
     project_id: str
     credentials_path: str
     app_name: str = "ok-service-push"
+    http_timeout_seconds: float = 10.0
 
 
 class NoopPushProvider(PushProvider):
@@ -81,7 +82,10 @@ class FirebasePushProvider(PushProvider):
                     )
                     self._firebase_app = firebase_admin.initialize_app(
                         credential,
-                        options={"projectId": self._config.project_id},
+                        options={
+                            "projectId": self._config.project_id,
+                            "httpTimeout": self._config.http_timeout_seconds,
+                        },
                         name=self._config.app_name,
                     )
                 except Exception as exc:
@@ -203,9 +207,16 @@ def build_push_provider(settings: Any) -> PushProvider:
         return NoopPushProvider()
     if provider_name != "fcm":
         raise PushProviderConfigurationError("Unsupported PUSH_PROVIDER")
+    configured_lease = setting("PUSH_WORKER_LEASE_SECONDS")
+    lease_seconds = float(60 if configured_lease is None else configured_lease)
+    if lease_seconds <= 0:
+        raise PushProviderConfigurationError(
+            "PUSH_WORKER_LEASE_SECONDS must be positive"
+        )
     return FirebasePushProvider(
         FirebasePushProviderConfig(
             project_id=str(setting("FCM_PROJECT_ID") or ""),
             credentials_path=str(setting("GOOGLE_APPLICATION_CREDENTIALS") or ""),
+            http_timeout_seconds=min(10.0, lease_seconds / 3),
         )
     )

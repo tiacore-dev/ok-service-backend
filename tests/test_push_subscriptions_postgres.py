@@ -453,3 +453,36 @@ def test_logout_during_provider_call_does_not_reactivate_subscription(database):
     with engine.connect() as connection:
         assert not connection.scalar(text('SELECT active FROM push_subscriptions WHERE subscription_id=:id'), {'id': subscription.subscription_id})
         assert connection.scalar(text('SELECT status FROM push_deliveries')) == 'sent'
+
+
+def test_multiple_deliveries_have_distinct_ids_and_replay_is_idempotent(database):
+    engine, _ = database
+    user, _, _, _, register, enqueue = _delivery_setup(engine)
+    other_browser = uuid4()
+    other_session = _session(SQLAlchemyAuthSessionRepository(), user, other_browser, 1)
+    register.execute(user, other_browser, other_session, 'web', 'second-private-token')
+    notification = enqueue('multiple-deliveries')
+    assert enqueue('multiple-deliveries').notification_id == notification.notification_id
+    with engine.connect() as connection:
+        rows = connection.execute(text('SELECT delivery_id, subscription_id, created_at, next_attempt_at, updated_at FROM push_deliveries')).all()
+    assert len(rows) == 2
+    assert len({row.delivery_id for row in rows}) == 2
+    assert len({row.subscription_id for row in rows}) == 2
+    assert all(row.created_at == notification.created_at == row.next_attempt_at == row.updated_at for row in rows)
+
+
+def test_worker_checks_logout_after_previous_send_before_claiming_next(database):
+    engine, _ = database
+    user, _, sid, _, _, enqueue = _delivery_setup(engine)
+    enqueue('first-notification')
+    enqueue('second-notification')
+    calls = []
+    class Provider:
+        def send(self, notification, targets):
+            calls.append(notification.notification_id)
+            assert SQLAlchemyAuthSessionRepository().revoke_session(sid, user, 100)
+            return [PushDelivery(targets[0].subscription_id, PushDeliveryStatus.SENT)]
+    assert PushWorker(_worker_app(), Provider()).run_once() == 2
+    assert len(calls) == 1
+    with engine.connect() as connection:
+        assert sorted(connection.scalars(text('SELECT status FROM push_deliveries')).all()) == ['failed', 'sent']

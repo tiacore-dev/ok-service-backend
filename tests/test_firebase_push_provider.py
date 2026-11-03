@@ -124,7 +124,9 @@ def test_firebase_provider_sends_each_token_and_reuses_named_app(monkeypatch):
         "message-two",
     ]
     assert len(admin.initialize_calls) == 1
+    assert isinstance(captured.app, SimpleNamespace)
     assert captured.app is admin.initialize_calls[0]
+    assert captured.app.options["httpTimeout"] == 10.0
 
 
 def test_firebase_provider_builds_minimal_safe_payload(monkeypatch):
@@ -239,7 +241,14 @@ def test_noop_provider_and_factory_do_not_send():
 def test_factory_accepts_flask_config_and_requires_explicit_provider():
     app = Flask(__name__)
     app.config.update(PUSH_PROVIDER="fcm", FCM_PROJECT_ID="project", GOOGLE_APPLICATION_CREDENTIALS="/test/account.json")
-    assert isinstance(build_push_provider(app.config), FirebasePushProvider)
+    app.config["PUSH_WORKER_LEASE_SECONDS"] = 12
+    provider = build_push_provider(app.config)
+    assert isinstance(provider, FirebasePushProvider)
+    assert provider._config.http_timeout_seconds == 4
+    app.config["PUSH_WORKER_LEASE_SECONDS"] = 0
+    with pytest.raises(PushProviderConfigurationError):
+        build_push_provider(app.config)
+    app.config["PUSH_WORKER_LEASE_SECONDS"] = 12
     for value in (None, "", "unsupported"):
         app.config["PUSH_PROVIDER"] = value
         with pytest.raises(PushProviderConfigurationError):

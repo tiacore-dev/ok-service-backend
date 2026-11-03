@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from typing import TypedDict, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import func, literal, select, text, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 
 from app.database import db_globals
@@ -169,9 +169,6 @@ class SQLAlchemyNotificationRepository:
                         select(
                             NotificationRecipients.notification_recipient_id,
                             PushSubscriptions.subscription_id,
-                            literal(notification.created_at).label("next_attempt_at"),
-                            literal(notification.created_at).label("created_at"),
-                            literal(notification.created_at).label("updated_at"),
                         )
                         .select_from(NotificationRecipients)
                         .join(
@@ -192,22 +189,23 @@ class SQLAlchemyNotificationRepository:
                             AuthSessions.user_id == PushSubscriptions.user_id,
                         )
                     )
-                    session.execute(
-                        insert(PushDeliveries)
-                        .from_select(
-                            [
-                                "notification_recipient_id",
-                                "subscription_id",
-                                "next_attempt_at",
-                                "created_at",
-                                "updated_at",
-                            ],
-                            delivery_rows,
+                    deliveries = [
+                        {
+                            "delivery_id": uuid4(),
+                            "notification_recipient_id": recipient_id,
+                            "subscription_id": subscription_id,
+                            "next_attempt_at": notification.created_at,
+                            "created_at": notification.created_at,
+                            "updated_at": notification.created_at,
+                        }
+                        for recipient_id, subscription_id in session.execute(delivery_rows)
+                    ]
+                    if deliveries:
+                        session.execute(
+                            insert(PushDeliveries).on_conflict_do_nothing(
+                                constraint="uq_push_deliveries_recipient_subscription"
+                            ), deliveries,
                         )
-                        .on_conflict_do_nothing(
-                            constraint="uq_push_deliveries_recipient_subscription"
-                        )
-                    )
                     return self._notification(record)
 
                 existing = session.execute(

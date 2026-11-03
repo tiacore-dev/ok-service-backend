@@ -133,12 +133,10 @@ project. Service account JSON является секретом. Не помещ
 `secrets/`, ограничьте права чтения пользователем Docker runtime и не выдавайте
 избыточные права service account.
 
-Для приложения и worker, которому нужна отправка, Compose подключает каталог
-только для чтения. Пример для будущего push worker:
+Compose подключает каталог только worker и только для чтения:
 
 ```yaml
   push-worker:
-    # image, environment и команда worker определяются при реализации очереди
     volumes:
       - ./secrets:/app/secrets:ro
 ```
@@ -152,23 +150,14 @@ FCM_PROJECT_ID=<firebase-project-id>
 GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-service-account.json
 ```
 
-В текущем `ok-service-backend` эти настройки создают Firebase provider, но не
-запускают отправку из HTTP и не создают worker: очередь доставки будет отдельным
-следующим срезом. Service account передаётся только путём в
+Отправка выполняется только worker, а не HTTP-процессом. Service account передаётся только путём в
 `GOOGLE_APPLICATION_CREDENTIALS`; JSON в переменных окружения не поддерживается.
 Firebase App переиспользуется в пределах процесса. Для production указывается
 путь к credentials-файлу из read-only mount.
 
-Сейчас `docker-compose.app.yaml` содержит сервис `web`, уже монтирует
-`./secrets:/app/secrets:ro` и не содержит Celery worker. При добавлении
-фоновой доставки требуется:
+Перед запуском требуется:
 
-- добавить `./secrets:/app/secrets:ro` в `web` только если web-процессу
-  действительно понадобится читать этот секрет (предпочтительно оставить
-  отправку только worker);
-- добавить такой же read-only mount в сервис будущего push worker;
-- добавить соответствующую переменную конфигурации для worker через принятый в
-  проекте механизм `.env`;
+- задать настройки worker через принятый в проекте механизм `.env`;
 - создать каталог `secrets` на хосте и разместить там service account файл;
 - исключить `secrets/` из Git и проверить, что секрет не копируется в Docker
   image build context.
@@ -269,6 +258,12 @@ credentials.
 `PUSH_WORKER_RETRY_MAX_SECONDS` ограничивает итоговую задержку с учётом jitter.
 `PUSH_PROVIDER` должен быть явно задан как `noop` или `fcm`; некорректное
 значение и отсутствующие обязательные настройки FCM вызывают ошибку конфигурации.
+
+Worker получает по одному заданию непосредственно перед отправкой; параметр
+`PUSH_WORKER_BATCH_SIZE` ограничивает число заданий за проход. HTTP timeout
+Firebase SDK равен меньшему из 10 секунд и трети lease. Это timeout отдельного
+запроса, а не жёсткая граница всего вызова SDK с авторизацией и повторами:
+при превышении lease другая попытка может начать отправку параллельно.
 
 Перед Firebase-вызовом worker повторно проверяет `push_subscriptions.active` и
 неотозванную `auth_sessions` той же учётной записи. Logout до этой проверки

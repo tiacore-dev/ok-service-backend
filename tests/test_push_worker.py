@@ -24,8 +24,10 @@ class _Repository:
         self.ineligible_set = set()
         self.results = []
 
-    def claim_ready(self, *_args):
-        return self.claimed
+    def claim_ready(self, _worker, batch_size, *_args):
+        assert batch_size == 1
+        result, self.claimed = self.claimed[:batch_size], self.claimed[batch_size:]
+        return result
 
     def is_eligible(self, delivery):
         return delivery not in self.ineligible_set
@@ -34,7 +36,7 @@ class _Repository:
         self.ineligible.append(delivery)
         return True
 
-    def record_result(self, delivery, status, **kwargs):
+    def record_result(self, delivery, status, **kwargs) -> bool:
         self.results.append((delivery, status, kwargs))
         return True
 
@@ -46,7 +48,8 @@ class _Provider:
 
     def send(self, notification, targets):
         self.calls.append((notification, targets))
-        return self.results
+        ids = {target.subscription_id for target in targets}
+        return [item for item in self.results if item.subscription_id in ids]
 
 
 def _app():
@@ -62,7 +65,7 @@ def _app():
 
 def test_worker_records_partial_results_per_delivery_without_logging_tokens():
     first, second = _delivery(), _delivery()
-    # Keep both records for one notification so the provider gets one batch.
+    # Deliveries for the same notification are still claimed independently.
     second = ClaimedPushDelivery(
         second.delivery_id, first.notification_id, second.subscription_id,
         second.token, first.title, first.body, first.route, second.lease_token,
@@ -76,7 +79,7 @@ def test_worker_records_partial_results_per_delivery_without_logging_tokens():
 
     assert PushWorker(_app(), provider, repo, "test-worker").run_once() == 2
 
-    assert len(provider.calls) == 1
+    assert len(provider.calls) == 2
     assert [(item[1], item[2]["provider_message_id"]) for item in repo.results] == [
         (PushDeliveryStatus.SENT, "firebase-id"),
         (PushDeliveryStatus.INVALID_TOKEN, None),
@@ -97,14 +100,14 @@ def test_worker_does_not_send_revoked_subscription_after_claim():
     assert repo.results == []
 
 
-def test_graceful_stop_leaves_claimed_work_for_lease_recovery():
+def test_graceful_stop_does_not_claim_new_work():
     delivery = _delivery()
     repo = _Repository([delivery])
     provider = _Provider([])
     worker = PushWorker(_app(), provider, repo)
     worker.request_stop()
 
-    assert worker.run_once() == 1
+    assert worker.run_once() == 0
     assert provider.calls == []
     assert repo.results == []
 
@@ -127,8 +130,11 @@ def test_retry_delay_is_bounded_and_grows_before_cap(monkeypatch):
 def test_worker_reports_rejected_result_without_token(caplog):
     delivery = _delivery()
     assert delivery.token not in repr(delivery)
-    repo = _Repository([delivery])
-    repo.record_result = lambda *_args, **_kwargs: False
+    class RejectingRepository(_Repository):
+        def record_result(self, delivery, status, **kwargs) -> bool:
+            return False
+
+    repo = RejectingRepository([delivery])
     provider = _Provider([PushDelivery(delivery.subscription_id, PushDeliveryStatus.INVALID_TOKEN)])
     assert PushWorker(_app(), provider, repo).run_once() == 1
     assert "lease is no longer valid" in caplog.text
