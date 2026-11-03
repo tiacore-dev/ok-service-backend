@@ -282,3 +282,66 @@ provider `noop` не отправляет push, а задания заверша
 устройства. Перед включением нужно применить Alembic migration
 `20261107120000` и убедиться, что worker имеет тот же доступ к PostgreSQL и
 read-only credentials mount.
+
+## Dev: deployment и эксплуатация worker
+
+GitHub Actions для ветки `dev` после `alembic upgrade head` и обновления web
+запускает управляемый Compose worker с тем же SHA-тегом. Перед запуском pipeline
+проверяет FCM, положительные значения настроек и доступность JSON под UID/GID
+`1000:1000`; `secrets/` монтируется только для чтения. Параметры
+`PUSH_WORKER_BATCH_SIZE`, `PUSH_WORKER_POLL_INTERVAL_SECONDS`,
+`PUSH_WORKER_LEASE_SECONDS`, `PUSH_WORKER_MAX_ATTEMPTS`,
+`PUSH_WORKER_RETRY_BASE_SECONDS`, `PUSH_WORKER_RETRY_MAX_SECONDS` можно задать
+в `.env`, иначе используются значения из `config.py`. Каталог должен быть
+доступен для прохода, а файл для чтения пользователю `1000:1000` без выдачи
+лишних прав. JSON не должен попадать в Git, образ, CI artifacts или логи.
+Pipeline не проверяет права Firebase и не отправляет тестовый push.
+
+Перед **первым** deployment на dev оператору необходимо в каталоге проекта
+проверить и штатно остановить именно временный контейнер. Согласуйте остановку
+с отключением автоматических запусков до окончания процедуры:
+
+```bash
+docker ps --filter 'name=^/ok-service-backend-dev-push-worker-run-' --format '{{.ID}} {{.Names}} {{.Status}}'
+# Подставьте ID конкретного контейнера из вывода после проверки имени:
+docker stop --time 60 <container_id>
+docker ps --filter 'name=^/ok-service-backend-dev-push-worker-run-' --format '{{.ID}} {{.Names}} {{.Status}}'
+```
+
+Убедитесь, что список пуст, и только после этого запускайте deployment. Pipeline
+сам откажет в запуске, если контейнер с указанным именем ещё работает; он не
+удаляет контейнеры. Если временный worker запускался с иным Compose project name,
+найдите его по labels и остановите вручную: автоматическая проверка ищет только
+указанный dev-префикс. Остановка ожидает завершения текущей операции до таймаута;
+при принудительном завершении незаконченная задача вернётся после lease.
+
+Команды ниже выполняются на dev из каталога проекта. Не выводите `.env`, JSON
+credentials или полные значения переменных в логи и обращения за поддержкой.
+
+```bash
+# Состояние и журнал
+docker compose -f docker-compose.app.yaml ps -a push-worker
+docker compose -f docker-compose.app.yaml logs --tail=100 -f push-worker
+
+# Проверить именно загруженную приложением конфигурацию без вывода её значений
+docker compose -f docker-compose.app.yaml exec -T push-worker python -c 'from config import Config; print("provider=fcm:", (Config.PUSH_PROVIDER or "").strip().lower() == "fcm")'
+
+# Сравнить image ID контейнеров; при штатном деплое они должны совпадать
+docker inspect --format '{{.Image}}' "$(docker compose -f docker-compose.app.yaml ps -q web)"
+docker inspect --format '{{.Image}}' "$(docker compose -f docker-compose.app.yaml ps -q push-worker)"
+
+# Очередь: агрегаты без токенов и содержимого уведомлений
+docker compose -f docker-compose.app.yaml exec -T web python -c 'from sqlalchemy import create_engine, text; from config import Config; e = create_engine(Config.SQLALCHEMY_DATABASE_URI); c = e.connect(); print(c.execute(text("SELECT status, count(*) FROM push_deliveries GROUP BY status ORDER BY status")).fetchall()); c.close(); e.dispose()'
+
+# Перезапуск / временная остановка обработки
+docker compose -f docker-compose.app.yaml restart push-worker
+docker compose -f docker-compose.app.yaml stop -t 60 push-worker
+```
+
+Следующий dev deployment снова запустит остановленный worker. Для диагностики
+startup или PostgreSQL проверьте `ps -a` и логи, доступность PostgreSQL из сети
+контейнера, миграцию `alembic current` через web и доступ UID к файлу credentials;
+не выводите URL БД и секреты. Успешная проверка в течение 10 секунд и статус
+`running` не подтверждают последующую работоспособность, авторизацию Firebase
+или доставку сообщения. Отслеживайте очередь и результат контролируемой
+проверки доставки отдельно.
