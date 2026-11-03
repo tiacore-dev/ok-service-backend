@@ -1,12 +1,15 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
-from app.domain.push_subscriptions import PushSubscriptionValidationError
+from app.domain.push_subscriptions import PushSubscription, PushSubscriptionValidationError
 from app.use_cases.push_subscriptions import RegisterPushSubscription, RevokePushSubscription
 
 
 class Repository:
+    def list_for_user(self, user_id: UUID, offset: int, limit: int) -> list[PushSubscription]:
+        return []
+
     def register(self, subscription):
         self.subscription = subscription
         return subscription

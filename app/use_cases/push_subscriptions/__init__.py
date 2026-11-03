@@ -9,6 +9,17 @@ from app.use_cases.time_utils import utc_epoch_milliseconds
 class PushSubscriptionRepository(Protocol):
     def register(self, subscription: PushSubscription) -> PushSubscription: ...
     def revoke(self, subscription_id: UUID, user_id: UUID, now: int) -> PushSubscription | None: ...
+    def list_for_user(self, user_id: UUID, offset: int, limit: int) -> list[PushSubscription]: ...
+
+
+@dataclass(slots=True)
+class ListPushSubscriptions:
+    repository: PushSubscriptionRepository
+
+    def execute(self, user_id: UUID, offset: int, limit: int) -> list[PushSubscription]:
+        if offset < 0 or not 1 <= limit <= 100:
+            raise PushSubscriptionValidationError("Invalid pagination")
+        return self.repository.list_for_user(user_id, offset, limit)
 
 
 @dataclass(slots=True)

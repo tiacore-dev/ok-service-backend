@@ -7,6 +7,14 @@ from app.database.models import PermissionTypes
 # ``api_key_or_jwt_required``.  The description is part of the authorization
 # contract: the decorator resolves the permission by HTTP method and route.
 API_KEY_PERMISSIONS = (
+    ("notifications-list", "GET /notifications"),
+    ("notifications-unread-count", "GET /notifications/unread-count"),
+    ("notifications-view", "POST /notifications/{notification_id}/view"),
+    ("notifications-push-list", "GET /notifications/push/subscriptions"),
+    ("notifications-push-register", "PUT /notifications/push/subscription"),
+    ("notifications-push-revoke", "DELETE /notifications/push/subscriptions/{subscription_id}"),
+    ("notifications-admin-list", "GET /notifications/admin/users/{user_id}"),
+    ("notifications-admin-push-list", "GET /notifications/admin/users/{user_id}/push/subscriptions"),
     ("templates-create", "POST /templates/add"),
     ("templates-list", "GET /templates/all"),
     ("templates-types-list", "GET /templates/types/all"),

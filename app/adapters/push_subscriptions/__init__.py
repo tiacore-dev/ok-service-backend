@@ -17,6 +17,14 @@ class SQLAlchemyPushSubscriptionRepository:
     def _entity(row):
         return PushSubscription(**{name: getattr(row, name) for name in PushSubscription.__dataclass_fields__})
 
+    def list_for_user(self, user_id, offset, limit):
+        with self._factory()() as session:
+            rows = session.scalars(select(PushSubscriptions).where(
+                PushSubscriptions.user_id == user_id,
+            ).order_by(PushSubscriptions.created_at.desc(),
+                       PushSubscriptions.subscription_id.desc()).offset(offset).limit(limit))
+            return [self._entity(row) for row in rows]
+
     def register(self, subscription):
         with self._factory()() as session, session.begin():
             # Keep the common order with logout/refresh: auth-session row,
@@ -53,6 +61,7 @@ class SQLAlchemyPushSubscriptionRepository:
             else:
                 row.token = subscription.token
                 row.platform = subscription.platform
+                row.auth_session_id = subscription.auth_session_id
                 row.active = True
                 row.revoked_at = None
                 row.updated_at = subscription.updated_at

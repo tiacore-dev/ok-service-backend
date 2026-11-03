@@ -486,3 +486,21 @@ def test_worker_checks_logout_after_previous_send_before_claiming_next(database)
     assert len(calls) == 1
     with engine.connect() as connection:
         assert sorted(connection.scalars(text('SELECT status FROM push_deliveries')).all()) == ['failed', 'sent']
+
+
+def test_reregister_same_browser_binds_new_auth_session(database):
+    engine, _ = database
+    user, browser = uuid4(), uuid4()
+    with engine.begin() as connection:
+        connection.execute(text('INSERT INTO users VALUES (:id)'), {'id': user})
+    auth = SQLAlchemyAuthSessionRepository()
+    register = RegisterPushSubscription(SQLAlchemyPushSubscriptionRepository())
+    first_session = _session(auth, user, browser, 1)
+    first = register.execute(user, browser, first_session, 'web', 'first-token')
+    second_session = _session(auth, user, browser, 2)
+    second = register.execute(user, browser, second_session, 'web', 'second-token')
+    assert second.subscription_id == first.subscription_id
+    assert second.auth_session_id == second_session
+    with engine.connect() as connection:
+        stored = connection.execute(text('SELECT auth_session_id FROM push_subscriptions WHERE subscription_id = :id'), {'id': first.subscription_id}).scalar_one()
+    assert stored == second_session

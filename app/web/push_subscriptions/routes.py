@@ -5,15 +5,15 @@ from typing import TypedDict, cast
 from uuid import UUID
 
 from flask import current_app, request
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt, get_jwt_identity
 from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
 
 from app.adapters.push_subscriptions import SQLAlchemyPushSubscriptionRepository
-from app.domain.push_subscriptions import PushSubscriptionValidationError
 from app.schemas.push_subscription_schemas import PushSubscriptionSchema
 from app.use_cases.push_subscriptions import RegisterPushSubscription
 from app.web._typing import to_plain_dict
+from app.web.notifications.routes import secured
 
 
 push_subscription_ns = Namespace(
@@ -51,7 +51,7 @@ class CurrentBrowserPushSubscription(Resource):
     @push_subscription_ns.doc(
         responses={401: "JWT session or browser binding is invalid", 503: "Storage unavailable"}
     )
-    @jwt_required()
+    @secured
     def put(self):
         subject = _jwt_subject()
         raw_browser_id = request.cookies.get(current_app.config["BROWSER_ID_COOKIE_NAME"])

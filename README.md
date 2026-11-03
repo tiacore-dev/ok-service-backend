@@ -26,6 +26,7 @@
 - [docs/project-status-rules.md](./docs/project-status-rules.md) - статусы спецификаций, переходы и ограничения смен/объектов.
 - [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
 - [docs/project-specification-ai-parsing.md](./docs/project-specification-ai-parsing.md) - Kimi-парсинг документов спецификации, контракт JSON и план импорта.
+- [docs/notification-api.md](./docs/notification-api.md) - HTTP API уведомлений, устройств и разрешений.
 - [docs/notifications-data-model.md](./docs/notifications-data-model.md) - сохраняемые уведомления и персональное состояние просмотра.
 - [docs/push-notifications.md](./docs/push-notifications.md) - целевая схема push-уведомлений через Firebase Cloud Messaging, фоновой доставки и хранения секретов.
 - [docs/jwt-lifecycle.md](./docs/jwt-lifecycle.md) - серверные JWT-сессии, refresh rotation и требования к клиентам.

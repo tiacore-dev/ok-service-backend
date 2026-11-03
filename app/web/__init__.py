@@ -12,6 +12,7 @@ from .attachments import (
 )
 from .auth.routes import login_ns
 from .push_subscriptions import push_subscription_ns
+from .notifications.routes import notification_ns
 from .cities.routes import city_ns
 from .leaves.routes import leave_ns
 from .materials.routes import material_ns
@@ -53,6 +54,7 @@ from .works.routes import work_ns
 def register_namespaces(api: Api):
     api.add_namespace(login_ns)
     api.add_namespace(push_subscription_ns)
+    api.add_namespace(notification_ns)
     api.add_namespace(project_attachment_ns)
     api.add_namespace(shift_report_attachment_ns)
     api.add_namespace(object_attachment_ns)
