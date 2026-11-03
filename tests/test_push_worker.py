@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from app.adapters.push_deliveries import ClaimedPushDelivery
 from app.domain.push_notifications import PushDelivery, PushDeliveryStatus
@@ -98,6 +99,35 @@ def test_worker_does_not_send_revoked_subscription_after_claim():
     assert provider.calls == []
     assert repo.ineligible == [delivery]
     assert repo.results == []
+
+
+def test_eligibility_database_error_never_calls_provider_or_marks_ineligible():
+    delivery = _delivery()
+    class BrokenRepository(_Repository):
+        def is_eligible(self, _delivery):
+            raise OperationalError('select', {}, Exception('unavailable'))
+
+    repo = BrokenRepository([delivery])
+    provider = _Provider([])
+    with pytest.raises(OperationalError):
+        PushWorker(_app(), provider, repo).run_once()
+    assert provider.calls == []
+    assert repo.ineligible == []
+    assert repo.results == []
+
+
+def test_worker_loop_recovers_after_database_error():
+    worker = PushWorker(_app(), _Provider([]), _Repository([]))
+    calls = []
+    def run_once():
+        calls.append(1)
+        if len(calls) == 1:
+            raise OperationalError('select', {}, Exception('unavailable'))
+        worker.request_stop()
+        return 0
+    worker.run_once = run_once
+    worker.run_forever()
+    assert len(calls) == 2
 
 
 def test_graceful_stop_does_not_claim_new_work():

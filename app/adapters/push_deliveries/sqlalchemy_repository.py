@@ -10,6 +10,7 @@ from app.database.models.auth_sessions import AuthSessions
 from app.database.models.notifications import NotificationRecipients, Notifications
 from app.database.models.push_deliveries import PushDeliveries
 from app.database.models.push_subscriptions import PushSubscriptions
+from app.database.models.user import Users
 from app.database.time_utils import utc_epoch_milliseconds
 from app.domain.push_notifications import PushDeliveryStatus
 
@@ -27,6 +28,7 @@ class ClaimedPushDelivery:
     route: str
     lease_token: UUID
     attempts: int
+    auth_session_id: UUID | None = None
 
 
 class SQLAlchemyPushDeliveryRepository:
@@ -118,17 +120,24 @@ class SQLAlchemyPushDeliveryRepository:
                     route=notification.link or f"/notifications/{notification.notification_id}",
                     lease_token=lease_token,
                     attempts=delivery.attempts,
+                    auth_session_id=subscription.auth_session_id,
                 )
                 for delivery, notification, subscription in rows
             ]
 
     def is_eligible(self, delivery: ClaimedPushDelivery) -> bool:
-        """Recheck logout/revocation after claim and immediately before provider I/O."""
+        """Check the current recipient, device, session and lease in one snapshot."""
         factory = self._factory()
         with factory() as session:
             return (
                 session.execute(
                     select(PushDeliveries.delivery_id)
+                    .join(
+                        NotificationRecipients,
+                        NotificationRecipients.notification_recipient_id
+                        == PushDeliveries.notification_recipient_id,
+                    )
+                    .join(Users, Users.user_id == NotificationRecipients.user_id)
                     .join(
                         PushSubscriptions,
                         PushSubscriptions.subscription_id == PushDeliveries.subscription_id,
@@ -143,7 +152,11 @@ class SQLAlchemyPushDeliveryRepository:
                         PushDeliveries.lease_token == delivery.lease_token,
                         PushDeliveries.locked_until > _PG_CLOCK_MS,
                         PushSubscriptions.active.is_(True),
+                        PushSubscriptions.user_id == NotificationRecipients.user_id,
+                        PushSubscriptions.auth_session_id == delivery.auth_session_id,
                         PushSubscriptions.token == delivery.token,
+                        Users.is_active.is_(True),
+                        Users.deleted.is_(False),
                         AuthSessions.revoked_at.is_(None),
                         AuthSessions.user_id == PushSubscriptions.user_id,
                         AuthSessions.expires_at > _PG_CLOCK_MS,
@@ -154,7 +167,7 @@ class SQLAlchemyPushDeliveryRepository:
 
     def mark_ineligible(self, delivery: ClaimedPushDelivery) -> bool:
         return self._finish(
-            delivery, "failed", error="subscription_or_session_inactive"
+            delivery, "failed", error="recipient_or_subscription_ineligible"
         )
 
     def record_result(
@@ -240,6 +253,7 @@ class SQLAlchemyPushDeliveryRepository:
                         PushSubscriptions.subscription_id == delivery.subscription_id,
                         PushSubscriptions.active.is_(True),
                         PushSubscriptions.token == delivery.token,
+                        PushSubscriptions.auth_session_id == delivery.auth_session_id,
                     )
                     .values(active=False, revoked_at=now, updated_at=now)
                 )

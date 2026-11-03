@@ -10,6 +10,8 @@ import socket
 from threading import Event
 from uuid import uuid4
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.adapters.push_deliveries import (
     ClaimedPushDelivery,
     SQLAlchemyPushDeliveryRepository,
@@ -136,7 +138,11 @@ class PushWorker:
     def run_forever(self) -> None:
         interval = float(self.app.config["PUSH_WORKER_POLL_INTERVAL_SECONDS"])
         while not self.stop_requested.is_set():
-            count = self.run_once()
+            try:
+                count = self.run_once()
+            except SQLAlchemyError as exc:
+                logger.warning("Push database operation failed: %s", type(exc).__name__)
+                count = 0
             if count == 0:
                 self.stop_requested.wait(interval)
 
