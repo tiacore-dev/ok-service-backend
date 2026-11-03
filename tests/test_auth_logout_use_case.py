@@ -1,10 +1,10 @@
 from uuid import uuid4
 
 from app.use_cases.auth_sessions import LogoutAuthSession
-from app.use_cases.auth_sessions.ports import AuthSessionRepository
+from app.use_cases.auth_sessions.ports import AuthSessionRevoker
 
 
-class Repository(AuthSessionRepository):
+class Repository(AuthSessionRevoker):
     def revoke_session(self, session_id, user_id, revoked_at):
         self.args = session_id, user_id, revoked_at
         return True

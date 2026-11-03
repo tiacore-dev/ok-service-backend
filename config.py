@@ -47,6 +47,11 @@ class Config:
     OTEL_EXPORTER_OTLP_TIMEOUT = int(os.getenv("OTEL_EXPORTER_OTLP_TIMEOUT", "10"))
     # Клиент создаётся лениво: соединение с Redis открывается только при команде.
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    # Push delivery is not invoked from HTTP handlers.  These settings prepare
+    # the provider for the forthcoming dedicated delivery worker.
+    PUSH_PROVIDER = os.getenv("PUSH_PROVIDER", "noop")
+    FCM_PROJECT_ID = os.getenv("FCM_PROJECT_ID")
+    GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
     ENDPOINT_URL = os.getenv("ENDPOINT_URL")
     REGION_NAME = os.getenv("REGION_NAME")

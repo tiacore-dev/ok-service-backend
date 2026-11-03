@@ -4,7 +4,18 @@ from uuid import UUID
 from app.domain.auth_sessions import AuthSession, RefreshToken
 
 
-class AuthSessionRepository(Protocol):
+class AuthSessionRevoker(Protocol):
+    def revoke_session(
+        self,
+        session_id: UUID,
+        user_id: UUID,
+        revoked_at: int,
+    ) -> bool:
+        """Atomically revoke one session and its bound push subscription."""
+        ...
+
+
+class AuthSessionRepository(AuthSessionRevoker, Protocol):
     def create_session(self, session: AuthSession) -> AuthSession: ...
 
     def save_refresh_token(self, token: RefreshToken) -> RefreshToken: ...
@@ -37,15 +48,6 @@ class AuthSessionRepository(Protocol):
         now: int,
     ) -> str:
         """Rotate one refresh token or revoke the session after confirmed reuse."""
-        ...
-
-    def revoke_session(
-        self,
-        session_id: UUID,
-        user_id: UUID,
-        revoked_at: int,
-    ) -> bool:
-        """Atomically revoke one session and its bound push subscription."""
         ...
 
     def is_session_active(self, session_id: UUID, user_id: UUID, now: int) -> bool: ...
