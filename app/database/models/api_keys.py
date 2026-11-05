@@ -15,7 +15,8 @@ class ApiKeys(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid4, nullable=False
     )
     name = Column(String, nullable=False)
-    token = Column(String, nullable=False)
+    # SHA-256 hex digest of the key; the plaintext key is never stored.
+    api_key_hashed = Column(String(64), nullable=False)
     expires_at = Column(BigInteger, nullable=True)
     created_at = Column(
         BigInteger,
@@ -26,7 +27,7 @@ class ApiKeys(Base):
 
     __table_args__ = (
         UniqueConstraint("name", name="uq_api_keys_name"),
-        UniqueConstraint("token", name="uq_api_keys_token"),
+        UniqueConstraint("api_key_hashed", name="uq_api_keys_api_key_hashed"),
     )
 
     permissions = relationship(
@@ -42,7 +43,6 @@ class ApiKeys(Base):
         return {
             "api_key_id": str(self.api_key_id),
             "name": self.name,
-            "token": self.token,
             "expires_at": self.expires_at,
             "created_at": self.created_at,
         }

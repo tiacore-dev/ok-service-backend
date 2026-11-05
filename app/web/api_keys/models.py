@@ -34,7 +34,10 @@ api_key_generate_response = Model(
     {
         "msg": fields.String(required=True, description="Response message"),
         "api_key_id": fields.String(required=True, description="ID API key"),
-        "token": fields.String(required=True, description="Generated token"),
+        "token": fields.String(
+            required=True,
+            description="Generated plaintext token. Returned only once; only its hash is stored.",
+        ),
     },
 )
 

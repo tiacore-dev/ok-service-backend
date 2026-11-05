@@ -1,8 +1,8 @@
 import logging
-import secrets
 
 from app.database.managers.abstract_manager import BaseDBManager
 from app.database.models import ApiKeys
+from app.domain.api_keys import generate_raw_api_key, hash_api_key
 
 logger = logging.getLogger("ok_service")
 
@@ -13,9 +13,16 @@ class ApiKeysManager(BaseDBManager):
         return ApiKeys
 
     def generate_api_key(self, name, expires_at):
+        """Create a key and return its plaintext exactly once.
+
+        Only the hash is persisted, so the plaintext cannot be retrieved
+        again after this call returns.
+        """
         with self.session_scope() as session:
-            token = self._generate_unique_token(session)
-            api_key = self.model(name=name, token=token, expires_at=expires_at)
+            token, token_hash = self._generate_unique_token(session)
+            api_key = self.model(
+                name=name, api_key_hashed=token_hash, expires_at=expires_at
+            )
             session.add(api_key)
             session.flush()
             return {
@@ -51,8 +58,13 @@ class ApiKeysManager(BaseDBManager):
 
     def _generate_unique_token(self, session):
         for _ in range(10):
-            token = secrets.token_urlsafe(48)
-            exists = session.query(self.model).filter_by(token=token).first()
+            token = generate_raw_api_key()
+            token_hash = hash_api_key(token)
+            exists = (
+                session.query(self.model)
+                .filter_by(api_key_hashed=token_hash)
+                .first()
+            )
             if not exists:
-                return token
+                return token, token_hash
         raise RuntimeError("Failed to generate unique API key token")

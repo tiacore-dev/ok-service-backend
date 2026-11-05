@@ -2,6 +2,7 @@ import pytest
 from uuid import uuid4
 
 from app.database.models import ApiKeys, KeyPermissionTypeRelations, PermissionTypes
+from app.domain.api_keys import hash_api_key
 
 
 @pytest.fixture
@@ -53,7 +54,10 @@ def test_get_all_roles_accepts_api_key_with_permission(client, db_session, seed_
         db_session.add(permission)
         db_session.flush()
 
-    api_key = ApiKeys(name=f"roles-{uuid4().hex}", token=f"token-{uuid4().hex}")
+    raw_api_key = f"token-{uuid4().hex}"
+    api_key = ApiKeys(
+        name=f"roles-{uuid4().hex}", api_key_hashed=hash_api_key(raw_api_key)
+    )
     db_session.add(api_key)
     db_session.flush()
     db_session.add(
@@ -64,7 +68,7 @@ def test_get_all_roles_accepts_api_key_with_permission(client, db_session, seed_
     )
     db_session.commit()
 
-    response = client.get("/roles/all", headers={"API-Key": api_key.token})
+    response = client.get("/roles/all", headers={"API-Key": raw_api_key})
 
     assert response.status_code == 200
     assert any(
@@ -73,10 +77,13 @@ def test_get_all_roles_accepts_api_key_with_permission(client, db_session, seed_
 
 
 def test_get_all_roles_rejects_api_key_without_permission(client, db_session):
-    api_key = ApiKeys(name=f"roles-{uuid4().hex}", token=f"token-{uuid4().hex}")
+    raw_api_key = f"token-{uuid4().hex}"
+    api_key = ApiKeys(
+        name=f"roles-{uuid4().hex}", api_key_hashed=hash_api_key(raw_api_key)
+    )
     db_session.add(api_key)
     db_session.commit()
 
-    response = client.get("/roles/all", headers={"API-Key": api_key.token})
+    response = client.get("/roles/all", headers={"API-Key": raw_api_key})
 
     assert response.status_code == 403

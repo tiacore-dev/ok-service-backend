@@ -30,6 +30,7 @@
 - [docs/notifications-data-model.md](./docs/notifications-data-model.md) - сохраняемые уведомления и персональное состояние просмотра.
 - [docs/push-notifications.md](./docs/push-notifications.md) - целевая схема push-уведомлений через Firebase Cloud Messaging, фоновой доставки и хранения секретов.
 - [docs/jwt-lifecycle.md](./docs/jwt-lifecycle.md) - серверные JWT-сессии, refresh rotation и требования к клиентам.
+- [docs/api-keys.md](./docs/api-keys.md) - хранение API-ключей в виде хэшей, выпуск, аутентификация и миграция.
 
 - [docs/shift-standards.md](./docs/shift-standards.md) - поля стандарта смены, валидация, PATCH и миграция.
 

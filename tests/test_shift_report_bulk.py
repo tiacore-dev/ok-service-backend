@@ -215,7 +215,12 @@ def test_bulk_api_key_requires_exact_permission(
     from app.utils.api_key_permissions import set_api_key_permissions
 
     set_api_key_permissions()
-    key = ApiKeys(api_key_id=uuid4(), name="bulk-key", token=str(uuid4()))
+    from app.domain.api_keys import hash_api_key
+
+    raw_key = str(uuid4())
+    key = ApiKeys(
+        api_key_id=uuid4(), name="bulk-key", api_key_hashed=hash_api_key(raw_key)
+    )
     db_session.add(key)
     if permission_code:
         permission = (
@@ -229,7 +234,7 @@ def test_bulk_api_key_requires_exact_permission(
         )
     db_session.commit()
     response = client.post(
-        "/shift_reports/add-bulk", json=bulk_payload, headers={"API-Key": key.token}
+        "/shift_reports/add-bulk", json=bulk_payload, headers={"API-Key": raw_key}
     )
     assert response.status_code == (
         200 if permission_code == "shift-reports-create-bulk" else 403

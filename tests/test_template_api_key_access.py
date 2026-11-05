@@ -7,6 +7,7 @@ import pytest
 from app.adapters.templates.s3_storage import S3TemplateStorage
 from app.database.models import ApiKeys, KeyPermissionTypeRelations, PermissionTypes
 from app.database.time_utils import utc_epoch_milliseconds
+from app.domain.api_keys import hash_api_key
 from app.use_cases.templates.manage_templates import TemplateUseCase
 from app.utils.api_key_permissions import set_api_key_permissions
 from app.web.template_generation import legacy_routes
@@ -71,12 +72,15 @@ def template_key_context(db_session, monkeypatch):
             return b"legacy-generated"
 
     monkeypatch.setattr(legacy_routes, "_generator", LegacyGenerator)
+    raw_key = str(uuid4())
     key = ApiKeys(
-        api_key_id=uuid4(), name=f"template-key-{uuid4()}", token=str(uuid4())
+        api_key_id=uuid4(),
+        name=f"template-key-{uuid4()}",
+        api_key_hashed=hash_api_key(raw_key),
     )
     db_session.add(key)
     db_session.commit()
-    return item.id, key
+    return item.id, key, raw_key
 
 
 def call(client, method, route, identifier, token):
@@ -107,7 +111,7 @@ def call(client, method, route, identifier, token):
 def test_each_template_route_requires_its_own_api_key_permission(
     client, db_session, template_key_context, method, route, status, grant
 ):
-    identifier, key = template_key_context
+    identifier, key, raw_key = template_key_context
     permission = (
         db_session.query(PermissionTypes)
         .filter_by(description=f"{method} {route}")
@@ -121,7 +125,7 @@ def test_each_template_route_requires_its_own_api_key_permission(
             )
         )
         db_session.commit()
-    response = call(client, method, route, identifier, key.token)
+    response = call(client, method, route, identifier, raw_key)
     assert response.status_code == (status if grant else 403), (
         response.json if response.is_json else response.data
     )
@@ -131,7 +135,7 @@ def test_each_template_route_requires_its_own_api_key_permission(
 def test_params_rejects_unusable_or_unrelated_keys(
     client, db_session, template_key_context, key_state
 ):
-    identifier, key = template_key_context
+    identifier, key, raw_key = template_key_context
     permission = (
         db_session.query(PermissionTypes)
         .filter_by(
@@ -154,7 +158,7 @@ def test_params_rejects_unusable_or_unrelated_keys(
         "GET",
         "/templates/params",
         identifier,
-        "invalid" if key_state == "invalid" else key.token,
+        "invalid" if key_state == "invalid" else raw_key,
     )
     assert response.status_code == 403
 
@@ -169,7 +173,7 @@ def test_params_rejects_unusable_or_unrelated_keys(
 def test_generation_permissions_are_independent(
     client, db_session, template_key_context, granted, requested
 ):
-    identifier, key = template_key_context
+    identifier, key, raw_key = template_key_context
     permission = (
         db_session.query(PermissionTypes).filter_by(description=f"POST {granted}").one()
     )
@@ -179,5 +183,5 @@ def test_generation_permissions_are_independent(
         )
     )
     db_session.commit()
-    assert call(client, "POST", granted, identifier, key.token).status_code == 200
-    assert call(client, "POST", requested, identifier, key.token).status_code == 403
+    assert call(client, "POST", granted, identifier, raw_key).status_code == 200
+    assert call(client, "POST", requested, identifier, raw_key).status_code == 403

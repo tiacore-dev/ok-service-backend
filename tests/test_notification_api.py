@@ -2,6 +2,7 @@ from uuid import UUID, uuid4
 
 from app.adapters.notifications import SQLAlchemyNotificationRepository
 from app.database.models import ApiKeys, KeyPermissionTypeRelations, PermissionTypes
+from app.domain.api_keys import hash_api_key
 from app.use_cases.notifications import CreateNotificationCommand, CreateNotificationUseCase
 from app.utils.api_key_permissions import set_api_key_permissions
 
@@ -43,17 +44,18 @@ def test_admin_bulk_contract_and_atomic_validation(client, db_session, seed_user
 
 def test_admin_bulk_api_key_never_replaces_admin_jwt(client, db_session, seed_user, jwt_token_user, jwt_token_admin):
     set_api_key_permissions()
-    key = ApiKeys(name='bulk test', token='bulk-key-test', expires_at=None)
+    raw_key = 'bulk-key-test'
+    key = ApiKeys(name='bulk test', api_key_hashed=hash_api_key(raw_key), expires_at=None)
     db_session.add(key)
     db_session.commit()
     payload = {'recipient_user_ids': [seed_user['user_id']], 'title': 't', 'text': 'b', 'idempotency_key': 'key'}
-    assert client.post('/notifications/admin/bulk', json=payload, headers={'API-Key': key.token}).status_code == 401
-    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_admin, key.token)).status_code == 403
+    assert client.post('/notifications/admin/bulk', json=payload, headers={'API-Key': raw_key}).status_code == 401
+    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_admin, raw_key)).status_code == 403
     permission = db_session.query(PermissionTypes).filter_by(code='notifications-admin-bulk').one()
     db_session.add(KeyPermissionTypeRelations(api_key_id=key.api_key_id, permission_type_id=permission.permission_type_id))
     db_session.commit()
-    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_user, key.token)).status_code == 403
-    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_admin, key.token)).status_code == 201
+    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_user, raw_key)).status_code == 403
+    assert client.post('/notifications/admin/bulk', json=payload, headers=headers(jwt_token_admin, raw_key)).status_code == 201
 
 
 def test_history_count_view_and_ownership(client, db_session, seed_user, seed_admin, jwt_token_user, jwt_token_admin):
@@ -89,20 +91,21 @@ def test_history_count_view_and_ownership(client, db_session, seed_user, seed_ad
 
 def test_api_key_is_additional_permission_not_identity(client, db_session, seed_user, jwt_token_user, jwt_token_admin):
     set_api_key_permissions()
-    key = ApiKeys(name='notifications test', token='key-for-test', expires_at=None)
+    raw_key = 'key-for-test'
+    key = ApiKeys(name='notifications test', api_key_hashed=hash_api_key(raw_key), expires_at=None)
     db_session.add(key)
     db_session.commit()
-    assert client.get('/notifications', headers={'API-Key': key.token}).status_code == 401
+    assert client.get('/notifications', headers={'API-Key': raw_key}).status_code == 401
     assert client.get('/notifications', headers=headers(jwt_token_user, '') | {'API-Key': ''}).status_code == 403
-    assert client.get('/notifications', headers=headers(jwt_token_user, key.token)).status_code == 403
+    assert client.get('/notifications', headers=headers(jwt_token_user, raw_key)).status_code == 403
     permission = db_session.query(PermissionTypes).filter_by(code='notifications-list').one()
     db_session.add(KeyPermissionTypeRelations(api_key_id=key.api_key_id, permission_type_id=permission.permission_type_id))
     admin_permission = db_session.query(PermissionTypes).filter_by(code='notifications-admin-list').one()
     db_session.add(KeyPermissionTypeRelations(api_key_id=key.api_key_id, permission_type_id=admin_permission.permission_type_id))
     db_session.commit()
-    assert client.get('/notifications', headers=headers(jwt_token_user, key.token)).status_code == 200
-    assert client.get(f'/notifications/admin/users/{seed_user["user_id"]}', headers=headers(jwt_token_user, key.token)).status_code == 403
-    assert client.get(f'/notifications/admin/users/{seed_user["user_id"]}', headers=headers(jwt_token_admin, key.token)).status_code == 200
+    assert client.get('/notifications', headers=headers(jwt_token_user, raw_key)).status_code == 200
+    assert client.get(f'/notifications/admin/users/{seed_user["user_id"]}', headers=headers(jwt_token_user, raw_key)).status_code == 403
+    assert client.get(f'/notifications/admin/users/{seed_user["user_id"]}', headers=headers(jwt_token_admin, raw_key)).status_code == 200
 
 
 def test_notification_routes_reject_revoked_session(client, seed_admin):
