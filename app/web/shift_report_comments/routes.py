@@ -9,6 +9,7 @@ from app.use_cases.report_comments.service import CommentError, ReportCommentSer
 from app.web.utils.report_comments import (
     browser_id,
     comment_actor,
+    comment_attachment_parser,
     load_pagination_query,
     load_payload,
     map_comment_error,
@@ -148,6 +149,8 @@ class ShiftReportCommentItem(Resource):
 @shift_comment_ns.route("/comments/<string:comment_id>/attachments")
 class ShiftReportCommentAttachmentCollection(Resource):
     @api_key_or_jwt_required
+    @shift_comment_ns.expect(comment_attachment_parser)
+    @shift_comment_ns.doc(consumes=["multipart/form-data"])
     @shift_comment_ns.response(201, "Created", comment_model)
     def post(self, comment_id: str):
         try:

@@ -6,11 +6,22 @@ from uuid import UUID, uuid4
 
 from flask import after_this_request, current_app, g, request
 from flask_jwt_extended import get_jwt_identity
+from flask_restx import reqparse
 from marshmallow import Schema, ValidationError
+from werkzeug.datastructures import FileStorage
 
 from app.domain.attachments import AttachmentStorageError
 from app.s3.s3_manager import FileValidationError
 from app.use_cases.report_comments.service import CommentActor, CommentError
+
+comment_attachment_parser = reqparse.RequestParser()
+comment_attachment_parser.add_argument(
+    "files",
+    type=FileStorage,
+    location="files",
+    required=True,
+    help="One or more files; repeat the files field for multiple attachments",
+)
 
 
 def current_identity() -> dict[str, object]:
