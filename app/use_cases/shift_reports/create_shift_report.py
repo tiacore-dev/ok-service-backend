@@ -14,6 +14,7 @@ from .dto import (
     ShiftReportActor,
 )
 from .ports import ShiftReportRepository
+from .work_availability import ensure_new_shift_details_available
 
 
 @dataclass(slots=True)
@@ -24,6 +25,7 @@ class CreateShiftReportUseCase:
         self, command: CreateShiftReportCommand, actor: ShiftReportActor
     ) -> ShiftReport:
         command = self.prepare(command, actor)
+        ensure_new_shift_details_available(self.repository, [command])
         return self.repository.create_shift_report(command)
 
     @staticmethod

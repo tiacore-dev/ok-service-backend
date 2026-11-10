@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from app.domain.work_prices import (
     WorkPrice,
     WorkPriceNotFoundError,
+    WorkPriceValidationError,
     validate_work_price_category,
+    validate_work_price_value,
 )
 
 from .dto import UpdateWorkPriceCommand
@@ -28,6 +30,10 @@ class UpdateWorkPriceUseCase:
             validate_work_price_category(command.category)
             changes["category"] = command.category
         if command.price is not None:
+            try:
+                validate_work_price_value(command.price)
+            except ValueError as error:
+                raise WorkPriceValidationError(str(error)) from error
             changes["price"] = command.price
         if command.deleted is not None:
             changes["deleted"] = command.deleted

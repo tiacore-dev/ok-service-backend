@@ -6,6 +6,7 @@ from .errors import (
     ShiftReportForbiddenError,
     ShiftReportNotFoundError,
     ShiftReportValidationError,
+    ShiftReportWorkUnavailableError,
 )
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "ShiftReportForbiddenError",
     "ShiftReportNotFoundError",
     "ShiftReportValidationError",
+    "ShiftReportWorkUnavailableError",
 ]

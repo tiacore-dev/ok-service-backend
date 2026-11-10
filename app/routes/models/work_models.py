@@ -4,6 +4,10 @@ from app.utils.helpers import generate_swagger_model
 from app.routes.models.work_category_models import work_category_model
 from app.routes.models.work_price_models import work_price_model
 from app.routes.models.measurement_unit_models import measurement_unit_model
+from app.routes.models.work_availability_models import (
+    SHIFT_REPORT_PARAM_HELP,
+    availability_fields,
+)
 
 # Модель для создания проекта
 work_create_model = generate_swagger_model(
@@ -20,7 +24,8 @@ work_model = Model('Work', {
     "created_at": fields.Integer(required=True, description="Unix epoch milliseconds: work creation time"),
     "created_by": fields.String(required=True, description="Creator of work"),
     "deleted": fields.Boolean(required=True, description="Deletion status"),
-    "work_prices": fields.List(fields.Nested(work_price_model), required=False, description="List of prices")
+    "work_prices": fields.List(fields.Nested(work_price_model), required=False, description="List of prices"),
+    **availability_fields,
 })
 
 # Модель для сообщений
@@ -53,6 +58,9 @@ work_filter_parser.add_argument('name', type=str, help="Filter by name")
 work_filter_parser.add_argument('measurement_unit', type=str, help="Filter by measurement unit ID")
 work_filter_parser.add_argument(
     'deleted', type=lambda x: x.lower() in ['true', '1'], help="Filter by deletion status")
+work_filter_parser.add_argument(
+    'shift_report', type=str, required=False, help=SHIFT_REPORT_PARAM_HELP
+)
 work_filter_parser.add_argument(
     'sort_by', type=str, required=False, help='Field for sorting'
 )

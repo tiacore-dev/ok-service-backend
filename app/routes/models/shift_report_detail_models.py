@@ -176,3 +176,26 @@ shift_report_details_filter_parser.add_argument(
     default=False,
     help="Include project work statistics in each detail",
 )
+
+
+# Ошибка: работа недоступна для категории исполнителя смены (цена `-1`)
+work_unavailable_error_model = Model(
+    "WorkUnavailableForPerformerCategoryError",
+    {
+        "msg": fields.String(
+            required=True,
+            description="Human-readable reason",
+            example="Работа недоступна для категории исполнителя",
+        ),
+        "code": fields.String(
+            required=True,
+            enum=["WORK_UNAVAILABLE_FOR_PERFORMER_CATEGORY"],
+            description="Machine-readable error code",
+        ),
+        "work_ids": fields.List(
+            fields.String(),
+            required=True,
+            description="Works unavailable for the shift performer category",
+        ),
+    },
+)

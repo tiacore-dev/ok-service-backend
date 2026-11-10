@@ -34,6 +34,7 @@
 
 - [docs/shift-standards.md](./docs/shift-standards.md) - поля стандарта смены, валидация, PATCH и миграция.
 - [docs/work-category-hierarchy.md](./docs/work-category-hierarchy.md) - иерархия категорий работ через `parent_id`, защита от циклов и миграция.
+- [docs/work-price-availability.md](./docs/work-price-availability.md) - допустимые цены работ (`>= 0` и `-1`), запрет недоступных работ для категории исполнителя смены и поля доступности в API выбора работ.
 
 ## Наблюдаемость
 

@@ -1,3 +1,9 @@
+from collections.abc import Iterable
+from uuid import UUID
+
+from app.domain.work_prices.policies import WORK_UNAVAILABLE_FOR_CATEGORY_MESSAGE
+
+
 class DomainError(Exception):
     """Base error for shift report domain failures."""
 
@@ -20,3 +26,17 @@ class ShiftReportNotFoundError(ShiftReportError):
 
 class ShiftReportForbiddenError(ShiftReportError):
     """Raised when actor is not allowed to perform a shift report action."""
+
+
+class ShiftReportWorkUnavailableError(ShiftReportConflictError):
+    """Raised when a work type is unavailable for the shift performer category.
+
+    The decision depends on the performer of the shift, never on the actor who
+    sends the request.
+    """
+
+    code = "WORK_UNAVAILABLE_FOR_PERFORMER_CATEGORY"
+
+    def __init__(self, work_ids: Iterable[UUID]) -> None:
+        self.work_ids: tuple[UUID, ...] = tuple(sorted(set(work_ids), key=str))
+        super().__init__(WORK_UNAVAILABLE_FOR_CATEGORY_MESSAGE)

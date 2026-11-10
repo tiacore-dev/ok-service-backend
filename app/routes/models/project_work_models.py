@@ -1,5 +1,9 @@
 from flask_restx import Model, fields, reqparse
 
+from app.routes.models.work_availability_models import (
+    SHIFT_REPORT_PARAM_HELP,
+    availability_fields,
+)
 from app.schemas.project_work_schemas import (
     ProjectWorkCreateSchema,
     ProjectWorkEditSchema,
@@ -53,6 +57,7 @@ project_work_model = Model(
         "acceptance_status": fields.String(
             required=False, enum=["not_checked", "partial", "accepted"]
         ),
+        **availability_fields,
     },
 )
 
@@ -145,4 +150,7 @@ project_work_filter_parser.add_argument(
     required=False,
     default=False,
     help="Include cached project-work statistics",
+)
+project_work_filter_parser.add_argument(
+    "shift_report", type=str, required=False, help=SHIFT_REPORT_PARAM_HELP
 )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from uuid import UUID
 
@@ -28,6 +29,7 @@ from .mappers import (
     shift_report_detail_dict_to_entity,
     shift_report_dict_to_entity,
 )
+from .work_availability import SQLAlchemyShiftWorkAvailabilityReader
 
 
 @dataclass(slots=True)
@@ -39,6 +41,22 @@ class SQLAlchemyShiftReportRepository(ShiftReportRepository):
     projects_manager: ProjectsManager = field(default_factory=ProjectsManager)
     statistics: ProjectWorkStatistics | None = None
     material_statistics: ProjectMaterialStatistics | None = None
+    availability: SQLAlchemyShiftWorkAvailabilityReader = field(
+        default_factory=SQLAlchemyShiftWorkAvailabilityReader
+    )
+
+    def get_shift_report_performer_category(
+        self, shift_report_id: UUID
+    ) -> int | None:
+        return self.availability.get_shift_report_performer_category(shift_report_id)
+
+    def get_user_categories(self, user_ids: Collection[UUID]) -> dict[UUID, int]:
+        return self.availability.get_user_categories(user_ids)
+
+    def get_unavailable_work_ids(
+        self, work_ids: Collection[UUID], category: int
+    ) -> set[UUID]:
+        return self.availability.get_unavailable_work_ids(work_ids, category)
 
     def _recalculate(self, *project_ids: UUID | None) -> None:
         if self.statistics is not None:

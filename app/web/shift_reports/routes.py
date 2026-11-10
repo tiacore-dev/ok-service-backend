@@ -10,6 +10,7 @@ from flask_jwt_extended import get_jwt_identity as _get_jwt_identity
 from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
+from werkzeug.exceptions import Conflict
 
 from app.adapters.attachments import list_attachment_view_data
 from app.adapters.place_relations import SQLAlchemyPlaceRelationRepository
@@ -28,6 +29,7 @@ from app.domain.shift_reports import (
     ShiftReportForbiddenError,
     ShiftReportNotFoundError,
     ShiftReportValidationError,
+    ShiftReportWorkUnavailableError,
 )
 from app.routes.models.shift_report_detail_models import (
     project_work_brief_model,
@@ -41,6 +43,7 @@ from app.routes.models.shift_report_detail_models import (
     shift_report_details_model,
     shift_report_details_msg_model,
     shift_report_details_response,
+    work_unavailable_error_model,
 )
 from app.routes.models.shift_report_models import (
     shift_report_all_response,
@@ -128,6 +131,10 @@ shift_report_ns.models[shift_report_response.name] = shift_report_response
 shift_report_ns.models[attachment_view_model.name] = attachment_view_model
 shift_report_ns.models[shift_report_all_response.name] = shift_report_all_response
 shift_report_ns.models[shift_report_view_model.name] = shift_report_view_model
+shift_report_ns.models[work_unavailable_error_model.name] = work_unavailable_error_model
+shift_report_details_ns.models[work_unavailable_error_model.name] = (
+    work_unavailable_error_model
+)
 
 shift_report_details_ns.models[shift_report_details_create_model.name] = (
     shift_report_details_create_model
@@ -294,7 +301,26 @@ def _build_list_query(data: dict[str, Any]) -> ShiftReportListQuery:
     )
 
 
+WORK_UNAVAILABLE_RESPONSE_DOC = (
+    "Work is unavailable for the shift performer category (price -1)"
+)
+
+
+def _abort_work_unavailable(error: ShiftReportWorkUnavailableError):
+    # Raised instead of returned: `marshal_with` would strip `code`/`work_ids`.
+    # flask-restx renders `HTTPException.data` as the JSON body.
+    conflict = Conflict()
+    conflict.data = {  # type: ignore[attr-defined]
+        "msg": str(error),
+        "code": error.code,
+        "work_ids": [str(work_id) for work_id in error.work_ids],
+    }
+    raise conflict from error
+
+
 def _map_error(error: Exception):
+    if isinstance(error, ShiftReportWorkUnavailableError):
+        _abort_work_unavailable(error)
     if isinstance(error, PlaceRelationConflictError):
         return {"msg": str(error)}, 409
     if isinstance(error, ShiftReportNotFoundError):
@@ -350,6 +376,9 @@ def _create_command(data: dict[str, Any]) -> CreateShiftReportCommand:
 class ShiftReportAdd(Resource):
     @api_key_or_jwt_required
     @shift_report_ns.expect(shift_report_create_model, validate=False)
+    @shift_report_ns.response(
+        409, WORK_UNAVAILABLE_RESPONSE_DOC, work_unavailable_error_model
+    )
     @shift_report_ns.marshal_with(shift_report_msg_model)
     def post(self):
         current_user = _get_current_user()
@@ -380,6 +409,9 @@ class ShiftReportAdd(Resource):
 class ShiftReportBulkAdd(Resource):
     @api_key_or_jwt_required
     @shift_report_ns.expect(shift_report_bulk_create_model, validate=False)
+    @shift_report_ns.response(
+        409, WORK_UNAVAILABLE_RESPONSE_DOC, work_unavailable_error_model
+    )
     @shift_report_ns.response(200, "Success", shift_report_bulk_msg_model)
     def post(self):
         current_user = _get_current_user()
@@ -755,6 +787,9 @@ class ShiftReportAll(Resource):
 class ShiftReportDetailsAddBulk(Resource):
     @api_key_or_jwt_required
     @shift_report_details_ns.expect([shift_report_details_create_model], validate=False)
+    @shift_report_details_ns.response(
+        409, WORK_UNAVAILABLE_RESPONSE_DOC, work_unavailable_error_model
+    )
     @shift_report_details_ns.marshal_with(shift_report_details_many_msg_model)
     def post(self):
         current_user = _get_current_user()
@@ -768,26 +803,28 @@ class ShiftReportDetailsAddBulk(Resource):
             if not isinstance(raw_payload, list):
                 raise ValueError("Request body is required")
             data_list = cast(list[dict[str, Any]], schema.load(raw_payload))
-            use_case = CreateShiftReportDetailUseCase(repository=_repository())
-            detail_ids = []
-            for item in data_list:
-                detail = use_case.execute(
-                    CreateShiftReportDetailPayload(
-                        shift_report=get_required_uuid(
-                            item, "shift_report", "Shift report is required"
-                        ),
-                        project_work=get_optional_uuid(item, "project_work"),
-                        work=get_required_uuid(item, "work", "Work is required"),
-                        quantity=item["quantity"],
-                        created_by=get_required_uuid(
-                            current_user, "user_id", "Current user id is required"
-                        ),
-                    )
+            commands = [
+                CreateShiftReportDetailPayload(
+                    shift_report=get_required_uuid(
+                        item, "shift_report", "Shift report is required"
+                    ),
+                    project_work=get_optional_uuid(item, "project_work"),
+                    work=get_required_uuid(item, "work", "Work is required"),
+                    quantity=item["quantity"],
+                    created_by=get_required_uuid(
+                        current_user, "user_id", "Current user id is required"
+                    ),
                 )
-                detail_ids.append(str(detail.shift_report_detail_id))
+                for item in data_list
+            ]
+            details = CreateShiftReportDetailUseCase(
+                repository=_repository()
+            ).execute_many(commands)
             return {
                 "msg": "Shift report details added successfully",
-                "shift_report_detail_ids": detail_ids,
+                "shift_report_detail_ids": [
+                    str(detail.shift_report_detail_id) for detail in details
+                ],
             }, 200
         except Exception as error:
             logger.error(
@@ -801,6 +838,9 @@ class ShiftReportDetailsAddBulk(Resource):
 class ShiftReportDetailsAdd(Resource):
     @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_create_model, validate=False)
+    @shift_report_details_ns.response(
+        409, WORK_UNAVAILABLE_RESPONSE_DOC, work_unavailable_error_model
+    )
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def post(self):
         current_user = _get_current_user()
@@ -894,6 +934,9 @@ class ShiftReportDetailsDelete(Resource):
 class ShiftReportDetailsEdit(Resource):
     @api_key_or_jwt_required
     @shift_report_details_ns.expect(shift_report_details_edit_model, validate=False)
+    @shift_report_details_ns.response(
+        409, WORK_UNAVAILABLE_RESPONSE_DOC, work_unavailable_error_model
+    )
     @shift_report_details_ns.marshal_with(shift_report_details_msg_model)
     def patch(self, detail_id):
         current_user = _get_current_user()
