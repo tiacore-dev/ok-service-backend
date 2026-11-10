@@ -3,7 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from app.domain.work_prices import WorkPrice, validate_work_price_category
+from app.domain.work_prices import (
+    WorkPrice,
+    WorkPriceValidationError,
+    validate_work_price_category,
+    validate_work_price_value,
+)
 
 from .dto import CreateWorkPriceCommand
 from .ports import WorkPriceRepository
@@ -16,6 +21,10 @@ class CreateWorkPriceUseCase:
 
     def execute(self, command: CreateWorkPriceCommand) -> WorkPrice:
         validate_work_price_category(command.category)
+        try:
+            validate_work_price_value(command.price)
+        except ValueError as error:
+            raise WorkPriceValidationError(str(error)) from error
         work_price = WorkPrice(
             work_price_id=uuid4(),
             work=command.work,

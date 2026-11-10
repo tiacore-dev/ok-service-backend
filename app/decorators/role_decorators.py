@@ -9,6 +9,9 @@ logger = logging.getLogger("ok_service")
 
 
 def _get_current_user() -> dict:
+    current_user = getattr(g, "jwt_current_user", None)
+    if isinstance(current_user, dict):
+        return current_user
     identity = get_jwt_identity()
     if isinstance(identity, dict):
         return identity

@@ -20,6 +20,7 @@ class SQLAlchemyWorkCategoryRepository(WorkCategoryRepository):
         created = self.manager.add(
             created_by=work_category.created_by,
             name=work_category.name,
+            parent_id=work_category.parent_id,
         )
         record = normalize_result(created)
         if record is None:
@@ -33,10 +34,11 @@ class SQLAlchemyWorkCategoryRepository(WorkCategoryRepository):
         return work_category_dict_to_entity(record)
 
     def update_work_category(self, work_category: WorkCategory) -> WorkCategory | None:
-        updated = self.manager.update(
-            record_id=work_category.work_category_id,
+        updated = self.manager.update_work_category(
+            work_category.work_category_id,
             name=work_category.name,
             deleted=work_category.deleted,
+            parent_id=work_category.parent_id,
         )
         record = normalize_result(updated)
         if record is None:
@@ -57,3 +59,6 @@ class SQLAlchemyWorkCategoryRepository(WorkCategoryRepository):
             deleted=query.deleted,
         )
         return [work_category_dict_to_entity(record) for record in records]
+
+    def get_lineage_ids(self, work_category_id: UUID) -> list[UUID]:
+        return self.manager.get_lineage_ids(work_category_id)

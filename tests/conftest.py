@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from dotenv import load_dotenv
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, create_refresh_token, decode_token
 
 from app import create_app
 
@@ -17,6 +17,42 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 
 # Глобальная переменная для хранения Base
 GLOBAL_BASE = None
+
+
+def create_session_bound_access_token(user: dict) -> str:
+    """Issue a test access JWT that satisfies the server session contract."""
+    from app.adapters.auth_sessions import SQLAlchemyAuthSessionRepository
+    from app.database.time_utils import utc_epoch_milliseconds
+    from app.domain.auth_sessions import AuthSession, RefreshToken
+
+    session_id = uuid4()
+    identity = json.dumps(
+        {"login": user["login"], "role": user["role"], "user_id": user["user_id"]}
+    )
+    refresh_token = create_refresh_token(
+        identity=identity, additional_claims={"session_id": str(session_id)}
+    )
+    claims = decode_token(refresh_token)
+    now = utc_epoch_milliseconds()
+    refresh_jti = UUID(claims["jti"])
+    SQLAlchemyAuthSessionRepository().create_session_with_refresh_token(
+        AuthSession(
+            session_id=session_id,
+            user_id=UUID(user["user_id"]),
+            created_at=now,
+            expires_at=int(claims["exp"]) * 1000,
+            current_token_jti=refresh_jti,
+        ),
+        RefreshToken(
+            jti=refresh_jti,
+            session_id=session_id,
+            created_at=now,
+            expires_at=int(claims["exp"]) * 1000,
+        ),
+    )
+    return create_access_token(
+        identity=identity, additional_claims={"session_id": str(session_id)}
+    )
 
 
 class FakeRedis:
@@ -227,7 +263,7 @@ def jwt_token(test_app, db_session):
             "user_id": str(user.user_id),
         }
 
-        return create_access_token(identity=json.dumps(token_data))
+        return create_session_bound_access_token(token_data)
 
 
 @pytest.fixture
@@ -243,7 +279,7 @@ def jwt_token_admin(test_app, seed_admin):
             "user_id": seed_admin["user_id"],
         }
 
-        return create_access_token(identity=json.dumps(token_data))
+        return create_session_bound_access_token(token_data)
 
 
 @pytest.fixture
@@ -259,7 +295,7 @@ def jwt_token_user(test_app, seed_user):
             "user_id": seed_user["user_id"],
         }
 
-        return create_access_token(identity=json.dumps(token_data))
+        return create_session_bound_access_token(token_data)
 
 
 @pytest.fixture
@@ -275,7 +311,7 @@ def jwt_token_leader(test_app, seed_leader):
             "user_id": seed_leader["user_id"],
         }
 
-        return create_access_token(identity=json.dumps(token_data))
+        return create_session_bound_access_token(token_data)
 
 
 @pytest.fixture
@@ -728,7 +764,7 @@ def jwt_token_other_leader(test_app, seed_other_leader):
             "role": seed_other_leader["role"],
             "user_id": seed_other_leader["user_id"],
         }
-        return create_access_token(identity=json.dumps(token_data))
+        return create_session_bound_access_token(token_data)
 
 
 @pytest.fixture

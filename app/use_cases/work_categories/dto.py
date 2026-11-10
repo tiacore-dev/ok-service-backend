@@ -8,6 +8,7 @@ from uuid import UUID
 class CreateWorkCategoryCommand:
     name: str
     created_by: UUID
+    parent_id: UUID | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +16,8 @@ class UpdateWorkCategoryCommand:
     work_category_id: UUID
     name: str | None = None
     deleted: bool | None = None
+    parent_id: UUID | None = None
+    parent_id_is_set: bool = False
 
 
 @dataclass(frozen=True, slots=True)

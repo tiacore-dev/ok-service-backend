@@ -37,6 +37,7 @@ class WorkFilterSchema(Schema):
     name = fields.String(required=False)
     measurement_unit = fields.UUID(required=False)
     deleted = fields.Boolean(required=False)
+    shift_report = fields.UUID(required=False)
     sort_by = fields.String(required=False)
     sort_order = fields.String(required=False, validate=validate.OneOf(
         ["asc", "desc"], error="Sort order must be 'asc' or 'desc'."))

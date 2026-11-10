@@ -34,6 +34,8 @@ class Attachments(Base):
     work_acceptance_attachments = relationship(
         "WorkAcceptanceAttachments", back_populates="attachment"
     )
+    shift_report_comment_attachments = relationship("ShiftReportCommentAttachments", back_populates="attachment")
+    acceptance_comment_attachments = relationship("AcceptanceCommentAttachments", back_populates="attachment")
     creator = relationship("Users", back_populates="created_attachments")
 
 

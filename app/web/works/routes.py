@@ -16,6 +16,7 @@ from app.adapters.works import (
     work_entity_to_response,
 )
 from app.decorators import admin_required, api_key_or_jwt_required
+from app.domain.shift_reports import ShiftReportNotFoundError
 from app.domain.works import WorkNotFoundError, WorkValidationError
 from app.routes.models.work_models import (
     work_all_response,
@@ -46,6 +47,7 @@ from app.web._typing import (
     get_required_uuid,
     to_plain_dict,
 )
+from app.web.utils.shift_work_availability import with_shift_availability
 
 logger = logging.getLogger("ok_service")
 
@@ -79,6 +81,7 @@ class WorkFilterPayload(TypedDict, total=False):
     deleted: bool
     sort_by: str
     measurement_unit: UUID
+    shift_report: UUID
     sort_order: str
 
 
@@ -113,7 +116,7 @@ def _parse_work_id(work_id: str) -> UUID:
 
 
 def _map_error(error: Exception):
-    if isinstance(error, WorkNotFoundError):
+    if isinstance(error, (WorkNotFoundError, ShiftReportNotFoundError)):
         return {"msg": str(error)}, 404
     if isinstance(error, WorkValidationError):
         return {"msg": str(error)}, 400
@@ -293,7 +296,12 @@ class WorkAll(Resource):
             works = ListWorksUseCase(repository=_repository()).execute(query)
             return {
                 "msg": "Works found successfully",
-                "works": [work_entity_to_response(item) for item in works],
+                "works": with_shift_availability(
+                    get_optional_uuid(args, "shift_report"),
+                    works,
+                    lambda item: item.work_id,
+                    work_entity_to_response,
+                ),
             }, 200
         except ValidationError as err:
             logger.error(

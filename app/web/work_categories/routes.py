@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
 from flask import g, request
@@ -48,6 +48,8 @@ from app.web._typing import (
     get_optional_bool,
     get_optional_int,
     get_optional_str,
+    get_optional_uuid,
+    has_field,
     required_uuid,
     to_plain_dict,
 )
@@ -68,11 +70,13 @@ work_category_ns.models[work_category_model.name] = work_category_model
 
 class WorkCategoryCreatePayload(TypedDict):
     name: str
+    parent_id: NotRequired[UUID | None]
 
 
 class WorkCategoryEditPayload(TypedDict, total=False):
     name: str
     deleted: bool
+    parent_id: UUID | None
 
 
 class WorkCategoryFilterPayload(TypedDict, total=False):
@@ -150,6 +154,7 @@ class WorkCategoryAdd(Resource):
                     created_by=required_uuid(
                         current_user.get("user_id"), "Current user id is required"
                     ),
+                    parent_id=get_optional_uuid(data, "parent_id"),
                 )
             )
             return {
@@ -265,13 +270,17 @@ class WorkCategoryEdit(Resource):
                 request.get_json(silent=True), "Request body is required"
             )
             data = cast(WorkCategoryEditPayload, schema.load(raw_payload))
-            if not data.get("name"):
+            has_name = has_field(data, "name")
+            has_parent = has_field(data, "parent_id")
+            if (not has_name and not has_parent) or (has_name and not data.get("name")):
                 return {"msg": "Bad request, invalid data."}, 400
             work_category = UpdateWorkCategoryUseCase(repository=_repository()).execute(
                 UpdateWorkCategoryCommand(
                     work_category_id=_parse_work_category_id(work_category_id),
                     name=get_optional_str(data, "name"),
                     deleted=get_optional_bool(data, "deleted"),
+                    parent_id=get_optional_uuid(data, "parent_id"),
+                    parent_id_is_set=has_parent,
                 )
             )
             return {

@@ -222,7 +222,7 @@ def test_manager_persists_browser_id_and_preserves_it_for_other_updates(browser_
         modified_browser_id=report.modified_browser_id,
     )
     session = Mock()
-    session.query.return_value.filter.return_value.first.return_value = record
+    session.query.return_value.filter.return_value.with_for_update.return_value.first.return_value = record
     manager = ShiftReportsManager()
     manager.session_scope = Mock(return_value=nullcontext(session))
     manager._fill_missing_distances = Mock()
@@ -235,4 +235,5 @@ def test_manager_persists_browser_id_and_preserves_it_for_other_updates(browser_
     expected = browser_id if browser_id is not None else report.modified_browser_id
     assert record.modified_browser_id == expected
     assert updated is not None and updated.modified_browser_id == expected
-    session.commit.assert_called_once()
+    session.flush.assert_called_once()
+    session.commit.assert_not_called()

@@ -76,3 +76,4 @@ class ProjectWorkFilterSchema(Schema):
     min_summ = fields.Float(required=False)
     max_summ = fields.Float(required=False)
     with_stat = fields.Boolean(required=False, load_default=False)
+    shift_report = fields.UUID(required=False)

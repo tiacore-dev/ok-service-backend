@@ -43,6 +43,9 @@ class FakeWorkCategoryRepository:
         self.listed_query = query
         return [self.work_category] if self.work_category is not None else []
 
+    def get_lineage_ids(self, work_category_id):
+        return [work_category_id]
+
 
 def test_create_work_category_use_case():
     repository = FakeWorkCategoryRepository()

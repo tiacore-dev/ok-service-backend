@@ -119,6 +119,15 @@ class _FakeRepository:
     def list_shift_report_details(self, **filters):
         return []
 
+    def get_shift_report_performer_category(self, shift_report_id):
+        return None
+
+    def get_user_categories(self, user_ids):
+        return {}
+
+    def get_unavailable_work_ids(self, work_ids, category):
+        return set()
+
 
 def _report():
     return ShiftReport(

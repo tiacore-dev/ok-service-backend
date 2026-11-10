@@ -22,11 +22,19 @@
 - [docs/template-data-contracts.md](./docs/template-data-contracts.md) - схемы печатных данных пяти типов, параметры периода и правила зарплатной ведомости и отчёта по объектам.
 - [docs/template-generation-design.md](./docs/template-generation-design.md) - проект механизма генерации и справочника параметров по референсу другого сервиса; отличия от текущего API и вопросы до реализации.
 - [docs/acceptances.md](./docs/acceptances.md) - сущности приёмок, связи с работами, CRUD API и права доступа.
+- [docs/report-comments.md](./docs/report-comments.md) - ленты комментариев смен и приёмок, разрешения и вложения.
 - [docs/project-status-rules.md](./docs/project-status-rules.md) - статусы спецификаций, переходы и ограничения смен/объектов.
 - [docs/object-status-rules.md](./docs/object-status-rules.md) - значения статусов объектов и правило завершения объекта.
 - [docs/project-specification-ai-parsing.md](./docs/project-specification-ai-parsing.md) - Kimi-парсинг документов спецификации, контракт JSON и план импорта.
+- [docs/notification-api.md](./docs/notification-api.md) - HTTP API уведомлений, устройств и разрешений.
+- [docs/notifications-data-model.md](./docs/notifications-data-model.md) - сохраняемые уведомления и персональное состояние просмотра.
+- [docs/push-notifications.md](./docs/push-notifications.md) - целевая схема push-уведомлений через Firebase Cloud Messaging, фоновой доставки и хранения секретов.
+- [docs/jwt-lifecycle.md](./docs/jwt-lifecycle.md) - серверные JWT-сессии, refresh rotation и требования к клиентам.
+- [docs/api-keys.md](./docs/api-keys.md) - хранение API-ключей в виде хэшей, выпуск, аутентификация и миграция.
 
 - [docs/shift-standards.md](./docs/shift-standards.md) - поля стандарта смены, валидация, PATCH и миграция.
+- [docs/work-category-hierarchy.md](./docs/work-category-hierarchy.md) - иерархия категорий работ через `parent_id`, защита от циклов и миграция.
+- [docs/work-price-availability.md](./docs/work-price-availability.md) - допустимые цены работ (`>= 0` и `-1`), запрет недоступных работ для категории исполнителя смены и поля доступности в API выбора работ.
 
 ## Наблюдаемость
 

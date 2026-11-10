@@ -4,21 +4,35 @@ import json
 import logging
 from asyncio import run
 from typing import TypedDict, cast
+from uuid import UUID, uuid4
 
-from flask import request
+from flask import after_this_request, current_app, request
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
+    decode_token,
+    get_jwt,
     get_jwt_identity,
+    jwt_required,
     verify_jwt_in_request,
 )
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 
 from app.database.managers.user_manager import UserManager
+from app.database.time_utils import utc_epoch_milliseconds
+from app.adapters.auth_sessions.sqlalchemy_repository import (
+    INACTIVE,
+    REUSED,
+    ROTATED,
+    SQLAlchemyAuthSessionRepository,
+)
+from app.domain.auth_sessions import AuthSession, RefreshToken
 from app.schemas.login_schemas import LoginSchema, RefreshTokenSchema
 from app.s3.s3_manager import AsyncS3Manager
 from app.web._typing import to_plain_dict
+from app.web.auth.jwt_callbacks import JWTSessionUnavailable
+from app.use_cases.auth_sessions import LogoutAuthSession
 
 from .models import hello_model, login_model, refresh_model, response_auth
 
@@ -39,6 +53,39 @@ class LoginPayload(TypedDict):
 
 class RefreshPayload(TypedDict):
     refresh_token: str
+
+
+def _browser_id_for_login() -> tuple[UUID, bool]:
+    raw_value = request.cookies.get(current_app.config["BROWSER_ID_COOKIE_NAME"])
+    try:
+        return UUID(str(raw_value)), False
+    except (TypeError, ValueError):
+        return uuid4(), True
+
+
+def _set_browser_id_cookie(value: UUID) -> None:
+    @after_this_request
+    def set_cookie(response):
+        response.set_cookie(
+            current_app.config["BROWSER_ID_COOKIE_NAME"],
+            str(value),
+            max_age=current_app.config["BROWSER_ID_COOKIE_MAX_AGE"],
+            secure=True,
+            httponly=True,
+            samesite="Lax",
+        )
+        return response
+
+
+def _current_jwt_subject() -> tuple[UUID, UUID] | None:
+    try:
+        claims = get_jwt()
+        session_id = UUID(str(claims["session_id"]))
+        identity = get_jwt_identity()
+        data = json.loads(identity) if isinstance(identity, str) else identity
+        return session_id, UUID(str(data["user_id"]))
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
 
 
 @login_ns.route("/health")
@@ -85,31 +132,61 @@ class AuthLogin(Resource):
 
         logger.info("Login attempt", extra={"login": login})
 
-        if not (db.exists(login=login) and db.check_password_db(login, password)):
+        user = db.authenticate(login, password)
+        if user is None:
             logger.warning(
                 "Authentication failed: bad username or password",
                 extra={"login": login},
             )
             return {"msg": "Bad username or password"}, 401
 
-        user = db.filter_one_by_dict(login=login)
-        if not user:
+        if user.get("deleted") is True or user.get("is_active") is not True:
             logger.warning(
-                "User record unexpectedly missing after successful password check",
-                extra={"login": login},
+                "Authentication blocked: inactive user", extra={"login": login}
             )
-            return {"msg": "User not found"}, 404
-        if user.get("deleted") is True:
-            logger.warning(
-                "Authentication blocked: user is deleted", extra={"login": login}
-            )
-            return {"msg": "User is deleted"}, 401
+            return {"msg": "User is inactive"}, 401
 
         identity = json.dumps(
             {"user_id": user["user_id"], "role": user["role"], "login": login}
         )
-        access_token = create_access_token(identity=identity)
-        refresh_token = create_refresh_token(identity=identity)
+        session_id = uuid4()
+        browser_id, should_set_browser_cookie = _browser_id_for_login()
+        # Flask-JWT-Extended owns standard jti/iat/exp claims.  Decode the token
+        # it just signed to store those claims, never the raw JWT, atomically.
+        refresh_token = create_refresh_token(
+            identity=identity, additional_claims={"session_id": str(session_id)}
+        )
+        refresh_claims = decode_token(refresh_token)
+        now = utc_epoch_milliseconds()
+        refresh_jti = UUID(str(refresh_claims["jti"]))
+        expires_at = int(refresh_claims["exp"]) * 1000
+        try:
+            SQLAlchemyAuthSessionRepository().create_session_with_refresh_token(
+                AuthSession(
+                    session_id=session_id,
+                    user_id=UUID(str(user["user_id"])),
+                    created_at=now,
+                    expires_at=expires_at,
+                    current_token_jti=refresh_jti,
+                    browser_id=browser_id,
+                ),
+                RefreshToken(
+                    jti=refresh_jti,
+                    session_id=session_id,
+                    created_at=now,
+                    expires_at=expires_at,
+                ),
+            )
+        except Exception:
+            logger.exception("Unable to create authorization session")
+            return {"msg": "Authentication unavailable"}, 503
+
+        if should_set_browser_cookie:
+            _set_browser_id_cookie(browser_id)
+
+        access_token = create_access_token(
+            identity=identity, additional_claims={"session_id": str(session_id)}
+        )
 
         logger.info("Authentication successful", extra={"login": login})
         return {
@@ -120,10 +197,36 @@ class AuthLogin(Resource):
         }, 200
 
 
+@login_ns.route("/logout")
+class AuthLogout(Resource):
+    @login_ns.doc(
+        responses={
+            204: "Current server session and its bound push subscription revoked",
+            401: "JWT session is invalid or already revoked",
+            503: "Authentication storage is unavailable",
+        }
+    )
+    @jwt_required()
+    def post(self):
+        subject = _current_jwt_subject()
+        if subject is None:
+            return {"msg": "JWT session is invalid"}, 401
+        session_id, user_id = subject
+        try:
+            if not LogoutAuthSession(SQLAlchemyAuthSessionRepository()).execute(
+                session_id, user_id
+            ):
+                return {"msg": "JWT session is invalid"}, 401
+        except Exception:
+            logger.exception("Authorization logout failed")
+            return {"msg": "Authentication unavailable"}, 503
+        return "", 204
+
+
 @login_ns.route("/refresh")
 class AuthRefresh(Resource):
     @login_ns.expect(refresh_model)
-    @login_ns.marshal_with(response_auth)
+    @login_ns.marshal_with(response_auth, skip_none=True)
     def post(self):
         schema = RefreshTokenSchema()
         try:
@@ -139,9 +242,7 @@ class AuthRefresh(Resource):
             return {"msg": str(err)}, 400
 
         refresh_token = data["refresh_token"]
-        logger.debug(
-            "Refresh token request received", extra={"refresh_token": refresh_token}
-        )
+        logger.debug("Refresh token request received")
 
         if not refresh_token:
             logger.error("Missing refresh token in request")
@@ -150,19 +251,53 @@ class AuthRefresh(Resource):
         try:
             verify_jwt_in_request(refresh=True, locations=["json"])
             logger.debug("Refresh token verified successfully")
-        except Exception as e:
+        except JWTSessionUnavailable:
+            return {"msg": "Authentication unavailable"}, 503
+        except Exception as error:
             logger.error(
-                f"Refresh token verification failed: {str(e)}",
-                extra={"refresh_token": refresh_token},
+                "Refresh token verification failed",
+                extra={"error_type": type(error).__name__},
             )
-            return {"msg": str(e)}, 401
+            return {"msg": str(error)}, 401
 
-        current_user = get_jwt_identity()
-        logger.debug(
-            "Generating new access and refresh tokens", extra={"user": current_user}
+        claims = get_jwt()
+        try:
+            session_id = UUID(str(claims["session_id"]))
+            old_jti = UUID(str(claims["jti"]))
+            current_user = get_jwt_identity()
+            user_data = json.loads(current_user) if isinstance(current_user, str) else current_user
+            user_id = UUID(str(user_data["user_id"]))
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return {"msg": "Invalid refresh token"}, 401
+
+        new_refresh_token = create_refresh_token(
+            identity=current_user, additional_claims={"session_id": str(session_id)}
         )
-        new_access_token = create_access_token(identity=current_user)
-        new_refresh_token = create_refresh_token(identity=current_user)
+        new_refresh_claims = decode_token(new_refresh_token)
+        now = utc_epoch_milliseconds()
+        replacement = RefreshToken(
+            jti=UUID(str(new_refresh_claims["jti"])),
+            session_id=session_id,
+            created_at=now,
+            expires_at=int(new_refresh_claims["exp"]) * 1000,
+        )
+        try:
+            outcome = SQLAlchemyAuthSessionRepository().rotate_refresh_token(
+                session_id, old_jti, replacement, now
+            )
+        except Exception:
+            logger.exception("Refresh rotation failed")
+            return {"msg": "Authentication unavailable"}, 503
+        if outcome == REUSED:
+            logger.warning("Refresh token reuse detected", extra={"user_id": str(user_id)})
+            return {"msg": "Refresh token reuse detected"}, 401
+        if outcome != ROTATED:
+            assert outcome == INACTIVE
+            return {"msg": "Refresh token is invalid"}, 401
+
+        new_access_token = create_access_token(
+            identity=current_user, additional_claims={"session_id": str(session_id)}
+        )
 
         logger.info("Tokens refreshed successfully", extra={"user": current_user})
         return {

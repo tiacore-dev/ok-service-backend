@@ -95,6 +95,14 @@ class UserManager(BaseDBManager):
                 logger.error(f"Database error in check_password: {e}")
                 return False
 
+    def authenticate(self, username, password):
+        """Read and authenticate a user in one database transaction scope."""
+        with self.session_scope() as session:
+            user = session.query(self.model).filter_by(login=username).first()
+            if user is None or not user.check_password(password):
+                return None
+            return user.to_dict()
+
     def update_user_password(self, user_id, new_password):
         """Обновляем пароль пользователя"""
         with self.session_scope() as session:

@@ -13,6 +13,7 @@ from app.database.models import (
     PermissionTypes,
     Users,
 )
+from app.domain.api_keys import hash_api_key
 
 logger = logging.getLogger("ok_service")
 
@@ -51,7 +52,11 @@ def api_key_or_jwt_required(func):
 
         session = _get_db_session()
         try:
-            api_key = session.query(ApiKeys).filter_by(token=raw_api_key).first()
+            api_key = (
+                session.query(ApiKeys)
+                .filter_by(api_key_hashed=hash_api_key(raw_api_key))
+                .first()
+            )
             if not api_key:
                 return {"msg": "Invalid API key"}, 403
 

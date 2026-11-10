@@ -7,6 +7,7 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
 )
@@ -39,6 +40,12 @@ class WorkPrices(Base):
         CheckConstraint(
             "category IN (0, 1, 2, 3, 4)", name="check_products_category_values"
         ),
+        # -1 marks the work as unavailable for the category; see migration
+        # 20261111120000 and docs/work-price-availability.md.
+        CheckConstraint(
+            "price >= 0 OR price = -1", name="check_work_prices_price_values"
+        ),
+        Index("ix_work_prices_work_category", "work", "category"),
     )
 
     works = relationship("Works", back_populates="work_price")
@@ -55,8 +62,8 @@ class WorkPrices(Base):
         return {
             "work_price_id": str(self.work_price_id),
             "work": str(self.work),
-            "category": self.category if self.category else None,  # type: ignore
-            "price": self.price if self.price else None,  # type: ignore
+            "category": self.category if self.category is not None else None,  # type: ignore
+            "price": self.price if self.price is not None else None,  # type: ignore
             "created_by": str(self.created_by),
             "created_at": self.created_at,
             "deleted": self.deleted,

@@ -16,11 +16,12 @@ from .get_shift_report import GetShiftReportUseCase
 from .get_shift_report_detail import GetShiftReportDetailUseCase
 from .list_shift_report_details import ListShiftReportDetailsUseCase
 from .list_shift_reports import ListShiftReportsUseCase
-from .ports import ShiftReportRepository
+from .ports import ShiftReportRepository, ShiftWorkAvailabilityReader
 from .sign_shift_report import SignShiftReportUseCase
 from .update_shift_report import UpdateShiftReportUseCase
 from .update_shift_report_detail import UpdateShiftReportDetailUseCase
 from .update_shift_report_time import UpdateShiftReportTimeUseCase
+from .work_availability import GetShiftWorkAvailabilityUseCase
 
 __all__ = [
     "CreateShiftReportCommand",
@@ -32,12 +33,14 @@ __all__ = [
     "DeleteShiftReportUseCase",
     "GetShiftReportDetailUseCase",
     "GetShiftReportUseCase",
+    "GetShiftWorkAvailabilityUseCase",
     "ListShiftReportDetailsUseCase",
     "ListShiftReportsUseCase",
     "ShiftReportActor",
     "ShiftReportTimeCommand",
     "ShiftReportListQuery",
     "ShiftReportRepository",
+    "ShiftWorkAvailabilityReader",
     "SignShiftReportUseCase",
     "SoftDeleteShiftReportUseCase",
     "UpdateShiftReportCommand",

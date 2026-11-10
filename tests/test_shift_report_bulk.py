@@ -215,7 +215,12 @@ def test_bulk_api_key_requires_exact_permission(
     from app.utils.api_key_permissions import set_api_key_permissions
 
     set_api_key_permissions()
-    key = ApiKeys(api_key_id=uuid4(), name="bulk-key", token=str(uuid4()))
+    from app.domain.api_keys import hash_api_key
+
+    raw_key = str(uuid4())
+    key = ApiKeys(
+        api_key_id=uuid4(), name="bulk-key", api_key_hashed=hash_api_key(raw_key)
+    )
     db_session.add(key)
     if permission_code:
         permission = (
@@ -229,7 +234,7 @@ def test_bulk_api_key_requires_exact_permission(
         )
     db_session.commit()
     response = client.post(
-        "/shift_reports/add-bulk", json=bulk_payload, headers={"API-Key": key.token}
+        "/shift_reports/add-bulk", json=bulk_payload, headers={"API-Key": raw_key}
     )
     assert response.status_code == (
         200 if permission_code == "shift-reports-create-bulk" else 403
@@ -239,18 +244,25 @@ def test_bulk_api_key_requires_exact_permission(
     )
 
 
-@pytest.mark.parametrize("role", ["manager", "project-leader", "accountant"])
-def test_bulk_short_shift_role_gate(client, test_app, seed_admin, bulk_payload, role):
-    import json
+@pytest.mark.parametrize("role", ["manager", "project-leader", "user"])
+def test_bulk_short_shift_role_gate(
+    client, test_app, db_session, seed_admin, bulk_payload, role
+):
+    from app.database.models import Users
+    from tests.conftest import create_session_bound_access_token
 
-    from flask_jwt_extended import create_access_token
-
+    user = db_session.get(Users, UUID(seed_admin["user_id"]))
+    assert user is not None
+    # Use an existing, but non-privileged, role.  ``accountant`` is not part
+    # of the seeded roles and would test the foreign key rather than the gate.
+    user.role = role
+    db_session.commit()
     with test_app.app_context():
-        token = create_access_token(
-            identity=json.dumps({"user_id": seed_admin["user_id"], "role": role})
+        token = create_session_bound_access_token(
+            {**seed_admin, "role": role}
         )
     response = post(client, token, bulk_payload)
-    assert response.status_code == (403 if role == "accountant" else 200), response.json
+    assert response.status_code == (403 if role == "user" else 200), response.json
 
 
 def test_bulk_normalizes_uuid_duplicates(client, jwt_token_admin, bulk_payload):

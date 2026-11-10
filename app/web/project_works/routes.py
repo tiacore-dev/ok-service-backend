@@ -26,6 +26,7 @@ from app.domain.project_works import (
     ProjectWorkNotFoundError,
     ProjectWorkValidationError,
 )
+from app.domain.shift_reports import ShiftReportNotFoundError
 from app.routes.models.project_work_models import (
     project_work_all_response,
     project_work_create_model,
@@ -65,6 +66,7 @@ from app.web._typing import (
     get_required_uuid,
     to_plain_dict,
 )
+from app.web.utils.shift_work_availability import with_shift_availability
 
 logger = logging.getLogger("ok_service")
 
@@ -113,6 +115,7 @@ class ProjectWorkFilterPayload(TypedDict, total=False):
     min_summ: float | int
     max_summ: float | int
     with_stat: bool
+    shift_report: UUID
 
 
 def get_jwt_identity():
@@ -188,7 +191,7 @@ def _actor(current_user: dict[str, Any]) -> ProjectWorkActor:
 def _map_error(error: Exception):
     if isinstance(error, ProjectMaterialInUseError):
         return {"msg": str(error)}, 409
-    if isinstance(error, ProjectWorkNotFoundError):
+    if isinstance(error, (ProjectWorkNotFoundError, ShiftReportNotFoundError)):
         return {"msg": str(error)}, 404
     if isinstance(error, ProjectWorkForbiddenError):
         return {"msg": str(error)}, 403
@@ -467,12 +470,16 @@ class ProjectWorkAll(Resource):
             )
             return {
                 "msg": "Project works found successfully",
-                "project_works": [
-                    _response_with_stats(item, stats_by_project[item.project])
+                "project_works": with_shift_availability(
+                    get_optional_uuid(args, "shift_report"),
+                    project_works,
+                    lambda item: item.work,
+                    lambda item: _response_with_stats(
+                        item, stats_by_project[item.project]
+                    )
                     if with_stat
-                    else project_work_entity_to_response(item)
-                    for item in project_works
-                ],
+                    else project_work_entity_to_response(item),
+                ),
             }, 200
         except Exception as error:
             logger.error(

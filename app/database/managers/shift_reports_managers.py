@@ -25,8 +25,11 @@ from app.database.time_utils import utc_epoch_milliseconds
 from app.domain.shift_report_materials import ShiftReportMaterialValidationError
 from app.domain.shift_reports import (
     ShiftReportConflictError,
+    ShiftReportForbiddenError,
+    ShiftReportWorkUnavailableError,
     calculate_distance_meters,
 )
+from app.domain.work_prices import is_unavailable_work_price
 
 logger = logging.getLogger("ok_service")
 
@@ -116,6 +119,14 @@ class ShiftManager(BaseDBManager):
 
         if not work_price:
             logger.warning(f"WorkPrices для work_id {work_id} не найден")
+            return Decimal(0)
+
+        if is_unavailable_work_price(work_price.price):
+            # -1 marks the work as unavailable; it is never a payment amount.
+            # New details with such a work are rejected before this point.
+            logger.warning(
+                f"WorkPrices для work_id {work_id}: работа недоступна для категории"
+            )
             return Decimal(0)
 
         price = work_price.price
@@ -342,6 +353,9 @@ class ShiftReportsManager(ShiftManager):
                             session, detail, created_by
                         )
 
+                from app.adapters.shift_reports.lifecycle_notifications import notify_shift_event
+                notify_shift_event(session, new_report, "created", shift_report_data["created_by"], new_report.shift_report_id)
+
                 # Commit belongs to session_scope; external sessions may batch reports.
 
                 return new_report.to_dict()  # Возвращаем ID созданного отчета
@@ -360,13 +374,40 @@ class ShiftReportsManager(ShiftManager):
         try:
             with self.session_scope() as session:
                 leave_check_date = data.pop("leave_check_date", None)
+                operation = data.pop("lifecycle_operation", None)
+                actor_role = data.pop("lifecycle_actor_role", None)
                 record = (
                     session.query(ShiftReports)
                     .filter(ShiftReports.shift_report_id == record_id)
+                    .with_for_update()
                     .first()
                 )
                 if not record:
                     return None
+                if operation:
+                    if record.leave_id is not None:
+                        raise ShiftReportConflictError("Shift report linked to leave cannot be changed")
+                    if record.deleted:
+                        raise ShiftReportConflictError("Deleted shift report cannot be changed")
+                    if actor_role == "user" and record.user != data.get("updated_by"):
+                        raise ShiftReportForbiddenError("User cannot edit not his shift report")
+                    if actor_role == "user" and record.signed:
+                        raise ShiftReportForbiddenError("User cannot edit signed shift report")
+                    if operation == "start":
+                        if record.date_start is not None:
+                            raise ShiftReportConflictError("Shift report has already been started")
+                        if record.date_end is not None:
+                            raise ShiftReportConflictError("Shift report has an end time but has not been started")
+                    elif operation == "finish":
+                        if record.date_start is None:
+                            raise ShiftReportConflictError("Shift report has not been started")
+                        if record.date_end is not None:
+                            raise ShiftReportConflictError("Shift report has already been finished")
+                        if data["date_end"] < record.date_start:
+                            raise ShiftReportConflictError("Shift report start time is in the future")
+                    else:
+                        raise ValueError("Unknown shift lifecycle operation")
+                    leave_check_date = record.date
 
                 self._fill_missing_distances(session, data, record)
 
@@ -410,7 +451,10 @@ class ShiftReportsManager(ShiftManager):
                             validate_shift_material_record(session, material)
                         except ShiftReportMaterialValidationError as error:
                             raise ShiftReportConflictError(str(error)) from error
-                session.commit()
+                if operation:
+                    from app.adapters.shift_reports.lifecycle_notifications import notify_shift_event
+                    notify_shift_event(session, record, "opened" if operation == "start" else "closed", data.get("updated_by"), uuid4())
+                session.flush()
                 return record.to_dict()
         except ShiftReportConflictError:
             raise
@@ -420,17 +464,24 @@ class ShiftReportsManager(ShiftManager):
             record = (
                 session.query(ShiftReports)
                 .filter(ShiftReports.shift_report_id == record_id)
+                .with_for_update()
                 .first()
             )
             if not record:
                 return None
+            if record.leave_id is not None:
+                raise ShiftReportConflictError("Shift report linked to leave cannot be changed")
 
+            is_new_approval = not record.signed or record.signed_at is None
             record.signed = True
             record.signed_at = utc_epoch_milliseconds()
             record.signed_by = signed_by
             record.updated_at = utc_epoch_milliseconds()
             record.updated_by = signed_by
-            session.commit()
+            if is_new_approval:
+                from app.adapters.shift_reports.lifecycle_notifications import notify_shift_event
+                notify_shift_event(session, record, "approved", signed_by, uuid4())
+            session.flush()
             return record.to_dict()
 
     def get_project_leader(self, project):
@@ -787,7 +838,12 @@ class ShiftReportsDetailsManager(ShiftManager):
     def update_summ(
         self, work_id, quantity, extreme_conditions, night_shift, session, user_id
     ):
-        """Пересчитывает сумму для конкретной работы"""
+        """Пересчитывает сумму для конкретной работы.
+
+        Возвращает `None`, если цена для категории равна `-1` (работа
+        недоступна): такая цена не участвует в расчёте, а сохранённое
+        начисление вызывающий код оставляет без изменений.
+        """
         logger.debug(
             f"[DEBUG] Входные данные: work_id={work_id}, quantity={quantity}, "
             f"extreme_conditions={extreme_conditions}, night_shift={
@@ -831,6 +887,14 @@ class ShiftReportsDetailsManager(ShiftManager):
 
         price = work_price.price
         logger.debug(f"[DEBUG] Найдена цена работы: {price}")
+
+        if is_unavailable_work_price(price):
+            logger.warning(
+                f"[WARNING] Работа {work_id} недоступна для категории {
+                    user.category
+                }: начисление не пересчитывается"
+            )
+            return None
 
         # Инициализируем сумму
         summ = price or Decimal(0)
@@ -897,13 +961,14 @@ class ShiftReportsDetailsManager(ShiftManager):
                 # чтобы не затирать обязательные FK `None`
                 if data.get("work") is not None:
                     detail.work = data["work"]
+                previous_quantity = detail.quantity
                 if data.get("quantity") is not None:
                     detail.quantity = data["quantity"]
                 if data.get("project_work") is not None:
                     detail.project_work = data["project_work"]
 
-                # Пересчёт суммы
-                detail.summ = self.update_summ(
+                # Пересчёт суммы; `None` — цена `-1`, начисление сохраняется
+                new_summ = self.update_summ(
                     detail.work,
                     detail.quantity,
                     shift_report.extreme_conditions,
@@ -911,6 +976,13 @@ class ShiftReportsDetailsManager(ShiftManager):
                     session,
                     shift_report.user,
                 )
+                if new_summ is not None:
+                    detail.summ = new_summ
+                elif detail.quantity != previous_quantity:
+                    # `-1` cannot price the new quantity: the saved accrual
+                    # would no longer match it. The use case rejects this
+                    # first; raising here rolls the session back as well.
+                    raise ShiftReportWorkUnavailableError([detail.work])
 
                 self._sync_shift_report_materials(session, detail, detail.created_by)
                 session.commit()
@@ -1005,6 +1077,9 @@ class ShiftReportsDetailsManager(ShiftManager):
                         user,
                     )
 
+                    if new_summ is None:
+                        # Цена `-1`: сохранённое начисление не меняется
+                        continue
                     logger.debug(
                         f"[DEBUG] Новая сумма: {new_summ} (было {detail.summ})"
                     )

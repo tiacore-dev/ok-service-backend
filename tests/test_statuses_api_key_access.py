@@ -4,6 +4,7 @@ import pytest
 
 from app.database.models import ApiKeys, KeyPermissionTypeRelations, PermissionTypes
 from app.database.time_utils import utc_epoch_milliseconds
+from app.domain.api_keys import hash_api_key
 from app.utils.api_key_permissions import set_api_key_permissions
 
 
@@ -54,10 +55,11 @@ def test_status_route_requires_its_own_api_key_permission(
     client, db_session, route, code, statuses, key_state
 ):
     set_api_key_permissions()
+    raw_key = str(uuid4())
     key = ApiKeys(
         api_key_id=uuid4(),
         name=f"statuses-{uuid4()}",
-        token=str(uuid4()),
+        api_key_hashed=hash_api_key(raw_key),
         expires_at=utc_epoch_milliseconds() - 1 if key_state == "expired" else None,
     )
     db_session.add(key)
@@ -77,7 +79,7 @@ def test_status_route_requires_its_own_api_key_permission(
     db_session.commit()
 
     response = client.get(
-        route, headers={"API-Key": "invalid" if key_state == "invalid" else key.token}
+        route, headers={"API-Key": "invalid" if key_state == "invalid" else raw_key}
     )
     assert response.status_code == (200 if key_state == "granted" else 403)
     if key_state == "granted":

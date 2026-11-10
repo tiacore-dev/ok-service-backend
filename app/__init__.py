@@ -25,6 +25,7 @@ from app.database import init_db, set_db_globals, setup_listeners
 from app.database.vacuum import start_background_task
 from app.error_handlers import setup_error_handlers
 from app.routes import register_namespaces, register_routes
+from app.web.auth.jwt_callbacks import configure_jwt_callbacks
 from app.utils.db_setting_tables import (
     set_api_key_permissions,
     set_object_status,
@@ -84,7 +85,7 @@ def setup_tracing(app: Flask) -> None:
     FlaskInstrumentor().instrument_app(app, tracer_provider=provider)
 
 
-def create_app(config_name="development"):
+def create_app(config_name="development", *, start_background_tasks=True):
     """Функция для создания экземпляра приложения"""
     app = Flask(__name__)
     # Выбираем конфигурацию
@@ -145,14 +146,15 @@ def create_app(config_name="development"):
 
     set_object_status()
 
-    if config_name != "testing":
+    if config_name != "testing" and start_background_tasks:
         setup_listeners()
         with app.app_context():
             start_background_task()
 
     # Инициализация JWT
     try:
-        JWTManager(app)
+        jwt = JWTManager(app)
+        configure_jwt_callbacks(app, jwt)
         logger.info(
             f"JWT инициализирован. {app.config['JWT_ACCESS_TOKEN_EXPIRES']}",
             extra={"login": "init"},

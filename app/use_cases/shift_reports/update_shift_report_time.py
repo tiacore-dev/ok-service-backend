@@ -32,6 +32,8 @@ class UpdateShiftReportTimeUseCase:
         return self._update(
             command,
             leave_check_date=current.date,
+            lifecycle_operation="start",
+            lifecycle_actor_role=actor.role,
             date_start=utc_epoch_milliseconds(),
             lng_start=command.lng,
             ltd_start=command.ltd,
@@ -52,6 +54,8 @@ class UpdateShiftReportTimeUseCase:
         return self._update(
             command,
             leave_check_date=current.date,
+            lifecycle_operation="finish",
+            lifecycle_actor_role=actor.role,
             date_end=timestamp,
             lng_end=command.lng,
             ltd_end=command.ltd,

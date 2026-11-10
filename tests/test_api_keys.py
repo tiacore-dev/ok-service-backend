@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from app.database.models import ApiKeys, PermissionTypes
+from app.domain.api_keys import hash_api_key
 
 
 def _auth_headers(jwt_token_admin):
@@ -38,10 +39,11 @@ def test_api_key_generate_endpoint_creates_api_key_and_public_views(
 
     stored = db_session.query(ApiKeys).filter_by(name=api_key_name).one()
     stored_api_key_id = str(stored.api_key_id)
-    stored_token = stored.token
+    stored_hash = stored.api_key_hashed
     stored_public = stored.to_public_dict()
     assert stored_api_key_id == body["api_key_id"]
-    assert stored_token == body["token"]
+    assert stored_hash == hash_api_key(body["token"])
+    assert stored_hash != body["token"]
 
     all_response = client.get("/api-key/all", headers=headers)
     assert all_response.status_code == 200
