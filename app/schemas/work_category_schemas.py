@@ -7,6 +7,7 @@ class WorkCategoryCreateSchema(Schema):
 
     name = fields.String(required=True, error_messages={
                          "required": "Field 'name' is required."})
+    parent_id = fields.UUID(required=False, allow_none=True)
 
 
 class WorkCategoryEditSchema(Schema):
@@ -15,6 +16,7 @@ class WorkCategoryEditSchema(Schema):
 
     name = fields.String(required=False, allow_none=True)
     deleted = fields.Boolean(required=False, allow_none=True)
+    parent_id = fields.UUID(required=False, allow_none=True)
 
 
 class WorkCategoryFilterSchema(Schema):

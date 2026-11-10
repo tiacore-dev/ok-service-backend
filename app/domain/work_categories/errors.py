@@ -12,3 +12,7 @@ class WorkCategoryValidationError(WorkCategoryError):
 
 class WorkCategoryNotFoundError(WorkCategoryError):
     """Raised when a work category entity cannot be found."""
+
+
+class WorkCategoryHierarchyError(WorkCategoryValidationError):
+    """Raised when a parent assignment would break the category tree."""

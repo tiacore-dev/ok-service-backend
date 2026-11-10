@@ -21,6 +21,12 @@ class WorkCategories(Base):
     created_by = Column(UUID, ForeignKey(
         'users.user_id'), nullable=False)
     deleted = Column(Boolean, nullable=False, default=False)
+    parent_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey('work_categories.work_category_id'),
+        nullable=True,
+        index=True,
+    )
 
     # Опционально, если хотите указать обратную связь
     works = relationship("Works", back_populates="work_category")
@@ -38,5 +44,6 @@ class WorkCategories(Base):
             "name": self.name,
             "created_by": str(self.created_by),
             "created_at": self.created_at,
-            "deleted": self.deleted
+            "deleted": self.deleted,
+            "parent_id": str(self.parent_id) if self.parent_id is not None else None,
         }

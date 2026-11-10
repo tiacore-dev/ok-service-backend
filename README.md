@@ -33,6 +33,7 @@
 - [docs/api-keys.md](./docs/api-keys.md) - хранение API-ключей в виде хэшей, выпуск, аутентификация и миграция.
 
 - [docs/shift-standards.md](./docs/shift-standards.md) - поля стандарта смены, валидация, PATCH и миграция.
+- [docs/work-category-hierarchy.md](./docs/work-category-hierarchy.md) - иерархия категорий работ через `parent_id`, защита от циклов и миграция.
 
 ## Наблюдаемость
 

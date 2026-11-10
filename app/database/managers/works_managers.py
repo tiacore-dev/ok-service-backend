@@ -1,6 +1,6 @@
 import logging
 from sqlalchemy.orm import joinedload
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, select
 from app.database.models import (
     MeasurementUnits,
     ShiftStandards,
@@ -76,6 +76,45 @@ class WorkCategoriesManager(BaseDBManager):
     @property
     def model(self):
         return WorkCategories
+
+    def update_work_category(self, record_id, *, name, deleted, parent_id):
+        """Write all mutable fields, including ``parent_id = None`` (move to root)."""
+        with self.session_scope() as session:
+            record = (
+                session.query(self.model)
+                .filter(self.model.work_category_id == record_id)
+                .first()
+            )
+            if record is None:
+                return None
+            record.name = name
+            record.deleted = deleted
+            record.parent_id = parent_id
+            session.flush()
+            return record.to_dict()
+
+    def get_lineage_ids(self, work_category_id):
+        """Return the category id and all ancestor ids in one recursive query.
+
+        ``UNION`` (not ``UNION ALL``) discards repeated rows, so the query
+        terminates even if the stored tree already contains a cycle.
+        """
+        table = WorkCategories.__table__
+        lineage = (
+            select(table.c.work_category_id, table.c.parent_id)
+            .where(table.c.work_category_id == work_category_id)
+            .cte("work_category_lineage", recursive=True)
+        )
+        parent = table.alias("parent_category")
+        lineage = lineage.union(
+            select(parent.c.work_category_id, parent.c.parent_id).where(
+                parent.c.work_category_id == lineage.c.parent_id
+            )
+        )
+        with self.session_scope() as session:
+            return list(
+                session.execute(select(lineage.c.work_category_id)).scalars().all()
+            )
 
 
 class MeasurementUnitsManager(BaseDBManager):

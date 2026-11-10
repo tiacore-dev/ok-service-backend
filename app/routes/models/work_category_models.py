@@ -18,7 +18,9 @@ work_category_model = Model('WorkCategory', {
     "name": fields.String(required=True, description='Name of the work category'),
     "created_at": fields.Integer(required=True, description="Unix epoch milliseconds: category creation time"),
     "created_by": fields.String(required=True, description="Creator of work category"),
-    "deleted": fields.Boolean(required=True, description='Deleted status of the work category')
+    "deleted": fields.Boolean(required=True, description='Deleted status of the work category'),
+    "parent_id": fields.String(
+        required=False, description='ID of the parent work category; null for root categories'),
 })
 
 work_category_response = Model('WorkCategoryresponse', {

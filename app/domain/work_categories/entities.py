@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from uuid import UUID
 
-from .errors import WorkCategoryValidationError
+from .errors import WorkCategoryHierarchyError, WorkCategoryValidationError
 
 
 @dataclass(frozen=True, slots=True)
@@ -13,8 +13,13 @@ class WorkCategory:
     created_by: UUID
     created_at: int
     deleted: bool = False
+    parent_id: UUID | None = None
 
     def __post_init__(self) -> None:
+        if self.parent_id is not None and self.parent_id == self.work_category_id:
+            raise WorkCategoryHierarchyError(
+                "Work category cannot be its own parent."
+            )
         if not isinstance(self.deleted, bool):
             raise WorkCategoryValidationError("Work category deleted flag must be boolean.")
         if not isinstance(self.name, str) or not self.name.strip():
