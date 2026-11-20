@@ -8,10 +8,27 @@ on:
 env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/ok-service-backend
 
+permissions:
+  contents: read
+
+# Production runs one at a time, from version selection through publication; a newer pending run
+# replaces an older pending one (it contains its commits). Other branches are not serialized here.
+concurrency:
+  group: ${{ github.ref_name == 'master' && 'ok-service-backend-production' || format('ok-service-backend-{0}', github.run_id) }}
+  cancel-in-progress: false
+
 jobs:
   build-test-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # reschedule: queue a run for the master tip after a superseded run
     if: github.ref_name == 'master' || github.ref_name == 'dev' || github.ref_name == 'stage'
+    outputs:
+      # master only: outdated | none | released | resume | new (see scripts/release-ci.sh)
+      state: ${{ steps.release.outputs.state }}
+      version: ${{ steps.release.outputs.version }}
+      digest: ${{ steps.release.outputs.digest || steps.candidate.outputs.digest }}
 
     services:
       postgres:
@@ -31,6 +48,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: ${{ github.ref_name == 'master' && '0' || '1' }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -42,6 +61,18 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           install: true
+
+      - name: Select production release (master)
+        id: release
+        if: github.ref_name == 'master'
+        run: bash scripts/release-ci.sh select "$IMAGE_NAME" "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
+      # A retried old run may have displaced the pending run of the master tip; make sure the tip still runs.
+      - name: Reschedule master tip (superseded run)
+        if: steps.release.outputs.state == 'outdated'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/release-ci.sh reschedule
 
       - name: Generate fake VAPID keys
         run: |
@@ -63,13 +94,22 @@ jobs:
             --load \
             -t ok-service-backend-test .
 
+          # Release automation must run, not skip: missing git/jq fails here. -v -rs lists each test and any skip reason.
+          docker run \
+            --rm \
+            --env-file .env.test \
+            -e RELEASE_TESTS_REQUIRED=1 \
+            ok-service-backend-test \
+            pytest tests/test_release_automation.py -v -rs --disable-warnings
+
           docker run \
             --rm \
             --env-file .env.test \
             ok-service-backend-test \
-            pytest --maxfail=3 --disable-warnings
+            pytest --maxfail=3 --disable-warnings --ignore=tests/test_release_automation.py
 
       - name: Build and Push prod image
+        if: github.ref_name != 'master'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -78,6 +118,30 @@ jobs:
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Build and push production candidate (master)
+        id: candidate
+        if: steps.release.outputs.state == 'new'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          target: prod
+          # A plain manifest keeps one digest from build to deploy and makes labels readable.
+          provenance: false
+          # Own tag: dev/stage push <SHA>, and this build of the same commit carries a different APP_VERSION.
+          tags: ${{ env.IMAGE_NAME }}:master-${{ github.sha }}
+          build-args: APP_VERSION=${{ steps.release.outputs.version }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Tag candidate digest with the release version (master)
+        if: steps.release.outputs.state == 'new'
+        run: bash scripts/release-ci.sh promote "$IMAGE_NAME" "${{ steps.release.outputs.version }}" "${{ steps.candidate.outputs.digest }}"
 
       - name: Clean up VAPID keys
         run: rm -f vapid_*.pem
@@ -90,6 +154,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build-test-push
+    if: github.ref_name != 'master' || needs.build-test-push.outputs.state == 'new' || needs.build-test-push.outputs.state == 'resume'
+    outputs:
+      deployed: ${{ steps.production.outputs.deployed }}
     concurrency:
       group: ${{ github.ref_name == 'dev' && 'ok-service-deploy-dev' || github.run_id }}
       cancel-in-progress: false
@@ -97,13 +164,43 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: ${{ github.ref_name == 'master' && '0' || '1' }}
+
+      - name: Log in to Docker Hub (master)
+        if: github.ref_name == 'master'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Retries: production changes only if this commit is still on master, still unreleased, no newer
+      # release exists, and the version and digest are what the build verified. A master that moved
+      # ahead after promotion is fine: the newer run then releases on top of this version.
+      - name: Recheck remote revision and release state (master)
+        id: recheck
+        if: github.ref_name == 'master'
+        run: |
+          bash scripts/release-ci.sh select "$IMAGE_NAME" "$GITHUB_SHA" > recheck.env
+          state="$(sed -n 's/^state=//p' recheck.env)"
+          case "$state" in
+            released) echo "Recheck: already released; not deploying."; echo "go=false" >> "$GITHUB_OUTPUT" ;;
+            resume)
+              [ "$(sed -n 's/^version=//p' recheck.env)" = "${{ needs.build-test-push.outputs.version }}" ] \
+                && [ "$(sed -n 's/^digest=//p' recheck.env)" = "${{ needs.build-test-push.outputs.digest }}" ] \
+                || { echo "Release state changed since the build:"; cat recheck.env; exit 1; }
+              echo "go=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unexpected release state '${state}'"; exit 1 ;;
+          esac
 
       - name: Setup SSH
+        if: github.ref_name != 'master' || steps.recheck.outputs.go == 'true'
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ github.ref_name == 'master' && secrets.SSH_PRIVATE_KEY_MASTER || github.ref_name == 'dev' && secrets.SSH_PRIVATE_KEY_DEV || secrets.SSH_PRIVATE_KEY_STAGE }}
 
       - name: Set env vars per branch
+        if: github.ref_name != 'master' || steps.recheck.outputs.go == 'true'
         run: |
           if [[ "${{ github.ref_name }}" == "master" ]]; then
             echo "DEPLOY_PATH=apps/ok-service-backend" >> $GITHUB_ENV
@@ -124,6 +221,7 @@ jobs:
           echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Deploy to server (pull + update env)
+        if: github.ref_name != 'master'
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
@@ -146,6 +244,7 @@ jobs:
 
 
       - name: Run Alembic migrations (via exec)
+        if: github.ref_name != 'master'
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
@@ -156,6 +255,7 @@ jobs:
 
 
       - name: Restart backend container
+        if: github.ref_name != 'master'
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
@@ -174,6 +274,7 @@ jobs:
           EOF
 
       - name: Rebuild Redis statistics
+        if: github.ref_name != 'master'
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
             set -e
@@ -184,12 +285,52 @@ jobs:
               flask --app app:create_app rebuild-project-material-statistics
           EOF
 
+      # Same sequence as dev/stage (Alembic, web restart, both statistics rebuilds) plus checkout,
+      # image identity and readiness checks; the server script runs from this commit.
+      - name: Deploy production release (master)
+        id: production
+        if: github.ref_name == 'master' && steps.recheck.outputs.go == 'true'
+        run: |
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP <<EOF
+            set -e
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          EOF
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP \
+            "cd $DEPLOY_PATH && bash -s -- $GITHUB_SHA $IMAGE_NAME ${{ needs.build-test-push.outputs.version }} ${{ needs.build-test-push.outputs.digest }} $GITHUB_RUN_ID" \
+            < scripts/deploy-production.sh
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+
+
+  # Only after a verified deployment of this run, or to finish a release whose tag already exists.
+  publish:
+    runs-on: ubuntu-latest
+    needs: [build-test-push, deploy]
+    if: >-
+      always() && github.ref_name == 'master' && needs.build-test-push.result == 'success' &&
+      (needs.build-test-push.outputs.state == 'released' ||
+       (needs.deploy.result == 'success' && needs.deploy.outputs.deployed == 'true'))
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create tag and GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/release-ci.sh publish "$IMAGE_NAME" \
+            "${{ needs.build-test-push.outputs.version }}" "${{ needs.build-test-push.outputs.digest }}" "$GITHUB_SHA"
 
 
   notify:
     name: 📬 Notifications
     runs-on: ubuntu-latest
-    needs: [build-test-push, deploy]
+    needs: [build-test-push, deploy, publish]
     if: always()
 
     steps:
@@ -232,7 +373,25 @@ jobs:
           RUN_URL="https://github.com/${REPO}/actions/runs/${{ github.run_id }}"
           REPO_URL="https://github.com/${REPO}"
 
+          BUILD_STATUS="${{ needs.build-test-push.result }}"
           DEPLOY_STATUS="${{ needs.deploy.result }}"
+          PUBLISH_STATUS="${{ needs.publish.result }}"
+          RELEASE_STATE="${{ needs.build-test-push.outputs.state }}"
+          VERSION="${{ needs.build-test-push.outputs.version }}"
+          DEPLOYED="${{ needs.deploy.outputs.deployed }}"
+
+          # OUTCOME: failed | skipped | unpublished | released | success (dev/stage)
+          if [ "${REF_NAME}" != "master" ]; then
+            [ "${DEPLOY_STATUS}" = "success" ] && OUTCOME=success || OUTCOME=failed
+          elif [ "${BUILD_STATUS}" != "success" ] || { [ "${DEPLOY_STATUS}" != "success" ] && [ "${DEPLOY_STATUS}" != "skipped" ]; }; then
+            OUTCOME=failed
+          elif [ "${PUBLISH_STATUS}" = "success" ]; then
+            OUTCOME=released
+          elif [ "${DEPLOYED}" = "true" ] || [ "${RELEASE_STATE}" = "released" ]; then
+            OUTCOME=unpublished
+          else
+            OUTCOME=skipped
+          fi
 
           # --- Commit message / author (с фолбэком, чтобы не зависеть от github.event.head_commit.*)
           COMMIT_MESSAGE="$(git log -1 --pretty=%B || true)"
@@ -274,15 +433,31 @@ jobs:
           OP_IDS="$(extract_op_ids || true)"
 
           # --- 1) Telegram text
-          if [ "${DEPLOY_STATUS}" != "success" ]; then
-            HEAD="🛑 <b>Ошибка деплоя</b>"
-            CACHE_STATUS="⚠️ <b>Прогрев Redis-кэша:</b> не подтверждён"
-            EXTRA_LINK="\n\n<a href=\"${RUN_URL}\">🔍 Открыть GitHub Actions</a>"
-          else
-            HEAD="✅ Деплой <b>успешен</b>"
-            CACHE_STATUS="✅ <b>Прогрев Redis-кэша:</b> работы и материалы"
-            EXTRA_LINK=""
-          fi
+          EXTRA_LINK=""
+          CACHE_STATUS="✅ <b>Прогрев Redis-кэша:</b> работы и материалы"
+          case "${OUTCOME}" in
+            failed)
+              HEAD="🛑 <b>Ошибка деплоя</b>"
+              CACHE_STATUS="⚠️ <b>Прогрев Redis-кэша:</b> не подтверждён"
+              EXTRA_LINK="\n\n<a href=\"${RUN_URL}\">🔍 Открыть GitHub Actions</a>"
+              COMMENT="Deployment to ${ENV_NAME} failed: ${RUN_URL}" ;;
+            skipped)
+              # Deploy job succeeded without deploying: the recheck found the commit already released.
+              [ "${DEPLOY_STATUS}" = "success" ] && RELEASE_STATE="released"
+              HEAD="ℹ️ <b>Деплой не требуется</b> (${RELEASE_STATE:-skip}): production не менялся"
+              CACHE_STATUS="ℹ️ <b>Прогрев Redis-кэша:</b> не выполнялся" ;;
+            unpublished)
+              HEAD="⚠️ Деплой <b>v${VERSION}</b> подтверждён, <b>релиз не опубликован</b> (Re-run publish)"
+              EXTRA_LINK="\n\n<a href=\"${RUN_URL}\">🔍 Открыть GitHub Actions</a>"
+              COMMENT="Deployed v${VERSION} to ${ENV_NAME}; GitHub Release publication failed: ${RUN_URL}" ;;
+            released)
+              HEAD="✅ Релиз <b>v${VERSION}</b> выпущен: деплой подтверждён, GitHub Release опубликован"
+              [ "${DEPLOYED}" = "true" ] || CACHE_STATUS="ℹ️ <b>Прогрев Redis-кэша:</b> выполнен при деплое релиза"
+              COMMENT="Released v${VERSION} to ${ENV_NAME}: ${REPO_URL}/releases/tag/v${VERSION} (run ${RUN_URL})" ;;
+            *)
+              HEAD="✅ Деплой <b>успешен</b>"
+              COMMENT="Deployed to ${ENV_NAME} via GitHub Actions run ${RUN_URL}" ;;
+          esac
 
           TASKS_BLOCK=""
           if [ -n "${JIRA_KEYS:-}" ] || [ -n "${OP_IDS:-}" ]; then
@@ -326,7 +501,8 @@ jobs:
 
           🧩 <b>Env:</b> <code>${ENV_NAME}</code>
           📦 <b>Ветка:</b> <code>${REF_NAME}</code>
-          🔖 <b>Коммит:</b> <code>${SHORT_SHA}</code>
+          🔖 <b>Коммит:</b> <code>${SHORT_SHA}</code>${VERSION:+
+          🏷 <b>Версия:</b> <code>${VERSION}</code>}
           👤 <b>Автор:</b> <a href="https://github.com/${AUTHOR_LOGIN}">${SAFE_AUTHOR}</a>
           ${CACHE_STATUS}
 
@@ -352,8 +528,9 @@ jobs:
           fi
 
           # --- 2) Jira comments
-          if [ -n "${JIRA_URL:-}" ] && [ -n "${JIRA_USER:-}" ] && [ -n "${JIRA_API_TOKEN:-}" ] && [ -n "${JIRA_KEYS:-}" ]; then
-            COMMENT="Deployed to ${ENV_NAME} via GitHub Actions run ${RUN_URL}"
+          if [ "${OUTCOME}" = "skipped" ]; then
+            echo "Deployment skipped, no Jira comments"
+          elif [ -n "${JIRA_URL:-}" ] && [ -n "${JIRA_USER:-}" ] && [ -n "${JIRA_API_TOKEN:-}" ] && [ -n "${JIRA_KEYS:-}" ]; then
             PAYLOAD="$(jq -n --arg body "$COMMENT" '{body:$body}')"
 
             for KEY in ${JIRA_KEYS}; do
@@ -382,8 +559,9 @@ jobs:
           fi
 
           # --- 3) OpenProject comments (как у тебя было)
-          if [ -n "${OPENPROJECT_URL:-}" ] && [ -n "${OPENPROJECT_API_TOKEN:-}" ] && [ -n "${OP_IDS:-}" ]; then
-            COMMENT="Deployed to ${ENV_NAME} via GitHub Actions run ${RUN_URL}"
+          if [ "${OUTCOME}" = "skipped" ]; then
+            echo "Deployment skipped, no OpenProject comments"
+          elif [ -n "${OPENPROJECT_URL:-}" ] && [ -n "${OPENPROJECT_API_TOKEN:-}" ] && [ -n "${OP_IDS:-}" ]; then
             for ID in ${OP_IDS}; do
               echo "Post comment to OpenProject OP#${ID}"
               curl -sS -X POST \

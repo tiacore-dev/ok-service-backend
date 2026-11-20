@@ -1,3 +1,4 @@
+import os
 import re
 import time
 
@@ -65,7 +66,12 @@ def setup_metrics(
         registry=registry,
     )
     if "app_info" not in registry._names_to_collectors:
-        metrics.info("app_info", "Описание приложения", version="1.0.3")
+        # APP_VERSION is set by the production image build; local and dev/stage runs report "dev".
+        metrics.info(
+            "app_info",
+            "Описание приложения",
+            version=os.getenv("APP_VERSION") or "dev",
+        )
     return metrics
 
 
