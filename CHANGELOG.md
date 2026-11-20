@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- Релизная автоматика: перед деплоем или публикацией существующего образа
+  `X.Y.Z` проверяется, что он и кандидат `master-<SHA>` — один digest (и он же
+  digest сборки прогона), а метки `revision`/`version` верны; иначе `select`/
+  `publish` падают до SSH, Alembic и публикации (раньше `select` возвращал
+  `resume` с digest `X.Y.Z`, даже если тот указывал на другую сборку).
+  Release для уже существующего аннотированного тега на коммите прогона можно
+  дозавершить и после выхода более новой версии (Re-run failed jobs или
+  Re-run all jobs → `released`): создаётся только Release с
+  `make_latest=false`, без сборок, деплоя и записи тегов. Job `publish` теперь
+  входит в Docker Hub (только чтение), `publish` требует digest; для
+  `released`/`outdated` не собирается тестовый образ.
+  См. «Публикация A после выхода B» в `docs/release-process.md`.
+
 - Автоматические production-релизы из `master`: версия SemVer вычисляется из
   Conventional Commits (`fix`/`perf` — PATCH, `feat` — MINOR, `type!:` и
   `BREAKING CHANGE` — MAJOR), первый релиз — ровно `1.0.0`. После проверенного

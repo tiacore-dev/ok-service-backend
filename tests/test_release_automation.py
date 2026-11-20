@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -18,6 +19,8 @@ CI_SCRIPT = ROOT / "scripts/release-ci.sh"
 DEPLOY_SCRIPT = ROOT / "scripts/deploy-production.sh"
 IMAGE = "acme/ok-service-backend"
 DIGEST = "sha256:" + "a" * 64
+OTHER_DIGEST = "sha256:" + "b" * 64
+WORKFLOW = ROOT / ".github/workflows/deploy.yml"
 
 # CI sets RELEASE_TESTS_REQUIRED=1 so missing tools fail the run instead of skipping silently.
 needs_git = pytest.mark.skipif(
@@ -30,6 +33,7 @@ FAKE_DOCKER_REGISTRY = r"""#!/usr/bin/env bash
 printf '%s\n' "$*" >> "$REG/docker_calls"
 [ "$1 $2" = "buildx imagetools" ] || exit 0
 [ -f "$REG/ERROR" ] && { echo "ERROR: unauthorized: authentication required" >&2; exit 1; }
+[ -n "${ERROR_REF:-}" ] && [[ "${4:-}" == *"$ERROR_REF"* ]] && { echo "ERROR: toomanyrequests" >&2; exit 1; }
 case "$3" in
   inspect)
     f="$REG/tags/${4##*:}"
@@ -131,11 +135,33 @@ class Repo:
         self.git("tag", "-a", f"v{version}", "-m", f"Release v{version}", ref)
         self.git("push", "-q", "origin", f"v{version}")
 
-    def image(self, version: str, digest: str, revision: str) -> None:
-        """Registry entries by tag and by digest (the fake keys refs by text after the last ':')."""
+    def image(
+        self, version: str, digest: str, revision: str, candidate: bool = True
+    ) -> None:
+        """Registry entries by tag, by digest and (as promotion leaves it) the candidate master-<revision>.
+
+        The fake keys refs by text after the last ':'.
+        """
         entry = f"{digest} {revision} {version}\n"
-        (self.reg / "tags" / version).write_text(entry)
-        (self.reg / "tags" / digest.split(":")[1]).write_text(entry)
+        names = [version, digest.split(":")[1]] + (
+            [f"master-{revision}"] if candidate else []
+        )
+        for name in names:
+            (self.reg / "tags" / name).write_text(entry)
+
+    def remote_writes(self) -> dict[str, str]:
+        """Everything a run could change remotely: origin refs, registry, GitHub API, workflow dispatch."""
+        return {
+            "refs": self.git("ls-remote", "origin"),
+            "registry": "".join(
+                sorted(f.name + f.read_text() for f in (self.reg / "tags").iterdir())
+            ),
+            "registry_writes": "\n".join(
+                c for c in self.calls("docker_calls").splitlines() if "inspect" not in c
+            ),
+            "posts": str(self.calls("curl_calls").count("POST")),
+            "gh": self.calls("gh_calls"),
+        }
 
     def run(self, script: Path, *args: str, **env: str) -> subprocess.CompletedProcess:
         return subprocess.run(
@@ -273,11 +299,11 @@ def test_full_rerun_finishes_promoted_release_after_master_advances(repo):
     repo.git("checkout", "-q", "--detach", b)
     assert repo.select(b) == {"state": "new", "version": "1.0.1", "digest": ""}
 
-    # Once B is released, a stale rerun of A is a no-op, never a rollback.
+    # Once B is released, a stale rerun of A never deploys: tagged A only finishes publication.
     repo.image("1.0.1", "sha256:" + "b" * 64, b)
     repo.tag("1.0.1", b)
     repo.git("checkout", "-q", "--detach", a)
-    assert repo.select(a) == {"state": "outdated"}
+    assert repo.select(a) == {"state": "released", "version": "1.0.0", "digest": DIGEST}
 
 
 @needs_git
@@ -336,6 +362,71 @@ def test_existing_image_of_this_commit_is_resumed(repo):
     repo.image("1.0.0", DIGEST, sha)
 
     assert repo.select(sha) == {"state": "resume", "version": "1.0.0", "digest": DIGEST}
+    assert f"imagetools inspect {IMAGE}:master-{sha}\n" in repo.calls("docker_calls")
+
+
+@needs_git
+@pytest.mark.parametrize("superseded", [False, True], ids=["tip", "full-rerun-after-b"])
+def test_resume_refuses_version_image_of_another_build(repo, superseded):
+    """Regression: master-<A> is digest A, 1.0.0 is digest B, both labelled A/1.0.0; B must never deploy."""
+    a = repo.commit("feat: OK-1 a")
+    repo.image("1.0.0", DIGEST, a)
+    repo.image(
+        "1.0.0", OTHER_DIGEST, a, candidate=False
+    )  # 1.0.0 now names another build
+    if superseded:
+        repo.commit("fix: OK-2 b")
+        repo.git("checkout", "-q", "--detach", a)
+    before = repo.remote_writes()
+
+    result = repo.run(CI_SCRIPT, "select", IMAGE, a)
+
+    assert result.returncode != 0
+    assert f"{IMAGE}:master-{a} is {DIGEST}, not {OTHER_DIGEST}" in result.stderr
+    assert (
+        "state=" not in result.stdout
+    )  # nothing for $GITHUB_OUTPUT: deploy/publish never start
+    assert repo.remote_writes() == before
+
+
+@needs_git
+@pytest.mark.parametrize(
+    ("setup", "message"),
+    [
+        ({"candidate": False}, "master-{sha} is missing from the registry"),
+        (
+            {"ERROR_REF": "master-"},
+            "Cannot check registry for acme/ok-service-backend:master-{sha}",
+        ),
+    ],
+    ids=["candidate-missing", "candidate-lookup-error"],
+)
+def test_resume_requires_a_readable_candidate(repo, setup, message):
+    sha = repo.commit("feat: base")
+    repo.image("1.0.0", DIGEST, sha, candidate=setup.pop("candidate", True))
+
+    result = repo.run(CI_SCRIPT, "select", IMAGE, sha, **setup)
+
+    assert result.returncode != 0
+    assert message.format(sha=sha) in result.stderr
+    assert "state=" not in result.stdout
+
+
+@needs_git
+def test_publish_refuses_digest_other_than_the_verified_one(repo):
+    """The workflow deployed OTHER_DIGEST (an older build of the same commit); 1.0.0 now names DIGEST."""
+    sha = repo.commit("feat: base")
+    repo.image("1.0.0", DIGEST, sha)
+    (repo.reg / "tags" / OTHER_DIGEST.split(":")[1]).write_text(
+        f"{OTHER_DIGEST} {sha} 1.0.0\n"
+    )
+    before = repo.remote_writes()
+
+    result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.0", OTHER_DIGEST, sha)
+
+    assert result.returncode != 0
+    assert f"{IMAGE}:1.0.0 is {DIGEST}, not {OTHER_DIGEST}" in result.stderr
+    assert repo.remote_writes() == before
 
 
 @needs_git
@@ -475,6 +566,7 @@ def remote_tag_target(repo: Repo, tag: str) -> str:
 def test_bootstrap_publication_creates_annotated_tag_and_release(repo):
     history_without_tags(repo)
     sha = repo.commit("ci: automate production releases")
+    repo.image("1.0.0", DIGEST, sha)
 
     result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, sha)
 
@@ -482,6 +574,7 @@ def test_bootstrap_publication_creates_annotated_tag_and_release(repo):
     assert remote_tag_target(repo, "v1.0.0") == sha
     body = json.loads(repo.calls("release_body.json"))
     assert body["tag_name"] == body["name"] == "v1.0.0"
+    assert body["make_latest"] == "true"
     for text in (
         "## 1.0.0 (",
         "Initial production release.",
@@ -499,6 +592,7 @@ def test_subsequent_notes_group_changes(repo):
     repo.commit("feat(works): OK-7 tree")
     repo.commit("fix: OK-8 bug")
     sha = repo.commit("docs: notes")
+    repo.image("1.1.0", DIGEST, sha)
 
     result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.1.0", DIGEST, sha)
 
@@ -514,6 +608,7 @@ def test_subsequent_notes_group_changes(repo):
 def test_publication_retry_with_tag_but_no_release_finishes_release(repo):
     sha = repo.commit("feat: base")
     repo.tag("1.0.0")
+    repo.image("1.0.0", DIGEST, sha)
     tag_object = repo.git("rev-parse", "refs/tags/v1.0.0")
 
     result = repo.run(
@@ -529,6 +624,7 @@ def test_publication_retry_with_tag_but_no_release_finishes_release(repo):
 def test_publication_retry_with_tag_and_release_succeeds_without_changes(repo):
     sha = repo.commit("feat: base")
     repo.tag("1.0.0")
+    repo.image("1.0.0", DIGEST, sha)
 
     result = repo.run(
         CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, sha, RELEASE_CODE="200"
@@ -543,6 +639,7 @@ def test_existing_tag_on_another_commit_is_never_moved(repo):
     repo.commit("feat: base")
     repo.tag("1.0.0")
     sha = repo.commit("fix: later")
+    repo.image("1.0.0", DIGEST, sha)
 
     result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, sha)
 
@@ -557,6 +654,7 @@ def test_publication_retry_refuses_commit_dropped_from_master(repo):
     a = repo.commit("feat: a")
     repo.git("checkout", "-q", "-b", "rewritten", base)
     repo.commit("fix: replacement")  # force-pushed over master after A deployed
+    repo.image("1.0.0", DIGEST, a)
     repo.git("checkout", "-q", "--detach", a)
 
     result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, a)
@@ -572,6 +670,7 @@ def test_lightweight_tag_is_rejected(repo):
     sha = repo.commit("feat: base")
     repo.git("tag", "v1.0.0")
     repo.git("push", "-q", "origin", "v1.0.0")
+    repo.image("1.0.0", DIGEST, sha)
 
     result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, sha)
 
@@ -582,6 +681,7 @@ def test_lightweight_tag_is_rejected(repo):
 @needs_git
 def test_release_api_auth_failure_is_not_treated_as_missing(repo):
     sha = repo.commit("feat: base")
+    repo.image("1.0.0", DIGEST, sha)
 
     result = repo.run(
         CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, sha, RELEASE_CODE="401"
@@ -597,11 +697,234 @@ def test_publication_refuses_version_older_than_latest_release(repo):
     repo.commit("feat: base")
     repo.tag("1.1.0")
     sha = repo.commit("fix: later")
+    repo.image("1.0.1", DIGEST, sha)
 
     result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.1", DIGEST, sha)
 
     assert result.returncode != 0
     assert "newer release v1.1.0" in result.stderr
+
+
+# --- historical publication recovery (A after B) -------------------------------------------------
+
+
+def ship_a_then_b(repo: Repo) -> str:
+    """Regression: A deploys 1.0.0 and pushes v1.0.0 but its Release request fails; B ships 1.0.1."""
+    a = repo.commit("feat: OK-1 a")
+    repo.image("1.0.0", DIGEST, a)
+    failed = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, a, POST_EXIT="22")
+    assert failed.returncode != 0
+    assert remote_tag_target(repo, "v1.0.0") == a
+    (
+        repo.work / "release_notes.md"
+    ).unlink()  # each CI job starts from a clean checkout
+
+    b = repo.commit("fix: OK-2 b")
+    assert repo.select(b) == {"state": "new", "version": "1.0.1", "digest": ""}
+    repo.image("1.0.1", OTHER_DIGEST, b)
+    shipped = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.1", OTHER_DIGEST, b)
+    assert shipped.returncode == 0, shipped.stderr
+    (repo.work / "release_notes.md").unlink()
+
+    repo.git("checkout", "-q", "--detach", a)
+    for name in ("docker_calls", "curl_calls", "gh_calls", "release_body.json"):
+        (repo.reg / name).unlink(missing_ok=True)
+    return a
+
+
+@needs_git
+@pytest.mark.parametrize("entry", ["rerun-failed-jobs", "rerun-all-jobs"])
+def test_release_of_a_is_recovered_after_b_shipped(repo, entry):
+    a = ship_a_then_b(repo)
+    if (
+        entry == "rerun-all-jobs"
+    ):  # fresh selection; rerun-failed reuses the first attempt's outputs
+        selected = repo.select(a)
+        assert selected == {"state": "released", "version": "1.0.0", "digest": DIGEST}
+        assert route(selected["state"]) == PUBLICATION_ONLY
+    before = repo.remote_writes()
+
+    result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, a)
+
+    assert result.returncode == 0, result.stderr
+    after = repo.remote_writes()
+    # The only remote write: one POST creating the v1.0.0 Release.
+    assert after == {**before, "posts": "1"}
+    body = json.loads(repo.calls("release_body.json"))
+    assert body["tag_name"] == "v1.0.0"
+    assert body["make_latest"] == "false"  # 1.0.1 stays GitHub's latest release
+    for text in ("## 1.0.0 (", "Initial production release.", a, DIGEST):
+        assert text in body["body"]
+    assert "OK-2" not in body["body"] and OTHER_DIGEST not in body["body"]
+
+    # Second retry: the Release exists now, zero writes.
+    again = repo.run(
+        CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, a, RELEASE_CODE="200"
+    )
+    assert again.returncode == 0, again.stderr
+    assert repo.remote_writes() == after
+
+
+@needs_git
+@pytest.mark.parametrize(
+    ("tag", "message"),
+    [
+        ("missing", "newer release v1.0.1 exists"),
+        ("other-commit", "exists on another commit; tags are never moved"),
+        ("lightweight", "exists but is not an annotated tag"),
+    ],
+)
+def test_historical_recovery_needs_annotated_tag_on_the_commit(repo, tag, message):
+    base = repo.commit("chore: base")
+    a = repo.commit("feat: OK-1 a")
+    repo.image("1.0.0", DIGEST, a)
+    if tag == "other-commit":
+        repo.tag("1.0.0", base)
+    elif tag == "lightweight":
+        repo.git("tag", "v1.0.0", a)
+        repo.git("push", "-q", "origin", "v1.0.0")
+    b = repo.commit("fix: OK-2 b")
+    repo.image("1.0.1", OTHER_DIGEST, b)
+    repo.tag("1.0.1", b)
+    repo.git("checkout", "-q", "--detach", a)
+    before = repo.remote_writes()
+
+    # Re-run all jobs: no-op, nothing deployed or published.
+    assert repo.select(a) == {"state": "outdated"}
+    # Re-run failed jobs (publish with the first attempt's outputs): refused, no tag created or moved.
+    result = repo.run(CI_SCRIPT, "publish", IMAGE, "1.0.0", DIGEST, a)
+
+    assert result.returncode != 0
+    assert message in result.stderr
+    assert repo.remote_writes() == before
+
+
+# --- workflow routing ----------------------------------------------------------------------------
+
+
+def workflow_if(header: str) -> str | None:
+    """`if:` of the job (`deploy:`) or step (`- name: ...`) on line `header`; None = always runs."""
+    lines = WORKFLOW.read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if line.strip() == header)
+    key_indent = len(lines[start]) - len(lines[start].lstrip()) + 2
+    for i in range(start + 1, len(lines)):
+        indent = len(lines[i]) - len(lines[i].lstrip())
+        if lines[i].strip() and indent < key_indent:
+            return None
+        if indent == key_indent and lines[i].strip().startswith("if:"):
+            value = lines[i].strip()[3:].strip()
+            if value != ">-":
+                return value
+            folded = []
+            for line in lines[i + 1 :]:
+                if line.strip() and len(line) - len(line.lstrip()) <= key_indent:
+                    break
+                folded.append(line.strip())
+            return " ".join(folded)
+    return None
+
+
+def evaluate(expression: str | None, context: dict[str, str]) -> bool:
+    """GitHub expression subset used by deploy.yml: contexts, '==', '!=', '&&', '||', always()."""
+    if expression is None:
+        return True
+    python = re.sub(
+        r"\b[a-z_]+(?:\.[\w-]+)+",
+        lambda m: repr(context.get(m.group(0), "")),
+        expression,
+    )
+    python = (
+        python.replace("always()", "True").replace("&&", " and ").replace("||", " or ")
+    )
+    return bool(eval(python))  # input is our own workflow file
+
+
+STEPS = {
+    "test_build": "- name: Build test image & run tests",
+    "candidate_build": "- name: Build and push production candidate (master)",
+    "promote": "- name: Tag candidate digest with the release version (master)",
+    "reschedule": "- name: Reschedule master tip (superseded run)",
+}
+PUBLICATION_ONLY = {
+    "test_build": False,
+    "candidate_build": False,
+    "promote": False,
+    "reschedule": False,
+    "deploy": False,
+    "publish": True,
+}
+
+
+def route(state: str, build_result: str = "success") -> dict[str, bool]:
+    """Which master jobs/steps run for a select result (deploy, when it runs, deploys)."""
+    context = {
+        "github.ref_name": "master",
+        "steps.release.outputs.state": state,
+        "needs.build-test-push.result": build_result,
+        "needs.build-test-push.outputs.state": state,
+    }
+    routed = {
+        name: evaluate(workflow_if(header), context) for name, header in STEPS.items()
+    }
+    routed["deploy"] = build_result == "success" and evaluate(
+        workflow_if("deploy:"), context
+    )
+    context["needs.deploy.result"] = "success" if routed["deploy"] else "skipped"
+    context["needs.deploy.outputs.deployed"] = "true" if routed["deploy"] else ""
+    routed["publish"] = evaluate(workflow_if("publish:"), context)
+    return routed
+
+
+@pytest.mark.parametrize(
+    ("state", "build_result", "expected"),
+    [
+        ("released", "success", PUBLICATION_ONLY),
+        (
+            "outdated",
+            "success",
+            {**PUBLICATION_ONLY, "reschedule": True, "publish": False},
+        ),
+        ("none", "success", {**PUBLICATION_ONLY, "test_build": True, "publish": False}),
+        (
+            "resume",
+            "success",
+            {**PUBLICATION_ONLY, "test_build": True, "deploy": True},
+        ),
+        (
+            "new",
+            "success",
+            {
+                **PUBLICATION_ONLY,
+                "test_build": True,
+                "candidate_build": True,
+                "promote": True,
+                "deploy": True,
+            },
+        ),
+        # select failed (identity mismatch): no state output, nothing after it runs.
+        ("", "failure", {**PUBLICATION_ONLY, "test_build": True, "publish": False}),
+    ],
+)
+def test_workflow_routes_select_results(state, build_result, expected):
+    assert route(state, build_result) == expected
+
+
+def test_workflow_rechecks_identity_before_ssh_and_publication():
+    text = WORKFLOW.read_text()
+    publish_job = text.split("\n  publish:\n", 1)[1].split("\n  notify:\n", 1)[0]
+    deploy_job = text.split("\n  deploy:\n", 1)[1].split("\n  publish:\n", 1)[0]
+    # publish verifies the build's digest against the registry: it needs (only) Docker Hub read access.
+    assert "docker/login-action" in publish_job
+    assert '"${{ needs.build-test-push.outputs.digest }}" "$GITHUB_SHA"' in publish_job
+    # SSH on master only after the recheck (the same select) accepted version and digest of the build.
+    assert deploy_job.index("release-ci.sh select") < deploy_job.index("ssh-agent")
+    assert "steps.recheck.outputs.go == 'true'" in (
+        workflow_if("- name: Setup SSH") or ""
+    )
+    assert (
+        "notify:" not in publish_job
+        and "docker/login-action" not in text.split("\n  notify:\n", 1)[1]
+    )
 
 
 # --- server deployment -------------------------------------------------------------------------

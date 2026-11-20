@@ -2,9 +2,11 @@
 # Production release steps for GitHub Actions (docs/release-process.md). Run from the repository root.
 #   release-ci.sh select  <image> <sha>                    -> state=/version=/digest= lines for $GITHUB_OUTPUT
 #     Same call for the build and the deploy-time recheck. If master moved past <sha>, the run continues only
-#     when <sha> is still on master, no release exists outside it, and it owns the tag vX.Y.Z or image X.Y.Z.
+#     when <sha> is still on master and owns the tag vX.Y.Z (state=released: publication only, even after newer
+#     releases), or no release exists outside it and it owns the image X.Y.Z.
 #   release-ci.sh promote <image> <version> <digest>       -> gives the candidate digest the Docker tag <version>
 #   release-ci.sh publish <image> <version> <digest> <sha> -> annotated tag vX.Y.Z + GitHub Release
+#     A tag already on <sha> only gets its missing Release (not marked latest if a newer release exists).
 #   release-ci.sh reschedule                               -> queue a run for the master tip (after state=outdated)
 # state: outdated | none (nothing to release) | released (tag exists) | resume (image X.Y.Z of this commit exists) | new
 set -euo pipefail
@@ -28,6 +30,28 @@ registry_digest() {
 }
 
 image_label() { docker buildx imagetools inspect "$1" --format "{{index .Image.Config.Labels \"$2\"}}"; }
+
+# Identity of an existing release image before deploy or publication: the manifest <digest> is labelled
+# <sha>/<version>, and both <version> and the candidate master-<sha> resolve to it. Exits on any mismatch.
+verify_identity() {
+  local image="$1" version="$2" sha="$3" digest="$4" ref found rc rev ver
+  # Labels come from the digest, so a tag moved after the lookup cannot vouch for it.
+  rev="$(image_label "${image}@${digest}" org.opencontainers.image.revision)"
+  ver="$(image_label "${image}@${digest}" org.opencontainers.image.version)"
+  if [ "$rev" != "$sha" ] || [ "$ver" != "$version" ]; then
+    fail "Image ${version} (${digest}) has revision=${rev:-none} version=${ver:-none}, not ${sha}/${version}." \
+      "See 'Прерванный промоушен' in docs/release-process.md."
+  fi
+  for ref in "$version" "master-${sha}"; do
+    rc=0
+    found="$(registry_digest "${image}:${ref}")" || rc=$?
+    case "$rc" in
+      0) [ "$found" = "$digest" ] || fail "${image}:${ref} is ${found}, not ${digest}: not the verified build of ${sha}" ;;
+      2) fail "${image}:${ref} is missing from the registry; cannot verify release ${version} of ${sha}" ;;
+      *) exit 1 ;;
+    esac
+  done
+}
 
 # Annotated SemVer release tags (same rule as release-version.sh) matching for-each-ref filters.
 release_tags() {
@@ -53,7 +77,8 @@ select_release() {
       printf 'state=outdated\n'
       return
     fi
-    if [ -n "$(release_tags --no-merged "$sha")" ]; then
+    # A commit carrying its own release tag may still finish publication (state=released, never deployed).
+    if [ -z "$(release_tags --points-at "$sha")" ] && [ -n "$(release_tags --no-merged "$sha")" ]; then
       echo "Superseded: a newer release exists outside ${sha}; never rolling back." >&2
       printf 'state=outdated\n'
       return
@@ -71,18 +96,15 @@ select_release() {
   digest="$(registry_digest "${image}:${version}")" || rc=$?
   case "$rc" in
     0)
-      # Labels come from the resolved digest, so a tag moved after the lookup cannot vouch for it.
-      rev="$(image_label "${image}@${digest}" org.opencontainers.image.revision)"
-      ver="$(image_label "${image}@${digest}" org.opencontainers.image.version)"
-      if [ "$rev" != "$sha" ] || [ "$ver" != "$version" ]; then
-        if [ -n "$superseded" ] && [ "$state" = new ]; then
+      if [ -n "$superseded" ] && [ "$state" = new ]; then
+        rev="$(image_label "${image}@${digest}" org.opencontainers.image.revision)"
+        if [ "$rev" != "$sha" ]; then
           echo "Superseded: image ${version} belongs to ${rev:-another commit}, not ${sha}." >&2
           printf 'state=outdated\n'
           return
         fi
-        fail "Image ${version} (${digest}) has revision=${rev:-none} version=${ver:-none}, not ${sha}/${version}." \
-          "See 'Незавершённый релиз' in docs/release-process.md."
       fi
+      verify_identity "$image" "$version" "$sha" "$digest"
       [ "$state" = new ] && state=resume
       ;;
     2)
@@ -114,19 +136,24 @@ promote() {
 }
 
 publish() {
-  local image="$1" version="$2" digest="$3" sha="$4" tag="v$2" remote rc=0 api code notes master
+  local image="$1" version="$2" digest="$3" sha="$4" tag="v$2" remote rc=0 api code notes master latest=true
   [ "$(git rev-parse HEAD)" = "$sha" ] || fail "Checkout is not ${sha}"
-  sh "$VERSION_SCRIPT" check-latest "$version"
+  case "$digest" in sha256:*) ;; *) fail "Invalid release digest '${digest}'" ;; esac
+  # The digest this run deployed (or select verified) must still be the version image of this commit.
+  verify_identity "$image" "$version" "$sha" "$digest"
+  git fetch -q --force --tags origin
 
   remote="$(git ls-remote --exit-code origin "refs/tags/${tag}" | cut -f1)" || rc=$?
   case "$rc" in
     0)
-      # release-version.sh force-fetched tags, so the remote tag object is available locally.
+      # Tags were force-fetched above, so the remote tag object is available locally.
       [ "$(git cat-file -t "$remote")" = tag ] || fail "${tag} exists but is not an annotated tag; not moving it"
       [ "$(git rev-parse "${remote}^{commit}")" = "$sha" ] || fail "${tag} exists on another commit; tags are never moved"
       echo "Tag ${tag} already exists on ${sha}." >&2
       ;;
     2)
+      # Never create a historical tag: an old run may only tag the newest release.
+      sh "$VERSION_SCRIPT" check-latest "$version"
       # A retry may run after master was rewritten; never create the highest tag on a commit master dropped.
       master="$(fetch_master)" || fail "Cannot fetch origin master"
       git merge-base --is-ancestor "$sha" "$master" || fail "${sha} is no longer on master; not creating ${tag}"
@@ -145,12 +172,15 @@ publish() {
     *) fail "Cannot read GitHub Release ${tag} (HTTP ${code:-none}); check token permissions" ;;
   esac
 
+  # A release published after a newer one (historical recovery) must not become GitHub's latest.
+  if [ -n "$(release_tags --no-merged "$sha")" ]; then latest=false; fi
   notes="$(sh "$VERSION_SCRIPT" notes "$version")"
   # shellcheck disable=SC2016  # backticks are Markdown
   printf '%s\n\n---\n\n- Commit: `%s`\n- Image: `%s:%s`\n- Digest: `%s`\n- Actions run: %s\n' \
-    "$notes" "$sha" "$image" "$version" "${digest:-n/a}" \
+    "$notes" "$sha" "$image" "$version" "$digest" \
     "${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-unknown}" > release_notes.md
-  jq -n --arg tag "$tag" --rawfile body release_notes.md '{tag_name: $tag, name: $tag, body: $body}' \
+  jq -n --arg tag "$tag" --arg latest "$latest" --rawfile body release_notes.md \
+    '{tag_name: $tag, name: $tag, body: $body, make_latest: $latest}' \
     | curl -sS --fail-with-body -o /dev/null -X POST "${auth[@]}" -d @- "$api"
   echo "Published ${tag}." >&2
 }
@@ -173,6 +203,6 @@ case "${1:-}" in
   select) select_release "${2:?image}" "${3:?sha}" ;;
   promote) promote "${2:?image}" "${3:?version}" "${4:?digest}" ;;
   reschedule) reschedule ;;
-  publish) publish "${2:?image}" "${3:?version}" "${4-}" "${5:?sha}" ;;
+  publish) publish "${2:?image}" "${3:?version}" "${4:?digest}" "${5:?sha}" ;;
   *) echo "usage: $0 select|promote|publish|reschedule ..." >&2; exit 2 ;;
 esac

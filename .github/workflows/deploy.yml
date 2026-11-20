@@ -85,7 +85,9 @@ jobs:
           echo "SECRET_KEY=another_test_key" >> .env.test
           echo "TEST_DATABASE_URL=postgresql://test:test@172.17.0.1:5432/test_db" >> .env.test
 
+      # released (publication only) and outdated (no-op) build nothing, not even the test image and its cache.
       - name: Build test image & run tests
+        if: steps.release.outputs.state != 'released' && steps.release.outputs.state != 'outdated'
         run: |
           docker buildx build \
             --target test \
@@ -301,7 +303,8 @@ jobs:
           echo "deployed=true" >> "$GITHUB_OUTPUT"
 
 
-  # Only after a verified deployment of this run, or to finish a release whose tag already exists.
+  # Only after a verified deployment of this run, or to finish a release whose tag already exists
+  # (state=released, also for an older release after a newer one shipped: publication only).
   publish:
     runs-on: ubuntu-latest
     needs: [build-test-push, deploy]
@@ -316,6 +319,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # Read-only here: publish re-verifies the release image identity before writing a tag or Release.
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create tag and GitHub Release
         env:
