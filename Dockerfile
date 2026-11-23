@@ -48,6 +48,10 @@ COPY --from=builder /opt/venv /opt/venv
 # ===== TESTING =====
 FROM base AS test
 
+# git and jq: release-automation tests (tests/test_release_automation.py); not in the prod stage.
+RUN apt-get update && apt-get install -y --no-install-recommends git jq \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir pytest
 
 COPY . .
@@ -67,6 +71,10 @@ RUN groupadd --gid 1000 appuser \
 COPY --chown=appuser:appuser . /app
 
 USER appuser
+
+# Release version for app_info; set by the master build, "dev" otherwise. Kept last for layer caching.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 
 EXPOSE 8000
 

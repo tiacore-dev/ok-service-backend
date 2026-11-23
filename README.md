@@ -35,12 +35,16 @@
 - [docs/shift-standards.md](./docs/shift-standards.md) - поля стандарта смены, валидация, PATCH и миграция.
 - [docs/work-category-hierarchy.md](./docs/work-category-hierarchy.md) - иерархия категорий работ через `parent_id`, защита от циклов и миграция.
 - [docs/work-price-availability.md](./docs/work-price-availability.md) - допустимые цены работ (`>= 0` и `-1`), запрет недоступных работ для категории исполнителя смены и поля доступности в API выбора работ.
+- [docs/release-process.md](./docs/release-process.md) - автоматические production-релизы: SemVer из Conventional Commits, теги `vX.Y.Z`, GitHub Releases, первый релиз `1.0.0`, повторы и восстановление.
 
 ## Наблюдаемость
 
 Прикладной логгер использует уровень `INFO` по умолчанию. Для временной
 диагностики можно задать `LOG_LEVEL=DEBUG`; в production этот уровень не
 рекомендуется, поскольку он включает технические детали.
+
+Метрика `app_info{version=...}` показывает версию production-релиза
+(`APP_VERSION` из образа `master`); локально и на dev/stage — `dev`.
 
 Трассы передаются в Jaeger по OTLP/HTTP. При запуске сервисов в общей сети
 `ok_network` дополнительные переменные не нужны: используется
